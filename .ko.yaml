@@ -17,21 +17,6 @@
 defaultBaseImage: gcr.io/distroless/base:debug-nonroot
 
 builds:
-- id: cosign
-  dir: .
-  main: ./cmd/cosign
-  env:
-  - CGO_ENABLED=0
-  flags:
-  - -trimpath
-  - -tags
-  - "{{ .Env.GIT_HASH }}"
-  - -tags
-  - "{{ .Env.GIT_VERSION }}"
-  ldflags:
-  - -extldflags "-static"
-  - "{{ .Env.LDFLAGS }}"
-
 - id: policy-controller
   dir: .
   main: ./cmd/cosign/webhook
@@ -50,21 +35,6 @@ builds:
 - id: policy_webhook
   dir: .
   main: ./cmd/cosign/policy_webhook
-  env:
-  - CGO_ENABLED=0
-  flags:
-  - -trimpath
-  - --tags
-  - "{{ .Env.GIT_HASH }}"
-  - --tags
-  - "{{ .Env.GIT_VERSION }}"
-  ldflags:
-  - -extldflags "-static"
-  - "{{ .Env.LDFLAGS }}"
-
-- id: sget
-  dir: .
-  main: ./cmd/sget
   env:
   - CGO_ENABLED=0
   flags:
