@@ -25,8 +25,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/sigstore/policy-controller/cmd/cosign/cli/options"
 	"github.com/sigstore/fulcio/pkg/api"
+	"github.com/sigstore/policy-controller/cmd/cosign/cli/options"
 	"github.com/sigstore/sigstore/pkg/oauthflow"
 )
 

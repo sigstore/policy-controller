@@ -29,11 +29,11 @@ import (
 
 	"golang.org/x/term"
 
+	"github.com/sigstore/fulcio/pkg/api"
 	"github.com/sigstore/policy-controller/cmd/cosign/cli/fulcio/fulcioroots"
 	"github.com/sigstore/policy-controller/cmd/cosign/cli/options"
 	"github.com/sigstore/policy-controller/pkg/cosign"
 	"github.com/sigstore/policy-controller/pkg/providers"
-	"github.com/sigstore/fulcio/pkg/api"
 	"github.com/sigstore/sigstore/pkg/oauthflow"
 	"github.com/sigstore/sigstore/pkg/signature"
 )
