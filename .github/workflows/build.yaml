@@ -50,8 +50,8 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/auth@ceee102ec2387dd9e844e01b530ccd4ec87ce955 # v0.8.0
         with:
-          workload_identity_provider: 'projects/498091336538/locations/global/workloadIdentityPools/githubactions/providers/sigstore-cosign'
-          service_account: 'github-actions@projectsigstore.iam.gserviceaccount.com'
+          workload_identity_provider: 'projects/498091336538/locations/global/workloadIdentityPools/githubactions/providers/sigstore-policy-controller'
+          service_account: 'gha-policy-controller@projectsigstore.iam.gserviceaccount.com'
 
       - name: creds
         run: gcloud auth configure-docker --quiet

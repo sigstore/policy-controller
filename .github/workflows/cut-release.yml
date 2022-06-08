@@ -29,7 +29,6 @@ jobs:
       release_tag: ${{ github.event.inputs.release_tag }}
       key_ring: ${{ github.event.inputs.key_ring }}
       key_name: ${{ github.event.inputs.key_name }}
-      workload_identity_provider: 'projects/498091336538/locations/global/workloadIdentityPools/githubactions/providers/sigstore-cosign'
-      service_account: 'github-actions-cosign@projectsigstore.iam.gserviceaccount.com'
+      workload_identity_provider: 'projects/498091336538/locations/global/workloadIdentityPools/githubactions/providers/sigstore-policy-controller'
+      service_account: 'gha-policy-controller@projectsigstore.iam.gserviceaccount.com'
       repo: 'policy-controller'
-
