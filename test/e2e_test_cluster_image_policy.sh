@@ -117,11 +117,11 @@ kubectl apply -f ./test/testdata/policy-controller/e2e/cip-keyless.yaml
 echo '::endgroup::'
 
 echo '::group:: Sign demo image'
-COSIGN_EXPERIMENTAL=1 ./cosign sign --rekor-url ${REKOR_URL} --fulcio-url ${FULCIO_URL} --force --allow-insecure-registry ${demoimage} --identity-token ${OIDC_TOKEN}
+COSIGN_EXPERIMENTAL=1 cosign sign --rekor-url ${REKOR_URL} --fulcio-url ${FULCIO_URL} --force --allow-insecure-registry ${demoimage} --identity-token ${OIDC_TOKEN}
 echo '::endgroup::'
 
 echo '::group:: Verify demo image'
-COSIGN_EXPERIMENTAL=1 ./cosign verify --rekor-url ${REKOR_URL} --allow-insecure-registry ${demoimage}
+COSIGN_EXPERIMENTAL=1 cosign verify --rekor-url ${REKOR_URL} --allow-insecure-registry ${demoimage}
 echo '::endgroup::'
 
 echo '::group:: Create test namespace and label for verification'
@@ -184,7 +184,7 @@ sleep 5
 echo '::endgroup::'
 
 echo '::group:: Generate New Signing Key For Colocated Signature'
-COSIGN_PASSWORD="" ./cosign generate-key-pair
+COSIGN_PASSWORD="" cosign generate-key-pair
 mv cosign.key cosign-colocated-signing.key
 mv cosign.pub cosign-colocated-signing.pub
 echo '::endgroup::'
@@ -207,11 +207,11 @@ fi
 echo '::endgroup::'
 
 echo '::group:: Sign demoimage with cosign key'
-COSIGN_PASSWORD="" ./cosign sign --key cosign-colocated-signing.key --force --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage}
+COSIGN_PASSWORD="" cosign sign --key cosign-colocated-signing.key --force --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage}
 echo '::endgroup::'
 
 echo '::group:: Verify demoimage with cosign key'
-./cosign verify --key cosign-colocated-signing.pub --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage}
+cosign verify --key cosign-colocated-signing.pub --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage}
 echo '::endgroup::'
 
 echo '::group:: test job success'
@@ -235,7 +235,7 @@ fi
 echo '::endgroup::'
 
 echo '::group:: Generate New Signing Key For Remote Signature'
-COSIGN_PASSWORD="" ./cosign generate-key-pair
+COSIGN_PASSWORD="" cosign generate-key-pair
 mv cosign.key cosign-remote-signing.key
 mv cosign.pub cosign-remote-signing.pub
 echo '::endgroup::'
@@ -248,16 +248,16 @@ yq '. | .metadata.name = "image-policy-remote-source"
 echo '::endgroup::'
 
 echo '::group:: Sign demoimage with cosign remote key'
-COSIGN_PASSWORD="" COSIGN_REPOSITORY="${KO_DOCKER_REPO}/remote-signature" ./cosign sign --key cosign-remote-signing.key --force --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage}
+COSIGN_PASSWORD="" COSIGN_REPOSITORY="${KO_DOCKER_REPO}/remote-signature" cosign sign --key cosign-remote-signing.key --force --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage}
 echo '::endgroup::'
 
 echo '::group:: Verify demoimage with cosign remote key'
-if ./cosign verify --key cosign-remote-signing.pub --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage}; then
+if cosign verify --key cosign-remote-signing.pub --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage}; then
   echo "Signature should not have been verified unless COSIGN_REPOSITORY was defined"
   exit 1
 fi
 
-if ! COSIGN_REPOSITORY="${KO_DOCKER_REPO}/remote-signature" ./cosign verify --key cosign-remote-signing.pub --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage}; then
+if ! COSIGN_REPOSITORY="${KO_DOCKER_REPO}/remote-signature" cosign verify --key cosign-remote-signing.pub --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage}; then
   echo "Signature should have been verified when COSIGN_REPOSITORY was defined"
   exit 1
 fi

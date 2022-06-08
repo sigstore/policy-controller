@@ -114,7 +114,7 @@ assert_error ${expected_error}
 echo '::endgroup::'
 
 echo '::group:: Sign demoimage with keyless'
-COSIGN_EXPERIMENTAL=1 ./cosign sign --rekor-url ${REKOR_URL} --fulcio-url ${FULCIO_URL} --force --allow-insecure-registry ${demoimage} --identity-token ${OIDC_TOKEN}
+COSIGN_EXPERIMENTAL=1 cosign sign --rekor-url ${REKOR_URL} --fulcio-url ${FULCIO_URL} --force --allow-insecure-registry ${demoimage} --identity-token ${OIDC_TOKEN}
 echo '::endgroup::'
 
 # This image has been signed, but does not have an attestation, so should fail.
@@ -126,9 +126,9 @@ echo '::endgroup::'
 # Ok, cool. So attest and it should pass.
 echo '::group:: Create one keyless attestation and verify it'
 echo -n 'foobar e2e test' > ./predicate-file-custom
-COSIGN_EXPERIMENTAL=1 ./cosign attest --predicate ./predicate-file-custom --fulcio-url ${FULCIO_URL} --rekor-url ${REKOR_URL} --allow-insecure-registry --force ${demoimage} --identity-token ${OIDC_TOKEN}
+COSIGN_EXPERIMENTAL=1 cosign attest --predicate ./predicate-file-custom --fulcio-url ${FULCIO_URL} --rekor-url ${REKOR_URL} --allow-insecure-registry --force ${demoimage} --identity-token ${OIDC_TOKEN}
 
-COSIGN_EXPERIMENTAL=1 ./cosign verify-attestation --type=custom --rekor-url ${REKOR_URL} --allow-insecure-registry ${demoimage}
+COSIGN_EXPERIMENTAL=1 cosign verify-attestation --type=custom --rekor-url ${REKOR_URL} --allow-insecure-registry ${demoimage}
 echo '::endgroup::'
 
 echo '::group:: test job success'
@@ -145,7 +145,7 @@ fi
 echo '::endgroup::'
 
 echo '::group:: Generate New Signing Key that we use for key-ful signing'
-COSIGN_PASSWORD="" ./cosign generate-key-pair
+COSIGN_PASSWORD="" cosign generate-key-pair
 echo '::endgroup::'
 
 # Ok, so now we have satisfied the keyless requirements, one signature, one
@@ -165,11 +165,11 @@ echo '::endgroup::'
 
 # Sign it with key
 echo '::group:: Sign demoimage with key, and add to rekor'
-COSIGN_EXPERIMENTAL=1 COSIGN_PASSWORD="" ./cosign sign --key cosign.key --force --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage}
+COSIGN_EXPERIMENTAL=1 COSIGN_PASSWORD="" cosign sign --key cosign.key --force --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage}
 echo '::endgroup::'
 
 echo '::group:: Verify demoimage with cosign key'
-COSIGN_EXPERIMENTAL=1 ./cosign verify --key cosign.pub --rekor-url ${REKOR_URL} --allow-insecure-registry ${demoimage}
+COSIGN_EXPERIMENTAL=1 cosign verify --key cosign.pub --rekor-url ${REKOR_URL} --allow-insecure-registry ${demoimage}
 echo '::endgroup::'
 
 # This image has been signed with key, but does not have a key attestation
@@ -182,9 +182,9 @@ echo '::endgroup::'
 # Fine, so create an attestation for it that's different from the keyless one
 echo '::group:: create keyful attestation, add add to rekor'
 echo -n 'foobar key e2e test' > ./predicate-file-key-custom
-COSIGN_EXPERIMENTAL=1 COSIGN_PASSWORD="" ./cosign attest --predicate ./predicate-file-key-custom --rekor-url ${REKOR_URL} --key ./cosign.key --allow-insecure-registry --force ${demoimage}
+COSIGN_EXPERIMENTAL=1 COSIGN_PASSWORD="" cosign attest --predicate ./predicate-file-key-custom --rekor-url ${REKOR_URL} --key ./cosign.key --allow-insecure-registry --force ${demoimage}
 
-COSIGN_EXPERIMENTAL=1 ./cosign verify-attestation --key ./cosign.pub --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage}
+COSIGN_EXPERIMENTAL=1 cosign verify-attestation --key ./cosign.pub --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage}
 echo '::endgroup::'
 
 echo '::group:: test job success with key / keyless'
@@ -219,9 +219,9 @@ assert_error ${expected_error}
 echo '::endgroup::'
 
 echo '::group:: Create vuln keyless attestation and verify it'
-COSIGN_EXPERIMENTAL=1 ./cosign attest --predicate ./test/testdata/attestations/vuln-predicate.json --type=vuln --fulcio-url ${FULCIO_URL} --rekor-url ${REKOR_URL} --allow-insecure-registry --force ${demoimage} --identity-token ${OIDC_TOKEN}
+COSIGN_EXPERIMENTAL=1 cosign attest --predicate ./test/testdata/attestations/vuln-predicate.json --type=vuln --fulcio-url ${FULCIO_URL} --rekor-url ${REKOR_URL} --allow-insecure-registry --force ${demoimage} --identity-token ${OIDC_TOKEN}
 
-COSIGN_EXPERIMENTAL=1 ./cosign verify-attestation --type=vuln --rekor-url ${REKOR_URL} --allow-insecure-registry ${demoimage}
+COSIGN_EXPERIMENTAL=1 cosign verify-attestation --type=vuln --rekor-url ${REKOR_URL} --allow-insecure-registry ${demoimage}
 echo '::endgroup::'
 
 echo '::group:: test job success'
