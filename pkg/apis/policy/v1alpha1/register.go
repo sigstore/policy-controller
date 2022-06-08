@@ -15,7 +15,7 @@
 package v1alpha1
 
 import (
-	policy "github.com/sigstore/cosign/pkg/apis/policy"
+	policy "github.com/sigstore/policy-controller/pkg/apis/policy"
 
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"

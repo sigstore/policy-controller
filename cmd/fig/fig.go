@@ -17,7 +17,7 @@ package main
 import (
 	"fmt"
 
-	"github.com/sigstore/cosign/cmd/cosign/cli"
+	"github.com/sigstore/policy-controller/cmd/cosign/cli"
 	genFigSpec "github.com/withfig/autocomplete-tools/packages/cobra"
 )
 

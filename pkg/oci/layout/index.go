@@ -20,8 +20,8 @@ import (
 
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/layout"
-	"github.com/sigstore/cosign/pkg/oci"
-	"github.com/sigstore/cosign/pkg/oci/signed"
+	"github.com/sigstore/policy-controller/pkg/oci"
+	"github.com/sigstore/policy-controller/pkg/oci/signed"
 )
 
 const (

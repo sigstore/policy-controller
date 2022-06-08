@@ -18,7 +18,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/sigstore/cosign/pkg/apis/policy/v1alpha1"
+	"github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 )
 

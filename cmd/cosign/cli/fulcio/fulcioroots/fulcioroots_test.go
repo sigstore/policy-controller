@@ -18,7 +18,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/sigstore/cosign/test"
+	"github.com/sigstore/policy-controller/test"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 )
 

@@ -25,11 +25,11 @@ import (
 	"os"
 	"path/filepath"
 
-	cbundle "github.com/sigstore/cosign/pkg/cosign/bundle"
+	cbundle "github.com/sigstore/policy-controller/pkg/cosign/bundle"
 
-	"github.com/sigstore/cosign/cmd/cosign/cli/options"
-	"github.com/sigstore/cosign/cmd/cosign/cli/rekor"
-	"github.com/sigstore/cosign/pkg/cosign"
+	"github.com/sigstore/policy-controller/cmd/cosign/cli/options"
+	"github.com/sigstore/policy-controller/cmd/cosign/cli/rekor"
+	"github.com/sigstore/policy-controller/pkg/cosign"
 	signatureoptions "github.com/sigstore/sigstore/pkg/signature/options"
 )
 

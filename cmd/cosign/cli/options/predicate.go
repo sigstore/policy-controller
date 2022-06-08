@@ -24,7 +24,7 @@ import (
 	"github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/spf13/cobra"
 
-	"github.com/sigstore/cosign/pkg/cosign/attestation"
+	"github.com/sigstore/policy-controller/pkg/cosign/attestation"
 )
 
 const (

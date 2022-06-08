@@ -25,12 +25,12 @@ import (
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 
-	"github.com/sigstore/cosign/cmd/cosign/cli/fulcio"
-	"github.com/sigstore/cosign/cmd/cosign/cli/options"
-	"github.com/sigstore/cosign/cmd/cosign/cli/verify"
-	"github.com/sigstore/cosign/pkg/cosign"
-	ociremote "github.com/sigstore/cosign/pkg/oci/remote"
-	sigs "github.com/sigstore/cosign/pkg/signature"
+	"github.com/sigstore/policy-controller/cmd/cosign/cli/fulcio"
+	"github.com/sigstore/policy-controller/cmd/cosign/cli/options"
+	"github.com/sigstore/policy-controller/cmd/cosign/cli/verify"
+	"github.com/sigstore/policy-controller/pkg/cosign"
+	ociremote "github.com/sigstore/policy-controller/pkg/oci/remote"
+	sigs "github.com/sigstore/policy-controller/pkg/signature"
 )
 
 func New(image, key string, out io.Writer) *SecureGet {

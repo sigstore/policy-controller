@@ -22,9 +22,9 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/sigstore/cosign/internal/pkg/cosign"
-	"github.com/sigstore/cosign/pkg/oci"
-	"github.com/sigstore/cosign/pkg/oci/static"
+	"github.com/sigstore/policy-controller/internal/pkg/cosign"
+	"github.com/sigstore/policy-controller/pkg/oci"
+	"github.com/sigstore/policy-controller/pkg/oci/static"
 	"github.com/sigstore/sigstore/pkg/signature"
 	signatureoptions "github.com/sigstore/sigstore/pkg/signature/options"
 )

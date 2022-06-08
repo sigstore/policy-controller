@@ -33,10 +33,10 @@ import (
 	"knative.dev/pkg/webhook/resourcesemantics/validation"
 	"sigs.k8s.io/release-utils/version"
 
-	"github.com/sigstore/cosign/pkg/apis/policy"
-	"github.com/sigstore/cosign/pkg/apis/policy/v1alpha1"
-	"github.com/sigstore/cosign/pkg/apis/policy/v1beta1"
-	"github.com/sigstore/cosign/pkg/reconciler/clusterimagepolicy"
+	"github.com/sigstore/policy-controller/pkg/apis/policy"
+	"github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
+	"github.com/sigstore/policy-controller/pkg/apis/policy/v1beta1"
+	"github.com/sigstore/policy-controller/pkg/reconciler/clusterimagepolicy"
 
 	// Register the provider-specific plugins
 	_ "github.com/sigstore/sigstore/pkg/signature/kms/aws"

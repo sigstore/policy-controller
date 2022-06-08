@@ -24,10 +24,10 @@ import (
 
 	logtesting "knative.dev/pkg/logging/testing"
 
-	"github.com/sigstore/cosign/pkg/apis/config"
-	"github.com/sigstore/cosign/pkg/apis/policy/v1alpha1"
-	fakecosignclient "github.com/sigstore/cosign/pkg/client/injection/client/fake"
-	"github.com/sigstore/cosign/pkg/client/injection/reconciler/policy/v1alpha1/clusterimagepolicy"
+	"github.com/sigstore/policy-controller/pkg/apis/config"
+	"github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
+	fakecosignclient "github.com/sigstore/policy-controller/pkg/client/injection/client/fake"
+	"github.com/sigstore/policy-controller/pkg/client/injection/reconciler/policy/v1alpha1/clusterimagepolicy"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -38,7 +38,7 @@ import (
 	"knative.dev/pkg/system"
 	"knative.dev/pkg/tracker"
 
-	. "github.com/sigstore/cosign/pkg/reconciler/testing/v1alpha1"
+	. "github.com/sigstore/policy-controller/pkg/reconciler/testing/v1alpha1"
 	. "knative.dev/pkg/reconciler/testing"
 	_ "knative.dev/pkg/system/testing"
 

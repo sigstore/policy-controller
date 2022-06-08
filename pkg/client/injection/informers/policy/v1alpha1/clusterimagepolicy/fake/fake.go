@@ -19,8 +19,8 @@ package fake
 import (
 	context "context"
 
-	fake "github.com/sigstore/cosign/pkg/client/injection/informers/factory/fake"
-	clusterimagepolicy "github.com/sigstore/cosign/pkg/client/injection/informers/policy/v1alpha1/clusterimagepolicy"
+	fake "github.com/sigstore/policy-controller/pkg/client/injection/informers/factory/fake"
+	clusterimagepolicy "github.com/sigstore/policy-controller/pkg/client/injection/informers/policy/v1alpha1/clusterimagepolicy"
 	controller "knative.dev/pkg/controller"
 	injection "knative.dev/pkg/injection"
 )

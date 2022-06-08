@@ -36,7 +36,7 @@ import (
 	ktesting "k8s.io/client-go/testing"
 	"knative.dev/pkg/controller"
 
-	fakecosignclient "github.com/sigstore/cosign/pkg/client/injection/client/fake"
+	fakecosignclient "github.com/sigstore/policy-controller/pkg/client/injection/client/fake"
 	fakekubeclient "knative.dev/pkg/client/injection/kube/client/fake"
 	fakedynamicclient "knative.dev/pkg/injection/clients/dynamicclient/fake"
 

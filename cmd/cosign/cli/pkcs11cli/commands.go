@@ -28,7 +28,7 @@ import (
 	"syscall"
 
 	"github.com/miekg/pkcs11"
-	"github.com/sigstore/cosign/pkg/cosign/pkcs11key"
+	"github.com/sigstore/policy-controller/pkg/cosign/pkcs11key"
 	"golang.org/x/term"
 )
 

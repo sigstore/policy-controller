@@ -21,7 +21,7 @@ import (
 
 	"github.com/spiffe/go-spiffe/v2/svid/jwtsvid"
 
-	"github.com/sigstore/cosign/pkg/providers"
+	"github.com/sigstore/policy-controller/pkg/providers"
 	"github.com/spiffe/go-spiffe/v2/workloadapi"
 )
 

@@ -17,7 +17,7 @@
 package v1alpha1
 
 import (
-	v1alpha1 "github.com/sigstore/cosign/pkg/apis/policy/v1alpha1"
+	v1alpha1 "github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
 	"k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/apimachinery/pkg/labels"
 	"k8s.io/client-go/tools/cache"

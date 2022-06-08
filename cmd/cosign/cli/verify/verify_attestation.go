@@ -25,19 +25,19 @@ import (
 	"path/filepath"
 
 	"github.com/google/go-containerregistry/pkg/name"
-	"github.com/sigstore/cosign/pkg/cosign/pkcs11key"
-	"github.com/sigstore/cosign/pkg/cosign/rego"
-	"github.com/sigstore/cosign/pkg/oci"
+	"github.com/sigstore/policy-controller/pkg/cosign/pkcs11key"
+	"github.com/sigstore/policy-controller/pkg/cosign/rego"
+	"github.com/sigstore/policy-controller/pkg/oci"
 	"github.com/sigstore/sigstore/pkg/signature"
 
-	"github.com/sigstore/cosign/cmd/cosign/cli/fulcio"
-	"github.com/sigstore/cosign/cmd/cosign/cli/options"
-	"github.com/sigstore/cosign/cmd/cosign/cli/rekor"
-	"github.com/sigstore/cosign/pkg/cosign"
-	"github.com/sigstore/cosign/pkg/cosign/cue"
-	"github.com/sigstore/cosign/pkg/cosign/pivkey"
-	"github.com/sigstore/cosign/pkg/policy"
-	sigs "github.com/sigstore/cosign/pkg/signature"
+	"github.com/sigstore/policy-controller/cmd/cosign/cli/fulcio"
+	"github.com/sigstore/policy-controller/cmd/cosign/cli/options"
+	"github.com/sigstore/policy-controller/cmd/cosign/cli/rekor"
+	"github.com/sigstore/policy-controller/pkg/cosign"
+	"github.com/sigstore/policy-controller/pkg/cosign/cue"
+	"github.com/sigstore/policy-controller/pkg/cosign/pivkey"
+	"github.com/sigstore/policy-controller/pkg/policy"
+	sigs "github.com/sigstore/policy-controller/pkg/signature"
 )
 
 // VerifyAttestationCommand verifies a signature on a supplied container image

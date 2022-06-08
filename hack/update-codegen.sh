@@ -32,7 +32,7 @@ export GOMODCACHE=${GOPATH}/pkg/mod
 export GOPATH=${TMP_DIR}
 
 
-TMP_REPO_PATH="${TMP_DIR}/src/github.com/sigstore/cosign"
+TMP_REPO_PATH="${TMP_DIR}/src/github.com/sigstore/policy-controller"
 mkdir -p "$(dirname "${TMP_REPO_PATH}")" && ln -s "${REPO_ROOT_DIR}" "${TMP_REPO_PATH}"
 
 echo "=== Update Codegen for ${MODULE_NAME}"
@@ -44,7 +44,7 @@ group "Kubernetes Codegen"
 #                  k8s.io/kubernetes. The output-base is needed for the generators to output into the vendor dir
 #                  instead of the $GOPATH directly. For normal projects this can be dropped.
 ${CODEGEN_PKG}/generate-groups.sh "deepcopy,client,informer,lister" \
-  github.com/sigstore/cosign/pkg/client github.com/sigstore/cosign/pkg/apis \
+  github.com/sigstore/policy-controller/pkg/client github.com/sigstore/policy-controller/pkg/apis \
   "policy:v1alpha1 policy:v1beta1" \
   --go-header-file ${REPO_ROOT_DIR}/hack/boilerplate/boilerplate.go.txt
 
@@ -52,7 +52,7 @@ group "Knative Codegen"
 
 # Knative Injection
 ${KNATIVE_CODEGEN_PKG}/hack/generate-knative.sh "injection" \
-  github.com/sigstore/cosign/pkg/client github.com/sigstore/cosign/pkg/apis \
+  github.com/sigstore/policy-controller/pkg/client github.com/sigstore/policy-controller/pkg/apis \
   "policy:v1alpha1 policy:v1beta1" \
   --go-header-file ${REPO_ROOT_DIR}/hack/boilerplate/boilerplate.go.txt
 

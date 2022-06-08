@@ -19,9 +19,9 @@ package fake
 import (
 	context "context"
 
-	externalversions "github.com/sigstore/cosign/pkg/client/informers/externalversions"
-	fake "github.com/sigstore/cosign/pkg/client/injection/client/fake"
-	factory "github.com/sigstore/cosign/pkg/client/injection/informers/factory"
+	externalversions "github.com/sigstore/policy-controller/pkg/client/informers/externalversions"
+	fake "github.com/sigstore/policy-controller/pkg/client/injection/client/fake"
+	factory "github.com/sigstore/policy-controller/pkg/client/injection/informers/factory"
 	controller "knative.dev/pkg/controller"
 	injection "knative.dev/pkg/injection"
 )

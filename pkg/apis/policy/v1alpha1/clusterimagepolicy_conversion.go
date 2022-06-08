@@ -18,7 +18,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/sigstore/cosign/pkg/apis/policy/v1beta1"
+	"github.com/sigstore/policy-controller/pkg/apis/policy/v1beta1"
 	v1 "k8s.io/api/core/v1"
 	"knative.dev/pkg/apis"
 )

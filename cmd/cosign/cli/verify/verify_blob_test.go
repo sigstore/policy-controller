@@ -22,7 +22,7 @@ import (
 	"testing"
 
 	"github.com/secure-systems-lab/go-securesystemslib/dsse"
-	"github.com/sigstore/cosign/pkg/cosign"
+	"github.com/sigstore/policy-controller/pkg/cosign"
 )
 
 func TestSignaturesRef(t *testing.T) {

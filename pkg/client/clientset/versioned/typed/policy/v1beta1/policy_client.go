@@ -19,8 +19,8 @@ package v1beta1
 import (
 	"net/http"
 
-	v1beta1 "github.com/sigstore/cosign/pkg/apis/policy/v1beta1"
-	"github.com/sigstore/cosign/pkg/client/clientset/versioned/scheme"
+	v1beta1 "github.com/sigstore/policy-controller/pkg/apis/policy/v1beta1"
+	"github.com/sigstore/policy-controller/pkg/client/clientset/versioned/scheme"
 	rest "k8s.io/client-go/rest"
 )
 

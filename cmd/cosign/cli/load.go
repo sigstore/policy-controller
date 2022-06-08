@@ -20,9 +20,9 @@ import (
 	"fmt"
 
 	"github.com/google/go-containerregistry/pkg/name"
-	"github.com/sigstore/cosign/cmd/cosign/cli/options"
-	"github.com/sigstore/cosign/pkg/oci/layout"
-	"github.com/sigstore/cosign/pkg/oci/remote"
+	"github.com/sigstore/policy-controller/cmd/cosign/cli/options"
+	"github.com/sigstore/policy-controller/pkg/oci/layout"
+	"github.com/sigstore/policy-controller/pkg/oci/remote"
 	"github.com/spf13/cobra"
 )
 

@@ -16,7 +16,7 @@
 package options
 
 import (
-	"github.com/sigstore/cosign/pkg/cosign/tuf"
+	"github.com/sigstore/policy-controller/pkg/cosign/tuf"
 	"github.com/spf13/cobra"
 )
 

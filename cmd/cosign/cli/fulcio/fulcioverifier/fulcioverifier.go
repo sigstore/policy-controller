@@ -20,9 +20,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/sigstore/cosign/cmd/cosign/cli/fulcio"
-	"github.com/sigstore/cosign/cmd/cosign/cli/fulcio/fulcioverifier/ctl"
-	"github.com/sigstore/cosign/cmd/cosign/cli/options"
+	"github.com/sigstore/policy-controller/cmd/cosign/cli/fulcio"
+	"github.com/sigstore/policy-controller/cmd/cosign/cli/fulcio/fulcioverifier/ctl"
+	"github.com/sigstore/policy-controller/cmd/cosign/cli/options"
 )
 
 func NewSigner(ctx context.Context, ko options.KeyOpts) (*fulcio.Signer, error) {

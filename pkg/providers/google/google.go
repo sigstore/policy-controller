@@ -23,7 +23,7 @@ import (
 	"google.golang.org/api/idtoken"
 	"google.golang.org/api/impersonate"
 
-	"github.com/sigstore/cosign/pkg/providers"
+	"github.com/sigstore/policy-controller/pkg/providers"
 )
 
 func init() {

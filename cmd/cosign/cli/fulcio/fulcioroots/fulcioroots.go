@@ -24,7 +24,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/sigstore/cosign/pkg/cosign/tuf"
+	"github.com/sigstore/policy-controller/pkg/cosign/tuf"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 )
 

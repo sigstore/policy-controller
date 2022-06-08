@@ -26,10 +26,10 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sigstore/cosign/cmd/cosign/cli/generate"
-	"github.com/sigstore/cosign/cmd/cosign/cli/options"
-	"github.com/sigstore/cosign/pkg/cosign"
-	"github.com/sigstore/cosign/test"
+	"github.com/sigstore/policy-controller/cmd/cosign/cli/generate"
+	"github.com/sigstore/policy-controller/cmd/cosign/cli/options"
+	"github.com/sigstore/policy-controller/pkg/cosign"
+	"github.com/sigstore/policy-controller/test"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/theupdateframework/go-tuf/encrypted"
 )

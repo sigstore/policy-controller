@@ -20,7 +20,7 @@ import (
 	"fmt"
 
 	"cuelang.org/go/cue/cuecontext"
-	"github.com/sigstore/cosign/pkg/cosign/rego"
+	"github.com/sigstore/policy-controller/pkg/cosign/rego"
 
 	"knative.dev/pkg/logging"
 )

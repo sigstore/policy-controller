@@ -19,12 +19,12 @@ package filtered
 import (
 	context "context"
 
-	apispolicyv1alpha1 "github.com/sigstore/cosign/pkg/apis/policy/v1alpha1"
-	versioned "github.com/sigstore/cosign/pkg/client/clientset/versioned"
-	v1alpha1 "github.com/sigstore/cosign/pkg/client/informers/externalversions/policy/v1alpha1"
-	client "github.com/sigstore/cosign/pkg/client/injection/client"
-	filtered "github.com/sigstore/cosign/pkg/client/injection/informers/factory/filtered"
-	policyv1alpha1 "github.com/sigstore/cosign/pkg/client/listers/policy/v1alpha1"
+	apispolicyv1alpha1 "github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
+	versioned "github.com/sigstore/policy-controller/pkg/client/clientset/versioned"
+	v1alpha1 "github.com/sigstore/policy-controller/pkg/client/informers/externalversions/policy/v1alpha1"
+	client "github.com/sigstore/policy-controller/pkg/client/injection/client"
+	filtered "github.com/sigstore/policy-controller/pkg/client/injection/informers/factory/filtered"
+	policyv1alpha1 "github.com/sigstore/policy-controller/pkg/client/listers/policy/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
 	cache "k8s.io/client-go/tools/cache"
@@ -79,7 +79,7 @@ func Get(ctx context.Context, selector string) v1alpha1.ClusterImagePolicyInform
 	untyped := ctx.Value(Key{Selector: selector})
 	if untyped == nil {
 		logging.FromContext(ctx).Panicf(
-			"Unable to fetch github.com/sigstore/cosign/pkg/client/informers/externalversions/policy/v1alpha1.ClusterImagePolicyInformer with selector %s from context.", selector)
+			"Unable to fetch github.com/sigstore/policy-controller/pkg/client/informers/externalversions/policy/v1alpha1.ClusterImagePolicyInformer with selector %s from context.", selector)
 	}
 	return untyped.(v1alpha1.ClusterImagePolicyInformer)
 }

@@ -22,11 +22,11 @@ import (
 
 	"github.com/google/go-containerregistry/pkg/name"
 	ssldsse "github.com/secure-systems-lab/go-securesystemslib/dsse"
-	"github.com/sigstore/cosign/cmd/cosign/cli/options"
-	"github.com/sigstore/cosign/pkg/oci/mutate"
-	ociremote "github.com/sigstore/cosign/pkg/oci/remote"
-	"github.com/sigstore/cosign/pkg/oci/static"
-	"github.com/sigstore/cosign/pkg/types"
+	"github.com/sigstore/policy-controller/cmd/cosign/cli/options"
+	"github.com/sigstore/policy-controller/pkg/oci/mutate"
+	ociremote "github.com/sigstore/policy-controller/pkg/oci/remote"
+	"github.com/sigstore/policy-controller/pkg/oci/static"
+	"github.com/sigstore/policy-controller/pkg/types"
 )
 
 func AttestationCmd(ctx context.Context, regOpts options.RegistryOptions, signedPayload, imageRef string) error {

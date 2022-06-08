@@ -40,11 +40,11 @@ import (
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/in-toto/in-toto-golang/in_toto"
 	"github.com/secure-systems-lab/go-securesystemslib/dsse"
-	"github.com/sigstore/cosign/internal/pkg/cosign/rekor/mock"
-	"github.com/sigstore/cosign/pkg/cosign/bundle"
-	"github.com/sigstore/cosign/pkg/oci/static"
-	"github.com/sigstore/cosign/pkg/types"
-	"github.com/sigstore/cosign/test"
+	"github.com/sigstore/policy-controller/internal/pkg/cosign/rekor/mock"
+	"github.com/sigstore/policy-controller/pkg/cosign/bundle"
+	"github.com/sigstore/policy-controller/pkg/oci/static"
+	"github.com/sigstore/policy-controller/pkg/types"
+	"github.com/sigstore/policy-controller/test"
 	"github.com/sigstore/rekor/pkg/generated/client"
 	rtypes "github.com/sigstore/rekor/pkg/types"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
@@ -345,7 +345,7 @@ func TestVerifyImageSignatureWithExistingSub(t *testing.T) {
 
 // This test ensures that image signature validation fails properly if we are
 // using a SigVerifier with Rekor.
-// See https://github.com/sigstore/cosign/issues/1816 for more details.
+// See https://github.com/sigstore/policy-controller/issues/1816 for more details.
 func TestVerifyImageSignatureWithSigVerifierAndRekor(t *testing.T) {
 	sv, privKey, err := signature.NewDefaultECDSASignerVerifier()
 	if err != nil {

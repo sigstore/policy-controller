@@ -28,7 +28,7 @@ import (
 	"github.com/google/go-github/v42/github"
 	"golang.org/x/oauth2"
 
-	"github.com/sigstore/cosign/pkg/cosign"
+	"github.com/sigstore/policy-controller/pkg/cosign"
 )
 
 const (

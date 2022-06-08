@@ -16,13 +16,13 @@
 package all
 
 import (
-	"github.com/sigstore/cosign/pkg/providers"
+	"github.com/sigstore/policy-controller/pkg/providers"
 
 	// Link in all of the providers.
-	_ "github.com/sigstore/cosign/pkg/providers/filesystem"
-	_ "github.com/sigstore/cosign/pkg/providers/github"
-	_ "github.com/sigstore/cosign/pkg/providers/google"
-	_ "github.com/sigstore/cosign/pkg/providers/spiffe"
+	_ "github.com/sigstore/policy-controller/pkg/providers/filesystem"
+	_ "github.com/sigstore/policy-controller/pkg/providers/github"
+	_ "github.com/sigstore/policy-controller/pkg/providers/google"
+	_ "github.com/sigstore/policy-controller/pkg/providers/spiffe"
 )
 
 // Alias these methods, so that folks can import this to get all providers.

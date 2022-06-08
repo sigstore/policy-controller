@@ -38,8 +38,8 @@ import (
 	"knative.dev/pkg/webhook/resourcesemantics/validation"
 	"sigs.k8s.io/release-utils/version"
 
-	"github.com/sigstore/cosign/pkg/apis/config"
-	cwebhook "github.com/sigstore/cosign/pkg/cosign/kubernetes/webhook"
+	"github.com/sigstore/policy-controller/pkg/apis/config"
+	cwebhook "github.com/sigstore/policy-controller/pkg/cosign/kubernetes/webhook"
 )
 
 var secretName = flag.String("secret-name", "", "The name of the secret in the webhook's namespace that holds the public key for verification.")

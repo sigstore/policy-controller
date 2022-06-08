@@ -19,7 +19,7 @@ import (
 	"crypto"
 	"io"
 
-	"github.com/sigstore/cosign/pkg/oci"
+	"github.com/sigstore/policy-controller/pkg/oci"
 )
 
 // Signer signs payloads in the form of `oci.Signature`s

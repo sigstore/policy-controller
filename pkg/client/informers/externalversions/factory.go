@@ -21,9 +21,9 @@ import (
 	sync "sync"
 	time "time"
 
-	versioned "github.com/sigstore/cosign/pkg/client/clientset/versioned"
-	internalinterfaces "github.com/sigstore/cosign/pkg/client/informers/externalversions/internalinterfaces"
-	policy "github.com/sigstore/cosign/pkg/client/informers/externalversions/policy"
+	versioned "github.com/sigstore/policy-controller/pkg/client/clientset/versioned"
+	internalinterfaces "github.com/sigstore/policy-controller/pkg/client/informers/externalversions/internalinterfaces"
+	policy "github.com/sigstore/policy-controller/pkg/client/informers/externalversions/policy"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"

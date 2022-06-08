@@ -21,7 +21,7 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/sigstore/cosign/pkg/providers"
+	"github.com/sigstore/policy-controller/pkg/providers"
 )
 
 func init() {
