@@ -19,7 +19,6 @@
 /cosign*
 .vscode
 .idea
-/sget*
 
 # fuzzing artifacts
 *.libfuzzer
@@ -27,9 +26,7 @@
 
 bin*
 dist/
-cosignImagerefs
 policyControllerImagerefs
-sgetImagerefs
 policyImagerefs
 
 **verify-experimental*
