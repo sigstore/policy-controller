@@ -40,9 +40,8 @@ DIFF = $(shell git diff --quiet >/dev/null 2>&1; if [ $$? -eq 1 ]; then echo "1"
 ifeq ($(DIFF), 1)
     GIT_TREESTATE = "dirty"
 endif
-PLATFORMS=darwin linux windows
-ARCHITECTURES=amd64
-COSIGNED_ARCHS?=all
+
+POLICY_CONTROLLER_ARCHS?=all
 
 LDFLAGS=-buildid= -X sigs.k8s.io/release-utils/version.gitVersion=$(GIT_VERSION) \
         -X sigs.k8s.io/release-utils/version.gitCommit=$(GIT_HASH) \
@@ -56,8 +55,8 @@ GOLANGCI_LINT_BIN = $(GOLANGCI_LINT_DIR)/golangci-lint
 
 KO_PREFIX ?= gcr.io/projectsigstore
 export KO_DOCKER_REPO=$(KO_PREFIX)
-GHCR_PREFIX ?= ghcr.io/sigstore/cosign
-COSIGNED_YAML ?= cosign-$(GIT_TAG).yaml
+GHCR_PREFIX ?= ghcr.io/sigstore/policy-controller
+POLICY_CONTROLLER_YAML ?= policy-controller-$(GIT_TAG).yaml
 LATEST_TAG ?=
 
 .PHONY: all lint test clean cosign cross
@@ -85,12 +84,6 @@ fmt: ## Format all go files
 	@ $(MAKE) --no-print-directory log-$@
 	goimports -w $(GOFILES)
 
-cosign: $(SRCS)
-	CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)" -o $@ ./cmd/cosign
-
-cosign-pivkey-pkcs11key: $(SRCS)
-	CGO_ENABLED=1 go build -trimpath -tags=pivkey,pkcs11key -ldflags "$(LDFLAGS)" -o cosign ./cmd/cosign
-
 ## Build policy-controller binary
 .PHONY: policy-controller
 policy-controller: policy-webhook
@@ -99,17 +92,6 @@ policy-controller: policy-webhook
 .PHONY: policy-webhook
 policy-webhook: ## Build the policy webhook binary
 	CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)" -o $@ ./cmd/cosign/policy_webhook
-
-.PHONY: sget
-sget: ## Build sget binary
-	go build -trimpath -ldflags "$(LDFLAGS)" -o $@ ./cmd/sget
-
-.PHONY: cross
-cross:
-	$(foreach GOOS, $(PLATFORMS),\
-		$(foreach GOARCH, $(ARCHITECTURES), $(shell export GOOS=$(GOOS); export GOARCH=$(GOARCH); \
-	go build -trimpath -ldflags "$(LDFLAGS)" -o cosign-$(GOOS)-$(GOARCH) ./cmd/cosign; \
-	shasum -a 256 cosign-$(GOOS)-$(GOARCH) > cosign-$(GOOS)-$(GOARCH).sha256 ))) \
 
 #####################
 # lint / test section
@@ -132,16 +114,14 @@ clean:
 	rm -rf sget
 	rm -rf dist/
 
-
 KOCACHE_PATH=/tmp/ko
-ARTIFACT_HUB_LABELS=--image-label io.artifacthub.package.readme-url="https://raw.githubusercontent.com/sigstore/cosign/main/README.md" \
-                    --image-label io.artifacthub.package.logo-url=https://raw.githubusercontent.com/sigstore/cosign/main/images/logo.svg \
+ARTIFACT_HUB_LABELS=--image-label io.artifacthub.package.readme-url="https://raw.githubusercontent.com/sigstore/policy-controller/main/README.md" \
                     --image-label io.artifacthub.package.license=Apache-2.0 --image-label io.artifacthub.package.vendor=sigstore \
                     --image-label io.artifacthub.package.version=0.1.0 \
-                    --image-label io.artifacthub.package.name=cosign \
+                    --image-label io.artifacthub.package.name=policy-controller \
                     --image-label org.opencontainers.image.created=$(BUILD_DATE) \
-                    --image-label org.opencontainers.image.description="Container signing verification and storage in an OCI registry" \
-                    --image-label io.artifacthub.package.alternative-locations="oci://ghcr.io/sigstore/cosign/cosign"
+                    --image-label org.opencontainers.image.description="Kubernetes webhook for configuring admission policies" \
+                    --image-label io.artifacthub.package.alternative-locations="oci://ghcr.io/sigstore/policy-controller/policy-controller"
 
 define create_kocache_path
   mkdir -p $(KOCACHE_PATH)
@@ -151,61 +131,36 @@ endef
 # ko build
 ##########
 .PHONY: ko
-ko: ko-cosign ko-sget ko-policy-controller
-
-.PHONY: ko-cosign
-ko-cosign:
-	$(create_kocache_path)
-	LDFLAGS="$(LDFLAGS)" GIT_HASH=$(GIT_HASH) GIT_VERSION=$(GIT_VERSION) \
-	KOCACHE=$(KOCACHE_PATH) ko build --base-import-paths \
-		--platform=all --tags $(GIT_VERSION) --tags $(GIT_HASH)$(LATEST_TAG) \
-		$(ARTIFACT_HUB_LABELS) --image-refs cosignImagerefs \
-		github.com/sigstore/cosign/cmd/cosign
-
-.PHONY: ko-sget
-ko-sget:
-	# sget
-	LDFLAGS="$(LDFLAGS)" GIT_HASH=$(GIT_HASH) GIT_VERSION=$(GIT_VERSION) \
-	KOCACHE=$(KOCACHE_PATH) ko build --base-import-paths \
-		--platform=all --tags $(GIT_VERSION) --tags $(GIT_HASH)$(LATEST_TAG) \
-		--image-refs sgetImagerefs \
-		github.com/sigstore/cosign/cmd/sget
+ko: ko-policy-controller ko-policy-webhook
 
 .PHONY: ko-policy-controller
 ko-policy-controller: kustomize-policy-controller ko-policy-webhook
 	# policy-controller
 	LDFLAGS="$(LDFLAGS)" GIT_HASH=$(GIT_HASH) GIT_VERSION=$(GIT_VERSION) \
 	KOCACHE=$(KOCACHE_PATH) KO_DOCKER_REPO=$(KO_PREFIX)/policy-controller ko resolve --bare \
-		--platform=$(COSIGNED_ARCHS) --tags $(GIT_VERSION) --tags $(GIT_HASH)$(LATEST_TAG) \
-		--image-refs policyControllerImagerefs --filename config/webhook.yaml >> $(COSIGNED_YAML)
+		--platform=$(POLICY_CONTROLLER_ARCHS) --tags $(GIT_VERSION) --tags $(GIT_HASH)$(LATEST_TAG) \
+		--image-refs policyControllerImagerefs --filename config/webhook.yaml >> $(POLICY_CONTROLLER_YAML)
 
 ko-policy-webhook:
 	# policy_webhook
 	LDFLAGS="$(LDFLAGS)" GIT_HASH=$(GIT_HASH) GIT_VERSION=$(GIT_VERSION) \
 	KOCACHE=$(KOCACHE_PATH) KO_DOCKER_REPO=$(KO_PREFIX)/policy-webhook ko resolve --bare \
-		--platform=$(COSIGNED_ARCHS) --tags $(GIT_VERSION) --tags $(GIT_HASH)$(LATEST_TAG) \
-		--image-refs policyImagerefs --filename config/policy-webhook.yaml >> $(COSIGNED_YAML)
+		--platform=$(POLICY_CONTROLLER_ARCHS) --tags $(GIT_VERSION) --tags $(GIT_HASH)$(LATEST_TAG) \
+		--image-refs policyImagerefs --filename config/policy-webhook.yaml >> $(POLICY_CONTROLLER_YAML)
 
 .PHONY: ko-local
 ko-local:
-	$(create_kocache_path)
 	LDFLAGS="$(LDFLAGS)" GIT_HASH=$(GIT_HASH) GIT_VERSION=$(GIT_VERSION) \
 	KOCACHE=$(KOCACHE_PATH) ko build --base-import-paths \
 		--tags $(GIT_VERSION) --tags $(GIT_HASH) --local \
 		$(ARTIFACT_HUB_LABELS) \
-		github.com/sigstore/cosign/cmd/cosign
+		github.com/sigstore/policy-controller/cmd/cosign/webhook
 
 	LDFLAGS="$(LDFLAGS)" GIT_HASH=$(GIT_HASH) GIT_VERSION=$(GIT_VERSION) \
 	KOCACHE=$(KOCACHE_PATH) ko build --base-import-paths \
 		--tags $(GIT_VERSION) --tags $(GIT_HASH) --local \
 		$(ARTIFACT_HUB_LABELS) \
-		github.com/sigstore/cosign/cmd/cosign/webhook
-
-	LDFLAGS="$(LDFLAGS)" GIT_HASH=$(GIT_HASH) GIT_VERSION=$(GIT_VERSION) \
-	KOCACHE=$(KOCACHE_PATH) ko build --base-import-paths \
-		--tags $(GIT_VERSION) --tags $(GIT_HASH) --local \
-		$(ARTIFACT_HUB_LABELS) \
-		github.com/sigstore/cosign/cmd/cosign/policy_webhook
+		github.com/sigstore/policy-controller/cmd/cosign/policy_webhook
 
 .PHONY: ko-apply
 ko-apply:
@@ -214,7 +169,7 @@ ko-apply:
 
 .PHONY: kustomize-policy-controller
 kustomize-policy-controller:
-	kustomize build config/ > $(COSIGNED_YAML)
+	kustomize build config/ > $(POLICY_CONTROLLER_YAML)
 
 ##################
 # help

@@ -56,9 +56,7 @@ jobs:
     - name: Install yq
       uses: mikefarah/yq@70403375d7b96075bd68b40c434807cff1593568 # v4.25.1
 
-    - name: Install Cosign
-      run: |
-        go install ./cmd/cosign
+    - uses: sigstore/cosign-installer@536b37ec5d5b543420bdfd9b744c5965bd4d8730 # v2.3.0
 
     - name: Setup mirror
       uses: chainguard-dev/actions/setup-mirror@main
@@ -102,9 +100,9 @@ jobs:
         GIT_HASH: ${{ github.sha }}
         GIT_VERSION: ci
         LDFLAGS: ""
-        COSIGNED_YAML: policy-controller-e2e.yaml
+        POLICY_CONTROLLER_YAML: policy-controller-e2e.yaml
         KO_PREFIX: registry.local:5000/policy-controller
-        COSIGNED_ARCHS: linux/amd64
+        POLICY_CONTROLLER_ARCHS: linux/amd64
       run: |
         make ko-policy-controller
         kubectl apply -f policy-controller-e2e.yaml
