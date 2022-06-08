@@ -31,5 +31,5 @@ jobs:
       key_name: ${{ github.event.inputs.key_name }}
       workload_identity_provider: 'projects/498091336538/locations/global/workloadIdentityPools/githubactions/providers/sigstore-cosign'
       service_account: 'github-actions-cosign@projectsigstore.iam.gserviceaccount.com'
-      repo: 'cosign'
+      repo: 'policy-controller'
 

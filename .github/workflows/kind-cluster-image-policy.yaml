@@ -67,9 +67,9 @@ jobs:
       with:
         mirror: mirror.gcr.io
 
-    - name: build cosign
+    - name: install cosign
       run: |
-        make cosign
+        go install ./cmd/cosign
 
     - name: Install cluster + cosign
       uses: sigstore/scaffolding/actions/setup@main
