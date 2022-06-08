@@ -28,9 +28,9 @@ import (
 	ct "github.com/google/certificate-transparency-go"
 	ctx509 "github.com/google/certificate-transparency-go/x509"
 	"github.com/google/certificate-transparency-go/x509util"
-	"github.com/sigstore/cosign/cmd/cosign/cli/fulcio/fulcioverifier/ctutil"
+	"github.com/sigstore/policy-controller/cmd/cosign/cli/fulcio/fulcioverifier/ctutil"
 
-	"github.com/sigstore/cosign/pkg/cosign/tuf"
+	"github.com/sigstore/policy-controller/pkg/cosign/tuf"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 )
 

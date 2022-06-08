@@ -20,9 +20,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"github.com/sigstore/cosign/cmd/cosign/cli/attest"
-	"github.com/sigstore/cosign/cmd/cosign/cli/generate"
-	"github.com/sigstore/cosign/cmd/cosign/cli/options"
+	"github.com/sigstore/policy-controller/cmd/cosign/cli/attest"
+	"github.com/sigstore/policy-controller/cmd/cosign/cli/generate"
+	"github.com/sigstore/policy-controller/cmd/cosign/cli/options"
 )
 
 func Attest() *cobra.Command {

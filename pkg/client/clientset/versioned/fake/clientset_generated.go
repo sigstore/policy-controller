@@ -17,11 +17,11 @@
 package fake
 
 import (
-	clientset "github.com/sigstore/cosign/pkg/client/clientset/versioned"
-	policyv1alpha1 "github.com/sigstore/cosign/pkg/client/clientset/versioned/typed/policy/v1alpha1"
-	fakepolicyv1alpha1 "github.com/sigstore/cosign/pkg/client/clientset/versioned/typed/policy/v1alpha1/fake"
-	policyv1beta1 "github.com/sigstore/cosign/pkg/client/clientset/versioned/typed/policy/v1beta1"
-	fakepolicyv1beta1 "github.com/sigstore/cosign/pkg/client/clientset/versioned/typed/policy/v1beta1/fake"
+	clientset "github.com/sigstore/policy-controller/pkg/client/clientset/versioned"
+	policyv1alpha1 "github.com/sigstore/policy-controller/pkg/client/clientset/versioned/typed/policy/v1alpha1"
+	fakepolicyv1alpha1 "github.com/sigstore/policy-controller/pkg/client/clientset/versioned/typed/policy/v1alpha1/fake"
+	policyv1beta1 "github.com/sigstore/policy-controller/pkg/client/clientset/versioned/typed/policy/v1beta1"
+	fakepolicyv1beta1 "github.com/sigstore/policy-controller/pkg/client/clientset/versioned/typed/policy/v1beta1/fake"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/watch"
 	"k8s.io/client-go/discovery"

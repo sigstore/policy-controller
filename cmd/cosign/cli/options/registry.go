@@ -27,7 +27,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1/google"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
-	ociremote "github.com/sigstore/cosign/pkg/oci/remote"
+	ociremote "github.com/sigstore/policy-controller/pkg/oci/remote"
 	"github.com/spf13/cobra"
 )
 

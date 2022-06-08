@@ -21,7 +21,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	cremote "github.com/sigstore/cosign/pkg/cosign/remote"
+	cremote "github.com/sigstore/policy-controller/pkg/cosign/remote"
 )
 
 // FilesOptions is the wrapper for the files.

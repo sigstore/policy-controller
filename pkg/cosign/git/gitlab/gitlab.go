@@ -22,7 +22,7 @@ import (
 	"io"
 	"os"
 
-	"github.com/sigstore/cosign/pkg/cosign"
+	"github.com/sigstore/policy-controller/pkg/cosign"
 	"github.com/xanzy/go-gitlab"
 )
 

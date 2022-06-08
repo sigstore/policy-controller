@@ -21,9 +21,9 @@ import (
 	json "encoding/json"
 	fmt "fmt"
 
-	v1beta1 "github.com/sigstore/cosign/pkg/apis/policy/v1beta1"
-	versioned "github.com/sigstore/cosign/pkg/client/clientset/versioned"
-	policyv1beta1 "github.com/sigstore/cosign/pkg/client/listers/policy/v1beta1"
+	v1beta1 "github.com/sigstore/policy-controller/pkg/apis/policy/v1beta1"
+	versioned "github.com/sigstore/policy-controller/pkg/client/clientset/versioned"
+	policyv1beta1 "github.com/sigstore/policy-controller/pkg/client/listers/policy/v1beta1"
 	zap "go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
 	errors "k8s.io/apimachinery/pkg/api/errors"

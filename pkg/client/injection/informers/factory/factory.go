@@ -19,8 +19,8 @@ package factory
 import (
 	context "context"
 
-	externalversions "github.com/sigstore/cosign/pkg/client/informers/externalversions"
-	client "github.com/sigstore/cosign/pkg/client/injection/client"
+	externalversions "github.com/sigstore/policy-controller/pkg/client/informers/externalversions"
+	client "github.com/sigstore/policy-controller/pkg/client/injection/client"
 	controller "knative.dev/pkg/controller"
 	injection "knative.dev/pkg/injection"
 	logging "knative.dev/pkg/logging"
@@ -48,7 +48,7 @@ func Get(ctx context.Context) externalversions.SharedInformerFactory {
 	untyped := ctx.Value(Key{})
 	if untyped == nil {
 		logging.FromContext(ctx).Panic(
-			"Unable to fetch github.com/sigstore/cosign/pkg/client/informers/externalversions.SharedInformerFactory from context.")
+			"Unable to fetch github.com/sigstore/policy-controller/pkg/client/informers/externalversions.SharedInformerFactory from context.")
 	}
 	return untyped.(externalversions.SharedInformerFactory)
 }

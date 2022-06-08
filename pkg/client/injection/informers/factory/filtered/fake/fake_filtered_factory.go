@@ -19,9 +19,9 @@ package fakeFilteredFactory
 import (
 	context "context"
 
-	externalversions "github.com/sigstore/cosign/pkg/client/informers/externalversions"
-	fake "github.com/sigstore/cosign/pkg/client/injection/client/fake"
-	filtered "github.com/sigstore/cosign/pkg/client/injection/informers/factory/filtered"
+	externalversions "github.com/sigstore/policy-controller/pkg/client/informers/externalversions"
+	fake "github.com/sigstore/policy-controller/pkg/client/injection/client/fake"
+	filtered "github.com/sigstore/policy-controller/pkg/client/injection/informers/factory/filtered"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	controller "knative.dev/pkg/controller"
 	injection "knative.dev/pkg/injection"

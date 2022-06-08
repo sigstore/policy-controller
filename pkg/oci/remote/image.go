@@ -22,7 +22,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/name"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/remote/transport"
-	"github.com/sigstore/cosign/pkg/oci"
+	"github.com/sigstore/policy-controller/pkg/oci"
 )
 
 // SignedImage provides access to a remote image reference, and its signatures.

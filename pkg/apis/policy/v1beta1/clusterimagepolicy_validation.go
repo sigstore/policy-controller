@@ -23,7 +23,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws/arn"
-	"github.com/sigstore/cosign/pkg/apis/utils"
+	"github.com/sigstore/policy-controller/pkg/apis/utils"
 	"knative.dev/pkg/apis"
 )
 

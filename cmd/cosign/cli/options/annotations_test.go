@@ -20,7 +20,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 
-	"github.com/sigstore/cosign/pkg/signature"
+	"github.com/sigstore/policy-controller/pkg/signature"
 )
 
 func TestAnnotationOptions_AnnotationsMap(t *testing.T) {

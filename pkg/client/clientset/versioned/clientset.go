@@ -20,8 +20,8 @@ import (
 	"fmt"
 	"net/http"
 
-	policyv1alpha1 "github.com/sigstore/cosign/pkg/client/clientset/versioned/typed/policy/v1alpha1"
-	policyv1beta1 "github.com/sigstore/cosign/pkg/client/clientset/versioned/typed/policy/v1beta1"
+	policyv1alpha1 "github.com/sigstore/policy-controller/pkg/client/clientset/versioned/typed/policy/v1alpha1"
+	policyv1beta1 "github.com/sigstore/policy-controller/pkg/client/clientset/versioned/typed/policy/v1beta1"
 	discovery "k8s.io/client-go/discovery"
 	rest "k8s.io/client-go/rest"
 	flowcontrol "k8s.io/client-go/util/flowcontrol"

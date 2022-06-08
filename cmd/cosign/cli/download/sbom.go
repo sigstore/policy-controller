@@ -22,8 +22,8 @@ import (
 	"os"
 
 	"github.com/google/go-containerregistry/pkg/name"
-	"github.com/sigstore/cosign/cmd/cosign/cli/options"
-	ociremote "github.com/sigstore/cosign/pkg/oci/remote"
+	"github.com/sigstore/policy-controller/cmd/cosign/cli/options"
+	ociremote "github.com/sigstore/policy-controller/pkg/oci/remote"
 )
 
 func SBOMCmd(ctx context.Context, regOpts options.RegistryOptions, imageRef string, out io.Writer) ([]string, error) {

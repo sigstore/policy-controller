@@ -21,7 +21,7 @@ import (
 	"strings"
 	"testing"
 
-	webhookcip "github.com/sigstore/cosign/pkg/cosign/kubernetes/webhook/clusterimagepolicy"
+	webhookcip "github.com/sigstore/policy-controller/pkg/cosign/kubernetes/webhook/clusterimagepolicy"
 	. "knative.dev/pkg/configmap/testing"
 	_ "knative.dev/pkg/system/testing"
 )

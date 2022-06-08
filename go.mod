@@ -1,4 +1,4 @@
-module github.com/sigstore/cosign
+module github.com/sigstore/policy-controller
 
 go 1.17
 

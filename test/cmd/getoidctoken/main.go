@@ -24,7 +24,7 @@ import (
 )
 
 type envConfig struct {
-	FileName string `envconfig:"OIDC_FILE" default:"/var/run/sigstore/cosign/oidc-token" required:"true"`
+	FileName string `envconfig:"OIDC_FILE" default:"/var/run/sigstore/policy-controller/oidc-token" required:"true"`
 }
 
 func tokenWriter(filename string) func(http.ResponseWriter, *http.Request) {

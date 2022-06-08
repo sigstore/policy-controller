@@ -31,9 +31,9 @@ import (
 	pkgreconciler "knative.dev/pkg/reconciler"
 	"knative.dev/pkg/system"
 
-	"github.com/sigstore/cosign/pkg/apis/config"
-	clusterimagepolicyinformer "github.com/sigstore/cosign/pkg/client/injection/informers/policy/v1alpha1/clusterimagepolicy"
-	clusterimagepolicyreconciler "github.com/sigstore/cosign/pkg/client/injection/reconciler/policy/v1alpha1/clusterimagepolicy"
+	"github.com/sigstore/policy-controller/pkg/apis/config"
+	clusterimagepolicyinformer "github.com/sigstore/policy-controller/pkg/client/injection/informers/policy/v1alpha1/clusterimagepolicy"
+	clusterimagepolicyreconciler "github.com/sigstore/policy-controller/pkg/client/injection/reconciler/policy/v1alpha1/clusterimagepolicy"
 	cminformer "knative.dev/pkg/injection/clients/namespacedkube/informers/core/v1/configmap"
 	secretinformer "knative.dev/pkg/injection/clients/namespacedkube/informers/core/v1/secret"
 )

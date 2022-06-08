@@ -17,7 +17,7 @@
 package v1beta1
 
 import (
-	internalinterfaces "github.com/sigstore/cosign/pkg/client/informers/externalversions/internalinterfaces"
+	internalinterfaces "github.com/sigstore/policy-controller/pkg/client/informers/externalversions/internalinterfaces"
 )
 
 // Interface provides access to all the informers in this group version.

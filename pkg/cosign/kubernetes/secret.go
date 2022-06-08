@@ -27,7 +27,7 @@ import (
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
-	"github.com/sigstore/cosign/pkg/cosign"
+	"github.com/sigstore/policy-controller/pkg/cosign"
 )
 
 const (

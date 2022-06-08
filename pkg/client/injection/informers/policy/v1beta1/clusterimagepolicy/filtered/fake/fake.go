@@ -19,8 +19,8 @@ package fake
 import (
 	context "context"
 
-	factoryfiltered "github.com/sigstore/cosign/pkg/client/injection/informers/factory/filtered"
-	filtered "github.com/sigstore/cosign/pkg/client/injection/informers/policy/v1beta1/clusterimagepolicy/filtered"
+	factoryfiltered "github.com/sigstore/policy-controller/pkg/client/injection/informers/factory/filtered"
+	filtered "github.com/sigstore/policy-controller/pkg/client/injection/informers/policy/v1beta1/clusterimagepolicy/filtered"
 	controller "knative.dev/pkg/controller"
 	injection "knative.dev/pkg/injection"
 	logging "knative.dev/pkg/logging"

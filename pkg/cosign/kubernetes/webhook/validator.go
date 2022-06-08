@@ -26,12 +26,12 @@ import (
 	"github.com/google/go-containerregistry/pkg/authn/k8schain"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
-	"github.com/sigstore/cosign/pkg/apis/config"
-	webhookcip "github.com/sigstore/cosign/pkg/cosign/kubernetes/webhook/clusterimagepolicy"
-	"github.com/sigstore/cosign/pkg/oci"
-	ociremote "github.com/sigstore/cosign/pkg/oci/remote"
-	"github.com/sigstore/cosign/pkg/policy"
 	"github.com/sigstore/fulcio/pkg/api"
+	"github.com/sigstore/policy-controller/pkg/apis/config"
+	webhookcip "github.com/sigstore/policy-controller/pkg/cosign/kubernetes/webhook/clusterimagepolicy"
+	"github.com/sigstore/policy-controller/pkg/oci"
+	ociremote "github.com/sigstore/policy-controller/pkg/oci/remote"
+	"github.com/sigstore/policy-controller/pkg/policy"
 	rekor "github.com/sigstore/rekor/pkg/client"
 	"github.com/sigstore/rekor/pkg/generated/client"
 	"github.com/sigstore/sigstore/pkg/signature"
@@ -430,7 +430,7 @@ func ValidatePolicySignaturesForAuthority(ctx context.Context, ref name.Referenc
 		// TODO(vaikas): What should happen if there are multiple keys
 		// Is it even allowed? 'valid' returns success if any key
 		// matches.
-		// https://github.com/sigstore/cosign/issues/1652
+		// https://github.com/sigstore/policy-controller/issues/1652
 		sps, err := valid(ctx, ref, rekorClient, authority.Key.PublicKeys, remoteOpts...)
 		if err != nil {
 			return nil, fmt.Errorf("failed to validate public keys with authority %s for %s: %w", name, ref.Name(), err)

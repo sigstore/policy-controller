@@ -20,8 +20,8 @@ package cli
 import (
 	"github.com/spf13/cobra"
 
-	"github.com/sigstore/cosign/cmd/cosign/cli/options"
-	"github.com/sigstore/cosign/cmd/cosign/cli/pkcs11cli"
+	"github.com/sigstore/policy-controller/cmd/cosign/cli/options"
+	"github.com/sigstore/policy-controller/cmd/cosign/cli/pkcs11cli"
 )
 
 var pkcs11ToolForce bool

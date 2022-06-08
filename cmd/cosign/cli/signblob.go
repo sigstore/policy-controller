@@ -19,9 +19,9 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/sigstore/cosign/cmd/cosign/cli/generate"
-	"github.com/sigstore/cosign/cmd/cosign/cli/options"
-	"github.com/sigstore/cosign/cmd/cosign/cli/sign"
+	"github.com/sigstore/policy-controller/cmd/cosign/cli/generate"
+	"github.com/sigstore/policy-controller/cmd/cosign/cli/options"
+	"github.com/sigstore/policy-controller/cmd/cosign/cli/sign"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )

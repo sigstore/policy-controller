@@ -24,8 +24,8 @@ import (
 	"runtime"
 
 	"github.com/google/go-containerregistry/pkg/name"
-	"github.com/sigstore/cosign/pkg/cosign/bundle"
-	ociremote "github.com/sigstore/cosign/pkg/oci/remote"
+	"github.com/sigstore/policy-controller/pkg/cosign/bundle"
+	ociremote "github.com/sigstore/policy-controller/pkg/oci/remote"
 	"knative.dev/pkg/pool"
 )
 

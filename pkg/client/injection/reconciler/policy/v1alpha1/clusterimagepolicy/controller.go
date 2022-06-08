@@ -22,9 +22,9 @@ import (
 	reflect "reflect"
 	strings "strings"
 
-	versionedscheme "github.com/sigstore/cosign/pkg/client/clientset/versioned/scheme"
-	client "github.com/sigstore/cosign/pkg/client/injection/client"
-	clusterimagepolicy "github.com/sigstore/cosign/pkg/client/injection/informers/policy/v1alpha1/clusterimagepolicy"
+	versionedscheme "github.com/sigstore/policy-controller/pkg/client/clientset/versioned/scheme"
+	client "github.com/sigstore/policy-controller/pkg/client/injection/client"
+	clusterimagepolicy "github.com/sigstore/policy-controller/pkg/client/injection/informers/policy/v1alpha1/clusterimagepolicy"
 	zap "go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
 	labels "k8s.io/apimachinery/pkg/labels"

@@ -18,8 +18,8 @@ package mutate
 import (
 	"testing"
 
-	"github.com/sigstore/cosign/pkg/oci/empty"
-	"github.com/sigstore/cosign/pkg/oci/static"
+	"github.com/sigstore/policy-controller/pkg/oci/empty"
+	"github.com/sigstore/policy-controller/pkg/oci/static"
 )
 
 func TestAppendSignatures(t *testing.T) {

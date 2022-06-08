@@ -19,7 +19,7 @@ package clusterimagepolicy
 import (
 	fmt "fmt"
 
-	v1beta1 "github.com/sigstore/cosign/pkg/apis/policy/v1beta1"
+	v1beta1 "github.com/sigstore/policy-controller/pkg/apis/policy/v1beta1"
 	types "k8s.io/apimachinery/pkg/types"
 	cache "k8s.io/client-go/tools/cache"
 	reconciler "knative.dev/pkg/reconciler"

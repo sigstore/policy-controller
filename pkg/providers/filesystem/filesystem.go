@@ -19,7 +19,7 @@ import (
 	"context"
 	"os"
 
-	"github.com/sigstore/cosign/pkg/providers"
+	"github.com/sigstore/policy-controller/pkg/providers"
 )
 
 func init() {
@@ -34,7 +34,7 @@ const (
 	// FilesystemTokenPath is the path to where we read an OIDC
 	// token from the filesystem.
 	// nolint
-	FilesystemTokenPath = "/var/run/sigstore/cosign/oidc-token"
+	FilesystemTokenPath = "/var/run/sigstore/policy-controller/oidc-token"
 )
 
 // Enabled implements providers.Interface

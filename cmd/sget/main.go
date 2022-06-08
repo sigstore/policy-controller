@@ -21,7 +21,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/sigstore/cosign/cmd/sget/cli"
+	"github.com/sigstore/policy-controller/cmd/sget/cli"
 
 	// Register the provider-specific plugins
 	_ "github.com/sigstore/sigstore/pkg/signature/kms/aws"

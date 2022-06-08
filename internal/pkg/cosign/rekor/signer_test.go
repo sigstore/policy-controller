@@ -22,9 +22,9 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/sigstore/cosign/internal/pkg/cosign/payload"
-	"github.com/sigstore/cosign/internal/pkg/cosign/rekor/mock"
-	"github.com/sigstore/cosign/pkg/cosign"
+	"github.com/sigstore/policy-controller/internal/pkg/cosign/payload"
+	"github.com/sigstore/policy-controller/internal/pkg/cosign/rekor/mock"
+	"github.com/sigstore/policy-controller/pkg/cosign"
 	"github.com/sigstore/rekor/pkg/generated/client"
 	"github.com/sigstore/sigstore/pkg/signature"
 )

@@ -22,11 +22,11 @@ import (
 	errors "errors"
 	fmt "fmt"
 
-	v1alpha1 "github.com/sigstore/cosign/pkg/apis/policy/v1alpha1"
-	v1beta1 "github.com/sigstore/cosign/pkg/apis/policy/v1beta1"
-	versioned "github.com/sigstore/cosign/pkg/client/clientset/versioned"
-	typedpolicyv1alpha1 "github.com/sigstore/cosign/pkg/client/clientset/versioned/typed/policy/v1alpha1"
-	typedpolicyv1beta1 "github.com/sigstore/cosign/pkg/client/clientset/versioned/typed/policy/v1beta1"
+	v1alpha1 "github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
+	v1beta1 "github.com/sigstore/policy-controller/pkg/apis/policy/v1beta1"
+	versioned "github.com/sigstore/policy-controller/pkg/client/clientset/versioned"
+	typedpolicyv1alpha1 "github.com/sigstore/policy-controller/pkg/client/clientset/versioned/typed/policy/v1alpha1"
+	typedpolicyv1beta1 "github.com/sigstore/policy-controller/pkg/client/clientset/versioned/typed/policy/v1beta1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	unstructured "k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	runtime "k8s.io/apimachinery/pkg/runtime"
@@ -66,10 +66,10 @@ func Get(ctx context.Context) versioned.Interface {
 	if untyped == nil {
 		if injection.GetConfig(ctx) == nil {
 			logging.FromContext(ctx).Panic(
-				"Unable to fetch github.com/sigstore/cosign/pkg/client/clientset/versioned.Interface from context. This context is not the application context (which is typically given to constructors via sharedmain).")
+				"Unable to fetch github.com/sigstore/policy-controller/pkg/client/clientset/versioned.Interface from context. This context is not the application context (which is typically given to constructors via sharedmain).")
 		} else {
 			logging.FromContext(ctx).Panic(
-				"Unable to fetch github.com/sigstore/cosign/pkg/client/clientset/versioned.Interface from context.")
+				"Unable to fetch github.com/sigstore/policy-controller/pkg/client/clientset/versioned.Interface from context.")
 		}
 	}
 	return untyped.(versioned.Interface)

@@ -25,8 +25,8 @@ import (
 	"sigs.k8s.io/release-utils/version"
 
 	cranecmd "github.com/google/go-containerregistry/cmd/crane/cmd"
-	"github.com/sigstore/cosign/cmd/cosign/cli/options"
-	"github.com/sigstore/cosign/pkg/cosign"
+	"github.com/sigstore/policy-controller/cmd/cosign/cli/options"
+	"github.com/sigstore/policy-controller/pkg/cosign"
 )
 
 var (

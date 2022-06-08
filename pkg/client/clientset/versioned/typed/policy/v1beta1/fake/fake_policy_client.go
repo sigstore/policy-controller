@@ -17,7 +17,7 @@
 package fake
 
 import (
-	v1beta1 "github.com/sigstore/cosign/pkg/client/clientset/versioned/typed/policy/v1beta1"
+	v1beta1 "github.com/sigstore/policy-controller/pkg/client/clientset/versioned/typed/policy/v1beta1"
 	rest "k8s.io/client-go/rest"
 	testing "k8s.io/client-go/testing"
 )

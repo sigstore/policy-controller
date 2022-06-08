@@ -19,7 +19,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/sigstore/cosign/cmd/cosign/cli/options"
+	"github.com/sigstore/policy-controller/cmd/cosign/cli/options"
 )
 
 func TestNewClient(t *testing.T) {

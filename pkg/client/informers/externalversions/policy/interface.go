@@ -17,9 +17,9 @@
 package policy
 
 import (
-	internalinterfaces "github.com/sigstore/cosign/pkg/client/informers/externalversions/internalinterfaces"
-	v1alpha1 "github.com/sigstore/cosign/pkg/client/informers/externalversions/policy/v1alpha1"
-	v1beta1 "github.com/sigstore/cosign/pkg/client/informers/externalversions/policy/v1beta1"
+	internalinterfaces "github.com/sigstore/policy-controller/pkg/client/informers/externalversions/internalinterfaces"
+	v1alpha1 "github.com/sigstore/policy-controller/pkg/client/informers/externalversions/policy/v1alpha1"
+	v1beta1 "github.com/sigstore/policy-controller/pkg/client/informers/externalversions/policy/v1beta1"
 )
 
 // Interface provides access to each of this group's versions.

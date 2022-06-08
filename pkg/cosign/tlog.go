@@ -33,8 +33,8 @@ import (
 	"github.com/transparency-dev/merkle/proof"
 	"github.com/transparency-dev/merkle/rfc6962"
 
-	"github.com/sigstore/cosign/pkg/cosign/bundle"
-	"github.com/sigstore/cosign/pkg/cosign/tuf"
+	"github.com/sigstore/policy-controller/pkg/cosign/bundle"
+	"github.com/sigstore/policy-controller/pkg/cosign/tuf"
 	"github.com/sigstore/rekor/pkg/generated/client"
 	"github.com/sigstore/rekor/pkg/generated/client/entries"
 	"github.com/sigstore/rekor/pkg/generated/client/index"

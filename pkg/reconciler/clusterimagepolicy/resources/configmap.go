@@ -18,7 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	webhookcip "github.com/sigstore/cosign/pkg/cosign/kubernetes/webhook/clusterimagepolicy"
+	webhookcip "github.com/sigstore/policy-controller/pkg/cosign/kubernetes/webhook/clusterimagepolicy"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"knative.dev/pkg/apis/duck"

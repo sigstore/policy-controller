@@ -17,8 +17,8 @@
 package fake
 
 import (
-	policyv1alpha1 "github.com/sigstore/cosign/pkg/apis/policy/v1alpha1"
-	policyv1beta1 "github.com/sigstore/cosign/pkg/apis/policy/v1beta1"
+	policyv1alpha1 "github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
+	policyv1beta1 "github.com/sigstore/policy-controller/pkg/apis/policy/v1beta1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	runtime "k8s.io/apimachinery/pkg/runtime"
 	schema "k8s.io/apimachinery/pkg/runtime/schema"

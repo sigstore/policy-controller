@@ -21,9 +21,9 @@ import (
 
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/mutate"
-	"github.com/sigstore/cosign/pkg/oci"
-	"github.com/sigstore/cosign/pkg/oci/empty"
-	"github.com/sigstore/cosign/pkg/oci/signed"
+	"github.com/sigstore/policy-controller/pkg/oci"
+	"github.com/sigstore/policy-controller/pkg/oci/empty"
+	"github.com/sigstore/policy-controller/pkg/oci/signed"
 )
 
 // Appendable is our signed version of mutate.Appendable

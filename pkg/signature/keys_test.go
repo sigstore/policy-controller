@@ -22,7 +22,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/sigstore/cosign/pkg/cosign"
+	"github.com/sigstore/policy-controller/pkg/cosign"
 )
 
 func generateKeyFile(t *testing.T, tmpDir string, pf cosign.PassFunc) (privFile, pubFile string) {

@@ -21,8 +21,8 @@ import (
 	"fmt"
 
 	"github.com/google/go-containerregistry/pkg/name"
-	"github.com/sigstore/cosign/cmd/cosign/cli/options"
-	"github.com/sigstore/cosign/pkg/cosign"
+	"github.com/sigstore/policy-controller/cmd/cosign/cli/options"
+	"github.com/sigstore/policy-controller/pkg/cosign"
 )
 
 func SignatureCmd(ctx context.Context, regOpts options.RegistryOptions, imageRef string) error {
