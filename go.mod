@@ -8,9 +8,7 @@ require (
 	github.com/armon/go-metrics v0.4.0
 	github.com/armon/go-radix v1.0.0
 	github.com/aws/aws-sdk-go-v2 v1.16.5
-	github.com/awslabs/amazon-ecr-credential-helper/ecr-login v0.0.0-20220228164355-396b2034c795
 	github.com/cenkalti/backoff/v3 v3.2.2
-	github.com/chrismellard/docker-credential-acr-env v0.0.0-20220119192733-fe33c00cee21
 	github.com/cyberphone/json-canonicalization v0.0.0-20210823021906-dc406ceaf94b
 	github.com/go-openapi/runtime v0.24.1
 	github.com/go-openapi/strfmt v0.21.2
@@ -44,7 +42,6 @@ require (
 	github.com/in-toto/in-toto-golang v0.3.4-0.20211211042327-af1f9fb822bf
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/letsencrypt/boulder v0.0.0-20220331220046-b23ab962616e
-	github.com/manifoldco/promptui v0.9.0
 	github.com/miekg/pkcs11 v1.1.1
 	github.com/mitchellh/copystructure v1.2.0
 	github.com/mitchellh/go-homedir v1.1.0
@@ -59,14 +56,11 @@ require (
 	github.com/sigstore/rekor v0.4.1-0.20220114213500-23f583409af3
 	github.com/sigstore/sigstore v1.2.1-0.20220424143412-3d41663116d5
 	github.com/spf13/cobra v1.4.0
-	github.com/spf13/pflag v1.0.5
-	github.com/spf13/viper v1.12.0
 	github.com/spiffe/go-spiffe/v2 v2.1.0
 	github.com/stretchr/testify v1.7.2
 	github.com/theupdateframework/go-tuf v0.3.0
 	github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399
 	github.com/transparency-dev/merkle v0.0.1
-	github.com/withfig/autocomplete-tools/packages/cobra v0.0.0-20220122124547-31d3821a6898
 	github.com/xanzy/go-gitlab v0.68.0
 	go.uber.org/atomic v1.9.0
 	go.uber.org/zap v1.21.0
@@ -134,6 +128,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sso v1.10.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/sts v1.15.0 // indirect
 	github.com/aws/smithy-go v1.11.3 // indirect
+	github.com/awslabs/amazon-ecr-credential-helper/ecr-login v0.0.0-20220228164355-396b2034c795 // indirect
 	github.com/benbjohnson/clock v1.1.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bgentry/speakeasy v0.1.0 // indirect
@@ -143,7 +138,7 @@ require (
 	github.com/bytecodealliance/wasmtime-go v0.33.1 // indirect
 	github.com/census-instrumentation/opencensus-proto v0.3.0 // indirect
 	github.com/cespare/xxhash/v2 v2.1.2 // indirect
-	github.com/chzyer/readline v0.0.0-20180603132655-2972be24d48e // indirect
+	github.com/chrismellard/docker-credential-acr-env v0.0.0-20220119192733-fe33c00cee21 // indirect
 	github.com/cncf/udpa/go v0.0.0-20210930031921-04548b0d99d4 // indirect
 	github.com/cncf/xds/go v0.0.0-20211130200136-a8f946100490 // indirect
 	github.com/cockroachdb/apd/v2 v2.0.1 // indirect
@@ -254,6 +249,8 @@ require (
 	github.com/spf13/afero v1.8.2 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
+	github.com/spf13/pflag v1.0.5 // indirect
+	github.com/spf13/viper v1.12.0 // indirect
 	github.com/subosito/gotenv v1.3.0 // indirect
 	github.com/syndtr/goleveldb v1.0.1-0.20210819022825-2ae1ddf74ef7 // indirect
 	github.com/tent/canonical-json-go v0.0.0-20130607151641-96e4ba3a7613 // indirect
