@@ -43,7 +43,7 @@ spec:
       - name: webhook
         # This is the Go import path for the binary that is containerized
         # and substituted here.
-        image: ko://github.com/sigstore/policy-controller/cmd/cosign/webhook
+        image: ko://github.com/sigstore/policy-controller/cmd/webhook
         args: ["-secret-name=verification-key"]
         resources:
           requests:

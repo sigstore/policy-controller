@@ -24,8 +24,8 @@ import (
 	"github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
 	"github.com/sigstore/policy-controller/pkg/apis/utils"
 	clusterimagepolicyreconciler "github.com/sigstore/policy-controller/pkg/client/injection/reconciler/policy/v1alpha1/clusterimagepolicy"
-	webhookcip "github.com/sigstore/policy-controller/pkg/cosign/kubernetes/webhook/clusterimagepolicy"
 	"github.com/sigstore/policy-controller/pkg/reconciler/clusterimagepolicy/resources"
+	webhookcip "github.com/sigstore/policy-controller/pkg/webhook/clusterimagepolicy"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
