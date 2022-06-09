@@ -27,11 +27,11 @@ import (
 	"knative.dev/pkg/apis"
 	"knative.dev/pkg/logging"
 
-	"github.com/sigstore/policy-controller/cmd/cosign/cli/fulcio/fulcioroots"
+	"github.com/sigstore/cosign/cmd/cosign/cli/fulcio/fulcioroots"
+	"github.com/sigstore/cosign/pkg/cosign"
+	"github.com/sigstore/cosign/pkg/oci"
+	ociremote "github.com/sigstore/cosign/pkg/oci/remote"
 	v1alpha1 "github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
-	"github.com/sigstore/policy-controller/pkg/cosign"
-	"github.com/sigstore/policy-controller/pkg/oci"
-	ociremote "github.com/sigstore/policy-controller/pkg/oci/remote"
 	"github.com/sigstore/rekor/pkg/generated/client"
 	"github.com/sigstore/sigstore/pkg/signature"
 )
