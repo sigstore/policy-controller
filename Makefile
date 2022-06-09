@@ -87,11 +87,11 @@ fmt: ## Format all go files
 ## Build policy-controller binary
 .PHONY: policy-controller
 policy-controller: policy-webhook
-	CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)" -o $@ ./cmd/cosign/webhook
+	CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)" -o $@ ./cmd/webhook
 
 .PHONY: policy-webhook
 policy-webhook: ## Build the policy webhook binary
-	CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)" -o $@ ./cmd/cosign/policy_webhook
+	CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)" -o $@ ./cmd/policy_webhook
 
 #####################
 # lint / test section
