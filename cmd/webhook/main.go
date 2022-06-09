@@ -39,7 +39,7 @@ import (
 	"sigs.k8s.io/release-utils/version"
 
 	"github.com/sigstore/policy-controller/pkg/apis/config"
-	cwebhook "github.com/sigstore/policy-controller/pkg/cosign/kubernetes/webhook"
+	cwebhook "github.com/sigstore/policy-controller/pkg/webhook"
 )
 
 var secretName = flag.String("secret-name", "", "The name of the secret in the webhook's namespace that holds the public key for verification.")

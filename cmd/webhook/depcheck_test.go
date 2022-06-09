@@ -23,7 +23,7 @@ import (
 
 func TestNoDeps(t *testing.T) {
 	depcheck.AssertNoDependency(t, map[string][]string{
-		"github.com/sigstore/policy-controller/cmd/cosign/policy_webhook": {
+		"github.com/sigstore/policy-controller/cmd/webhook": {
 			// This conflicts with klog, we error on startup about
 			// `-log_dir` being defined multiple times.
 			"github.com/golang/glog",

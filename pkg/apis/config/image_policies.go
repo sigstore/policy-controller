@@ -20,7 +20,7 @@ import (
 	"errors"
 	"fmt"
 
-	webhookcip "github.com/sigstore/policy-controller/pkg/cosign/kubernetes/webhook/clusterimagepolicy"
+	webhookcip "github.com/sigstore/policy-controller/pkg/webhook/clusterimagepolicy"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/yaml"
 )
