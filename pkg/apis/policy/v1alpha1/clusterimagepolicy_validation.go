@@ -24,10 +24,14 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws/arn"
 	"github.com/sigstore/policy-controller/pkg/apis/utils"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"knative.dev/pkg/apis"
 )
 
 const awsKMSPrefix = "awskms://"
+
+// TODO: create constants in to cosign?
+var validPredicateTypes = sets.NewString("custom", "slsaprovenance", "spdx", "spdxjson", "cyclonedx", "link", "vuln")
 
 // Validate implements apis.Validatable
 func (c *ClusterImagePolicy) Validate(ctx context.Context) *apis.FieldError {
@@ -165,7 +169,7 @@ func (a *Attestation) Validate(ctx context.Context) *apis.FieldError {
 	}
 	if a.PredicateType == "" {
 		errs = errs.Also(apis.ErrMissingField("predicateType"))
-	} else if a.PredicateType != "custom" && a.PredicateType != "slsaprovenance" && a.PredicateType != "spdx" && a.PredicateType != "spdxjson" && a.PredicateType != "cyclonedx" && a.PredicateType != "link" && a.PredicateType != "vuln" {
+	} else if !validPredicateTypes.Has(a.PredicateType) {
 		// TODO(vaikas): The above should be using something like:
 		// if _, ok := options.PredicateTypeMap[a.PrecicateType]; !ok {
 		// But it causes an import loop. That refactor can be part of
