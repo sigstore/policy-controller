@@ -154,13 +154,13 @@ ko-local:
 	KOCACHE=$(KOCACHE_PATH) ko build --base-import-paths \
 		--tags $(GIT_VERSION) --tags $(GIT_HASH) --local \
 		$(ARTIFACT_HUB_LABELS) \
-		github.com/sigstore/policy-controller/cmd/cosign/webhook
+		github.com/sigstore/policy-controller/cmd/webhook
 
 	LDFLAGS="$(LDFLAGS)" GIT_HASH=$(GIT_HASH) GIT_VERSION=$(GIT_VERSION) \
 	KOCACHE=$(KOCACHE_PATH) ko build --base-import-paths \
 		--tags $(GIT_VERSION) --tags $(GIT_HASH) --local \
 		$(ARTIFACT_HUB_LABELS) \
-		github.com/sigstore/policy-controller/cmd/cosign/policy_webhook
+		github.com/sigstore/policy-controller/cmd/policy_webhook
 
 .PHONY: ko-apply
 ko-apply:
@@ -184,10 +184,3 @@ help: # Display help
 include release/release.mk
 include test/ci.mk
 
-##########################
-# Documentation generation
-##########################
-
-.PHONY: docgen
-docgen:
-	go run -tags pivkey,pkcs11key,cgo ./cmd/help/

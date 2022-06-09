@@ -19,7 +19,7 @@ defaultBaseImage: gcr.io/distroless/base:debug-nonroot
 builds:
 - id: policy-controller
   dir: .
-  main: ./cmd/cosign/webhook
+  main: ./cmd/webhook
   env:
   - CGO_ENABLED=0
   flags:
@@ -34,7 +34,7 @@ builds:
 
 - id: policy_webhook
   dir: .
-  main: ./cmd/cosign/policy_webhook
+  main: ./cmd/policy_webhook
   env:
   - CGO_ENABLED=0
   flags:
