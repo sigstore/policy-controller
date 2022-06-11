@@ -369,7 +369,7 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 			&config.Config{
 				ImagePolicyConfig: &config.ImagePolicyConfig{
 					Policies: map[string]webhookcip.ClusterImagePolicy{
-						"cluster-image-policy-keyless": {
+						"cluster-image-policy-keyless-bad-cip": {
 							Images: []v1alpha1.ImagePattern{{
 								Glob: "gcr.io/*/*",
 							}},
@@ -383,7 +383,7 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 							Policy: &webhookcip.AttestationPolicy{
 								Name: "invalid json policy",
 								Type: "cue",
-								Data: `{"wontgo}`,
+								Data: `{"wontgo`,
 							},
 						},
 					},
@@ -392,10 +392,10 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 		),
 		want: func() *apis.FieldError {
 			var errs *apis.FieldError
-			fe := apis.ErrGeneric("failed policy: cluster-image-policy-keyless", "image").ViaFieldIndex("initContainers", 0)
+			fe := apis.ErrGeneric("failed policy: cluster-image-policy-keyless-bad-cip", "image").ViaFieldIndex("initContainers", 0)
 			fe.Details = fmt.Sprintf("%s failed evaluating cue policy for ClusterImagePolicy : failed to compile the cue policy with error: string literal not terminated", digest.String())
 			errs = errs.Also(fe)
-			fe2 := apis.ErrGeneric("failed policy: cluster-image-policy-keyless", "image").ViaFieldIndex("containers", 0)
+			fe2 := apis.ErrGeneric("failed policy: cluster-image-policy-keyless-bad-cip", "image").ViaFieldIndex("containers", 0)
 			fe2.Details = fmt.Sprintf("%s failed evaluating cue policy for ClusterImagePolicy : failed to compile the cue policy with error: string literal not terminated", digest.String())
 			errs = errs.Also(fe2)
 			return errs
@@ -1402,7 +1402,6 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 				},
 			}},
 		},
-		want:     &PolicyResult{AuthorityMatches: make(map[string]AuthorityMatch)},
 		wantErrs: []string{"failed to validate public keys with authority authority-0 for gcr.io/distroless/static@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4: bad signature"},
 		cvs:      fail,
 	}, {
