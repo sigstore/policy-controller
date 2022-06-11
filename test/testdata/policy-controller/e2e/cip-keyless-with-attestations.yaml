@@ -42,7 +42,6 @@ spec:
     type: cue
     data: |
       package sigstore
-      import "struct"
       import "list"
       authorityMatches: {
         verifysignature: {
