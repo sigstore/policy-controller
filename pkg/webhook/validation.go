@@ -32,7 +32,7 @@ import (
 	ociremote "github.com/sigstore/cosign/pkg/oci/remote"
 	v1alpha1 "github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
 	"github.com/sigstore/rekor/pkg/generated/client"
-	"github.com/sigstore/sigstore/pkg/fulcio/fulcioroots"
+	"github.com/sigstore/sigstore/pkg/fulcioroots"
 	"github.com/sigstore/sigstore/pkg/signature"
 )
 
