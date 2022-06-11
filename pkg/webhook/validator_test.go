@@ -1402,6 +1402,7 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 				},
 			}},
 		},
+		want:     &PolicyResult{AuthorityMatches: make(map[string]AuthorityMatch)},
 		wantErrs: []string{"failed to validate public keys with authority authority-0 for gcr.io/distroless/static@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4: bad signature"},
 		cvs:      fail,
 	}, {
@@ -1423,6 +1424,31 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 				}},
 		},
 		cvs: pass,
+	}, {
+		name: "simple, public key and keyless, one works, one doesn't",
+		policy: webhookcip.ClusterImagePolicy{
+			Authorities: []webhookcip.Authority{{
+				Name: "authority-0",
+				Key: &webhookcip.KeyRef{
+					PublicKeys: []crypto.PublicKey{authorityKeyCosignPub},
+				},
+			}, {
+				Name: "authority-1",
+				Keyless: &webhookcip.KeylessRef{
+					URL: badURL,
+				},
+			}},
+		},
+		want: &PolicyResult{
+			AuthorityMatches: map[string]AuthorityMatch{
+				"authority-0": {
+					Signatures: []PolicySignature{{
+						Subject: "PLACEHOLDER",
+						Issuer:  "PLACEHOLDER"}},
+				}},
+		},
+		wantErrs: []string{`fetching FulcioRoot: getting root cert: parse "http://http:%2F%2Fexample.com%2F/api/v1/rootCert": invalid port ":%2F%2Fexample.com%2F" after host`},
+		cvs:      authorityPublicKeyCVS,
 	}, {
 		name: "simple, public key, no error",
 		policy: webhookcip.ClusterImagePolicy{

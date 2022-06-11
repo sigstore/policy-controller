@@ -262,7 +262,7 @@ func validatePolicies(ctx context.Context, namespace string, ref name.Reference,
 			result := retChannelType{name: cipName}
 
 			result.policyResult, result.errors = ValidatePolicy(ctx, namespace, ref, cip, remoteOpts...)
-			if len(result.errors) == 0 {
+			if len(result.policyResult.AuthorityMatches) > 0 {
 				// Ok, at least one Authority  on the policy passed. If there's a CIP level
 				// policy, apply it against the results of the successful Authorities
 				// outputs.
@@ -366,7 +366,8 @@ func ValidatePolicy(ctx context.Context, namespace string, ref name.Reference, c
 		}()
 	}
 	// If none of the Authorities for a given policy pass the checks, gather
-	// the errors here. If one passes, do not return the errors.
+	// the errors here. Even if there are errors, return the matched
+	// authoritypolicies.
 	authorityErrors := []error{}
 	// We collect all the successfully satisfied Authorities into this and
 	// return it.
@@ -392,9 +393,9 @@ func ValidatePolicy(ctx context.Context, namespace string, ref name.Reference, c
 			}
 		}
 	}
-	if len(authorityErrors) > 0 {
-		return nil, authorityErrors
-	}
+	// Even if there are errors, return the policies, since as per the
+	// spec, we just need one signature to pass checks. If more than
+	// one are required, that is enforced at the policy level.
 	return policyResult, authorityErrors
 }
 
