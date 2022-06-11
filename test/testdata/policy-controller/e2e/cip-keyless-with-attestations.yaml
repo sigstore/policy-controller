@@ -20,7 +20,7 @@ spec:
   images:
   - glob: registry.local:5000/policy-controller/demo*
   authorities:
-  - name: verifycustomattestation
+  - name: attestation
     keyless:
       url: http://fulcio.fulcio-system.svc
     ctlog:
@@ -33,23 +33,3 @@ spec:
         data: |
           predicateType: "cosign.sigstore.dev/attestation/v1"
           predicate: Data: "foobar e2e test"
-  - name: verifysignature
-    keyless:
-      url: http://fulcio.fulcio-system.svc
-    ctlog:
-      url: http://rekor.rekor-system.svc
-  policy:
-    type: cue
-    data: |
-      package sigstore
-      import "list"
-      authorityMatches: {
-        verifysignature: {
-          signatures: list.MaxItems(1) & list.MinItems(1)
-        },
-        if (len(authorityMatches.verifycustomattestation.attestations) < 1) {
-          keylessattMinAttestations: 1
-          keylessattMinAttestations: "Error"
-        },
-      }
-
