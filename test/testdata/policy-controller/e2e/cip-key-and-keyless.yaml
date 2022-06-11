@@ -32,6 +32,6 @@ spec:
     ctlog:
       url: http://rekor.rekor-system.svc
   - keyless:
-      url: http://fulcio.fulcio-system.svc
+      url: http://fulcio.sigstore.dev
     ctlog:
-      url: http://rekor.rekor-system.svc
+      url: http://rekor.sigstore.dev
