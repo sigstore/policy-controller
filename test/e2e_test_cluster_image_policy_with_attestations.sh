@@ -102,7 +102,7 @@ export NS=demo-attestations
 echo '::endgroup::'
 
 echo '::group:: Create CIP that requires keyless signature and custom attestation with policy'
-kubectl apply -f ./test/testdata/policy-controller/e2e/cip-keyless-with-attestations.yaml
+kubectl apply -f ./test/testdata/policy-controller/e2e/cip-keyless.yaml
 # allow things to propagate
 sleep 5
 echo '::endgroup::'
@@ -115,6 +115,12 @@ echo '::endgroup::'
 
 echo '::group:: Sign demoimage with keyless'
 COSIGN_EXPERIMENTAL=1 cosign sign --rekor-url ${REKOR_URL} --fulcio-url ${FULCIO_URL} --force --allow-insecure-registry ${demoimage} --identity-token ${OIDC_TOKEN}
+echo '::endgroup::'
+
+echo '::group:: Create CIP that requires keyless signature and custom attestation with policy'
+kubectl apply -f ./test/testdata/policy-controller/e2e/cip-keyless-with-attestations.yaml
+# allow things to propagate
+sleep 5
 echo '::endgroup::'
 
 # This image has been signed, but does not have an attestation, so should fail.
@@ -142,6 +148,7 @@ if ! kubectl create -n ${NS} job demo --image=${demoimage} 2> ${KUBECTL_SUCCESS_
 else
   echo Created the job with keyless signature and an attestation
 fi
+kubectl delete -n ${NS} job demo
 echo '::endgroup::'
 
 echo '::group:: Generate New Signing Key that we use for key-ful signing'
@@ -150,8 +157,8 @@ echo '::endgroup::'
 
 # Ok, so now we have satisfied the keyless requirements, one signature, one
 # custom attestation. Let's now do it for 'keyful' one.
-echo '::group:: Create CIP that requires a keyful signature and an attestation'
-yq '. | .spec.authorities[0].key.data |= load_str("cosign.pub") | .spec.authorities[1].key.data |= load_str("cosign.pub")' ./test/testdata/policy-controller/e2e/cip-key-with-attestations.yaml | kubectl apply -f -
+echo '::group:: Create CIP that requires a keyful signature'
+yq '. | .spec.authorities[0].key.data |= load_str("cosign.pub")' ./test/testdata/policy-controller/e2e/cip-key.yaml | kubectl apply -f -
 # allow things to propagate
 sleep 5
 echo '::endgroup::'
@@ -170,6 +177,15 @@ echo '::endgroup::'
 
 echo '::group:: Verify demoimage with cosign key'
 COSIGN_EXPERIMENTAL=1 cosign verify --key cosign.pub --rekor-url ${REKOR_URL} --allow-insecure-registry ${demoimage}
+echo '::endgroup::'
+
+# Ok, so now we have satisfied the keyless requirements, one signature, one
+# custom attestation, and one 'keyful' one. But it will now be missing a
+# keyful attestation, so let's add that requirement.
+echo '::group:: Create CIP that requires a keyful attestation'
+yq '. | .spec.authorities[0].key.data |= load_str("cosign.pub")' ./test/testdata/policy-controller/e2e/cip-key-with-attestations.yaml | kubectl apply -f -
+# allow things to propagate
+sleep 5
 echo '::endgroup::'
 
 # This image has been signed with key, but does not have a key attestation

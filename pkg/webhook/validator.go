@@ -262,21 +262,23 @@ func validatePolicies(ctx context.Context, namespace string, ref name.Reference,
 			result := retChannelType{name: cipName}
 
 			result.policyResult, result.errors = ValidatePolicy(ctx, namespace, ref, cip, remoteOpts...)
-			if len(result.errors) == 0 {
-				// Ok, at least one Authority  on the policy passed. If there's a CIP level
-				// policy, apply it against the results of the successful Authorities
-				// outputs.
-				if cip.Policy != nil {
-					logging.FromContext(ctx).Infof("Validating CIP level policy for %s", cipName)
-					policyJSON, err := json.Marshal(result.policyResult)
+			// If there are authorities that validated in the CIP and there's
+			// a CIP level policy, apply it against the results of the
+			// successful Authorities outputs.
+			if result.policyResult != nil && cip.Policy != nil {
+				logging.FromContext(ctx).Infof("Validating CIP level policy for %s", cipName)
+				policyJSON, err := json.Marshal(result.policyResult)
+				if err != nil {
+					// nil out any policyResults since CIP level policy failed
+					result.policyResult = nil
+					result.errors = append(result.errors, err)
+				} else {
+					err = policy.EvaluatePolicyAgainstJSON(ctx, "ClusterImagePolicy", cip.Policy.Type, cip.Policy.Data, policyJSON)
 					if err != nil {
+						logging.FromContext(ctx).Warnf("Failed to validate CIP level policy against %s", string(policyJSON))
+						// nil out any policyResults since CIP level policy failed
+						result.policyResult = nil
 						result.errors = append(result.errors, err)
-					} else {
-						logging.FromContext(ctx).Debugf("Validating CIP level policy against %s", string(policyJSON))
-						err = policy.EvaluatePolicyAgainstJSON(ctx, "ClusterImagePolicy", cip.Policy.Type, cip.Policy.Data, policyJSON)
-						if err != nil {
-							result.errors = append(result.errors, err)
-						}
 					}
 				}
 			}
@@ -299,10 +301,15 @@ func validatePolicies(ctx context.Context, namespace string, ref name.Reference,
 				continue
 			}
 			switch {
+			// Return AuthorityMatches before errors, since even if there
+			// are errors, if there are 0 or more authorities that match,
+			// it will pass the Policy. Of course, a CIP level policy can
+			// override this behaviour, but that has been checked above and
+			// if it failed, it will nil out the policyResult.
+			case result.policyResult != nil:
+				policyResults[result.name] = result.policyResult
 			case len(result.errors) > 0:
 				ret[result.name] = append(ret[result.name], result.errors...)
-			case len(result.policyResult.AuthorityMatches) > 0:
-				policyResults[result.name] = result.policyResult
 			default:
 				ret[result.name] = append(ret[result.name], fmt.Errorf("failed to process policy: %s", result.name))
 			}
@@ -313,9 +320,10 @@ func validatePolicies(ctx context.Context, namespace string, ref name.Reference,
 }
 
 // ValidatePolicy will go through all the Authorities for a given image/policy
-// and return a success if at least one of the Authorities validated the
-// signatures OR attestations if atttestations were specified.
-// Returns PolicyResult, or errors encountered if none of the authorities
+// and return validated authorities if at least one of the Authorities
+// validated the signatures OR attestations if atttestations were specified.
+// Returns PolicyResult if one or more authorities matched, otherwise nil.
+// In any case returns all errors encountered if none of the authorities
 // passed.
 func ValidatePolicy(ctx context.Context, namespace string, ref name.Reference, cip webhookcip.ClusterImagePolicy, remoteOpts ...ociremote.Option) (*PolicyResult, []error) {
 	// Each gofunc creates and puts one of these into a results channel.
@@ -366,7 +374,8 @@ func ValidatePolicy(ctx context.Context, namespace string, ref name.Reference, c
 		}()
 	}
 	// If none of the Authorities for a given policy pass the checks, gather
-	// the errors here. If one passes, do not return the errors.
+	// the errors here. Even if there are errors, return the matched
+	// authoritypolicies.
 	authorityErrors := []error{}
 	// We collect all the successfully satisfied Authorities into this and
 	// return it.
@@ -392,7 +401,12 @@ func ValidatePolicy(ctx context.Context, namespace string, ref name.Reference, c
 			}
 		}
 	}
-	if len(authorityErrors) > 0 {
+	// Even if there are errors, return the policies, since as per the
+	// spec, we just need one authority to pass checks. If more than
+	// one are required, that is enforced at the CIP policy level.
+	// If however there are no authorityMatches, return nil so we don't have
+	// to keep checking the length on the returned calls.
+	if len(policyResult.AuthorityMatches) == 0 {
 		return nil, authorityErrors
 	}
 	return policyResult, authorityErrors

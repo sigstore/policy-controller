@@ -222,7 +222,23 @@ if ! kubectl create -n demo-key-signing job demo --image=${demoimage} ; then
 else
   echo Succcessfully created Job with signed image
 fi
-echo '::endgroup:: test job success'
+echo '::endgroup::'
+
+# Deploy a CIP that adds a keyless entry, that tests OR.
+echo '::group:: Deploy ClusterImagePolicy With Key Signing'
+yq '. | .spec.authorities[0].key.data |= load_str("cosign-colocated-signing.pub")' \
+  ./test/testdata/policy-controller/e2e/cip-key-and-keyless.yaml | \
+  kubectl apply -f -
+echo '::endgroup::'
+
+echo '::group:: test with key and keyless, authorities OR'
+if ! kubectl create -n demo-key-signing job demo-with-or --image=${demoimage} ; then
+  echo Failed to create Job in namespace after adding a keyless authority, OR is not working
+  exit 1
+else
+  echo Succcessfully created Job with signed image
+fi
+echo '::endgroup::'
 
 echo '::group:: test job rejection'
 # We did not sign this, should fail

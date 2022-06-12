@@ -369,7 +369,7 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 			&config.Config{
 				ImagePolicyConfig: &config.ImagePolicyConfig{
 					Policies: map[string]webhookcip.ClusterImagePolicy{
-						"cluster-image-policy-keyless": {
+						"cluster-image-policy-keyless-bad-cip": {
 							Images: []v1alpha1.ImagePattern{{
 								Glob: "gcr.io/*/*",
 							}},
@@ -383,7 +383,7 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 							Policy: &webhookcip.AttestationPolicy{
 								Name: "invalid json policy",
 								Type: "cue",
-								Data: `{"wontgo}`,
+								Data: `{"wontgo`,
 							},
 						},
 					},
@@ -392,10 +392,10 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 		),
 		want: func() *apis.FieldError {
 			var errs *apis.FieldError
-			fe := apis.ErrGeneric("failed policy: cluster-image-policy-keyless", "image").ViaFieldIndex("initContainers", 0)
+			fe := apis.ErrGeneric("failed policy: cluster-image-policy-keyless-bad-cip", "image").ViaFieldIndex("initContainers", 0)
 			fe.Details = fmt.Sprintf("%s failed evaluating cue policy for ClusterImagePolicy : failed to compile the cue policy with error: string literal not terminated", digest.String())
 			errs = errs.Also(fe)
-			fe2 := apis.ErrGeneric("failed policy: cluster-image-policy-keyless", "image").ViaFieldIndex("containers", 0)
+			fe2 := apis.ErrGeneric("failed policy: cluster-image-policy-keyless-bad-cip", "image").ViaFieldIndex("containers", 0)
 			fe2.Details = fmt.Sprintf("%s failed evaluating cue policy for ClusterImagePolicy : failed to compile the cue policy with error: string literal not terminated", digest.String())
 			errs = errs.Also(fe2)
 			return errs
@@ -1423,6 +1423,31 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 				}},
 		},
 		cvs: pass,
+	}, {
+		name: "simple, public key and keyless, one works, one doesn't",
+		policy: webhookcip.ClusterImagePolicy{
+			Authorities: []webhookcip.Authority{{
+				Name: "authority-0",
+				Key: &webhookcip.KeyRef{
+					PublicKeys: []crypto.PublicKey{authorityKeyCosignPub},
+				},
+			}, {
+				Name: "authority-1",
+				Keyless: &webhookcip.KeylessRef{
+					URL: badURL,
+				},
+			}},
+		},
+		want: &PolicyResult{
+			AuthorityMatches: map[string]AuthorityMatch{
+				"authority-0": {
+					Signatures: []PolicySignature{{
+						Subject: "PLACEHOLDER",
+						Issuer:  "PLACEHOLDER"}},
+				}},
+		},
+		wantErrs: []string{`fetching FulcioRoot: getting root cert: parse "http://http:%2F%2Fexample.com%2F/api/v1/rootCert": invalid port ":%2F%2Fexample.com%2F" after host`},
+		cvs:      authorityPublicKeyCVS,
 	}, {
 		name: "simple, public key, no error",
 		policy: webhookcip.ClusterImagePolicy{

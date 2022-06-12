@@ -12,24 +12,26 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
+# This is exactly like image-policy-key but we add a keyless
+# entry. Regress test for
+# https://github.com/sigstore/policy-controller/issues/28
 apiVersion: policy.sigstore.dev/v1alpha1
 kind: ClusterImagePolicy
 metadata:
-  name: image-policy-keyless-with-attestations
+  name: image-policy-key
 spec:
   images:
   - glob: registry.local:5000/policy-controller/demo*
   authorities:
-  - name: attestation
-    keyless:
-      url: http://fulcio.fulcio-system.svc
+  - key:
+      data: |
+        -----BEGIN PUBLIC KEY-----
+        MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEZxAfzrQG1EbWyCI8LiSB7YgSFXoI
+        FNGTyQGKHFc6/H8TQumT9VLS78pUwtv3w7EfKoyFZoP32KrO7nzUy2q6Cw==
+        -----END PUBLIC KEY-----
     ctlog:
       url: http://rekor.rekor-system.svc
-    attestations:
-    - name: custom-match-predicate
-      predicateType: custom
-      policy:
-        type: cue
-        data: |
-          predicateType: "cosign.sigstore.dev/attestation/v1"
-          predicate: Data: "foobar e2e test"
+  - keyless:
+      url: http://fulcio.sigstore.dev
+    ctlog:
+      url: http://rekor.sigstore.dev
