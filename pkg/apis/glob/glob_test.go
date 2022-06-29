@@ -72,6 +72,13 @@ func TestGlobMatch(t *testing.T) {
 		// Upgrading unqualified globs to assume index.docker.io prefix.
 		{image: "foo", glob: "*", wantMatch: true},
 		{image: "myuser/myapp", glob: "*/*", wantMatch: true},
+
+		// Image with digest (exact match)
+		{
+			image:     "ghcr.io/foo@sha256:5504f2a95018e3d8a52d80d9e1a128c6ea337581808ff9fe96f5628ce2336350",
+			glob:      "ghcr.io/foo@sha256:5504f2a95018e3d8a52d80d9e1a128c6ea337581808ff9fe96f5628ce2336350",
+			wantMatch: true,
+		},
 	} {
 		t.Run(c.image+"|"+c.glob, func(t *testing.T) {
 			match, err := Match(c.glob, c.image)

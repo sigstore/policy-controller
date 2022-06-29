@@ -30,7 +30,7 @@ const (
 	DockerhubPublicRepository = "library/"
 )
 
-var validGlob = regexp.MustCompile(`^[a-zA-Z0-9-_:\/\*\.]+$`)
+var validGlob = regexp.MustCompile(`^[a-zA-Z0-9-_:\/\*\.@]+$`)
 
 // Compile attempts to normalize the glob and turn it into a regular expression
 // that we can use for matching image names.
