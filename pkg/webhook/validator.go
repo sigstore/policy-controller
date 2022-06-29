@@ -36,6 +36,7 @@ import (
 	"github.com/sigstore/rekor/pkg/generated/client"
 	"github.com/sigstore/sigstore/pkg/signature"
 	corev1 "k8s.io/api/core/v1"
+	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	"k8s.io/client-go/kubernetes"
 	listersv1 "k8s.io/client-go/listers/core/v1"
 	"knative.dev/pkg/apis"
@@ -123,13 +124,17 @@ func (v *Validator) validatePodSpec(ctx context.Context, namespace string, ps *c
 	}
 
 	s, err := v.lister.Secrets(system.Namespace()).Get(v.secretName)
-	if err != nil {
+	if err != nil && !apierrs.IsNotFound(err) {
 		return apis.ErrGeneric(err.Error(), apis.CurrentField)
 	}
-
-	keys, kerr := getKeys(ctx, s.Data)
-	if kerr != nil {
-		return kerr
+	// If the secret is not found, we verify against the fulcio root.
+	keys := make([]crypto.PublicKey, 0)
+	if err == nil {
+		var kerr *apis.FieldError
+		keys, kerr = getKeys(ctx, s.Data)
+		if kerr != nil {
+			return kerr
+		}
 	}
 
 	checkContainers := func(cs []corev1.Container, field string) {
