@@ -222,6 +222,26 @@ func TestKeyValidation(t *testing.T) {
 				},
 			},
 		},
+		{
+			name:      "Glob should pass with exact digest image",
+			expectErr: false,
+			policy: ClusterImagePolicy{
+				Spec: ClusterImagePolicySpec{
+					Images: []ImagePattern{
+						{
+							Glob: "ghcr.io/foo@sha256:5504f2a95018e3d8a52d80d9e1a128c6ea337581808ff9fe96f5628ce2336350",
+						},
+					},
+					Authorities: []Authority{
+						{
+							Key: &KeyRef{
+								KMS: "kms://key/path",
+							},
+						},
+					},
+				},
+			},
+		},
 	}
 
 	for _, test := range tests {
