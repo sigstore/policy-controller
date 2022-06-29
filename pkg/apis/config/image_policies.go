@@ -20,6 +20,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/sigstore/policy-controller/pkg/apis/glob"
 	webhookcip "github.com/sigstore/policy-controller/pkg/webhook/clusterimagepolicy"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/yaml"
@@ -92,7 +93,7 @@ func (p *ImagePolicyConfig) GetMatchingPolicies(image string) (map[string]webhoo
 	for k, v := range p.Policies {
 		for _, pattern := range v.Images {
 			if pattern.Glob != "" {
-				if matched, err := GlobMatch(pattern.Glob, image); err != nil {
+				if matched, err := glob.Match(pattern.Glob, image); err != nil {
 					lastError = err
 				} else if matched {
 					ret[k] = v

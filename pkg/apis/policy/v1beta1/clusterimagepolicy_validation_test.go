@@ -60,6 +60,20 @@ func TestImagePatternValidation(t *testing.T) {
 			},
 		},
 		{
+			name:        "Glob should fail with invalid regexp",
+			expectErr:   true,
+			errorString: "invalid value: $FOO*: spec.images[0].glob\nglob is invalid: invalid glob \"$FOO*\"\nmissing field(s): spec.authorities",
+			policy: ClusterImagePolicy{
+				Spec: ClusterImagePolicySpec{
+					Images: []ImagePattern{
+						{
+							Glob: "$FOO*",
+						},
+					},
+				},
+			},
+		},
+		{
 			name:        "missing image and authorities in the spec",
 			expectErr:   true,
 			errorString: "missing field(s): spec.authorities, spec.images",

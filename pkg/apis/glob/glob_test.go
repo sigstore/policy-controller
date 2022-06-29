@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package config
+package glob
 
 import (
 	"testing"
@@ -74,7 +74,7 @@ func TestGlobMatch(t *testing.T) {
 		{image: "myuser/myapp", glob: "*/*", wantMatch: true},
 	} {
 		t.Run(c.image+"|"+c.glob, func(t *testing.T) {
-			match, err := GlobMatch(c.glob, c.image)
+			match, err := Match(c.glob, c.image)
 			if match != c.wantMatch {
 				t.Errorf("match: got %t, want %t", match, c.wantMatch)
 			}
