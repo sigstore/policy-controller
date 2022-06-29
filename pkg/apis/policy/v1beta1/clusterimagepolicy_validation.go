@@ -23,6 +23,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws/arn"
+	"github.com/sigstore/policy-controller/pkg/apis/glob"
 	"github.com/sigstore/policy-controller/pkg/apis/utils"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"knative.dev/pkg/apis"
@@ -60,9 +61,9 @@ func (image *ImagePattern) Validate(ctx context.Context) *apis.FieldError {
 	var errs *apis.FieldError
 	if image.Glob == "" {
 		errs = errs.Also(apis.ErrMissingField("glob"))
+	} else {
+		errs = errs.Also(ValidateGlob(image.Glob).ViaField("glob"))
 	}
-
-	errs = errs.Also(ValidateGlob(image.Glob).ViaField("glob"))
 
 	return errs
 }
@@ -216,12 +217,13 @@ func (identity *Identity) Validate(ctx context.Context) *apis.FieldError {
 }
 
 // ValidateGlob glob compilation by testing against empty string
-func ValidateGlob(glob string) *apis.FieldError {
-	_, err := filepath.Match(glob, "")
-	if err != nil {
-		return apis.ErrInvalidValue(glob, apis.CurrentField, fmt.Sprintf("glob is invalid: %v", err))
+func ValidateGlob(g string) *apis.FieldError {
+	if _, err := filepath.Match(g, ""); err != nil {
+		return apis.ErrInvalidValue(g, apis.CurrentField, fmt.Sprintf("glob is invalid: %v", err))
 	}
-
+	if _, err := glob.Compile(g); err != nil {
+		return apis.ErrInvalidValue(g, apis.CurrentField, fmt.Sprintf("glob is invalid: %v", err))
+	}
 	return nil
 }
 
