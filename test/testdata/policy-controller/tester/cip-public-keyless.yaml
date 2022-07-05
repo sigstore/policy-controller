@@ -18,7 +18,7 @@ metadata:
   name: demo
 spec:
   images:
-    - glob: "**"
+    - glob: ghcr.io/sigstore/cosign/cosign:v1.9.0
   authorities:
   - keyless:
-      url: "https://fulcio.sigstore.dev"
+      url: https://fulcio.sigstore.dev

@@ -18,8 +18,8 @@ Then run it pointing to a YAML file containing a ClusterImagePolicy, and an imag
 ```
 (set -o pipefail && \
     ./policy-tester \
-        test/testdata/policy-controller/tester/cip-public-keyless.yaml \
-        ghcr.io/sigstore/cosign/cosign:v1.9.0 | jq)
+        --policy=test/testdata/policy-controller/tester/cip-public-keyless.yaml \
+        --image=ghcr.io/sigstore/cosign/cosign:v1.9.0 | jq)
 ```
 
 ## Security

@@ -18,6 +18,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -58,25 +59,27 @@ type output struct {
 }
 
 func main() {
-	args := os.Args[1:]
-	if len(args) != 2 {
-		fmt.Println("Usage: policy-tester cluster-image-policy.yaml r.example.com/myrepo/myimage:mytag")
+	cipFilePath := flag.String("policy", "", "path to ClusterImagePolicy")
+	image := flag.String("image", "", "image to compare against policy")
+	flag.Parse()
+	if *cipFilePath == "" || *image == "" {
+		flag.Usage()
 		os.Exit(1)
 	}
-	cipFilePath := args[0]
-	image := args[1]
-	cipRaw, err := ioutil.ReadFile(cipFilePath)
+
+	cipRaw, err := ioutil.ReadFile(*cipFilePath)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// TODO(jdolitsky): should this use v1beta1?
+	// TODO(jdolitsky): This should use v1beta1 once there exists a
+	// webhookcip.ConvertClusterImagePolicyV1beta1ToWebhook() method
 	var tmp v1alpha1.ClusterImagePolicy
 	if err := yaml.Unmarshal(cipRaw, &tmp); err != nil {
 		log.Fatal(err)
 	}
 	cip := webhookcip.ConvertClusterImagePolicyV1alpha1ToWebhook(&tmp)
-	ref, err := name.ParseReference(image)
+	ref, err := name.ParseReference(*image)
 	if err != nil {
 		log.Fatal(err)
 	}
