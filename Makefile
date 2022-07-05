@@ -93,6 +93,11 @@ policy-controller: policy-webhook
 policy-webhook: ## Build the policy webhook binary
 	CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)" -o $@ ./cmd/policy_webhook
 
+## Build policy-tester binary
+.PHONY: policy-tester
+policy-tester:
+	CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)" -o $@ ./cmd/tester
+
 #####################
 # lint / test section
 #####################
