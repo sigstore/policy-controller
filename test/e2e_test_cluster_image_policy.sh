@@ -140,6 +140,47 @@ else
 fi
 echo '::endgroup::'
 
+# Create a CIP with static fail, since they are ANDed together, even though it
+# passed above will now fail.
+echo '::group:: Create CIP that always fails'
+kubectl apply -f ./test/testdata/policy-controller/e2e/cip-static-fail.yaml
+# allow things to propagate
+sleep 5
+echo '::endgroup::'
+
+echo '::group:: test with static fail'
+expected_error='disallowed by static policy'
+assert_error ${expected_error}
+echo '::endgroup::'
+
+echo '::group:: Create CIP that always passes'
+kubectl apply -f ./test/testdata/policy-controller/e2e/cip-static-pass.yaml
+# allow things to propagate
+sleep 5
+echo '::endgroup::'
+
+echo '::group:: test with static fail and static pass'
+expected_error='disallowed by static policy'
+assert_error ${expected_error}
+echo '::endgroup::'
+
+echo '::group:: Delete CIP that always fails'
+kubectl delete cip image-policy-static-fail
+# allow things to propagate
+sleep 5
+echo '::endgroup::'
+
+echo '::group:: test with static pass should work'
+# We signed this above, and there's pass always so should work
+if ! kubectl create -n demo-keyless-signing job demo-works --image=${demoimage} ; then
+  echo Failed to create Job in namespace with matching signature and static pass!
+  exit 1
+else
+  echo Succcessfully created Job with signed image and static pass
+fi
+echo '::endgroup::'
+
+
 # We did not sign this, should fail
 echo '::group:: test job rejection'
 if kubectl create -n demo-keyless-signing job demo2 --image=${demoimage2} ; then

@@ -87,6 +87,8 @@ type Authority struct {
 	// +optional
 	Keyless *KeylessRef `json:"keyless,omitempty"`
 	// +optional
+	Static *StaticRef `json:"static,omitempty"`
+	// +optional
 	Sources []Source `json:"source,omitempty"`
 	// +optional
 	CTLog *TLog `json:"ctlog,omitempty"`
@@ -107,6 +109,13 @@ type KeyRef struct {
 	// Supported formats differ based on the KMS system used.
 	// +optional
 	KMS string `json:"kms,omitempty"`
+}
+
+// StaticRef specifies that signatures / attestations are not validated but
+// instead a static policy is applied against matching images.
+type StaticRef struct {
+	// Action defines how to handle a matching policy.
+	Action string `json:"action"`
 }
 
 // Source specifies the location of the signature

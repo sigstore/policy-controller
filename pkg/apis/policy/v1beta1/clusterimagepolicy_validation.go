@@ -31,8 +31,15 @@ import (
 
 const awsKMSPrefix = "awskms://"
 
-// TODO: create constants in to cosign?
-var validPredicateTypes = sets.NewString("custom", "slsaprovenance", "spdx", "spdxjson", "cyclonedx", "link", "vuln")
+var (
+	// TODO: create constants in to cosign?
+	validPredicateTypes = sets.NewString("custom", "slsaprovenance", "spdx", "spdxjson", "cyclonedx", "link", "vuln")
+
+	// If a static matches, define the behaviour for it.
+	// TODO(vaikas): Consider adding a warn which would pass but use
+	// `warn` as return type for the webhook response.
+	validStaticRefTypes = sets.NewString("fail", "pass")
+)
 
 // Validate implements apis.Validatable
 func (c *ClusterImagePolicy) Validate(ctx context.Context) *apis.FieldError {
@@ -66,11 +73,13 @@ func (image *ImagePattern) Validate(ctx context.Context) *apis.FieldError {
 
 func (authority *Authority) Validate(ctx context.Context) *apis.FieldError {
 	var errs *apis.FieldError
-	if authority.Key == nil && authority.Keyless == nil {
-		errs = errs.Also(apis.ErrMissingOneOf("key", "keyless"))
+	if authority.Key == nil && authority.Keyless == nil && authority.Static == nil {
+		errs = errs.Also(apis.ErrMissingOneOf("key", "keyless", "static"))
 	}
-	if authority.Key != nil && authority.Keyless != nil {
-		errs = errs.Also(apis.ErrMultipleOneOf("key", "keyless"))
+	if (authority.Key != nil && authority.Keyless != nil) ||
+		(authority.Key != nil && authority.Static != nil) ||
+		(authority.Keyless != nil && authority.Static != nil) {
+		errs = errs.Also(apis.ErrMultipleOneOf("key", "keyless", "static"))
 	}
 
 	if authority.Key != nil {
@@ -78,6 +87,19 @@ func (authority *Authority) Validate(ctx context.Context) *apis.FieldError {
 	}
 	if authority.Keyless != nil {
 		errs = errs.Also(authority.Keyless.Validate(ctx).ViaField("keyless"))
+	}
+	if authority.Static != nil {
+		errs = errs.Also(authority.Static.Validate(ctx).ViaField("static"))
+		// Attestations, Sources, or CTLog do not make sense with static policy.
+		if len(authority.Attestations) > 0 {
+			errs = errs.Also(apis.ErrMultipleOneOf("static", "attestations"))
+		}
+		if len(authority.Sources) > 0 {
+			errs = errs.Also(apis.ErrMultipleOneOf("static", "source"))
+		}
+		if authority.CTLog != nil {
+			errs = errs.Also(apis.ErrMultipleOneOf("static", "ctlog"))
+		}
 	}
 
 	for i, source := range authority.Sources {
@@ -88,6 +110,17 @@ func (authority *Authority) Validate(ctx context.Context) *apis.FieldError {
 		errs = errs.Also(att.Validate(ctx).ViaField("attestations"))
 	}
 
+	return errs
+}
+
+func (s *StaticRef) Validate(ctx context.Context) *apis.FieldError {
+	var errs *apis.FieldError
+
+	if s.Action == "" {
+		errs = errs.Also(apis.ErrMissingField("action"))
+	} else if !validStaticRefTypes.Has(s.Action) {
+		errs = errs.Also(apis.ErrInvalidValue(s.Action, "action", "unsupported action"))
+	}
 	return errs
 }
 
@@ -167,10 +200,6 @@ func (a *Attestation) Validate(ctx context.Context) *apis.FieldError {
 	if a.PredicateType == "" {
 		errs = errs.Also(apis.ErrMissingField("predicateType"))
 	} else if !validPredicateTypes.Has(a.PredicateType) {
-		// TODO(vaikas): The above should be using something like:
-		// if _, ok := options.PredicateTypeMap[a.PrecicateType]; !ok {
-		// But it causes an import loop. That refactor can be part of
-		// another PR.
 		errs = errs.Also(apis.ErrInvalidValue(a.PredicateType, "predicateType", "unsupported precicate type"))
 	}
 	errs = errs.Also(a.Policy.Validate(ctx).ViaField("policy"))

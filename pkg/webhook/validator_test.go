@@ -1449,6 +1449,35 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 		wantErrs: []string{`fetching FulcioRoot: getting root cert: parse "http://http:%2F%2Fexample.com%2F/api/v1/rootCert": invalid port ":%2F%2Fexample.com%2F" after host`},
 		cvs:      authorityPublicKeyCVS,
 	}, {
+		name: "simple, static set to pass",
+		policy: webhookcip.ClusterImagePolicy{
+			Authorities: []webhookcip.Authority{{
+				Name: "authority-0",
+				Static: &webhookcip.StaticRef{
+					Action: "pass",
+				},
+			}},
+		},
+		want: &PolicyResult{
+			AuthorityMatches: map[string]AuthorityMatch{
+				"authority-0": {
+					Signatures: []PolicySignature{{
+						Subject: "allowed by static policy",
+						Issuer:  "allowed by static policy"}},
+				}},
+		},
+	}, {
+		name: "simple, static set to fail",
+		policy: webhookcip.ClusterImagePolicy{
+			Authorities: []webhookcip.Authority{{
+				Name: "authority-0",
+				Static: &webhookcip.StaticRef{
+					Action: "fail",
+				},
+			}},
+		},
+		wantErrs: []string{"disallowed by static policy"},
+	}, {
 		name: "simple, public key, no error",
 		policy: webhookcip.ClusterImagePolicy{
 			Authorities: []webhookcip.Authority{{

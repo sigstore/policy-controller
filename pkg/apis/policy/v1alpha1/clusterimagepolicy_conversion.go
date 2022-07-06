@@ -110,6 +110,11 @@ func (authority *Authority) ConvertTo(ctx context.Context, sink *v1beta1.Authori
 			authority.Keyless.CACert.ConvertTo(ctx, sink.Keyless.CACert)
 		}
 	}
+	if authority.Static != nil {
+		sink.Static = &v1beta1.StaticRef{
+			Action: authority.Static.Action,
+		}
+	}
 	return nil
 }
 
@@ -181,6 +186,9 @@ func (authority *Authority) ConvertFrom(ctx context.Context, source *v1beta1.Aut
 			authority.Keyless.CACert = &KeyRef{}
 			authority.Keyless.CACert.ConvertFrom(ctx, source.Keyless.CACert)
 		}
+	}
+	if source.Static != nil {
+		authority.Static = &StaticRef{Action: source.Static.Action}
 	}
 	return nil
 }

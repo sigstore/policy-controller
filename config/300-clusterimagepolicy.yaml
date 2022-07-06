@@ -160,6 +160,12 @@ spec:
                                   name:
                                     description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
                                     type: string
+                      static:
+                        type: object
+                        properties:
+                          action:
+                            description: Action defines how to handle a matching policy.
+                            type: string
                 images:
                   type: array
                   items:
@@ -311,6 +317,12 @@ spec:
                                   name:
                                     description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
                                     type: string
+                      static:
+                        type: object
+                        properties:
+                          action:
+                            description: Action defines how to handle a matching policy.
+                            type: string
                 images:
                   type: array
                   items:

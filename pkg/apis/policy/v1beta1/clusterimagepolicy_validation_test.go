@@ -361,6 +361,100 @@ func TestKeylessValidation(t *testing.T) {
 	}
 }
 
+func TestStaticValidation(t *testing.T) {
+	tests := []struct {
+		name        string
+		expectErr   bool
+		errorString string
+		policy      ClusterImagePolicy
+	}{
+		{
+			name:        "Should fail when static is empty",
+			expectErr:   true,
+			errorString: "missing field(s): spec.authorities[0].static.action",
+			policy: ClusterImagePolicy{
+				Spec: ClusterImagePolicySpec{
+					Images: []ImagePattern{
+						{
+							Glob: "globbityglob",
+						},
+					},
+					Authorities: []Authority{
+						{
+							Static: &StaticRef{},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:        "Should fail when action is invalid",
+			expectErr:   true,
+			errorString: "invalid value: garbage: spec.authorities[0].static.action\nunsupported action",
+			policy: ClusterImagePolicy{
+				Spec: ClusterImagePolicySpec{
+					Images: []ImagePattern{
+						{
+							Glob: "globbityglob",
+						},
+					},
+					Authorities: []Authority{
+						{
+							Static: &StaticRef{Action: "garbage"},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "Works with pass",
+			policy: ClusterImagePolicy{
+				Spec: ClusterImagePolicySpec{
+					Images: []ImagePattern{
+						{
+							Glob: "globbityglob",
+						},
+					},
+					Authorities: []Authority{
+						{
+							Static: &StaticRef{Action: "pass"},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "Works with fail",
+			policy: ClusterImagePolicy{
+				Spec: ClusterImagePolicySpec{
+					Images: []ImagePattern{
+						{
+							Glob: "globbityglob",
+						},
+					},
+					Authorities: []Authority{
+						{
+							Static: &StaticRef{Action: "fail"},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			err := test.policy.Validate(context.TODO())
+			if test.expectErr {
+				require.NotNil(t, err)
+				require.EqualError(t, err, test.errorString)
+			} else {
+				require.Nil(t, err)
+			}
+		})
+	}
+}
+
 func TestAuthoritiesValidation(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -371,7 +465,7 @@ func TestAuthoritiesValidation(t *testing.T) {
 		{
 			name:        "Should fail when keyless is empty",
 			expectErr:   true,
-			errorString: "expected exactly one, got both: spec.authorities[0].key, spec.authorities[0].keyless\nexpected exactly one, got neither: spec.authorities[0].key.data, spec.authorities[0].key.kms, spec.authorities[0].key.secretref, spec.authorities[0].keyless.ca-cert, spec.authorities[0].keyless.identities, spec.authorities[0].keyless.url",
+			errorString: "expected exactly one, got both: spec.authorities[0].key, spec.authorities[0].keyless, spec.authorities[0].static\nexpected exactly one, got neither: spec.authorities[0].key.data, spec.authorities[0].key.kms, spec.authorities[0].key.secretref, spec.authorities[0].keyless.ca-cert, spec.authorities[0].keyless.identities, spec.authorities[0].keyless.url",
 			policy: ClusterImagePolicy{
 				Spec: ClusterImagePolicySpec{
 					Images: []ImagePattern{
@@ -389,7 +483,117 @@ func TestAuthoritiesValidation(t *testing.T) {
 			},
 		},
 		{
-			name:        "Should fail when keyless is empty",
+			name:        "Should fail when key/keyless specified",
+			expectErr:   true,
+			errorString: "expected exactly one, got both: spec.authorities[0].key, spec.authorities[0].keyless, spec.authorities[0].static",
+			policy: ClusterImagePolicy{
+				Spec: ClusterImagePolicySpec{
+					Images: []ImagePattern{
+						{
+							Glob: "globbityglob",
+						},
+					},
+					Authorities: []Authority{
+						{
+							Key:     &KeyRef{Data: validPublicKey},
+							Keyless: &KeylessRef{URL: apis.HTTPS("fulcio.sigstore.dev")},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:        "Should fail when key/static specified",
+			expectErr:   true,
+			errorString: "expected exactly one, got both: spec.authorities[0].key, spec.authorities[0].keyless, spec.authorities[0].static",
+			policy: ClusterImagePolicy{
+				Spec: ClusterImagePolicySpec{
+					Images: []ImagePattern{
+						{
+							Glob: "globbityglob",
+						},
+					},
+					Authorities: []Authority{
+						{
+							Key:    &KeyRef{Data: validPublicKey},
+							Static: &StaticRef{Action: "pass"},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:        "Should fail when keyless/static specified",
+			expectErr:   true,
+			errorString: "expected exactly one, got both: spec.authorities[0].key, spec.authorities[0].keyless, spec.authorities[0].static",
+			policy: ClusterImagePolicy{
+				Spec: ClusterImagePolicySpec{
+					Images: []ImagePattern{
+						{
+							Glob: "globbityglob",
+						},
+					},
+					Authorities: []Authority{
+						{
+							Static:  &StaticRef{Action: "fail"},
+							Keyless: &KeylessRef{URL: apis.HTTPS("fulcio.sigstore.dev")},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:        "Should fail when key/keyless/static specified",
+			expectErr:   true,
+			errorString: "expected exactly one, got both: spec.authorities[0].key, spec.authorities[0].keyless, spec.authorities[0].static",
+			policy: ClusterImagePolicy{
+				Spec: ClusterImagePolicySpec{
+					Images: []ImagePattern{
+						{
+							Glob: "globbityglob",
+						},
+					},
+					Authorities: []Authority{
+						{
+							Key:     &KeyRef{Data: validPublicKey},
+							Keyless: &KeylessRef{URL: apis.HTTPS("fulcio.sigstore.dev")},
+							Static:  &StaticRef{Action: "fail"},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:        "Should fail when static and sources,attestations, and ctlog is specified",
+			expectErr:   true,
+			errorString: "expected exactly one, got both: spec.authorities[0].attestations, spec.authorities[0].ctlog, spec.authorities[0].source, spec.authorities[0].static",
+			policy: ClusterImagePolicy{
+				Spec: ClusterImagePolicySpec{
+					Images: []ImagePattern{
+						{
+							Glob: "globbityglob",
+						},
+					},
+					Authorities: []Authority{
+						{
+							Static:       &StaticRef{Action: "fail"},
+							Attestations: []Attestation{{Name: "first", PredicateType: "vuln"}},
+							Sources: []Source{
+								{
+									OCI: "registry1",
+									SignaturePullSecrets: []v1.LocalObjectReference{
+										{Name: "placeholder"},
+									},
+								},
+							},
+							CTLog: &TLog{},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:        "Should fail when authorities is empty",
 			expectErr:   true,
 			errorString: "missing field(s): spec.authorities",
 			policy: ClusterImagePolicy{
