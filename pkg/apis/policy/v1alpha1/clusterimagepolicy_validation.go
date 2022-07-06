@@ -100,7 +100,6 @@ func (authority *Authority) Validate(ctx context.Context) *apis.FieldError {
 		if authority.CTLog != nil {
 			errs = errs.Also(apis.ErrMultipleOneOf("static", "ctlog"))
 		}
-
 	}
 
 	for i, source := range authority.Sources {

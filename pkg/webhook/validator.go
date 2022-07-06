@@ -365,9 +365,8 @@ func ValidatePolicy(ctx context.Context, namespace string, ref name.Reference, c
 					result.err = errors.New("disallowed by static policy")
 					results <- result
 					return
-				} else {
-					result.signatures = []PolicySignature{{Subject: "allowed by static policy", Issuer: "allowed by static policy"}}
 				}
+				result.signatures = []PolicySignature{{Subject: "allowed by static policy", Issuer: "allowed by static policy"}}
 			case len(authority.Attestations) > 0:
 				// We're doing the verify-attestations path, so validate (.att)
 				validatedAttestations, err := ValidatePolicyAttestationsForAuthority(ctx, ref, authority, authorityRemoteOpts...)
