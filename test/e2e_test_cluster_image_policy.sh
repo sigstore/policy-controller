@@ -270,6 +270,10 @@ echo '::group:: Deploy ClusterImagePolicy With Key Signing'
 yq '. | .spec.authorities[0].key.data |= load_str("cosign-colocated-signing.pub")' \
   ./test/testdata/policy-controller/e2e/cip-key-and-keyless.yaml | \
   kubectl apply -f -
+
+# Give the policy controller a moment to update the configmap
+# and pick up the change in the admission controller.
+sleep 5
 echo '::endgroup::'
 
 echo '::group:: test with key and keyless, authorities OR'
@@ -302,6 +306,10 @@ yq '. | .metadata.name = "image-policy-remote-source"
     | .spec.authorities[0].key.data |= load_str("cosign-remote-signing.pub")' \
   ./test/testdata/policy-controller/e2e/cip-key.yaml | \
   kubectl apply -f -
+
+# Give the policy controller a moment to update the configmap
+# and pick up the change in the admission controller.
+sleep 5
 echo '::endgroup::'
 
 echo '::group:: Sign demoimage with cosign remote key'
@@ -338,6 +346,10 @@ yq '. | .metadata.name = "image-policy-remote-source"
     | .spec.authorities[0] += {"source": [{"oci": env(KO_DOCKER_REPO)+"/remote-signature"}]}' \
   ./test/testdata/policy-controller/e2e/cip-key.yaml | \
   kubectl apply -f -
+
+# Give the policy controller a moment to update the configmap
+# and pick up the change in the admission controller.
+sleep 5
 echo '::endgroup::'
 
 echo '::group:: Verify with three CIP, one with correct Source set'
