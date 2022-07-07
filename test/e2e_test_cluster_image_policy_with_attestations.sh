@@ -159,7 +159,9 @@ echo '::endgroup::'
 # custom attestation. Let's now do it for 'keyful' one.
 echo '::group:: Create CIP that requires a keyful signature'
 yq '. | .spec.authorities[0].key.data |= load_str("cosign.pub")' ./test/testdata/policy-controller/e2e/cip-key.yaml | kubectl apply -f -
-# allow things to propagate
+
+# Give the policy controller a moment to update the configmap
+# and pick up the change in the admission controller.
 sleep 5
 echo '::endgroup::'
 
@@ -184,7 +186,9 @@ echo '::endgroup::'
 # keyful attestation, so let's add that requirement.
 echo '::group:: Create CIP that requires a keyful attestation'
 yq '. | .spec.authorities[0].key.data |= load_str("cosign.pub")' ./test/testdata/policy-controller/e2e/cip-key-with-attestations.yaml | kubectl apply -f -
-# allow things to propagate
+
+# Give the policy controller a moment to update the configmap
+# and pick up the change in the admission controller.
 sleep 5
 echo '::endgroup::'
 
@@ -223,7 +227,9 @@ echo '::endgroup::'
 # Note we have to bake in the inline data from the keys above
 echo '::group:: Add cip for two signatures and two attestations'
 yq '. | .spec.authorities[1].key.data |= load_str("cosign.pub") | .spec.authorities[3].key.data |= load_str("cosign.pub")' ./test/testdata/policy-controller/e2e/cip-requires-two-signatures-and-two-attestations.yaml | kubectl apply -f -
-# allow things to propagate
+
+# Give the policy controller a moment to update the configmap
+# and pick up the change in the admission controller.
 sleep 5
 echo '::endgroup::'
 
