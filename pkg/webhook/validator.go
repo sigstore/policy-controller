@@ -359,7 +359,15 @@ func ValidatePolicy(ctx context.Context, namespace string, ref name.Reference, c
 			}
 			authorityRemoteOpts = append(authorityRemoteOpts, signaturePullSecretsOpts...)
 
-			if len(authority.Attestations) > 0 {
+			switch {
+			case authority.Static != nil:
+				if authority.Static.Action == "fail" {
+					result.err = errors.New("disallowed by static policy")
+					results <- result
+					return
+				}
+				result.signatures = []PolicySignature{{Subject: "allowed by static policy", Issuer: "allowed by static policy"}}
+			case len(authority.Attestations) > 0:
 				// We're doing the verify-attestations path, so validate (.att)
 				validatedAttestations, err := ValidatePolicyAttestationsForAuthority(ctx, ref, authority, authorityRemoteOpts...)
 				if err != nil {
@@ -367,7 +375,7 @@ func ValidatePolicy(ctx context.Context, namespace string, ref name.Reference, c
 				} else {
 					result.attestations = validatedAttestations
 				}
-			} else {
+			default:
 				validatedSignatures, err := ValidatePolicySignaturesForAuthority(ctx, ref, authority, authorityRemoteOpts...)
 				if err != nil {
 					result.err = err

@@ -47,6 +47,24 @@ func TestConversionRoundTripV1alpha1(t *testing.T) {
 				},
 			},
 		},
+	}, {name: "key, keyless, and static, regexp",
+		in: &ClusterImagePolicy{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "test-cip",
+			},
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{{Glob: "*"}},
+				Authorities: []Authority{
+					{Key: &KeyRef{
+						SecretRef: &v1.SecretReference{Name: "mysecret"}}},
+					{Keyless: &KeylessRef{
+						Identities: []Identity{{SubjectRegExp: "subjectregexp", IssuerRegExp: "issuerregexp"}},
+						CACert:     &KeyRef{KMS: "kms", Data: "data", SecretRef: &v1.SecretReference{Name: "secret"}},
+					}},
+					{Static: &StaticRef{Action: "pass"}},
+				},
+			},
+		},
 	}, {name: "key and keyless, regexp",
 		in: &ClusterImagePolicy{
 			ObjectMeta: metav1.ObjectMeta{
@@ -125,6 +143,24 @@ func TestConversionRoundTripV1beta1(t *testing.T) {
 		in: &v1beta1.ClusterImagePolicy{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "test-cip",
+			},
+		},
+	}, {name: "key, keyless, and static, regexp",
+		in: &v1beta1.ClusterImagePolicy{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "test-cip",
+			},
+			Spec: v1beta1.ClusterImagePolicySpec{
+				Images: []v1beta1.ImagePattern{{Glob: "*"}},
+				Authorities: []v1beta1.Authority{
+					{Key: &v1beta1.KeyRef{
+						SecretRef: &v1.SecretReference{Name: "mysecret"}}},
+					{Keyless: &v1beta1.KeylessRef{
+						Identities: []v1beta1.Identity{{SubjectRegExp: "subjectregexp", IssuerRegExp: "issuerregexp"}},
+						CACert:     &v1beta1.KeyRef{KMS: "kms", Data: "data", SecretRef: &v1.SecretReference{Name: "secret"}},
+					}},
+					{Static: &v1beta1.StaticRef{Action: "pass"}},
+				},
 			},
 		},
 	}}

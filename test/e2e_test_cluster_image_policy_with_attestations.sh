@@ -64,7 +64,7 @@ assert_error() {
   echo looking for ${match}
   kubectl delete job demo -n ${NS} --ignore-not-found=true
   if kubectl create -n ${NS} job demo --image=${demoimage} 2> ${KUBECTL_OUT_FILE} ; then
-    echo Failed to block unsigned Job creation!
+    echo Failed to block expected Job failure!
     exit 1
   else
     echo Successfully blocked Job creation with expected error: "${match}"

@@ -56,6 +56,8 @@ type Authority struct {
 	// +optional
 	Keyless *KeylessRef `json:"keyless,omitempty"`
 	// +optional
+	Static *StaticRef `json:"static,omitempty"`
+	// +optional
 	Sources []v1alpha1.Source `json:"source,omitempty"`
 	// +optional
 	CTLog *v1alpha1.TLog `json:"ctlog,omitempty"`
@@ -86,6 +88,10 @@ type KeylessRef struct {
 	Identities []v1alpha1.Identity `json:"identities,omitempty"`
 	// +optional
 	CACert *KeyRef `json:"ca-cert,omitempty"`
+}
+
+type StaticRef struct {
+	Action string `json:"action"`
 }
 
 type AttestationPolicy struct {
@@ -209,12 +215,14 @@ func ConvertClusterImagePolicyV1alpha1ToWebhook(in *v1alpha1.ClusterImagePolicy)
 func convertAuthorityV1Alpha1ToWebhook(in v1alpha1.Authority) *Authority {
 	keyRef := convertKeyRefV1Alpha1ToWebhook(in.Key)
 	keylessRef := convertKeylessRefV1Alpha1ToWebhook(in.Keyless)
+	staticRef := convertStaticRefV1Alpha1ToWebhook(in.Static)
 	attestations := convertAttestationsV1Alpha1ToWebhook(in.Attestations)
 
 	return &Authority{
 		Name:         in.Name,
 		Key:          keyRef,
 		Keyless:      keylessRef,
+		Static:       staticRef,
 		Sources:      in.Sources,
 		CTLog:        in.CTLog,
 		Attestations: attestations,
@@ -258,6 +266,16 @@ func convertKeylessRefV1Alpha1ToWebhook(in *v1alpha1.KeylessRef) *KeylessRef {
 		URL:        in.URL,
 		Identities: in.Identities,
 		CACert:     CACertRef,
+	}
+}
+
+func convertStaticRefV1Alpha1ToWebhook(in *v1alpha1.StaticRef) *StaticRef {
+	if in == nil {
+		return nil
+	}
+
+	return &StaticRef{
+		Action: in.Action,
 	}
 }
 
