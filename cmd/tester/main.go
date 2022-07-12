@@ -79,6 +79,10 @@ func main() {
 		log.Fatal(err)
 	}
 	v1alpha1cip.SetDefaults(ctx)
+	validateErrs := v1alpha1cip.Validate(ctx)
+	if validateErrs != nil {
+		log.Fatalf("CIP is invalid: %s", validateErrs.Error())
+	}
 	cip := webhookcip.ConvertClusterImagePolicyV1alpha1ToWebhook(&v1alpha1cip)
 	ref, err := name.ParseReference(*image)
 	if err != nil {
