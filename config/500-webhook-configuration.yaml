@@ -54,6 +54,7 @@ webhooks:
   failurePolicy: Fail
   sideEffects: None
   timeoutSeconds: 25
+  reinvocationPolicy: IfNeeded
 
 ---
 apiVersion: v1
