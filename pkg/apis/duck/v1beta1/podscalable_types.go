@@ -65,8 +65,8 @@ func (*PodScalable) GetFullType() duck.Populatable {
 }
 
 // Populate implements duck.Populatable
-func (t *PodScalable) Populate() {
-	t.Spec = PodScalableSpec{
+func (ps *PodScalable) Populate() {
+	ps.Spec = PodScalableSpec{
 		Replicas: ptr.Int32(12),
 		Selector: &metav1.LabelSelector{
 			MatchLabels: map[string]string{
@@ -92,7 +92,7 @@ func (t *PodScalable) Populate() {
 			},
 		},
 	}
-	t.Status = PodScalableStatus{
+	ps.Status = PodScalableStatus{
 		Replicas: 42,
 	}
 }

@@ -25,9 +25,9 @@ import (
 type PodScalableValidator func(context.Context, *PodScalable) *apis.FieldError
 
 // Validate implements apis.Validatable
-func (wp *PodScalable) Validate(ctx context.Context) *apis.FieldError {
+func (ps *PodScalable) Validate(ctx context.Context) *apis.FieldError {
 	if psv := GetPodScalableValidator(ctx); psv != nil {
-		return psv(ctx, wp)
+		return psv(ctx, ps)
 	}
 	return nil
 }

@@ -23,9 +23,9 @@ import (
 type PodScalableDefaulter func(context.Context, *PodScalable)
 
 // SetDefaults implements apis.Defaultable
-func (wp *PodScalable) SetDefaults(ctx context.Context) {
+func (ps *PodScalable) SetDefaults(ctx context.Context) {
 	if psd := GetPodScalableDefaulter(ctx); psd != nil {
-		psd(ctx, wp)
+		psd(ctx, ps)
 	}
 }
 
