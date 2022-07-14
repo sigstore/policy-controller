@@ -31,6 +31,7 @@ import (
 	"github.com/sigstore/cosign/pkg/policy"
 	"github.com/sigstore/fulcio/pkg/api"
 	"github.com/sigstore/policy-controller/pkg/apis/config"
+	policyduckv1beta1 "github.com/sigstore/policy-controller/pkg/apis/duck/v1beta1"
 	webhookcip "github.com/sigstore/policy-controller/pkg/webhook/clusterimagepolicy"
 	rekor "github.com/sigstore/rekor/pkg/client"
 	"github.com/sigstore/rekor/pkg/generated/client"
@@ -41,6 +42,7 @@ import (
 	listersv1 "k8s.io/client-go/listers/core/v1"
 	"knative.dev/pkg/apis"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
+
 	kubeclient "knative.dev/pkg/client/injection/kube/client"
 	secretinformer "knative.dev/pkg/injection/clients/namespacedkube/informers/core/v1/secret"
 	"knative.dev/pkg/logging"
@@ -61,9 +63,44 @@ func NewValidator(ctx context.Context, secretName string) *Validator {
 	}
 }
 
+// ValidatePodScaleable implements policyduckv1beta1.PodScalableValidator
+// It is very similar to ValidatePodSpecable, but allows for spec.replicas
+// to be decremented. This allows for scaling down pods with non-compliant
+// images that would otherwise be forbidden.
+func (v *Validator) ValidatePodScaleable(ctx context.Context, wp *policyduckv1beta1.PodScalable) *apis.FieldError {
+	if apis.IsInDelete(ctx) {
+		// Don't block things that are being deleted.
+		return nil
+	}
+
+	// If we are being updated and replica count is going down, allow
+	// for it.
+	if apis.IsInUpdate(ctx) {
+		newReplicaCount := wp.Spec.Replicas
+		original := apis.GetBaseline(ctx).(*policyduckv1beta1.PodScalable)
+		if newReplicaCount != nil && original != nil && original.Spec.Replicas != nil {
+			if *newReplicaCount < *original.Spec.Replicas {
+				logging.FromContext(ctx).Debugf("Skipping validations due to scale down request %s/%s", &wp.ObjectMeta.Name, &wp.ObjectMeta.Namespace)
+				return nil
+			}
+		}
+	}
+
+	imagePullSecrets := make([]string, 0, len(wp.Spec.Template.Spec.ImagePullSecrets))
+	for _, s := range wp.Spec.Template.Spec.ImagePullSecrets {
+		imagePullSecrets = append(imagePullSecrets, s.Name)
+	}
+	opt := k8schain.Options{
+		Namespace:          wp.Namespace,
+		ServiceAccountName: wp.Spec.Template.Spec.ServiceAccountName,
+		ImagePullSecrets:   imagePullSecrets,
+	}
+	return v.validatePodSpec(ctx, wp.Namespace, &wp.Spec.Template.Spec, opt).ViaField("spec.template.spec")
+}
+
 // ValidatePodSpecable implements duckv1.PodSpecValidator
 func (v *Validator) ValidatePodSpecable(ctx context.Context, wp *duckv1.WithPod) *apis.FieldError {
-	if wp.DeletionTimestamp != nil {
+	if apis.IsInDelete(ctx) {
 		// Don't block things that are being deleted.
 		return nil
 	}
@@ -82,7 +119,7 @@ func (v *Validator) ValidatePodSpecable(ctx context.Context, wp *duckv1.WithPod)
 
 // ValidatePod implements duckv1.PodValidator
 func (v *Validator) ValidatePod(ctx context.Context, p *duckv1.Pod) *apis.FieldError {
-	if p.DeletionTimestamp != nil {
+	if apis.IsInDelete(ctx) {
 		// Don't block things that are being deleted.
 		return nil
 	}
@@ -100,7 +137,7 @@ func (v *Validator) ValidatePod(ctx context.Context, p *duckv1.Pod) *apis.FieldE
 
 // ValidateCronJob implements duckv1.CronJobValidator
 func (v *Validator) ValidateCronJob(ctx context.Context, c *duckv1.CronJob) *apis.FieldError {
-	if c.DeletionTimestamp != nil {
+	if apis.IsInDelete(ctx) {
 		// Don't block things that are being deleted.
 		return nil
 	}
@@ -572,6 +609,25 @@ func ValidatePolicyAttestationsForAuthority(ctx context.Context, ref name.Refere
 		}
 	}
 	return ret, nil
+}
+
+// ResolvePodScalable implements policyduckv1beta1.PodScalableValidator
+func (v *Validator) ResolvePodScalable(ctx context.Context, ps *policyduckv1beta1.PodScalable) {
+	if ps.DeletionTimestamp != nil {
+		// Don't mess with things that are being deleted.
+		return
+	}
+
+	imagePullSecrets := make([]string, 0, len(ps.Spec.Template.Spec.ImagePullSecrets))
+	for _, s := range ps.Spec.Template.Spec.ImagePullSecrets {
+		imagePullSecrets = append(imagePullSecrets, s.Name)
+	}
+	opt := k8schain.Options{
+		Namespace:          ps.Namespace,
+		ServiceAccountName: ps.Spec.Template.Spec.ServiceAccountName,
+		ImagePullSecrets:   imagePullSecrets,
+	}
+	v.resolvePodSpec(ctx, &ps.Spec.Template.Spec, opt)
 }
 
 // ResolvePodSpecable implements duckv1.PodSpecValidator

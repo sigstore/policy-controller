@@ -603,7 +603,7 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 				t.Errorf("ValidatePod() = %v, wanted %v", got, want)
 			}
 			// Check that we don't block things being deleted.
-			pod.DeletionTimestamp = &metav1.Time{Time: time.Now()}
+			testContext = apis.WithinDelete(ctx)
 			if got := v.ValidatePod(testContext, pod); got != nil {
 				t.Errorf("ValidatePod() = %v, wanted nil", got)
 			}
@@ -624,7 +624,7 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 				t.Errorf("ValidatePodSpecable() = %v, wanted %v", got, want)
 			}
 			// Check that we don't block things being deleted.
-			withPod.DeletionTimestamp = &metav1.Time{Time: time.Now()}
+			testContext = apis.WithinDelete(ctx)
 			if got := v.ValidatePodSpecable(testContext, withPod); got != nil {
 				t.Errorf("ValidatePodSpecable() = %v, wanted nil", got)
 			}
@@ -847,8 +847,8 @@ func TestValidateCronJob(t *testing.T) {
 			}
 			// Check that we don't block things being deleted.
 			cronJob := test.c.DeepCopy()
-			cronJob.DeletionTimestamp = &metav1.Time{Time: time.Now()}
-			if got := v.ValidateCronJob(context.Background(), cronJob); got != nil {
+			deleteContext := apis.WithinDelete(context.Background())
+			if got := v.ValidateCronJob(deleteContext, cronJob); got != nil {
 				t.Errorf("ValidateCronJob() = %v, wanted nil", got)
 			}
 		})
