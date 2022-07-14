@@ -267,26 +267,6 @@ func validatePolicies(ctx context.Context, namespace string, ref name.Reference,
 			result := retChannelType{name: cipName}
 
 			result.policyResult, result.errors = ValidatePolicy(ctx, namespace, ref, cip, remoteOpts...)
-			// If there are authorities that validated in the CIP and there's
-			// a CIP level policy, apply it against the results of the
-			// successful Authorities outputs.
-			if result.policyResult != nil && cip.Policy != nil {
-				logging.FromContext(ctx).Infof("Validating CIP level policy for %s", cipName)
-				policyJSON, err := json.Marshal(result.policyResult)
-				if err != nil {
-					// nil out any policyResults since CIP level policy failed
-					result.policyResult = nil
-					result.errors = append(result.errors, err)
-				} else {
-					err = policy.EvaluatePolicyAgainstJSON(ctx, "ClusterImagePolicy", cip.Policy.Type, cip.Policy.Data, policyJSON)
-					if err != nil {
-						logging.FromContext(ctx).Warnf("Failed to validate CIP level policy against %s", string(policyJSON))
-						// nil out any policyResults since CIP level policy failed
-						result.policyResult = nil
-						result.errors = append(result.errors, err)
-					}
-				}
-			}
 			results <- result
 		}()
 	}
@@ -421,6 +401,20 @@ func ValidatePolicy(ctx context.Context, namespace string, ref name.Reference, c
 	// to keep checking the length on the returned calls.
 	if len(policyResult.AuthorityMatches) == 0 {
 		return nil, authorityErrors
+	}
+	// Ok, there's at least one valid authority that matched. If there's a CIP
+	// level policy, validate it here before returning.
+	if cip.Policy != nil {
+		logging.FromContext(ctx).Info("Validating CIP level policy")
+		policyJSON, err := json.Marshal(policyResult)
+		if err != nil {
+			return nil, append(authorityErrors, err)
+		}
+		err = policy.EvaluatePolicyAgainstJSON(ctx, "ClusterImagePolicy", cip.Policy.Type, cip.Policy.Data, policyJSON)
+		if err != nil {
+			logging.FromContext(ctx).Warnf("Failed to validate CIP level policy against %s", string(policyJSON))
+			return nil, append(authorityErrors, err)
+		}
 	}
 	return policyResult, authorityErrors
 }
