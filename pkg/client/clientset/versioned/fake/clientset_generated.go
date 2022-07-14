@@ -18,8 +18,6 @@ package fake
 
 import (
 	clientset "github.com/sigstore/policy-controller/pkg/client/clientset/versioned"
-	duckv1beta1 "github.com/sigstore/policy-controller/pkg/client/clientset/versioned/typed/duck/v1beta1"
-	fakeduckv1beta1 "github.com/sigstore/policy-controller/pkg/client/clientset/versioned/typed/duck/v1beta1/fake"
 	policyv1alpha1 "github.com/sigstore/policy-controller/pkg/client/clientset/versioned/typed/policy/v1alpha1"
 	fakepolicyv1alpha1 "github.com/sigstore/policy-controller/pkg/client/clientset/versioned/typed/policy/v1alpha1/fake"
 	policyv1beta1 "github.com/sigstore/policy-controller/pkg/client/clientset/versioned/typed/policy/v1beta1"
@@ -80,11 +78,6 @@ var (
 	_ clientset.Interface = &Clientset{}
 	_ testing.FakeClient  = &Clientset{}
 )
-
-// DuckV1beta1 retrieves the DuckV1beta1Client
-func (c *Clientset) DuckV1beta1() duckv1beta1.DuckV1beta1Interface {
-	return &fakeduckv1beta1.FakeDuckV1beta1{Fake: &c.Fake}
-}
 
 // PolicyV1alpha1 retrieves the PolicyV1alpha1Client
 func (c *Clientset) PolicyV1alpha1() policyv1alpha1.PolicyV1alpha1Interface {

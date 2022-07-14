@@ -17,7 +17,6 @@
 package scheme
 
 import (
-	duckv1beta1 "github.com/sigstore/policy-controller/pkg/apis/duck/v1beta1"
 	policyv1alpha1 "github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
 	policyv1beta1 "github.com/sigstore/policy-controller/pkg/apis/policy/v1beta1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -31,7 +30,6 @@ var Scheme = runtime.NewScheme()
 var Codecs = serializer.NewCodecFactory(Scheme)
 var ParameterCodec = runtime.NewParameterCodec(Scheme)
 var localSchemeBuilder = runtime.SchemeBuilder{
-	duckv1beta1.AddToScheme,
 	policyv1alpha1.AddToScheme,
 	policyv1beta1.AddToScheme,
 }

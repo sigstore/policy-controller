@@ -140,6 +140,7 @@ func NewMutatingAdmissionController(ctx context.Context, cmw configmap.Watcher) 
 
 		// A function that infuses the context passed to Validate/SetDefaults with custom metadata.
 		func(ctx context.Context) context.Context {
+			ctx = policyduckv1beta1.WithPodScalableDefaulter(ctx, validator.ResolvePodScalable)
 			ctx = duckv1.WithPodDefaulter(ctx, validator.ResolvePod)
 			ctx = duckv1.WithPodSpecDefaulter(ctx, validator.ResolvePodSpecable)
 			ctx = duckv1.WithCronJobDefaulter(ctx, validator.ResolveCronJob)

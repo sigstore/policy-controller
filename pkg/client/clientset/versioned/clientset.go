@@ -20,7 +20,6 @@ import (
 	"fmt"
 	"net/http"
 
-	duckv1beta1 "github.com/sigstore/policy-controller/pkg/client/clientset/versioned/typed/duck/v1beta1"
 	policyv1alpha1 "github.com/sigstore/policy-controller/pkg/client/clientset/versioned/typed/policy/v1alpha1"
 	policyv1beta1 "github.com/sigstore/policy-controller/pkg/client/clientset/versioned/typed/policy/v1beta1"
 	discovery "k8s.io/client-go/discovery"
@@ -30,7 +29,6 @@ import (
 
 type Interface interface {
 	Discovery() discovery.DiscoveryInterface
-	DuckV1beta1() duckv1beta1.DuckV1beta1Interface
 	PolicyV1alpha1() policyv1alpha1.PolicyV1alpha1Interface
 	PolicyV1beta1() policyv1beta1.PolicyV1beta1Interface
 }
@@ -39,14 +37,8 @@ type Interface interface {
 // version included in a Clientset.
 type Clientset struct {
 	*discovery.DiscoveryClient
-	duckV1beta1    *duckv1beta1.DuckV1beta1Client
 	policyV1alpha1 *policyv1alpha1.PolicyV1alpha1Client
 	policyV1beta1  *policyv1beta1.PolicyV1beta1Client
-}
-
-// DuckV1beta1 retrieves the DuckV1beta1Client
-func (c *Clientset) DuckV1beta1() duckv1beta1.DuckV1beta1Interface {
-	return c.duckV1beta1
 }
 
 // PolicyV1alpha1 retrieves the PolicyV1alpha1Client
@@ -103,10 +95,6 @@ func NewForConfigAndClient(c *rest.Config, httpClient *http.Client) (*Clientset,
 
 	var cs Clientset
 	var err error
-	cs.duckV1beta1, err = duckv1beta1.NewForConfigAndClient(&configShallowCopy, httpClient)
-	if err != nil {
-		return nil, err
-	}
 	cs.policyV1alpha1, err = policyv1alpha1.NewForConfigAndClient(&configShallowCopy, httpClient)
 	if err != nil {
 		return nil, err
@@ -136,7 +124,6 @@ func NewForConfigOrDie(c *rest.Config) *Clientset {
 // New creates a new Clientset for the given RESTClient.
 func New(c rest.Interface) *Clientset {
 	var cs Clientset
-	cs.duckV1beta1 = duckv1beta1.New(c)
 	cs.policyV1alpha1 = policyv1alpha1.New(c)
 	cs.policyV1beta1 = policyv1beta1.New(c)
 

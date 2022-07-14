@@ -1,3 +1,4 @@
+//
 // Copyright 2022 The Sigstore Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -12,20 +13,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package policy
+package v1beta1
 
-import "k8s.io/apimachinery/pkg/runtime/schema"
+import (
+	"testing"
 
-const (
-	// GroupName is the name of the API group.
-	GroupName     = "policy.sigstore.dev"
-	DuckGroupName = "duck.policy.sigstore.dev"
+	appsv1 "k8s.io/api/apps/v1"
+
+	"knative.dev/pkg/apis/duck"
 )
 
-var (
-	// ClusterImagePolicyResource represents a ClusterImagePolicy
-	ClusterImagePolicyResource = schema.GroupResource{
-		Group:    GroupName,
-		Resource: "clusterimagepolicies",
+func TestImplementsPodScalable(t *testing.T) {
+	instances := []interface{}{
+		&PodScalable{},
+		&appsv1.ReplicaSet{},
+		&appsv1.Deployment{},
+		&appsv1.StatefulSet{},
 	}
-)
+	for _, instance := range instances {
+		if err := duck.VerifyType(instance, &PodScalable{}); err != nil {
+			t.Error(err)
+		}
+	}
+}

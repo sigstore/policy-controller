@@ -63,12 +63,13 @@ func NewValidator(ctx context.Context, secretName string) *Validator {
 	}
 }
 
-// ValidatePodScaleable implements policyduckv1beta1.PodScalableValidator
+// ValidatePodScalable implements policyduckv1beta1.PodScalableValidator
 // It is very similar to ValidatePodSpecable, but allows for spec.replicas
 // to be decremented. This allows for scaling down pods with non-compliant
 // images that would otherwise be forbidden.
-func (v *Validator) ValidatePodScaleable(ctx context.Context, wp *policyduckv1beta1.PodScalable) *apis.FieldError {
-	if apis.IsInDelete(ctx) {
+func (v *Validator) ValidatePodScalable(ctx context.Context, ps *policyduckv1beta1.PodScalable) *apis.FieldError {
+	// If we are deleting or updating status, don't block.
+	if apis.IsInDelete(ctx) || apis.IsInStatusUpdate(ctx) {
 		// Don't block things that are being deleted.
 		return nil
 	}
@@ -76,32 +77,38 @@ func (v *Validator) ValidatePodScaleable(ctx context.Context, wp *policyduckv1be
 	// If we are being updated and replica count is going down, allow
 	// for it.
 	if apis.IsInUpdate(ctx) {
-		newReplicaCount := wp.Spec.Replicas
+		newReplicaCount := ps.Spec.Replicas
 		original := apis.GetBaseline(ctx).(*policyduckv1beta1.PodScalable)
 		if newReplicaCount != nil && original != nil && original.Spec.Replicas != nil {
 			if *newReplicaCount < *original.Spec.Replicas {
-				logging.FromContext(ctx).Debugf("Skipping validations due to scale down request %s/%s", &wp.ObjectMeta.Name, &wp.ObjectMeta.Namespace)
+				logging.FromContext(ctx).Debugf("Skipping validations due to scale down request %s/%s", &ps.ObjectMeta.Name, &ps.ObjectMeta.Namespace)
 				return nil
 			}
 		}
 	}
 
-	imagePullSecrets := make([]string, 0, len(wp.Spec.Template.Spec.ImagePullSecrets))
-	for _, s := range wp.Spec.Template.Spec.ImagePullSecrets {
+	imagePullSecrets := make([]string, 0, len(ps.Spec.Template.Spec.ImagePullSecrets))
+	for _, s := range ps.Spec.Template.Spec.ImagePullSecrets {
 		imagePullSecrets = append(imagePullSecrets, s.Name)
 	}
 	opt := k8schain.Options{
-		Namespace:          wp.Namespace,
-		ServiceAccountName: wp.Spec.Template.Spec.ServiceAccountName,
+		Namespace:          ps.Namespace,
+		ServiceAccountName: ps.Spec.Template.Spec.ServiceAccountName,
 		ImagePullSecrets:   imagePullSecrets,
 	}
-	return v.validatePodSpec(ctx, wp.Namespace, &wp.Spec.Template.Spec, opt).ViaField("spec.template.spec")
+	return v.validatePodSpec(ctx, ps.Namespace, &ps.Spec.Template.Spec, opt).ViaField("spec.template.spec")
 }
 
 // ValidatePodSpecable implements duckv1.PodSpecValidator
 func (v *Validator) ValidatePodSpecable(ctx context.Context, wp *duckv1.WithPod) *apis.FieldError {
-	if apis.IsInDelete(ctx) {
-		// Don't block things that are being deleted.
+	// If we are deleting or updating status, don't block.
+	if apis.IsInDelete(ctx) || apis.IsInStatusUpdate(ctx) {
+		return nil
+	}
+
+	// If we're updating status resource, allow it through since it's not
+	// changing the Spec of the resource and we need to reflect the
+	if apis.IsInStatusUpdate(ctx) {
 		return nil
 	}
 
@@ -119,10 +126,11 @@ func (v *Validator) ValidatePodSpecable(ctx context.Context, wp *duckv1.WithPod)
 
 // ValidatePod implements duckv1.PodValidator
 func (v *Validator) ValidatePod(ctx context.Context, p *duckv1.Pod) *apis.FieldError {
-	if apis.IsInDelete(ctx) {
-		// Don't block things that are being deleted.
+	// If we are deleting or updating status, don't block.
+	if apis.IsInDelete(ctx) || apis.IsInStatusUpdate(ctx) {
 		return nil
 	}
+
 	imagePullSecrets := make([]string, 0, len(p.Spec.ImagePullSecrets))
 	for _, s := range p.Spec.ImagePullSecrets {
 		imagePullSecrets = append(imagePullSecrets, s.Name)
@@ -137,10 +145,11 @@ func (v *Validator) ValidatePod(ctx context.Context, p *duckv1.Pod) *apis.FieldE
 
 // ValidateCronJob implements duckv1.CronJobValidator
 func (v *Validator) ValidateCronJob(ctx context.Context, c *duckv1.CronJob) *apis.FieldError {
-	if apis.IsInDelete(ctx) {
-		// Don't block things that are being deleted.
+	// If we are deleting or updating status, don't block.
+	if apis.IsInDelete(ctx) || apis.IsInStatusUpdate(ctx) {
 		return nil
 	}
+
 	imagePullSecrets := make([]string, 0, len(c.Spec.JobTemplate.Spec.Template.Spec.ImagePullSecrets))
 	for _, s := range c.Spec.JobTemplate.Spec.Template.Spec.ImagePullSecrets {
 		imagePullSecrets = append(imagePullSecrets, s.Name)
@@ -613,9 +622,20 @@ func ValidatePolicyAttestationsForAuthority(ctx context.Context, ref name.Refere
 
 // ResolvePodScalable implements policyduckv1beta1.PodScalableValidator
 func (v *Validator) ResolvePodScalable(ctx context.Context, ps *policyduckv1beta1.PodScalable) {
-	if ps.DeletionTimestamp != nil {
+	if apis.IsInDelete(ctx) {
 		// Don't mess with things that are being deleted.
 		return
+	}
+
+	if apis.IsInUpdate(ctx) {
+		newReplicaCount := ps.Spec.Replicas
+		original := apis.GetBaseline(ctx).(*policyduckv1beta1.PodScalable)
+		if newReplicaCount != nil && original != nil && original.Spec.Replicas != nil {
+			if *newReplicaCount < *original.Spec.Replicas {
+				logging.FromContext(ctx).Debugf("Skipping validations due to scale down request %s/%s", &ps.ObjectMeta.Name, &ps.ObjectMeta.Namespace)
+				return
+			}
+		}
 	}
 
 	imagePullSecrets := make([]string, 0, len(ps.Spec.Template.Spec.ImagePullSecrets))
@@ -632,7 +652,7 @@ func (v *Validator) ResolvePodScalable(ctx context.Context, ps *policyduckv1beta
 
 // ResolvePodSpecable implements duckv1.PodSpecValidator
 func (v *Validator) ResolvePodSpecable(ctx context.Context, wp *duckv1.WithPod) {
-	if wp.DeletionTimestamp != nil {
+	if apis.IsInDelete(ctx) {
 		// Don't mess with things that are being deleted.
 		return
 	}
@@ -651,7 +671,7 @@ func (v *Validator) ResolvePodSpecable(ctx context.Context, wp *duckv1.WithPod) 
 
 // ResolvePod implements duckv1.PodValidator
 func (v *Validator) ResolvePod(ctx context.Context, p *duckv1.Pod) {
-	if p.DeletionTimestamp != nil {
+	if apis.IsInDelete(ctx) {
 		// Don't mess with things that are being deleted.
 		return
 	}
@@ -669,7 +689,7 @@ func (v *Validator) ResolvePod(ctx context.Context, p *duckv1.Pod) {
 
 // ResolveCronJob implements duckv1.CronJobValidator
 func (v *Validator) ResolveCronJob(ctx context.Context, c *duckv1.CronJob) {
-	if c.DeletionTimestamp != nil {
+	if apis.IsInDelete(ctx) {
 		// Don't mess with things that are being deleted.
 		return
 	}
