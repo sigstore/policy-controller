@@ -16,6 +16,8 @@
 package v1beta1
 
 import (
+	"context"
+
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -100,6 +102,20 @@ func (ps *PodScalable) Populate() {
 // GetListType implements apis.Listable
 func (*PodScalable) GetListType() runtime.Object {
 	return &PodScalableList{}
+}
+
+// IsScalingDown returns true if PodScalable is being scaled down
+func (ps *PodScalable) IsScalingDown(ctx context.Context) bool {
+	if apis.IsInUpdate(ctx) {
+		newReplicaCount := ps.Spec.Replicas
+		original := apis.GetBaseline(ctx).(*PodScalable)
+		if newReplicaCount != nil && original != nil && original.Spec.Replicas != nil {
+			if *newReplicaCount < *original.Spec.Replicas {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object

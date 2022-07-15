@@ -63,6 +63,8 @@ spec:
           value: sigstore.dev/policy
         - name: WEBHOOK_NAME
           value: policy-webhook
+        - name: KUBERNETES_MIN_VERSION
+          value: "1.21.0"
 
         securityContext:
           allowPrivilegeEscalation: false

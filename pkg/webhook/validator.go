@@ -38,6 +38,7 @@ import (
 	"github.com/sigstore/sigstore/pkg/signature"
 	corev1 "k8s.io/api/core/v1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
 	listersv1 "k8s.io/client-go/listers/core/v1"
 	"knative.dev/pkg/apis"
@@ -63,28 +64,27 @@ func NewValidator(ctx context.Context, secretName string) *Validator {
 	}
 }
 
+// isDeletedOrStatusUpdate returns true if the resource in question is being
+// deleted, is already deleted or Status is being updated. In any of those
+// cases, we do not validate the resource
+func isDeletedOrStatusUpdate(ctx context.Context, deletionTimestamp *metav1.Time) bool {
+	return apis.IsInDelete(ctx) || deletionTimestamp != nil || apis.IsInStatusUpdate(ctx)
+}
+
 // ValidatePodScalable implements policyduckv1beta1.PodScalableValidator
 // It is very similar to ValidatePodSpecable, but allows for spec.replicas
 // to be decremented. This allows for scaling down pods with non-compliant
 // images that would otherwise be forbidden.
 func (v *Validator) ValidatePodScalable(ctx context.Context, ps *policyduckv1beta1.PodScalable) *apis.FieldError {
 	// If we are deleting (or already deleted) or updating status, don't block.
-	if apis.IsInDelete(ctx) || ps.DeletionTimestamp != nil || apis.IsInStatusUpdate(ctx) {
-		// Don't block things that are being deleted.
+	if isDeletedOrStatusUpdate(ctx, ps.DeletionTimestamp) {
 		return nil
 	}
 
-	// If we are being updated and replica count is going down, allow
-	// for it.
-	if apis.IsInUpdate(ctx) {
-		newReplicaCount := ps.Spec.Replicas
-		original := apis.GetBaseline(ctx).(*policyduckv1beta1.PodScalable)
-		if newReplicaCount != nil && original != nil && original.Spec.Replicas != nil {
-			if *newReplicaCount < *original.Spec.Replicas {
-				logging.FromContext(ctx).Debugf("Skipping validations due to scale down request %s/%s", &ps.ObjectMeta.Name, &ps.ObjectMeta.Namespace)
-				return nil
-			}
-		}
+	// If we are being scaled down don't block it.
+	if ps.IsScalingDown(ctx) {
+		logging.FromContext(ctx).Debugf("Skipping validations due to scale down request %s/%s", &ps.ObjectMeta.Name, &ps.ObjectMeta.Namespace)
+		return nil
 	}
 
 	imagePullSecrets := make([]string, 0, len(ps.Spec.Template.Spec.ImagePullSecrets))
@@ -102,13 +102,7 @@ func (v *Validator) ValidatePodScalable(ctx context.Context, ps *policyduckv1bet
 // ValidatePodSpecable implements duckv1.PodSpecValidator
 func (v *Validator) ValidatePodSpecable(ctx context.Context, wp *duckv1.WithPod) *apis.FieldError {
 	// If we are deleting (or already deleted) or updating status, don't block.
-	if apis.IsInDelete(ctx) || wp.DeletionTimestamp != nil || apis.IsInStatusUpdate(ctx) {
-		return nil
-	}
-
-	// If we're updating status resource, allow it through since it's not
-	// changing the Spec of the resource and we need to reflect the
-	if apis.IsInStatusUpdate(ctx) {
+	if isDeletedOrStatusUpdate(ctx, wp.DeletionTimestamp) {
 		return nil
 	}
 
@@ -127,7 +121,7 @@ func (v *Validator) ValidatePodSpecable(ctx context.Context, wp *duckv1.WithPod)
 // ValidatePod implements duckv1.PodValidator
 func (v *Validator) ValidatePod(ctx context.Context, p *duckv1.Pod) *apis.FieldError {
 	// If we are deleting (or already deleted) or updating status, don't block.
-	if apis.IsInDelete(ctx) || p.DeletionTimestamp != nil || apis.IsInStatusUpdate(ctx) {
+	if isDeletedOrStatusUpdate(ctx, p.DeletionTimestamp) {
 		return nil
 	}
 
@@ -146,7 +140,7 @@ func (v *Validator) ValidatePod(ctx context.Context, p *duckv1.Pod) *apis.FieldE
 // ValidateCronJob implements duckv1.CronJobValidator
 func (v *Validator) ValidateCronJob(ctx context.Context, c *duckv1.CronJob) *apis.FieldError {
 	// If we are deleting (or already deleted) or updating status, don't block.
-	if apis.IsInDelete(ctx) || c.DeletionTimestamp != nil || apis.IsInStatusUpdate(ctx) {
+	if isDeletedOrStatusUpdate(ctx, c.DeletionTimestamp) {
 		return nil
 	}
 
@@ -622,20 +616,15 @@ func ValidatePolicyAttestationsForAuthority(ctx context.Context, ref name.Refere
 
 // ResolvePodScalable implements policyduckv1beta1.PodScalableValidator
 func (v *Validator) ResolvePodScalable(ctx context.Context, ps *policyduckv1beta1.PodScalable) {
-	if apis.IsInDelete(ctx) || ps.DeletionTimestamp != nil {
-		// Don't mess with things that are being deleted or already deleted.
+	// Don't mess with things that are being deleted or already deleted or
+	// if status is being updated
+	if isDeletedOrStatusUpdate(ctx, ps.DeletionTimestamp) {
 		return
 	}
 
-	if apis.IsInUpdate(ctx) {
-		newReplicaCount := ps.Spec.Replicas
-		original := apis.GetBaseline(ctx).(*policyduckv1beta1.PodScalable)
-		if newReplicaCount != nil && original != nil && original.Spec.Replicas != nil {
-			if *newReplicaCount < *original.Spec.Replicas {
-				logging.FromContext(ctx).Debugf("Skipping validations due to scale down request %s/%s", &ps.ObjectMeta.Name, &ps.ObjectMeta.Namespace)
-				return
-			}
-		}
+	if ps.IsScalingDown(ctx) {
+		logging.FromContext(ctx).Debugf("Skipping validations due to scale down request %s/%s", &ps.ObjectMeta.Name, &ps.ObjectMeta.Namespace)
+		return
 	}
 
 	imagePullSecrets := make([]string, 0, len(ps.Spec.Template.Spec.ImagePullSecrets))
@@ -652,8 +641,9 @@ func (v *Validator) ResolvePodScalable(ctx context.Context, ps *policyduckv1beta
 
 // ResolvePodSpecable implements duckv1.PodSpecValidator
 func (v *Validator) ResolvePodSpecable(ctx context.Context, wp *duckv1.WithPod) {
-	if apis.IsInDelete(ctx) || wp.DeletionTimestamp != nil {
-		// Don't mess with things that are being deleted or already deleted.
+	// Don't mess with things that are being deleted or already deleted or
+	// status update.
+	if isDeletedOrStatusUpdate(ctx, wp.DeletionTimestamp) {
 		return
 	}
 
@@ -671,8 +661,9 @@ func (v *Validator) ResolvePodSpecable(ctx context.Context, wp *duckv1.WithPod) 
 
 // ResolvePod implements duckv1.PodValidator
 func (v *Validator) ResolvePod(ctx context.Context, p *duckv1.Pod) {
-	if apis.IsInDelete(ctx) || p.DeletionTimestamp != nil {
-		// Don't mess with things that are being deleted or already deleted.
+	// Don't mess with things that are being deleted or already deleted or
+	// status update.
+	if isDeletedOrStatusUpdate(ctx, p.DeletionTimestamp) {
 		return
 	}
 	imagePullSecrets := make([]string, 0, len(p.Spec.ImagePullSecrets))
@@ -689,10 +680,12 @@ func (v *Validator) ResolvePod(ctx context.Context, p *duckv1.Pod) {
 
 // ResolveCronJob implements duckv1.CronJobValidator
 func (v *Validator) ResolveCronJob(ctx context.Context, c *duckv1.CronJob) {
-	if apis.IsInDelete(ctx) || c.DeletionTimestamp != nil {
-		// Don't mess with things that are being deleted.
+	// Don't mess with things that are being deleted or already deleted or
+	// status update.
+	if isDeletedOrStatusUpdate(ctx, c.DeletionTimestamp) {
 		return
 	}
+
 	imagePullSecrets := make([]string, 0, len(c.Spec.JobTemplate.Spec.Template.Spec.ImagePullSecrets))
 	for _, s := range c.Spec.JobTemplate.Spec.Template.Spec.ImagePullSecrets {
 		imagePullSecrets = append(imagePullSecrets, s.Name)
