@@ -39,6 +39,7 @@ import (
 	"github.com/sigstore/cosign/pkg/oci/remote"
 	"github.com/sigstore/cosign/pkg/oci/static"
 	"github.com/sigstore/policy-controller/pkg/apis/config"
+	policyduckv1beta1 "github.com/sigstore/policy-controller/pkg/apis/duck/v1beta1"
 	"github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
 	webhookcip "github.com/sigstore/policy-controller/pkg/webhook/clusterimagepolicy"
 	batchv1 "k8s.io/api/batch/v1"
@@ -49,6 +50,7 @@ import (
 	duckv1 "knative.dev/pkg/apis/duck/v1"
 	fakekube "knative.dev/pkg/client/injection/kube/client/fake"
 	fakesecret "knative.dev/pkg/injection/clients/namespacedkube/informers/core/v1/secret/fake"
+	"knative.dev/pkg/ptr"
 	rtesting "knative.dev/pkg/reconciler/testing"
 	"knative.dev/pkg/system"
 )
@@ -481,7 +483,7 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 		}(),
 		cvs: fail,
 	}, {
-		name: "simple, error, authority source signaturePullSecrets, non exisiting secret",
+		name: "simple, error, authority source signaturePullSecrets, non existing secret",
 		ps: &corev1.PodSpec{
 			InitContainers: []corev1.Container{{
 				Name:  "setup-stuff",
@@ -603,8 +605,7 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 				t.Errorf("ValidatePod() = %v, wanted %v", got, want)
 			}
 			// Check that we don't block things being deleted.
-			pod.DeletionTimestamp = &metav1.Time{Time: time.Now()}
-			if got := v.ValidatePod(testContext, pod); got != nil {
+			if got := v.ValidatePod(apis.WithinDelete(testContext), pod); got != nil {
 				t.Errorf("ValidatePod() = %v, wanted nil", got)
 			}
 
@@ -624,9 +625,46 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 				t.Errorf("ValidatePodSpecable() = %v, wanted %v", got, want)
 			}
 			// Check that we don't block things being deleted.
-			withPod.DeletionTimestamp = &metav1.Time{Time: time.Now()}
-			if got := v.ValidatePodSpecable(testContext, withPod); got != nil {
+			if got := v.ValidatePodSpecable(apis.WithinDelete(testContext), withPod); got != nil {
 				t.Errorf("ValidatePodSpecable() = %v, wanted nil", got)
+			}
+
+			// Check wrapped in a podScalable
+			podScalable := &policyduckv1beta1.PodScalable{
+				Spec: policyduckv1beta1.PodScalableSpec{
+					Replicas: ptr.Int32(3),
+					Template: corev1.PodTemplateSpec{
+						Spec: *test.ps,
+					},
+				},
+			}
+			got = v.ValidatePodScalable(testContext, podScalable)
+			want = test.want.ViaField("spec.template.spec")
+			if (got != nil) != (want != nil) {
+				t.Errorf("ValidatePodScalable() = %v, wanted %v", got, want)
+			} else if got != nil && got.Error() != want.Error() {
+				t.Errorf("ValidatePodScalable() = %v, wanted %v", got, want)
+			}
+			// Check that we don't block things being deleted.
+			if got := v.ValidatePodScalable(apis.WithinDelete(testContext), podScalable); got != nil {
+				t.Errorf("ValidatePodSpecable() = %v, wanted nil", got)
+			}
+
+			// Check that we don't block things being scaled down.
+			original := podScalable.DeepCopy()
+			original.Spec.Replicas = ptr.Int32(4)
+			if got := v.ValidatePodScalable(apis.WithinUpdate(testContext, original), podScalable); got != nil {
+				t.Errorf("ValidatePodSpecable() = %v, wanted nil", got)
+			}
+
+			// Check that we fail as expected if being scaled up.
+			original.Spec.Replicas = ptr.Int32(2)
+			got = v.ValidatePodScalable(apis.WithinUpdate(testContext, original), podScalable)
+			want = test.want.ViaField("spec.template.spec")
+			if (got != nil) != (want != nil) {
+				t.Errorf("ValidatePodScalable() = %v, wanted %v", got, want)
+			} else if got != nil && got.Error() != want.Error() {
+				t.Errorf("ValidatePodScalable() = %v, wanted %v", got, want)
 			}
 		})
 	}
@@ -847,6 +885,11 @@ func TestValidateCronJob(t *testing.T) {
 			}
 			// Check that we don't block things being deleted.
 			cronJob := test.c.DeepCopy()
+			if got := v.ValidateCronJob(apis.WithinDelete(context.Background()), cronJob); got != nil {
+				t.Errorf("ValidateCronJob() = %v, wanted nil", got)
+			}
+			// Check that we don't block things already deleted.
+			cronJob = test.c.DeepCopy()
 			cronJob.DeletionTimestamp = &metav1.Time{Time: time.Now()}
 			if got := v.ValidateCronJob(context.Background(), cronJob); got != nil {
 				t.Errorf("ValidateCronJob() = %v, wanted nil", got)
@@ -1011,6 +1054,14 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 
 			// Check that nothing happens when it's being deleted.
 			pod = &duckv1.Pod{Spec: *test.ps.DeepCopy()}
+			want = pod.DeepCopy()
+			v.ResolvePod(apis.WithinDelete(ctx), pod)
+			if !cmp.Equal(pod, want) {
+				t.Errorf("ResolvePod = %s", cmp.Diff(pod, want))
+			}
+
+			// Check that nothing happens when it's already deleted.
+			pod = &duckv1.Pod{Spec: *test.ps.DeepCopy()}
 			pod.DeletionTimestamp = &metav1.Time{Time: time.Now()}
 			want = pod.DeepCopy()
 			v.ResolvePod(ctx, pod)
@@ -1046,11 +1097,102 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 					},
 				},
 			}
+			want = withPod.DeepCopy()
+			v.ResolvePodSpecable(apis.WithinDelete(ctx), withPod)
+			if !cmp.Equal(withPod, want) {
+				t.Errorf("ResolvePodSpecable = %s", cmp.Diff(withPod, want))
+			}
+
+			// Check that nothing happens when it's already deleted.
+			withPod = &duckv1.WithPod{
+				Spec: duckv1.WithPodSpec{
+					Template: duckv1.PodSpecable{
+						Spec: *test.ps.DeepCopy(),
+					},
+				},
+			}
 			withPod.DeletionTimestamp = &metav1.Time{Time: time.Now()}
 			want = withPod.DeepCopy()
 			v.ResolvePodSpecable(ctx, withPod)
 			if !cmp.Equal(withPod, want) {
 				t.Errorf("ResolvePodSpecable = %s", cmp.Diff(withPod, want))
+			}
+
+			// Check wrapped in a PodScalable
+			podScalable := &policyduckv1beta1.PodScalable{
+				Spec: policyduckv1beta1.PodScalableSpec{
+					Replicas: ptr.Int32(3),
+					Template: corev1.PodTemplateSpec{
+						Spec: *test.ps.DeepCopy(),
+					},
+				},
+			}
+			want = &policyduckv1beta1.PodScalable{
+				Spec: policyduckv1beta1.PodScalableSpec{
+					Replicas: ptr.Int32(3),
+					Template: corev1.PodTemplateSpec{
+						Spec: *test.want.DeepCopy(),
+					},
+				},
+			}
+			v.ResolvePodScalable(ctx, podScalable)
+			if !cmp.Equal(podScalable, want) {
+				t.Errorf("ResolvePodSpecable = %s", cmp.Diff(podScalable, want))
+			}
+
+			// Check that nothing happens when it's being deleted.
+			podScalable = &policyduckv1beta1.PodScalable{
+				Spec: policyduckv1beta1.PodScalableSpec{
+					Replicas: ptr.Int32(2),
+					Template: corev1.PodTemplateSpec{
+						Spec: *test.ps.DeepCopy(),
+					},
+				},
+			}
+			want = podScalable.DeepCopy()
+			v.ResolvePodScalable(apis.WithinDelete(ctx), podScalable)
+			if !cmp.Equal(podScalable, want) {
+				t.Errorf("ResolvePodSpecable = %s", cmp.Diff(podScalable, want))
+			}
+
+			// Check that nothing happens when it's already deleted.
+			podScalable = &policyduckv1beta1.PodScalable{
+				Spec: policyduckv1beta1.PodScalableSpec{
+					Replicas: ptr.Int32(2),
+					Template: corev1.PodTemplateSpec{
+						Spec: *test.ps.DeepCopy(),
+					},
+				},
+			}
+			podScalable.DeletionTimestamp = &metav1.Time{Time: time.Now()}
+			want = podScalable.DeepCopy()
+			v.ResolvePodScalable(ctx, podScalable)
+			if !cmp.Equal(podScalable, want) {
+				t.Errorf("ResolvePodSpecable = %s", cmp.Diff(podScalable, want))
+			}
+
+			// Check that nothing happens when it's being scaled down.
+			podScalable = &policyduckv1beta1.PodScalable{
+				Spec: policyduckv1beta1.PodScalableSpec{
+					Replicas: ptr.Int32(2),
+					Template: corev1.PodTemplateSpec{
+						Spec: *test.ps.DeepCopy(),
+					},
+				},
+			}
+			want = podScalable.DeepCopy()
+			original := &policyduckv1beta1.PodScalable{
+				Spec: policyduckv1beta1.PodScalableSpec{
+					Replicas: ptr.Int32(3),
+					Template: corev1.PodTemplateSpec{
+						Spec: *test.ps.DeepCopy(),
+					},
+				},
+			}
+
+			v.ResolvePodScalable(apis.WithinUpdate(ctx, original), podScalable)
+			if !cmp.Equal(podScalable, want) {
+				t.Errorf("ResolvePodSpecable = %s", cmp.Diff(podScalable, want))
 			}
 		})
 	}
@@ -1284,9 +1426,8 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 
 			// Check that nothing happens when it's being deleted.
 			cronJob = test.c.DeepCopy()
-			cronJob.DeletionTimestamp = &metav1.Time{Time: time.Now()}
 			want = cronJob.DeepCopy()
-			v.ResolveCronJob(ctx, cronJob)
+			v.ResolveCronJob(apis.WithinDelete(ctx), cronJob)
 			if !cmp.Equal(cronJob, want) {
 				t.Errorf("ResolveCronJob = %s", cmp.Diff(cronJob, want))
 			}

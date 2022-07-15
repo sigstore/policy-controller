@@ -48,12 +48,18 @@ ${CODEGEN_PKG}/generate-groups.sh "deepcopy,client,informer,lister" \
   "policy:v1alpha1 policy:v1beta1" \
   --go-header-file ${REPO_ROOT_DIR}/hack/boilerplate/boilerplate.go.txt
 
+group "ducks"
+${CODEGEN_PKG}/generate-groups.sh "deepcopy" \
+  github.com/sigstore/policy-controller/pkg/client github.com/sigstore/policy-controller/pkg/apis \
+  "duck:v1beta1" \
+  --go-header-file ${REPO_ROOT_DIR}/hack/boilerplate/boilerplate.go.txt
+
 group "Knative Codegen"
 
 # Knative Injection
 ${KNATIVE_CODEGEN_PKG}/hack/generate-knative.sh "injection" \
   github.com/sigstore/policy-controller/pkg/client github.com/sigstore/policy-controller/pkg/apis \
-  "policy:v1alpha1 policy:v1beta1" \
+  "policy:v1alpha1 policy:v1beta1 duck:v1beta1" \
   --go-header-file ${REPO_ROOT_DIR}/hack/boilerplate/boilerplate.go.txt
 
 group "Update CRD Schema"

@@ -1,3 +1,4 @@
+//
 // Copyright 2022 The Sigstore Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
@@ -11,21 +12,9 @@
 // WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 // See the License for the specific language governing permissions and
 // limitations under the License.
+// Package v1beta1 contains the Autoscaling v1alpha1 API types.
 
-package policy
+// +k8s:deepcopy-gen=package
+// +groupName=duck.sigstore.policy.dev
 
-import "k8s.io/apimachinery/pkg/runtime/schema"
-
-const (
-	// GroupName is the name of the API group.
-	GroupName     = "policy.sigstore.dev"
-	DuckGroupName = "duck.policy.sigstore.dev"
-)
-
-var (
-	// ClusterImagePolicyResource represents a ClusterImagePolicy
-	ClusterImagePolicyResource = schema.GroupResource{
-		Group:    GroupName,
-		Resource: "clusterimagepolicies",
-	}
-)
+package v1beta1

@@ -67,6 +67,8 @@ spec:
         # differing policies, we fetch the Rekor public key during validation.
         - name: SIGSTORE_TRUST_REKOR_API_PUBLIC_KEY
           value: "true"
+        - name: KUBERNETES_MIN_VERSION
+          value: "1.21.0"
 
         securityContext:
           allowPrivilegeEscalation: false
