@@ -68,8 +68,8 @@ func NewValidator(ctx context.Context, secretName string) *Validator {
 // to be decremented. This allows for scaling down pods with non-compliant
 // images that would otherwise be forbidden.
 func (v *Validator) ValidatePodScalable(ctx context.Context, ps *policyduckv1beta1.PodScalable) *apis.FieldError {
-	// If we are deleting or updating status, don't block.
-	if apis.IsInDelete(ctx) || apis.IsInStatusUpdate(ctx) {
+	// If we are deleting (or already deleted) or updating status, don't block.
+	if apis.IsInDelete(ctx) || ps.DeletionTimestamp != nil || apis.IsInStatusUpdate(ctx) {
 		// Don't block things that are being deleted.
 		return nil
 	}
@@ -101,8 +101,8 @@ func (v *Validator) ValidatePodScalable(ctx context.Context, ps *policyduckv1bet
 
 // ValidatePodSpecable implements duckv1.PodSpecValidator
 func (v *Validator) ValidatePodSpecable(ctx context.Context, wp *duckv1.WithPod) *apis.FieldError {
-	// If we are deleting or updating status, don't block.
-	if apis.IsInDelete(ctx) || apis.IsInStatusUpdate(ctx) {
+	// If we are deleting (or already deleted) or updating status, don't block.
+	if apis.IsInDelete(ctx) || wp.DeletionTimestamp != nil || apis.IsInStatusUpdate(ctx) {
 		return nil
 	}
 
@@ -126,8 +126,8 @@ func (v *Validator) ValidatePodSpecable(ctx context.Context, wp *duckv1.WithPod)
 
 // ValidatePod implements duckv1.PodValidator
 func (v *Validator) ValidatePod(ctx context.Context, p *duckv1.Pod) *apis.FieldError {
-	// If we are deleting or updating status, don't block.
-	if apis.IsInDelete(ctx) || apis.IsInStatusUpdate(ctx) {
+	// If we are deleting (or already deleted) or updating status, don't block.
+	if apis.IsInDelete(ctx) || p.DeletionTimestamp != nil || apis.IsInStatusUpdate(ctx) {
 		return nil
 	}
 
@@ -145,8 +145,8 @@ func (v *Validator) ValidatePod(ctx context.Context, p *duckv1.Pod) *apis.FieldE
 
 // ValidateCronJob implements duckv1.CronJobValidator
 func (v *Validator) ValidateCronJob(ctx context.Context, c *duckv1.CronJob) *apis.FieldError {
-	// If we are deleting or updating status, don't block.
-	if apis.IsInDelete(ctx) || apis.IsInStatusUpdate(ctx) {
+	// If we are deleting (or already deleted) or updating status, don't block.
+	if apis.IsInDelete(ctx) || c.DeletionTimestamp != nil || apis.IsInStatusUpdate(ctx) {
 		return nil
 	}
 
@@ -622,8 +622,8 @@ func ValidatePolicyAttestationsForAuthority(ctx context.Context, ref name.Refere
 
 // ResolvePodScalable implements policyduckv1beta1.PodScalableValidator
 func (v *Validator) ResolvePodScalable(ctx context.Context, ps *policyduckv1beta1.PodScalable) {
-	if apis.IsInDelete(ctx) {
-		// Don't mess with things that are being deleted.
+	if apis.IsInDelete(ctx) || ps.DeletionTimestamp != nil {
+		// Don't mess with things that are being deleted or already deleted.
 		return
 	}
 
@@ -652,8 +652,8 @@ func (v *Validator) ResolvePodScalable(ctx context.Context, ps *policyduckv1beta
 
 // ResolvePodSpecable implements duckv1.PodSpecValidator
 func (v *Validator) ResolvePodSpecable(ctx context.Context, wp *duckv1.WithPod) {
-	if apis.IsInDelete(ctx) {
-		// Don't mess with things that are being deleted.
+	if apis.IsInDelete(ctx) || wp.DeletionTimestamp != nil {
+		// Don't mess with things that are being deleted or already deleted.
 		return
 	}
 
@@ -671,8 +671,8 @@ func (v *Validator) ResolvePodSpecable(ctx context.Context, wp *duckv1.WithPod) 
 
 // ResolvePod implements duckv1.PodValidator
 func (v *Validator) ResolvePod(ctx context.Context, p *duckv1.Pod) {
-	if apis.IsInDelete(ctx) {
-		// Don't mess with things that are being deleted.
+	if apis.IsInDelete(ctx) || p.DeletionTimestamp != nil {
+		// Don't mess with things that are being deleted or already deleted.
 		return
 	}
 	imagePullSecrets := make([]string, 0, len(p.Spec.ImagePullSecrets))
@@ -689,7 +689,7 @@ func (v *Validator) ResolvePod(ctx context.Context, p *duckv1.Pod) {
 
 // ResolveCronJob implements duckv1.CronJobValidator
 func (v *Validator) ResolveCronJob(ctx context.Context, c *duckv1.CronJob) {
-	if apis.IsInDelete(ctx) {
+	if apis.IsInDelete(ctx) || c.DeletionTimestamp != nil {
 		// Don't mess with things that are being deleted.
 		return
 	}

@@ -29,6 +29,7 @@ import (
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-containerregistry/pkg/authn/k8schain"
@@ -887,6 +888,12 @@ func TestValidateCronJob(t *testing.T) {
 			if got := v.ValidateCronJob(apis.WithinDelete(context.Background()), cronJob); got != nil {
 				t.Errorf("ValidateCronJob() = %v, wanted nil", got)
 			}
+			// Check that we don't block things already deleted.
+			cronJob = test.c.DeepCopy()
+			cronJob.DeletionTimestamp = &metav1.Time{Time: time.Now()}
+			if got := v.ValidateCronJob(context.Background(), cronJob); got != nil {
+				t.Errorf("ValidateCronJob() = %v, wanted nil", got)
+			}
 		})
 	}
 }
@@ -1053,6 +1060,15 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 				t.Errorf("ResolvePod = %s", cmp.Diff(pod, want))
 			}
 
+			// Check that nothing happens when it's already deleted.
+			pod = &duckv1.Pod{Spec: *test.ps.DeepCopy()}
+			pod.DeletionTimestamp = &metav1.Time{Time: time.Now()}
+			want = pod.DeepCopy()
+			v.ResolvePod(ctx, pod)
+			if !cmp.Equal(pod, want) {
+				t.Errorf("ResolvePod = %s", cmp.Diff(pod, want))
+			}
+
 			// Check wrapped in a WithPod
 			withPod := &duckv1.WithPod{
 				Spec: duckv1.WithPodSpec{
@@ -1083,6 +1099,21 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 			}
 			want = withPod.DeepCopy()
 			v.ResolvePodSpecable(apis.WithinDelete(ctx), withPod)
+			if !cmp.Equal(withPod, want) {
+				t.Errorf("ResolvePodSpecable = %s", cmp.Diff(withPod, want))
+			}
+
+			// Check that nothing happens when it's already deleted.
+			withPod = &duckv1.WithPod{
+				Spec: duckv1.WithPodSpec{
+					Template: duckv1.PodSpecable{
+						Spec: *test.ps.DeepCopy(),
+					},
+				},
+			}
+			withPod.DeletionTimestamp = &metav1.Time{Time: time.Now()}
+			want = withPod.DeepCopy()
+			v.ResolvePodSpecable(ctx, withPod)
 			if !cmp.Equal(withPod, want) {
 				t.Errorf("ResolvePodSpecable = %s", cmp.Diff(withPod, want))
 			}
@@ -1120,6 +1151,22 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 			}
 			want = podScalable.DeepCopy()
 			v.ResolvePodScalable(apis.WithinDelete(ctx), podScalable)
+			if !cmp.Equal(podScalable, want) {
+				t.Errorf("ResolvePodSpecable = %s", cmp.Diff(podScalable, want))
+			}
+
+			// Check that nothing happens when it's already deleted.
+			podScalable = &policyduckv1beta1.PodScalable{
+				Spec: policyduckv1beta1.PodScalableSpec{
+					Replicas: ptr.Int32(2),
+					Template: corev1.PodTemplateSpec{
+						Spec: *test.ps.DeepCopy(),
+					},
+				},
+			}
+			podScalable.DeletionTimestamp = &metav1.Time{Time: time.Now()}
+			want = podScalable.DeepCopy()
+			v.ResolvePodScalable(ctx, podScalable)
 			if !cmp.Equal(podScalable, want) {
 				t.Errorf("ResolvePodSpecable = %s", cmp.Diff(podScalable, want))
 			}
