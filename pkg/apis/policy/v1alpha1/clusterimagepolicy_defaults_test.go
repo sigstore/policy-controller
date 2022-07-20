@@ -64,6 +64,10 @@ func TestKeylessURLDefaulting(t *testing.T) {
 			in: &ClusterImagePolicy{Spec: ClusterImagePolicySpec{Authorities: []Authority{{Key: &KeyRef{Data: "Keydata here"}}}}}},
 		{name: "kms specified, no default",
 			in: &ClusterImagePolicy{Spec: ClusterImagePolicySpec{Authorities: []Authority{{Keyless: &KeylessRef{CACert: &KeyRef{KMS: "Keydata here"}}}}}}},
+		{name: "keyless specified, do not overwite fulcio",
+			in:      &ClusterImagePolicy{Spec: ClusterImagePolicySpec{Authorities: []Authority{{Keyless: &KeylessRef{URL: apis.HTTP("fulcio.fulcio-system.svc")}}}}},
+			wantURL: "http://fulcio.fulcio-system.svc",
+		},
 		{name: "keyless specified, public fulcio",
 			in:      &ClusterImagePolicy{Spec: ClusterImagePolicySpec{Authorities: []Authority{{Keyless: &KeylessRef{Identities: []Identity{{Issuer: "someissuer"}}}}}}},
 			wantURL: "https://fulcio.sigstore.dev",
@@ -80,10 +84,8 @@ func TestKeylessURLDefaulting(t *testing.T) {
 		default:
 			if in.Spec.Authorities[0].Keyless == nil || in.Spec.Authorities[0].Keyless.URL == nil {
 				t.Errorf("Wanted defaulting %s, got none", tc.wantURL)
-			} else {
-				if in.Spec.Authorities[0].Keyless.URL.String() != tc.wantURL {
-					t.Errorf("Wanted defaulting %s, got %s", tc.wantURL, in.Spec.Authorities[0].Keyless.URL)
-				}
+			} else if in.Spec.Authorities[0].Keyless.URL.String() != tc.wantURL {
+				t.Errorf("Wanted defaulting %s, got %s", tc.wantURL, in.Spec.Authorities[0].Keyless.URL)
 			}
 		}
 	}

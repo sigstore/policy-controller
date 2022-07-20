@@ -31,7 +31,7 @@ func (spec *ClusterImagePolicySpec) SetDefaults(ctx context.Context) {
 		if authority.Name == "" {
 			spec.Authorities[i].Name = fmt.Sprintf("authority-%d", i)
 		}
-		if authority.Key == nil && authority.Static == nil && authority.Keyless != nil && authority.Keyless.CACert == nil {
+		if authority.Key == nil && authority.Static == nil && authority.Keyless != nil && authority.Keyless.CACert == nil && authority.Keyless.URL == nil {
 			authority.Keyless.URL = apis.HTTPS("fulcio.sigstore.dev")
 		}
 	}
