@@ -75,11 +75,17 @@ func (authority *Authority) Validate(ctx context.Context) *apis.FieldError {
 	var errs *apis.FieldError
 	if authority.Key == nil && authority.Keyless == nil && authority.Static == nil {
 		errs = errs.Also(apis.ErrMissingOneOf("key", "keyless", "static"))
+		// Instead of returning all the missing subfields, just return here
+		// to give a more concise and arguably a more meaningful error message.
+		return errs
 	}
 	if (authority.Key != nil && authority.Keyless != nil) ||
 		(authority.Key != nil && authority.Static != nil) ||
 		(authority.Keyless != nil && authority.Static != nil) {
 		errs = errs.Also(apis.ErrMultipleOneOf("key", "keyless", "static"))
+		// Instead of returning all the missing subfields, just return here
+		// to give a more concise and arguably a more meaningful error message.
+		return errs
 	}
 
 	if authority.Key != nil {
@@ -154,17 +160,13 @@ func (key *KeyRef) Validate(ctx context.Context) *apis.FieldError {
 
 func (keyless *KeylessRef) Validate(ctx context.Context) *apis.FieldError {
 	var errs *apis.FieldError
-	if keyless.URL == nil && keyless.Identities == nil && keyless.CACert == nil {
-		errs = errs.Also(apis.ErrMissingOneOf("url", "identities", "ca-cert"))
+	if keyless.URL == nil && keyless.CACert == nil {
+		errs = errs.Also(apis.ErrMissingOneOf("url", "ca-cert"))
 	}
 
 	// TODO: Are these really mutually exclusive?
 	if keyless.URL != nil && keyless.CACert != nil {
 		errs = errs.Also(apis.ErrMultipleOneOf("url", "ca-cert"))
-	}
-
-	if keyless.Identities != nil && len(keyless.Identities) == 0 {
-		errs = errs.Also(apis.ErrMissingField("identities"))
 	}
 
 	if keyless.CACert != nil {

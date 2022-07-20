@@ -14,16 +14,44 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-set -ex
+set -o errexit
+set -o nounset
+set -o pipefail
 
+# This script will iterate over expected failures for invalid CIPs in
+# ./test/testdata/policy-controller/invalid
+# Each of the CIP can specify a line that looks like this:
+# ERROR:expected error goes here
+# And for each invalid CIP, the error is validated to be the expected failure.
+# You can have multiple ERROR lines and then each one will be matched.
+# Note that we grep with the exact match so as not to get bamboozled by the
+# grep regexp rules. This allows us to match fields in arrays (like
+# authority[0]) for example.
+
+# We only want to loop over error lines, not words.
+IFS=$'\n'
 echo '::group:: Invalid policy tests:'
 for i in `ls ./test/testdata/policy-controller/invalid/`
 do
-  if kubectl create -f ./test/testdata/policy-controller/invalid/$i ; then
+  echo Testing: $i
+  # Grab the expected error from the CIP
+  expected_errors=$(grep ERROR: test/testdata/policy-controller/invalid/${i} | cut -d ':' -f 2-)
+  err_file="./kubectl_err"
+  if kubectl create -f ./test/testdata/policy-controller/invalid/$i 2> ${err_file}; then
     echo "${i} policy created when it should not have"
     exit 1
   else
-    echo "${i} rejected as expected"
+    for expected_error in ${expected_errors}
+    do
+      echo looking for error: ${expected_error}
+      if ! grep --fixed-strings -q "${expected_error}" ${err_file} ; then
+        echo Did not get expected failure message, wanted "${expected_error}", got
+        cat ${err_file}
+        exit 1
+      else
+        echo "${i} rejected as expected"
+      fi
+    done
   fi
 done
 echo '::endgroup:: Invalid policy test:'

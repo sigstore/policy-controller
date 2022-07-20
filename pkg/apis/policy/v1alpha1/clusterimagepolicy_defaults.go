@@ -17,6 +17,8 @@ package v1alpha1
 import (
 	"context"
 	"fmt"
+
+	"knative.dev/pkg/apis"
 )
 
 // SetDefaults implements apis.Defaultable
@@ -28,6 +30,9 @@ func (spec *ClusterImagePolicySpec) SetDefaults(ctx context.Context) {
 	for i, authority := range spec.Authorities {
 		if authority.Name == "" {
 			spec.Authorities[i].Name = fmt.Sprintf("authority-%d", i)
+		}
+		if authority.Key == nil && authority.Static == nil && authority.Keyless != nil && authority.Keyless.CACert == nil {
+			authority.Keyless.URL = apis.HTTPS("fulcio.sigstore.dev")
 		}
 	}
 }
