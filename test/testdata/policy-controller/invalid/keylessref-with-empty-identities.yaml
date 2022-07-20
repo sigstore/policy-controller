@@ -12,6 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ---
+# ERROR:expected exactly one, got neither: spec.authorities[0].keyless.ca-cert, spec.authorities[0].keyless.identities, spec.authorities[0].keyless.url
 apiVersion: policy.sigstore.dev/v1alpha1
 kind: ClusterImagePolicy
 metadata:

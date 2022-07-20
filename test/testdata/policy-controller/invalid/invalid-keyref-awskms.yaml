@@ -12,6 +12,10 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ---
+# ERROR:spec.authorities[0].key.kms
+# ERROR:spec.authorities[1].key.kms
+# ERROR:spec.authorities[2].key.kms
+# ERROR:spec.authorities[3].key.kms
 apiVersion: policy.sigstore.dev/v1alpha1
 kind: ClusterImagePolicy
 metadata:
@@ -29,6 +33,6 @@ spec:
   - key:
       # alias is not supported
       kms: "awskms:///alias/ExampleAlias"
-  = key:
+  - key:
       # alias is not supported, even if you give a hostname
       kms: "awskms://localhost:4566/alias/ExampleAlias"
