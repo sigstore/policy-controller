@@ -12,19 +12,27 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ---
-# ERROR:expected exactly one, got both: spec.authorities[0].key.data, spec.authorities[0].key.kms, spec.authorities[0].key.secretref
-apiVersion: policy.sigstore.dev/v1alpha1
+# ERROR:spec.authorities[0].key.kms
+# ERROR:spec.authorities[1].key.kms
+# ERROR:spec.authorities[2].key.kms
+# ERROR:spec.authorities[3].key.kms
+apiVersion: policy.sigstore.dev/v1beta1
 kind: ClusterImagePolicy
 metadata:
   name: image-policy
 spec:
   images:
-  - glob: image*
+  - glob: images.*
   authorities:
   - key:
-      data: |
-        -----BEGIN PUBLIC KEY-----
-        MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEZxAfzrQG1EbWyCI8LiSB7YgSFXoI
-        FNGTyQGKHFc6/H8TQumT9VLS78pUwtv3w7EfKoyFZoP32KrO7nzUy2q6Cw==
-        -----END PUBLIC KEY-----
-      kms: "kms://url"
+      # keyid is not supported
+      kms: "awskms:///1234abcd-12ab-34cd-56ef-1234567890ab"
+  - key:
+      # keyid with hostname is still not supported
+      kms: "awskms://localhost:4566/1234abcd-12ab-34cd-56ef-1234567890ab"
+  - key:
+      # alias is not supported
+      kms: "awskms:///alias/ExampleAlias"
+  - key:
+      # alias is not supported, even if you give a hostname
+      kms: "awskms://localhost:4566/alias/ExampleAlias"

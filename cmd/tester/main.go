@@ -33,6 +33,7 @@ import (
 	"knative.dev/pkg/logging"
 	"sigs.k8s.io/yaml"
 
+	"github.com/sigstore/policy-controller/pkg/apis/glob"
 	"github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
 	"github.com/sigstore/policy-controller/pkg/webhook"
 	webhookcip "github.com/sigstore/policy-controller/pkg/webhook/clusterimagepolicy"
@@ -79,6 +80,15 @@ func main() {
 		log.Fatal(err)
 	}
 	v1alpha1cip.SetDefaults(ctx)
+
+	// Show what the defaults look like
+	defaulted, err := yaml.Marshal(v1alpha1cip)
+	if err != nil {
+		log.Fatalf("Failed to marshal the defaulted cip: %s", err)
+	}
+
+	log.Printf("Using the following cip:\n%s", defaulted)
+
 	validateErrs := v1alpha1cip.Validate(ctx)
 	if validateErrs != nil {
 		log.Fatalf("CIP is invalid: %s", validateErrs.Error())
@@ -87,6 +97,21 @@ func main() {
 	ref, err := name.ParseReference(*image)
 	if err != nil {
 		log.Fatal(err)
+	}
+
+	matches := false
+	for _, pattern := range cip.Images {
+		if pattern.Glob != "" {
+			if matched, err := glob.Match(pattern.Glob, *image); err != nil {
+				log.Fatalf("Failed to match glob: %s", err)
+			} else if matched {
+				log.Printf("image matches glob %q", pattern.Glob)
+				matches = true
+			}
+		}
+	}
+	if !matches {
+		log.Fatalf("Image does not match any of the provided globs")
 	}
 
 	result, errs := webhook.ValidatePolicy(ctx, ns, ref, *cip, remoteOpts...)

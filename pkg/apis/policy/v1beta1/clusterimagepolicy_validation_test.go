@@ -267,7 +267,7 @@ func TestKeylessValidation(t *testing.T) {
 		{
 			name:        "Should fail when keyless is empty",
 			expectErr:   true,
-			errorString: "expected exactly one, got neither: spec.authorities[0].keyless.ca-cert, spec.authorities[0].keyless.identities, spec.authorities[0].keyless.url",
+			errorString: "expected exactly one, got neither: spec.authorities[0].keyless.ca-cert, spec.authorities[0].keyless.url",
 			policy: ClusterImagePolicy{
 				Spec: ClusterImagePolicySpec{
 					Images: []ImagePattern{
@@ -325,6 +325,30 @@ func TestKeylessValidation(t *testing.T) {
 								URL: &apis.URL{
 									Host: "myhost",
 								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:        "Should fail when a keyless without URL is specified",
+			expectErr:   true,
+			errorString: "expected exactly one, got neither: spec.authorities[0].keyless.ca-cert, spec.authorities[0].keyless.url",
+			policy: ClusterImagePolicy{
+				Spec: ClusterImagePolicySpec{
+					Images: []ImagePattern{
+						{
+							Glob: "globbityglob",
+						},
+					},
+					Authorities: []Authority{
+						{
+							Keyless: &KeylessRef{
+								Identities: []Identity{{
+									Issuer:  "someissuer",
+									Subject: "somesubject",
+								}},
 							},
 						},
 					},
@@ -463,9 +487,9 @@ func TestAuthoritiesValidation(t *testing.T) {
 		policy      ClusterImagePolicy
 	}{
 		{
-			name:        "Should fail when keyless is empty",
+			name:        "Should fail when authority is empty",
 			expectErr:   true,
-			errorString: "expected exactly one, got both: spec.authorities[0].key, spec.authorities[0].keyless, spec.authorities[0].static\nexpected exactly one, got neither: spec.authorities[0].key.data, spec.authorities[0].key.kms, spec.authorities[0].key.secretref, spec.authorities[0].keyless.ca-cert, spec.authorities[0].keyless.identities, spec.authorities[0].keyless.url",
+			errorString: "expected exactly one, got neither: spec.authorities[0].key, spec.authorities[0].keyless, spec.authorities[0].static",
 			policy: ClusterImagePolicy{
 				Spec: ClusterImagePolicySpec{
 					Images: []ImagePattern{
@@ -474,10 +498,7 @@ func TestAuthoritiesValidation(t *testing.T) {
 						},
 					},
 					Authorities: []Authority{
-						{
-							Key:     &KeyRef{},
-							Keyless: &KeylessRef{},
-						},
+						{},
 					},
 				},
 			},
@@ -830,9 +851,7 @@ func TestIdentitiesValidation(t *testing.T) {
 		policy      ClusterImagePolicy
 	}{
 		{
-			name:        "Should fail when identities is empty",
-			expectErr:   true,
-			errorString: "missing field(s): spec.authorities[0].keyless.identities",
+			name: "Should pass when identities is empty",
 			policy: ClusterImagePolicy{
 				Spec: ClusterImagePolicySpec{
 					Images: []ImagePattern{
@@ -843,6 +862,9 @@ func TestIdentitiesValidation(t *testing.T) {
 					Authorities: []Authority{
 						{
 							Keyless: &KeylessRef{
+								URL: &apis.URL{
+									Host: "myhost",
+								},
 								Identities: []Identity{},
 							},
 						},
@@ -864,6 +886,9 @@ func TestIdentitiesValidation(t *testing.T) {
 					Authorities: []Authority{
 						{
 							Keyless: &KeylessRef{
+								URL: &apis.URL{
+									Host: "myhost",
+								},
 								Identities: []Identity{{Issuer: ""}},
 							},
 						},
@@ -886,6 +911,10 @@ func TestIdentitiesValidation(t *testing.T) {
 					Authorities: []Authority{
 						{
 							Keyless: &KeylessRef{
+								URL: &apis.URL{
+									Host: "myhost",
+								},
+
 								Identities: []Identity{{Issuer: "issuer", IssuerRegExp: "issuerregexp"}},
 							},
 						},
@@ -907,6 +936,10 @@ func TestIdentitiesValidation(t *testing.T) {
 					Authorities: []Authority{
 						{
 							Keyless: &KeylessRef{
+								URL: &apis.URL{
+									Host: "myhost",
+								},
+
 								Identities: []Identity{{Subject: "subject", SubjectRegExp: "subjectregexp"}},
 							},
 						},
@@ -928,6 +961,10 @@ func TestIdentitiesValidation(t *testing.T) {
 					Authorities: []Authority{
 						{
 							Keyless: &KeylessRef{
+								URL: &apis.URL{
+									Host: "myhost",
+								},
+
 								Identities: []Identity{{IssuerRegExp: "****"}},
 							},
 						},
@@ -949,6 +986,10 @@ func TestIdentitiesValidation(t *testing.T) {
 					Authorities: []Authority{
 						{
 							Keyless: &KeylessRef{
+								URL: &apis.URL{
+									Host: "myhost",
+								},
+
 								Identities: []Identity{{SubjectRegExp: "****"}},
 							},
 						},
@@ -968,6 +1009,10 @@ func TestIdentitiesValidation(t *testing.T) {
 					Authorities: []Authority{
 						{
 							Keyless: &KeylessRef{
+								URL: &apis.URL{
+									Host: "myhost",
+								},
+
 								Identities: []Identity{{SubjectRegExp: ".*subject.*", IssuerRegExp: ".*issuer.*"}},
 							},
 						},
@@ -988,6 +1033,10 @@ func TestIdentitiesValidation(t *testing.T) {
 					Authorities: []Authority{
 						{
 							Keyless: &KeylessRef{
+								URL: &apis.URL{
+									Host: "myhost",
+								},
+
 								Identities: []Identity{
 									{
 										Issuer: "some issuer",

@@ -52,6 +52,45 @@ func TestNameDefaulting(t *testing.T) {
 	}
 }
 
+func TestKeylessURLDefaulting(t *testing.T) {
+	tests := []struct {
+		name    string
+		in      *ClusterImagePolicy
+		wantURL string
+	}{
+		{name: "static specified, no default",
+			in: &ClusterImagePolicy{Spec: ClusterImagePolicySpec{Authorities: []Authority{{Static: &StaticRef{Action: "pass"}}}}}},
+		{name: "key specified, no default",
+			in: &ClusterImagePolicy{Spec: ClusterImagePolicySpec{Authorities: []Authority{{Key: &KeyRef{Data: "Keydata here"}}}}}},
+		{name: "kms specified, no default",
+			in: &ClusterImagePolicy{Spec: ClusterImagePolicySpec{Authorities: []Authority{{Keyless: &KeylessRef{CACert: &KeyRef{KMS: "Keydata here"}}}}}}},
+		{name: "keyless specified, do not overwite fulcio",
+			in:      &ClusterImagePolicy{Spec: ClusterImagePolicySpec{Authorities: []Authority{{Keyless: &KeylessRef{URL: apis.HTTP("fulcio.fulcio-system.svc")}}}}},
+			wantURL: "http://fulcio.fulcio-system.svc",
+		},
+		{name: "keyless specified, public fulcio",
+			in:      &ClusterImagePolicy{Spec: ClusterImagePolicySpec{Authorities: []Authority{{Keyless: &KeylessRef{Identities: []Identity{{Issuer: "someissuer"}}}}}}},
+			wantURL: "https://fulcio.sigstore.dev",
+		},
+	}
+	for _, tc := range tests {
+		in := tc.in.DeepCopy()
+		in.SetDefaults(context.TODO())
+		switch tc.wantURL {
+		case "":
+			if in.Spec.Authorities[0].Keyless != nil && in.Spec.Authorities[0].Keyless.URL != nil {
+				t.Errorf("Wanted no defaulting, got %s", in.Spec.Authorities[0].Keyless.URL)
+			}
+		default:
+			if in.Spec.Authorities[0].Keyless == nil || in.Spec.Authorities[0].Keyless.URL == nil {
+				t.Errorf("Wanted defaulting %s, got none", tc.wantURL)
+			} else if in.Spec.Authorities[0].Keyless.URL.String() != tc.wantURL {
+				t.Errorf("Wanted defaulting %s, got %s", tc.wantURL, in.Spec.Authorities[0].Keyless.URL)
+			}
+		}
+	}
+}
+
 func cipWithNames(names []string) *ClusterImagePolicy {
 	cip := &ClusterImagePolicy{
 		Spec: ClusterImagePolicySpec{},

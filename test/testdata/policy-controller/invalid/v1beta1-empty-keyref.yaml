@@ -12,8 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ---
-# ERROR:expected exactly one, got both: spec.authorities[0].key.data, spec.authorities[0].key.kms, spec.authorities[0].key.secretref
-apiVersion: policy.sigstore.dev/v1alpha1
+# ERROR: expected exactly one, got neither: spec.authorities[0].key.data, spec.authorities[0].key.kms, spec.authorities[0].key.secretref
+apiVersion: policy.sigstore.dev/v1beta1
 kind: ClusterImagePolicy
 metadata:
   name: image-policy
@@ -21,10 +21,4 @@ spec:
   images:
   - glob: image*
   authorities:
-  - key:
-      data: |
-        -----BEGIN PUBLIC KEY-----
-        MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEZxAfzrQG1EbWyCI8LiSB7YgSFXoI
-        FNGTyQGKHFc6/H8TQumT9VLS78pUwtv3w7EfKoyFZoP32KrO7nzUy2q6Cw==
-        -----END PUBLIC KEY-----
-      kms: "kms://url"
+  - key: {}

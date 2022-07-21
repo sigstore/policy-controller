@@ -12,7 +12,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ---
-apiVersion: policy.sigstore.dev/v1alpha1
+# ERROR:expected exactly one, got both: spec.authorities[0].key, spec.authorities[0].keyless, spec.authorities[0].static
+apiVersion: policy.sigstore.dev/v1beta1
 kind: ClusterImagePolicy
 metadata:
   name: image-policy
@@ -20,4 +21,8 @@ spec:
   images:
   - glob: image*
   authorities:
-  - keyless: {}
+  - keyless:
+      identities:
+      - issuer: "issue-details"
+    key:
+      kms: "kms://url"
