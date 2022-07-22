@@ -52,8 +52,10 @@ func (c *ClusterImagePolicy) GetGroupVersionKind() schema.GroupVersionKind {
 
 // ClusterImagePolicySpec defines a list of images that should be verified
 type ClusterImagePolicySpec struct {
-	Images      []ImagePattern `json:"images"`
-	Authorities []Authority    `json:"authorities"`
+	// Images defines the patterns of image names that should be subject to this policy.
+	Images []ImagePattern `json:"images"`
+	// Authorities defines the rules for discovering and validating signatures.
+	Authorities []Authority `json:"authorities"`
 	// Policy is an optional policy that can be applied against all the
 	// successfully validated Authorities. If no authorities pass, this does
 	// not even get evaluated, as the Policy is considered failed.
@@ -65,6 +67,7 @@ type ClusterImagePolicySpec struct {
 // If multiple patterns match a particular image, then ALL of
 // those authorities must be satisfied for the image to be admitted.
 type ImagePattern struct {
+	// Glob defines a globbing pattern.
 	Glob string `json:"glob"`
 }
 
@@ -82,16 +85,24 @@ type Authority struct {
 	// verifications.
 	// If not specified, the name will be authority-<index in array>
 	Name string `json:"name"`
+	// Key defines the type of key to validate the image.
 	// +optional
 	Key *KeyRef `json:"key,omitempty"`
+	// Keyless sets the configuration to verify the authority against a Fulcio instance.
 	// +optional
 	Keyless *KeylessRef `json:"keyless,omitempty"`
+	// Static specifies that signatures / attestations are not validated but
+	// instead a static policy is applied against matching images.
 	// +optional
 	Static *StaticRef `json:"static,omitempty"`
+	// Sources sets the configuration to specify the sources from where to consume the signatures.
 	// +optional
 	Sources []Source `json:"source,omitempty"`
+	// CTLog sets the configuration to verify the authority against a Rekor instance.
 	// +optional
 	CTLog *TLog `json:"ctlog,omitempty"`
+	// Attestations is a list of individual attestations for this authority,
+	// once the signature for this authority has been verified.
 	// +optional
 	Attestations []Attestation `json:"attestations,omitempty"`
 }
@@ -100,6 +111,7 @@ type Authority struct {
 // a secret in the cosign-system namespace.
 // A KeyRef must specify only one of SecretRef, Data or KMS
 type KeyRef struct {
+	// SecretRef sets a reference to a secret with the key.
 	// +optional
 	SecretRef *v1.SecretReference `json:"secretRef,omitempty"`
 	// Data contains the inline public key
@@ -120,6 +132,7 @@ type StaticRef struct {
 
 // Source specifies the location of the signature
 type Source struct {
+	// OCI defines the registry from where to pull the signatures.
 	// +optional
 	OCI string `json:"oci,omitempty"`
 	// SignaturePullSecrets is an optional list of references to secrets in the
@@ -132,6 +145,7 @@ type Source struct {
 // TLog specifies the URL to a transparency log that holds
 // the signature and public key information
 type TLog struct {
+	// URL sets the url to the rekor instance (by default the public rekor.sigstore.dev)
 	// +optional
 	URL *apis.URL `json:"url,omitempty"`
 }
@@ -140,10 +154,13 @@ type TLog struct {
 // against which to verify. KeylessRef will contain either the URL to the verifying
 // certificate, or it will contain the certificate data inline or in a secret.
 type KeylessRef struct {
+	// URL defines a url to the keyless instance.
 	// +optional
 	URL *apis.URL `json:"url,omitempty"`
+	// Identities sets a list of identities.
 	// +optional
 	Identities []Identity `json:"identities,omitempty"`
+	// CACert sets a reference to CA certificate
 	// +optional
 	CACert *KeyRef `json:"ca-cert,omitempty"`
 }
@@ -156,8 +173,10 @@ type Attestation struct {
 	// Name of the attestation. These can then be referenced at the CIP level
 	// policy.
 	Name string `json:"name"`
-	// Which predicate type to verify. Matches cosign verify-attestation options.
+	// PredicateType defines which predicate type to verify. Matches cosign verify-attestation options.
 	PredicateType string `json:"predicateType"`
+	// Policy defines all of the matching signatures, and all of
+	// the matching attestations (whose attestations are verified).
 	// +optional
 	Policy *Policy `json:"policy,omitempty"`
 }
@@ -168,10 +187,13 @@ type Policy struct {
 	// Which kind of policy this is, currently only rego or cue are supported.
 	// Furthermore, only cue is tested :)
 	Type string `json:"type"`
+	// Data contains the policy definition.
 	// +optional
 	Data string `json:"data,omitempty"`
+	// URL to the policy data.
 	// +optional
 	URL *apis.URL `json:"url,omitempty"`
+	// ConfigMapRef defines the reference to a configMap with the policy definition.
 	// +optional
 	ConfigMapRef *ConfigMapReference `json:"configMapRef,omitempty"`
 }
@@ -192,12 +214,16 @@ type ConfigMapReference struct {
 // Issuer/Subject uses a strict match, while IssuerRegExp and SubjectRegExp
 // apply a regexp for matching.
 type Identity struct {
+	// Issuer defines the issuer for this identity.
 	// +optional
 	Issuer string `json:"issuer,omitempty"`
+	// Subject defines the subject for this identity.
 	// +optional
 	Subject string `json:"subject,omitempty"`
+	// IssuerRegExp specifies a regular expression to match the issuer for this identity.
 	// +optional
 	IssuerRegExp string `json:"issuerRegExp,omitempty"`
+	// SubjectRegExp specifies a regular expression to match the subject for this identity.
 	// +optional
 	SubjectRegExp string `json:"subjectRegExp,omitempty"`
 }
