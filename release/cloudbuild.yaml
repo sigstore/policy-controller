@@ -33,7 +33,7 @@ steps:
     git checkout ${_GIT_TAG}
 
 - name: 'gcr.io/projectsigstore/cosign:v1.10.0@sha256:a719237925984033fb72685c1998d922c903bbe62464f6d401b5108d3195bb94'
-  dir: "go/src/sigstore/cosign"
+  dir: "go/src/sigstore/policy-controller"
   env:
   - COSIGN_EXPERIMENTAL=true
   - TUF_ROOT=/tmp
@@ -44,7 +44,7 @@ steps:
 # maybe we can build our own image and use that to be more in a safe side
 - name: ghcr.io/gythialy/golang-cross:v1.17.12-0@sha256:be96e626662b658457d0a4efc69c276be88fa8275e0bd1e74beec64ced1e2d1c
   entrypoint: /bin/sh
-  dir: "go/src/sigstore/cosign"
+  dir: "go/src/sigstore/policy-controller"
   env:
   - "GOPATH=/workspace/go"
   - "GOBIN=/workspace/bin"
