@@ -67,7 +67,7 @@ steps:
 
 - name: ghcr.io/gythialy/golang-cross:v1.17.12-0@sha256:be96e626662b658457d0a4efc69c276be88fa8275e0bd1e74beec64ced1e2d1c
   entrypoint: 'bash'
-  dir: "go/src/sigstore/cosign"
+  dir: "go/src/sigstore/policy-controller"
   env:
   - "GOPATH=/workspace/go"
   - "GOBIN=/workspace/bin"
