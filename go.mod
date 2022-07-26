@@ -63,7 +63,7 @@ require (
 	knative.dev/hack v0.0.0-20220701014203-65c463ac8c98
 	knative.dev/hack/schema v0.0.0-20220224013837-e1785985d364
 	knative.dev/pkg v0.0.0-20220715183228-f1f36a2c977e
-	sigs.k8s.io/release-utils v0.6.0
+	sigs.k8s.io/release-utils v0.7.3
 	sigs.k8s.io/yaml v1.3.0
 )
 
