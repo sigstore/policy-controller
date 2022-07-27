@@ -2,9 +2,11 @@
 
 Kubernetes webhook for configuring admission policies.
 
-(TODO: vaikas) Update this README
+## Examples
 
-## ClusterImagePolicy Testing
+Please see the [examples/](./examples/) directory for example policies etc.
+
+## Policy Testing
 
 This repo includes a `policy-tester` tool which enables checking a policy against
 various images.
