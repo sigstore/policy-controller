@@ -60,6 +60,27 @@ jobs:
           -p 5000:5000 \
           registry:2
 
+    - name: Example (custom-key-attestation-sbom-spdxjson)
+      working-directory: ./src/github.com/${{ github.repository }}/examples
+      run: |
+        REF="localhost:5000/examples/custom-key-attestation-sbom-spdxjson"
+
+        # Push an image
+        docker pull alpine
+        docker tag alpine "${REF}"
+        docker push "${REF}"
+
+        # Attach attestation to image
+        cosign attest --yes --type spdxjson \
+          --predicate sboms/example.spdx.json \
+          --key keys/cosign.key \
+          "${REF}"
+
+        # Ensure the image satisfies the policy
+        ../policy-tester \
+          --policy policies/custom-key-attestation-sbom-spdxjson.yaml \
+          --image "${REF}"
+
     # This example requires public Fulcio, only run on push to main
     - if: ${{ github.event_name == 'push' }}
       name: Example (keyless-attestation-sbom-spdxjson)
