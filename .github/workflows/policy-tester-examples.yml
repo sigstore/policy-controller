@@ -60,7 +60,9 @@ jobs:
           -p 5000:5000 \
           registry:2
 
-    - name: Example (keyless-attestation-sbom-spdxjson)
+    # This example requires public Fulcio, only run on push to main
+    - if: ${{ github.event_name == 'push' }}
+      name: Example (keyless-attestation-sbom-spdxjson)
       working-directory: ./src/github.com/${{ github.repository }}/examples
       run: |
         REF="localhost:5000/examples/keyless-attestation-sbom-spdxjson"
