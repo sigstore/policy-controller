@@ -76,6 +76,11 @@ jobs:
           --key keys/cosign.key \
           "${REF}"
 
+        # Verify the attestation
+        cosign verify-attestation \
+          --key keys/cosign.pub \
+          "${REF}"
+
         # Ensure the image satisfies the policy
         ../policy-tester \
           --policy policies/custom-key-attestation-sbom-spdxjson.yaml \
