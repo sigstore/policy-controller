@@ -358,6 +358,7 @@ func ValidatePolicy(ctx context.Context, namespace string, ref name.Reference, c
 	// the results.
 	type retChannelType struct {
 		name         string
+		static       bool
 		attestations map[string][]PolicySignature
 		signatures   []PolicySignature
 		err          error
@@ -388,6 +389,7 @@ func ValidatePolicy(ctx context.Context, namespace string, ref name.Reference, c
 					results <- result
 					return
 				}
+				result.static = true
 
 			case len(authority.Attestations) > 0:
 				// We're doing the verify-attestations path, so validate (.att)
@@ -429,11 +431,14 @@ func ValidatePolicy(ctx context.Context, namespace string, ref name.Reference, c
 			case len(result.attestations) > 0:
 				policyResult.AuthorityMatches[result.name] = AuthorityMatch{Attestations: result.attestations}
 
-			default:
+			case result.static:
 				// This happens when we encounter a policy with:
 				//   static:
 				//     action: "pass"
 				policyResult.AuthorityMatches[result.name] = AuthorityMatch{}
+
+			default:
+				authorityErrors = append(authorityErrors, fmt.Errorf("failed to process authority: %s", result.name))
 			}
 		}
 	}
@@ -507,7 +512,7 @@ func ValidatePolicySignaturesForAuthority(ctx context.Context, ref name.Referenc
 		// https://github.com/sigstore/policy-controller/issues/1652
 		sps, err := valid(ctx, ref, rekorClient, authority.Key.PublicKeys, remoteOpts...)
 		if err != nil {
-			return nil, fmt.Errorf("key validation failed for authority %s for %s: %w", name, ref.Name(), err)
+			return nil, fmt.Errorf("signature key validation failed for authority %s for %s: %w", name, ref.Name(), err)
 		}
 		logging.FromContext(ctx).Debugf("validated signature for %s for authority %s got %d signatures", ref.Name(), authority.Name, len(sps))
 		return ociSignatureToPolicySignature(ctx, sps), nil
@@ -522,15 +527,15 @@ func ValidatePolicySignaturesForAuthority(ctx context.Context, ref name.Referenc
 			sps, err := validSignaturesWithFulcio(ctx, ref, fulcioroot, rekorClient, authority.Keyless.Identities, remoteOpts...)
 			if err != nil {
 				logging.FromContext(ctx).Errorf("failed validSignatures for authority %s with fulcio for %s: %v", name, ref.Name(), err)
-				return nil, fmt.Errorf("keyless validation failed for authority %s for %s: %w", name, ref.Name(), err)
+				return nil, fmt.Errorf("signature keyless validation failed for authority %s for %s: %w", name, ref.Name(), err)
 			}
 			logging.FromContext(ctx).Debugf("validated signature for %s, got %d signatures", ref.Name(), len(sps))
 			return ociSignatureToPolicySignature(ctx, sps), nil
 		}
 	}
 
-	// This should never happen because authority has to have been
-	// validated to be either having a Key or Keyless
+	// This should never happen because authority has to have been validated to
+	// be either having a Key, Keyless, or Static (handled elsewhere)
 	return nil, errors.New("authority has neither key, keyless, or static specified")
 }
 
@@ -561,7 +566,7 @@ func ValidatePolicyAttestationsForAuthority(ctx context.Context, ref name.Refere
 			va, err := validAttestations(ctx, ref, verifier, rekorClient, remoteOpts...)
 			if err != nil {
 				logging.FromContext(ctx).Errorf("error validating attestations: %v", err)
-				return nil, fmt.Errorf("key validation failed for authority %s for %s: %w", name, ref.Name(), err)
+				return nil, fmt.Errorf("attestation key validation failed for authority %s for %s: %w", name, ref.Name(), err)
 			}
 			verifiedAttestations = append(verifiedAttestations, va...)
 		}
@@ -576,7 +581,7 @@ func ValidatePolicyAttestationsForAuthority(ctx context.Context, ref name.Refere
 			va, err := validAttestationsWithFulcio(ctx, ref, fulcioroot, rekorClient, authority.Keyless.Identities, remoteOpts...)
 			if err != nil {
 				logging.FromContext(ctx).Errorf("failed validAttestationsWithFulcio for authority %s with fulcio for %s: %v", name, ref.Name(), err)
-				return nil, fmt.Errorf("keyless validation failed for authority %s for %s: %w", name, ref.Name(), err)
+				return nil, fmt.Errorf("attestation keyless validation failed for authority %s for %s: %w", name, ref.Name(), err)
 			}
 			verifiedAttestations = append(verifiedAttestations, va...)
 		}
