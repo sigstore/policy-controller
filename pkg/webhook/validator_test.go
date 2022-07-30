@@ -22,6 +22,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/x509"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net/http"
@@ -35,6 +36,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/authn/k8schain"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/sigstore/cosign/pkg/cosign"
+	"github.com/sigstore/cosign/pkg/cosign/bundle"
 	"github.com/sigstore/cosign/pkg/oci"
 	"github.com/sigstore/cosign/pkg/oci/remote"
 	"github.com/sigstore/cosign/pkg/oci/static"
@@ -347,10 +349,10 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 		want: func() *apis.FieldError {
 			var errs *apis.FieldError
 			fe := apis.ErrGeneric("failed policy: cluster-image-policy-keyless", "image").ViaFieldIndex("initContainers", 0)
-			fe.Details = fmt.Sprintf("%s validate signatures with fulcio: bad signature", digest.String())
+			fe.Details = fmt.Sprintf("%s keyless validation failed for authority  for %s: bad signature", digest.String(), digest.Name())
 			errs = errs.Also(fe)
 			fe2 := apis.ErrGeneric("failed policy: cluster-image-policy-keyless", "image").ViaFieldIndex("containers", 0)
-			fe2.Details = fmt.Sprintf("%s validate signatures with fulcio: bad signature", digest.String())
+			fe2.Details = fmt.Sprintf("%s keyless validation failed for authority  for %s: bad signature", digest.String(), digest.Name())
 			errs = errs.Also(fe2)
 			return errs
 		}(),
@@ -395,10 +397,10 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 		want: func() *apis.FieldError {
 			var errs *apis.FieldError
 			fe := apis.ErrGeneric("failed policy: cluster-image-policy-keyless-bad-cip", "image").ViaFieldIndex("initContainers", 0)
-			fe.Details = fmt.Sprintf("%s failed evaluating cue policy for ClusterImagePolicy : failed to compile the cue policy with error: string literal not terminated", digest.String())
+			fe.Details = fmt.Sprintf("%s failed evaluating cue policy for ClusterImagePolicy: failed to compile the cue policy with error: string literal not terminated", digest.String())
 			errs = errs.Also(fe)
 			fe2 := apis.ErrGeneric("failed policy: cluster-image-policy-keyless-bad-cip", "image").ViaFieldIndex("containers", 0)
-			fe2.Details = fmt.Sprintf("%s failed evaluating cue policy for ClusterImagePolicy : failed to compile the cue policy with error: string literal not terminated", digest.String())
+			fe2.Details = fmt.Sprintf("%s failed evaluating cue policy for ClusterImagePolicy: failed to compile the cue policy with error: string literal not terminated", digest.String())
 			errs = errs.Also(fe2)
 			return errs
 		}(),
@@ -474,10 +476,10 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 		want: func() *apis.FieldError {
 			var errs *apis.FieldError
 			fe := apis.ErrGeneric("failed policy: cluster-image-policy-keyless", "image").ViaFieldIndex("initContainers", 0)
-			fe.Details = fmt.Sprintf("%s validate signatures with fulcio: bad signature", digest.String())
+			fe.Details = fmt.Sprintf("%s keyless validation failed for authority  for %s: bad signature", digest.String(), digest.Name())
 			errs = errs.Also(fe)
 			fe2 := apis.ErrGeneric("failed policy: cluster-image-policy-keyless", "image").ViaFieldIndex("containers", 0)
-			fe2.Details = fmt.Sprintf("%s validate signatures with fulcio: bad signature", digest.String())
+			fe2.Details = fmt.Sprintf("%s keyless validation failed for authority  for %s: bad signature", digest.String(), digest.Name())
 			errs = errs.Also(fe2)
 			return errs
 		}(),
@@ -1505,6 +1507,33 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 		}
 		return []oci.Signature{sig}, true, nil
 	}
+	// Let's just say that everything is verified.
+	passKeyless := func(_ context.Context, _ name.Reference, _ *cosign.CheckOpts) (checkedSignatures []oci.Signature, bundleVerified bool, err error) {
+		// This is from 2022/07/29
+		// ghcr.io/distroless/static@sha256:a1e82f6a5f6dfc735165d3442e7cc5a615f72abac3db19452481f5f3c90fbfa8
+		payload := []byte(`{"critical":{"identity":{"docker-reference":"ghcr.io/distroless/static"},"image":{"docker-manifest-digest":"sha256:a1e82f6a5f6dfc735165d3442e7cc5a615f72abac3db19452481f5f3c90fbfa8"},"type":"cosign container image signature"},"optional":{"run_attempt":"1","run_id":"2757953139","sha":"7e7572e578de7c51a2f1a1791f025cf315503aa2"}}`)
+		b64sig := "MEUCIAmudMKGDWEpufGGqrMgeei7KVdpZwhc6clqMaMaw6lyAiEA3JnLUqV3wtKDERcVy8OjMGopJY7IZ8lfks5zEAjlnW0="
+		set, err := base64.StdEncoding.DecodeString("MEUCIAOMBR9Gh7laJtdvU9+JqK/AiTps8/tzviDzkvfMQqn4AiEAs553xG1bvlIu3aGERoPRf+oR3MfZTIM9M4nQrGeW8D4=")
+		if err != nil {
+			return nil, false, err
+		}
+		sig, err := static.NewSignature(payload, b64sig, static.WithCertChain(
+			[]byte("-----BEGIN CERTIFICATE-----\nMIIDnDCCAyKgAwIBAgIUfMlmBH82a8tub3Mzzv8DBUEjLHwwCgYIKoZIzj0EAwMw\nNzEVMBMGA1UEChMMc2lnc3RvcmUuZGV2MR4wHAYDVQQDExVzaWdzdG9yZS1pbnRl\ncm1lZGlhdGUwHhcNMjIwNzI5MDIyNzEzWhcNMjIwNzI5MDIzNzEzWjAAMFkwEwYH\nKoZIzj0CAQYIKoZIzj0DAQcDQgAEPL3MZbQBWha+4lgvmbZ4JA7BgxcAOcWTq+Ns\nGgKVhhodbDucZp5JLVRn+QWrEG+Ppd4JzLoAZth2a0BhNlkGC6OCAkEwggI9MA4G\nA1UdDwEB/wQEAwIHgDATBgNVHSUEDDAKBggrBgEFBQcDAzAdBgNVHQ4EFgQU3yHz\nvrj7CsZsIsI87Ps9XUXd7+0wHwYDVR0jBBgwFoAU39Ppz1YkEZb5qNjpKFWixi4Y\nZD8wYQYDVR0RAQH/BFcwVYZTaHR0cHM6Ly9naXRodWIuY29tL2Rpc3Ryb2xlc3Mv\nc3RhdGljLy5naXRodWIvd29ya2Zsb3dzL3JlbGVhc2UueWFtbEByZWZzL2hlYWRz\nL21haW4wOQYKKwYBBAGDvzABAQQraHR0cHM6Ly90b2tlbi5hY3Rpb25zLmdpdGh1\nYnVzZXJjb250ZW50LmNvbTAWBgorBgEEAYO/MAECBAhzY2hlZHVsZTA2BgorBgEE\nAYO/MAEDBCg3ZTc1NzJlNTc4ZGU3YzUxYTJmMWExNzkxZjAyNWNmMzE1NTAzYWEy\nMBwGCisGAQQBg78wAQQEDkNyZWF0ZSBSZWxlYXNlMB8GCisGAQQBg78wAQUEEWRp\nc3Ryb2xlc3Mvc3RhdGljMB0GCisGAQQBg78wAQYED3JlZnMvaGVhZHMvbWFpbjCB\niQYKKwYBBAHWeQIEAgR7BHkAdwB1AAhgkvAoUv9oRdHRayeEnEVnGKwWPcM40m3m\nvCIGNm9yAAABgkfHgcEAAAQDAEYwRAIgZteRlFRR3aLNH6RlF3iknW4BfQXwsIWP\nRnkEOzOlN4MCIBQShlTxp2JJ677LTbFBU30zHLOZfQCa/qj5kpiFDPn6MAoGCCqG\nSM49BAMDA2gAMGUCMQDG7KFCngua3Nn5C20np9DiSnw74v7/xjbhFBoWQj1m0pio\nbSbh3ihNMR5neANay6ECMFwFsGFHCeLlL9kmf5ONk2EAZWQuwdJONPvXlbC/28KE\na7sPOJxVkCUQMdvqf1KBTw==\n-----END CERTIFICATE-----\n"),
+			[]byte("-----BEGIN CERTIFICATE-----\nMIICGjCCAaGgAwIBAgIUALnViVfnU0brJasmRkHrn/UnfaQwCgYIKoZIzj0EAwMw\nKjEVMBMGA1UEChMMc2lnc3RvcmUuZGV2MREwDwYDVQQDEwhzaWdzdG9yZTAeFw0y\nMjA0MTMyMDA2MTVaFw0zMTEwMDUxMzU2NThaMDcxFTATBgNVBAoTDHNpZ3N0b3Jl\nLmRldjEeMBwGA1UEAxMVc2lnc3RvcmUtaW50ZXJtZWRpYXRlMHYwEAYHKoZIzj0C\nAQYFK4EEACIDYgAE8RVS/ysH+NOvuDZyPIZtilgUF9NlarYpAd9HP1vBBH1U5CV7\n7LSS7s0ZiH4nE7Hv7ptS6LvvR/STk798LVgMzLlJ4HeIfF3tHSaexLcYpSASr1kS\n0N/RgBJz/9jWCiXno3sweTAOBgNVHQ8BAf8EBAMCAQYwEwYDVR0lBAwwCgYIKwYB\nBQUHAwMwEgYDVR0TAQH/BAgwBgEB/wIBADAdBgNVHQ4EFgQU39Ppz1YkEZb5qNjp\nKFWixi4YZD8wHwYDVR0jBBgwFoAUWMAeX5FFpWapesyQoZMi0CrFxfowCgYIKoZI\nzj0EAwMDZwAwZAIwPCsQK4DYiZYDPIaDi5HFKnfxXx6ASSVmERfsynYBiX2X6SJR\nnZU84/9DZdnFvvxmAjBOt6QpBlc4J/0DxvkTCqpclvziL6BCCPnjdlIB3Pu3BxsP\nmygUY7Ii2zbdCdliiow=\n-----END CERTIFICATE-----\n-----BEGIN CERTIFICATE-----\nMIIB9zCCAXygAwIBAgIUALZNAPFdxHPwjeDloDwyYChAO/4wCgYIKoZIzj0EAwMw\nKjEVMBMGA1UEChMMc2lnc3RvcmUuZGV2MREwDwYDVQQDEwhzaWdzdG9yZTAeFw0y\nMTEwMDcxMzU2NTlaFw0zMTEwMDUxMzU2NThaMCoxFTATBgNVBAoTDHNpZ3N0b3Jl\nLmRldjERMA8GA1UEAxMIc2lnc3RvcmUwdjAQBgcqhkjOPQIBBgUrgQQAIgNiAAT7\nXeFT4rb3PQGwS4IajtLk3/OlnpgangaBclYpsYBr5i+4ynB07ceb3LP0OIOZdxex\nX69c5iVuyJRQ+Hz05yi+UF3uBWAlHpiS5sh0+H2GHE7SXrk1EC5m1Tr19L9gg92j\nYzBhMA4GA1UdDwEB/wQEAwIBBjAPBgNVHRMBAf8EBTADAQH/MB0GA1UdDgQWBBRY\nwB5fkUWlZql6zJChkyLQKsXF+jAfBgNVHSMEGDAWgBRYwB5fkUWlZql6zJChkyLQ\nKsXF+jAKBggqhkjOPQQDAwNpADBmAjEAj1nHeXZp+13NWBNa+EDsDP8G1WWg1tCM\nWP/WHPqpaVo0jhsweNFZgSs0eE7wYI4qAjEA2WB9ot98sIkoF3vZYdd3/VtWB5b9\nTNMea7Ix/stJ5TfcLLeABLE4BNJOsQ4vnBHJ\n-----END CERTIFICATE-----"),
+		), static.WithBundle(&bundle.RekorBundle{
+			SignedEntryTimestamp: set,
+			Payload: bundle.RekorPayload{
+				Body:           "eyJhcGlWZXJzaW9uIjoiMC4wLjEiLCJraW5kIjoiaGFzaGVkcmVrb3JkIiwic3BlYyI6eyJkYXRhIjp7Imhhc2giOnsiYWxnb3JpdGhtIjoic2hhMjU2IiwidmFsdWUiOiJjYzYxZDc4MzdmYWYzYmMyYjMxMThkNTUxZmY5NTJjYzU5NzljNzM3OTkwNGE4NDEwMzAxMDg3OGVlMmZjMDUwIn19LCJzaWduYXR1cmUiOnsiY29udGVudCI6Ik1FVUNJQW11ZE1LR0RXRXB1ZkdHcXJNZ2VlaTdLVmRwWndoYzZjbHFNYU1hdzZseUFpRUEzSm5MVXFWM3d0S0RFUmNWeThPak1Hb3BKWTdJWjhsZmtzNXpFQWpsblcwPSIsInB1YmxpY0tleSI6eyJjb250ZW50IjoiTFMwdExTMUNSVWRKVGlCRFJWSlVTVVpKUTBGVVJTMHRMUzB0Q2sxSlNVUnVSRU5EUVhsTFowRjNTVUpCWjBsVlprMXNiVUpJT0RKaE9IUjFZak5OZW5wMk9FUkNWVVZxVEVoM2QwTm5XVWxMYjFwSmVtb3dSVUYzVFhjS1RucEZWazFDVFVkQk1WVkZRMmhOVFdNeWJHNWpNMUoyWTIxVmRWcEhWakpOVWpSM1NFRlpSRlpSVVVSRmVGWjZZVmRrZW1SSE9YbGFVekZ3WW01U2JBcGpiVEZzV2tkc2FHUkhWWGRJYUdOT1RXcEpkMDU2U1RWTlJFbDVUbnBGZWxkb1kwNU5ha2wzVG5wSk5VMUVTWHBPZWtWNlYycEJRVTFHYTNkRmQxbElDa3R2V2tsNmFqQkRRVkZaU1V0dldrbDZhakJFUVZGalJGRm5RVVZRVEROTldtSlJRbGRvWVNzMGJHZDJiV0phTkVwQk4wSm5lR05CVDJOWFZIRXJUbk1LUjJkTFZtaG9iMlJpUkhWalduQTFTa3hXVW00clVWZHlSVWNyVUhCa05FcDZURzlCV25Sb01tRXdRbWhPYkd0SFF6WlBRMEZyUlhkblowazVUVUUwUndwQk1WVmtSSGRGUWk5M1VVVkJkMGxJWjBSQlZFSm5UbFpJVTFWRlJFUkJTMEpuWjNKQ1owVkdRbEZqUkVGNlFXUkNaMDVXU0ZFMFJVWm5VVlV6ZVVoNkNuWnlhamREYzFwelNYTkpPRGRRY3psWVZWaGtOeXN3ZDBoM1dVUldVakJxUWtKbmQwWnZRVlV6T1ZCd2VqRlphMFZhWWpWeFRtcHdTMFpYYVhocE5Ga0tXa1E0ZDFsUldVUldVakJTUVZGSUwwSkdZM2RXV1ZwVVlVaFNNR05JVFRaTWVUbHVZVmhTYjJSWFNYVlpNamwwVERKU2NHTXpVbmxpTW5oc1l6Tk5kZ3BqTTFKb1pFZHNha3g1Tlc1aFdGSnZaRmRKZG1ReU9YbGhNbHB6WWpOa2Vrd3pTbXhpUjFab1l6SlZkV1ZYUm5SaVJVSjVXbGRhZWt3eWFHeFpWMUo2Q2t3eU1XaGhWelIzVDFGWlMwdDNXVUpDUVVkRWRucEJRa0ZSVVhKaFNGSXdZMGhOTmt4NU9UQmlNblJzWW1rMWFGa3pVbkJpTWpWNlRHMWtjR1JIYURFS1dXNVdlbHBZU21waU1qVXdXbGMxTUV4dFRuWmlWRUZYUW1kdmNrSm5SVVZCV1U4dlRVRkZRMEpCYUhwWk1taHNXa2hXYzFwVVFUSkNaMjl5UW1kRlJRcEJXVTh2VFVGRlJFSkRaek5hVkdNeFRucEtiRTVVWXpSYVIxVXpXWHBWZUZsVVNtMU5WMFY0VG5wcmVGcHFRWGxPVjA1dFRYcEZNVTVVUVhwWlYwVjVDazFDZDBkRGFYTkhRVkZSUW1jM09IZEJVVkZGUkd0T2VWcFhSakJhVTBKVFdsZDRiRmxZVG14TlFqaEhRMmx6UjBGUlVVSm5OemgzUVZGVlJVVlhVbkFLWXpOU2VXSXllR3hqTTAxMll6TlNhR1JIYkdwTlFqQkhRMmx6UjBGUlVVSm5OemgzUVZGWlJVUXpTbXhhYmsxMllVZFdhRnBJVFhaaVYwWndZbXBEUWdwcFVWbExTM2RaUWtKQlNGZGxVVWxGUVdkU04wSklhMEZrZDBJeFFVRm9aMnQyUVc5VmRqbHZVbVJJVW1GNVpVVnVSVlp1UjB0M1YxQmpUVFF3YlROdENuWkRTVWRPYlRsNVFVRkJRbWRyWmtoblkwVkJRVUZSUkVGRldYZFNRVWxuV25SbFVteEdVbEl6WVV4T1NEWlNiRVl6YVd0dVZ6UkNabEZZZDNOSlYxQUtVbTVyUlU5NlQyeE9ORTFEU1VKUlUyaHNWSGh3TWtwS05qYzNURlJpUmtKVk16QjZTRXhQV21aUlEyRXZjV28xYTNCcFJrUlFialpOUVc5SFEwTnhSd3BUVFRRNVFrRk5SRUV5WjBGTlIxVkRUVkZFUnpkTFJrTnVaM1ZoTTA1dU5VTXlNRzV3T1VScFUyNTNOelIyTnk5NGFtSm9Sa0p2VjFGcU1XMHdjR2x2Q21KVFltZ3phV2hPVFZJMWJtVkJUbUY1TmtWRFRVWjNSbk5IUmtoRFpVeHNURGxyYldZMVQwNXJNa1ZCV2xkUmRYZGtTazlPVUhaWWJHSkRMekk0UzBVS1lUZHpVRTlLZUZaclExVlJUV1IyY1dZeFMwSlVkejA5Q2kwdExTMHRSVTVFSUVORlVsUkpSa2xEUVZSRkxTMHRMUzBLIn19fX0=",
+				IntegratedTime: 1659061655,
+				LogIndex:       3059462,
+				LogID:          "c0d23d6ad406973f9559f3ba2d1ca01f84147d8ffc5b8445c224f98b9591801d",
+			},
+		}))
+		if err != nil {
+			return nil, false, err
+		}
+		return []oci.Signature{sig}, true, nil
+	}
 	// Let's just say that everything is not verified.
 	fail := func(_ context.Context, _ name.Reference, _ *cosign.CheckOpts) (checkedSignatures []oci.Signature, bundleVerified bool, err error) {
 		return nil, false, errors.New("bad signature")
@@ -1543,7 +1572,7 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 				},
 			}},
 		},
-		wantErrs: []string{"failed to validate public keys with authority authority-0 for gcr.io/distroless/static@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4: bad signature"},
+		wantErrs: []string{"key validation failed for authority authority-0 for gcr.io/distroless/static@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4: bad signature"},
 		cvs:      fail,
 	}, {
 		name: "simple, public key, works",
@@ -1559,8 +1588,8 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 			AuthorityMatches: map[string]AuthorityMatch{
 				"authority-0": {
 					Signatures: []PolicySignature{{
-						Subject: "PLACEHOLDER",
-						Issuer:  "PLACEHOLDER"}},
+						// TODO(mattmoor): Is there anything we should encode for key-based?
+					}},
 				}},
 		},
 		cvs: pass,
@@ -1583,8 +1612,8 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 			AuthorityMatches: map[string]AuthorityMatch{
 				"authority-0": {
 					Signatures: []PolicySignature{{
-						Subject: "PLACEHOLDER",
-						Issuer:  "PLACEHOLDER"}},
+						// TODO(mattmoor): Is there anything we should encode for key-based?
+					}},
 				}},
 		},
 		wantErrs: []string{`fetching FulcioRoot: getting root cert: parse "http://http:%2F%2Fexample.com%2F/api/v1/rootCert": invalid port ":%2F%2Fexample.com%2F" after host`},
@@ -1601,11 +1630,8 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 		},
 		want: &PolicyResult{
 			AuthorityMatches: map[string]AuthorityMatch{
-				"authority-0": {
-					Signatures: []PolicySignature{{
-						Subject: "allowed by static policy",
-						Issuer:  "allowed by static policy"}},
-				}},
+				"authority-0": {},
+			},
 		},
 	}, {
 		name: "simple, static set to fail",
@@ -1632,8 +1658,8 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 			AuthorityMatches: map[string]AuthorityMatch{
 				"authority-0": {
 					Signatures: []PolicySignature{{
-						Subject: "PLACEHOLDER",
-						Issuer:  "PLACEHOLDER"}},
+						// TODO(mattmoor): Is there anything we should encode for key-based?
+					}},
 				}},
 		},
 		cvs: authorityPublicKeyCVS,
@@ -1655,12 +1681,16 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 		want: &PolicyResult{
 			AuthorityMatches: map[string]AuthorityMatch{
 				"authority-0": {
-					Attestations: map[string][]PolicySignature{"test-att": {{
-						Subject: "PLACEHOLDER",
-						Issuer:  "PLACEHOLDER"}},
-					}}},
+					Attestations: map[string][]PolicySignature{
+						"test-att": {{
+							Subject: "https://github.com/distroless/static/.github/workflows/release.yaml@refs/heads/main",
+							Issuer:  "https://token.actions.githubusercontent.com",
+						}},
+					},
+				},
+			},
 		},
-		cva: pass,
+		cva: passKeyless,
 	}}
 
 	for _, test := range tests {
@@ -1715,7 +1745,7 @@ func TestValidatePolicyCancelled(t *testing.T) {
 			},
 		}},
 	}
-	wantErrs := []string{"context was canceled before validation completed"}
+	wantErrs := []string{"context canceled before validation completed"}
 	cancelFunc()
 	_, gotErrs := ValidatePolicy(testContext, system.Namespace(), digest, cip)
 	validateErrors(t, wantErrs, gotErrs)

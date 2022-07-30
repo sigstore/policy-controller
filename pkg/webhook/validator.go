@@ -26,9 +26,11 @@ import (
 	"github.com/google/go-containerregistry/pkg/authn/k8schain"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
+	"github.com/sigstore/cosign/pkg/cosign"
 	"github.com/sigstore/cosign/pkg/oci"
 	ociremote "github.com/sigstore/cosign/pkg/oci/remote"
 	"github.com/sigstore/cosign/pkg/policy"
+	csigs "github.com/sigstore/cosign/pkg/signature"
 	"github.com/sigstore/fulcio/pkg/api"
 	"github.com/sigstore/policy-controller/pkg/apis/config"
 	policyduckv1beta1 "github.com/sigstore/policy-controller/pkg/apis/duck/v1beta1"
@@ -382,55 +384,56 @@ func ValidatePolicy(ctx context.Context, namespace string, ref name.Reference, c
 			switch {
 			case authority.Static != nil:
 				if authority.Static.Action == "fail" {
-					result.err = errors.New("disallowed by static policy")
+					result.err = cosign.NewVerificationError("disallowed by static policy")
 					results <- result
 					return
 				}
-				result.signatures = []PolicySignature{{Subject: "allowed by static policy", Issuer: "allowed by static policy"}}
+
 			case len(authority.Attestations) > 0:
 				// We're doing the verify-attestations path, so validate (.att)
-				validatedAttestations, err := ValidatePolicyAttestationsForAuthority(ctx, ref, authority, authorityRemoteOpts...)
-				if err != nil {
-					result.err = err
-				} else {
-					result.attestations = validatedAttestations
-				}
+				result.attestations, result.err = ValidatePolicyAttestationsForAuthority(ctx, ref, authority, authorityRemoteOpts...)
+
 			default:
-				validatedSignatures, err := ValidatePolicySignaturesForAuthority(ctx, ref, authority, authorityRemoteOpts...)
-				if err != nil {
-					result.err = err
-				} else {
-					result.signatures = validatedSignatures
-				}
+				result.signatures, result.err = ValidatePolicySignaturesForAuthority(ctx, ref, authority, authorityRemoteOpts...)
 			}
 			results <- result
 		}()
 	}
+
 	// If none of the Authorities for a given policy pass the checks, gather
 	// the errors here. Even if there are errors, return the matched
 	// authoritypolicies.
-	authorityErrors := []error{}
+	authorityErrors := make([]error, 0, len(cip.Authorities))
 	// We collect all the successfully satisfied Authorities into this and
 	// return it.
-	policyResult := &PolicyResult{AuthorityMatches: make(map[string]AuthorityMatch)}
-	for i := 0; i < len(cip.Authorities); i++ {
+	policyResult := &PolicyResult{
+		AuthorityMatches: make(map[string]AuthorityMatch, len(cip.Authorities)),
+	}
+	for range cip.Authorities {
 		select {
 		case <-ctx.Done():
-			authorityErrors = append(authorityErrors, fmt.Errorf("context was canceled before validation completed"))
+			authorityErrors = append(authorityErrors, fmt.Errorf("%w before validation completed", ctx.Err()))
+
 		case result, ok := <-results:
 			if !ok {
-				authorityErrors = append(authorityErrors, fmt.Errorf("results channel failed to produce a result"))
+				authorityErrors = append(authorityErrors, errors.New("results channel closed before all results were sent"))
 				continue
 			}
 			switch {
 			case result.err != nil:
 				authorityErrors = append(authorityErrors, result.err)
+
 			case len(result.signatures) > 0:
 				policyResult.AuthorityMatches[result.name] = AuthorityMatch{Signatures: result.signatures}
+
 			case len(result.attestations) > 0:
 				policyResult.AuthorityMatches[result.name] = AuthorityMatch{Attestations: result.attestations}
+
 			default:
-				authorityErrors = append(authorityErrors, fmt.Errorf("failed to process authority: %s", result.name))
+				// This happens when we encounter a policy with:
+				//   static:
+				//     action: "pass"
+				policyResult.AuthorityMatches[result.name] = AuthorityMatch{}
 			}
 		}
 	}
@@ -460,12 +463,22 @@ func ValidatePolicy(ctx context.Context, namespace string, ref name.Reference, c
 }
 
 func ociSignatureToPolicySignature(ctx context.Context, sigs []oci.Signature) []PolicySignature {
-	// TODO(vaikas): Validate whether these are useful at all, or if we should
-	// simplify at least for starters.
-	ret := []PolicySignature{}
+	ret := make([]PolicySignature, 0, len(sigs))
 	for _, ociSig := range sigs {
 		logging.FromContext(ctx).Debugf("Converting signature %+v", ociSig)
-		ret = append(ret, PolicySignature{Subject: "PLACEHOLDER", Issuer: "PLACEHOLDER"})
+
+		if cert, err := ociSig.Cert(); err == nil && cert != nil {
+			ce := cosign.CertExtensions{
+				Cert: cert,
+			}
+			ret = append(ret, PolicySignature{
+				Subject: csigs.CertSubject(cert),
+				Issuer:  ce.GetIssuer(),
+			})
+		} else {
+			// TODO(mattmoor): Is there anything we should encode for key-based?
+			ret = append(ret, PolicySignature{})
+		}
 	}
 	return ret
 }
@@ -494,13 +507,11 @@ func ValidatePolicySignaturesForAuthority(ctx context.Context, ref name.Referenc
 		// https://github.com/sigstore/policy-controller/issues/1652
 		sps, err := valid(ctx, ref, rekorClient, authority.Key.PublicKeys, remoteOpts...)
 		if err != nil {
-			return nil, fmt.Errorf("failed to validate public keys with authority %s for %s: %w", name, ref.Name(), err)
-		} else if len(sps) > 0 {
-			logging.FromContext(ctx).Debugf("validated signature for %s with authority %s got %d signatures", ref.Name(), authority.Name, len(sps))
-			return ociSignatureToPolicySignature(ctx, sps), nil
+			return nil, fmt.Errorf("key validation failed for authority %s for %s: %w", name, ref.Name(), err)
 		}
-		logging.FromContext(ctx).Errorf("no validSignatures found with authority %s for %s", name, ref.Name())
-		return nil, fmt.Errorf("no valid signatures found with authority %s for %s", name, ref.Name())
+		logging.FromContext(ctx).Debugf("validated signature for %s for authority %s got %d signatures", ref.Name(), authority.Name, len(sps))
+		return ociSignatureToPolicySignature(ctx, sps), nil
+
 	case authority.Keyless != nil:
 		if authority.Keyless != nil && authority.Keyless.URL != nil {
 			logging.FromContext(ctx).Debugf("Fetching FulcioRoot for %s : From: %s ", ref.Name(), authority.Keyless.URL)
@@ -511,18 +522,16 @@ func ValidatePolicySignaturesForAuthority(ctx context.Context, ref name.Referenc
 			sps, err := validSignaturesWithFulcio(ctx, ref, fulcioroot, rekorClient, authority.Keyless.Identities, remoteOpts...)
 			if err != nil {
 				logging.FromContext(ctx).Errorf("failed validSignatures for authority %s with fulcio for %s: %v", name, ref.Name(), err)
-				return nil, fmt.Errorf("validate signatures with fulcio: %w", err)
-			} else if len(sps) > 0 {
-				logging.FromContext(ctx).Debugf("validated signature for %s, got %d signatures", ref.Name(), len(sps))
-				return ociSignatureToPolicySignature(ctx, sps), nil
+				return nil, fmt.Errorf("keyless validation failed for authority %s for %s: %w", name, ref.Name(), err)
 			}
-			logging.FromContext(ctx).Errorf("no validSignatures found for %s", ref.Name())
-			return nil, fmt.Errorf("no valid signatures found with authority %s for  %s", name, ref.Name())
+			logging.FromContext(ctx).Debugf("validated signature for %s, got %d signatures", ref.Name(), len(sps))
+			return ociSignatureToPolicySignature(ctx, sps), nil
 		}
 	}
+
 	// This should never happen because authority has to have been
 	// validated to be either having a Key or Keyless
-	return nil, fmt.Errorf("authority has neither key, keyless, or static specified")
+	return nil, errors.New("authority has neither key, keyless, or static specified")
 }
 
 // ValidatePolicyAttestationsForAuthority takes the Authority and tries to
@@ -552,11 +561,11 @@ func ValidatePolicyAttestationsForAuthority(ctx context.Context, ref name.Refere
 			va, err := validAttestations(ctx, ref, verifier, rekorClient, remoteOpts...)
 			if err != nil {
 				logging.FromContext(ctx).Errorf("error validating attestations: %v", err)
-				return nil, fmt.Errorf("validating attestations: %w", err)
+				return nil, fmt.Errorf("key validation failed for authority %s for %s: %w", name, ref.Name(), err)
 			}
 			verifiedAttestations = append(verifiedAttestations, va...)
 		}
-		logging.FromContext(ctx).Debug("No valid signatures were found.")
+
 	case authority.Keyless != nil:
 		if authority.Keyless != nil && authority.Keyless.URL != nil {
 			logging.FromContext(ctx).Debugf("Fetching FulcioRoot for %s : From: %s ", ref.Name(), authority.Keyless.URL)
@@ -567,23 +576,25 @@ func ValidatePolicyAttestationsForAuthority(ctx context.Context, ref name.Refere
 			va, err := validAttestationsWithFulcio(ctx, ref, fulcioroot, rekorClient, authority.Keyless.Identities, remoteOpts...)
 			if err != nil {
 				logging.FromContext(ctx).Errorf("failed validAttestationsWithFulcio for authority %s with fulcio for %s: %v", name, ref.Name(), err)
-				return nil, fmt.Errorf("validate signatures with fulcio: %w", err)
+				return nil, fmt.Errorf("keyless validation failed for authority %s for %s: %w", name, ref.Name(), err)
 			}
 			verifiedAttestations = append(verifiedAttestations, va...)
 		}
 	}
+
 	// If we didn't get any verified attestations either from the Key or Keyless
 	// path, then error out
 	if len(verifiedAttestations) == 0 {
-		logging.FromContext(ctx).Errorf("no valid attestations found with authority %s for %s", name, ref.Name())
-		return nil, fmt.Errorf("no valid attestations found with authority %s for %s", name, ref.Name())
+		logging.FromContext(ctx).Errorf("no valid attestations found for authority %s for %s", name, ref.Name())
+		return nil, fmt.Errorf("%w for authority %s for %s", cosign.ErrNoMatchingAttestations, name, ref.Name())
 	}
 	logging.FromContext(ctx).Debugf("Found %d valid attestations, validating policies for them", len(verifiedAttestations))
+
 	// Now spin through the Attestations that the user specified and validate
 	// them.
 	// TODO(vaikas): Pretty inefficient here, figure out a better way if
 	// possible.
-	ret := map[string][]PolicySignature{}
+	ret := make(map[string][]PolicySignature, len(authority.Attestations))
 	for _, wantedAttestation := range authority.Attestations {
 		// If there's no type / policy to do more checking against,
 		// then we're done here. It matches all the attestations
