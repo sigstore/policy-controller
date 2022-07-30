@@ -45,6 +45,10 @@ type AuthorityMatch struct {
 
 	// Mapping from attestation name to all of verified attestations
 	Attestations map[string][]PolicySignature `json:"attestations"`
+
+	// Static indicates whether this authority matched due to static
+	// e.g. static: { action: pass }
+	Static bool `json:"static,omitempty"`
 }
 
 // PolicySignature contains a normalized result of a validated signature, where

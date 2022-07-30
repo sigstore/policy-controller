@@ -435,7 +435,9 @@ func ValidatePolicy(ctx context.Context, namespace string, ref name.Reference, c
 				// This happens when we encounter a policy with:
 				//   static:
 				//     action: "pass"
-				policyResult.AuthorityMatches[result.name] = AuthorityMatch{}
+				policyResult.AuthorityMatches[result.name] = AuthorityMatch{
+					Static: true,
+				}
 
 			default:
 				authorityErrors = append(authorityErrors, fmt.Errorf("failed to process authority: %s", result.name))

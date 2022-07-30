@@ -1630,7 +1630,9 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 		},
 		want: &PolicyResult{
 			AuthorityMatches: map[string]AuthorityMatch{
-				"authority-0": {},
+				"authority-0": {
+					Static: true,
+				},
 			},
 		},
 	}, {
