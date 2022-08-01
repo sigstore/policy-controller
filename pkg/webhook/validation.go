@@ -20,7 +20,6 @@ import (
 	"crypto"
 	"crypto/x509"
 	"encoding/pem"
-	"errors"
 	"fmt"
 
 	"github.com/google/go-containerregistry/pkg/name"
@@ -43,14 +42,7 @@ func valid(ctx context.Context, ref name.Reference, rekorClient *client.Rekor, k
 		if err != nil {
 			return nil, err
 		}
-		sps, err := validSignaturesWithFulcio(ctx, ref, fulcioRoots, nil /* rekor */, nil /* no identities */, opts...)
-		if err != nil {
-			return nil, err
-		}
-		if len(sps) > 0 {
-			return sps, nil
-		}
-		return nil, errors.New("no valid signatures were found")
+		return validSignaturesWithFulcio(ctx, ref, fulcioRoots, nil /* rekor */, nil /* no identities */, opts...)
 	}
 	// We return nil if ANY key matches
 	var lastErr error
@@ -68,9 +60,7 @@ func valid(ctx context.Context, ref name.Reference, rekorClient *client.Rekor, k
 			lastErr = err
 			continue
 		}
-		if len(sps) > 0 {
-			return sps, nil
-		}
+		return sps, nil
 	}
 	logging.FromContext(ctx).Debug("No valid signatures were found.")
 	return nil, lastErr
