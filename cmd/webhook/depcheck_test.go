@@ -26,7 +26,9 @@ func TestNoDeps(t *testing.T) {
 		"github.com/sigstore/policy-controller/cmd/webhook": {
 			// This conflicts with klog, we error on startup about
 			// `-log_dir` being defined multiple times.
-			"github.com/golang/glog",
+			// Note: this dependency has been replaced with a version
+			// that does not cause the error
+			// "github.com/golang/glog",
 		},
 	})
 }

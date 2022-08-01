@@ -94,6 +94,16 @@ func main() {
 		log.Fatalf("CIP is invalid: %s", validateErrs.Error())
 	}
 	cip := webhookcip.ConvertClusterImagePolicyV1alpha1ToWebhook(&v1alpha1cip)
+
+	// We have to marshal/unmarshal the CIP since that handles converting
+	// inlined Data into PublicKey objects that validator uses.
+	webhookCip, err := json.Marshal(cip)
+	if err != nil {
+		log.Fatalf("Failed to marshal the webhook cip: %s", err)
+	}
+	if err := json.Unmarshal(webhookCip, &cip); err != nil {
+		log.Fatalf("Failed to unmarshal the webhook CIP: %s", err)
+	}
 	ref, err := name.ParseReference(*image)
 	if err != nil {
 		log.Fatal(err)
