@@ -59,6 +59,25 @@ type PolicySignature struct {
 	Subject string `json:"subject"`
 	// Issure that was found to match on the Cert.
 	Issuer string `json:"issuer"`
-	// TODO(vaikas): Add all the Fulcio specific extensions here too.
-	// https://github.com/sigstore/fulcio/blob/main/docs/oid-info.md
+
+	// GithubExtensions holds the Github-related OID extensions.
+	// See also: https://github.com/sigstore/fulcio/blob/main/docs/oid-info.md
+	GithubExtensions `json:",inline"`
+}
+
+// GithubExtensions holds the Github-related OID extensions.
+// See also: https://github.com/sigstore/fulcio/blob/main/docs/oid-info.md
+// NOTE: these field correlate with the names given in the cosign
+// CertExtensionMap and must be prefixed with "github" to avoid ambiguity.
+type GithubExtensions struct {
+	// OID: 1.3.6.1.4.1.57264.1.2
+	WorkflowTrigger string `json:"githubWorkflowTrigger,omitempty"`
+	// OID: 1.3.6.1.4.1.57264.1.3
+	WorkflowSHA string `json:"githubWorkflowSha,omitempty"`
+	// OID: 1.3.6.1.4.1.57264.1.4
+	WorkflowName string `json:"githubWorkflowName,omitempty"`
+	// OID: 1.3.6.1.4.1.57264.1.5
+	WorkflowRepo string `json:"githubWorkflowRepo,omitempty"`
+	// OID: 1.3.6.1.4.1.57264.1.6
+	WorkflowRef string `json:"githubWorkflowRef,omitempty"`
 }

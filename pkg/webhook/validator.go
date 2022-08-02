@@ -481,6 +481,13 @@ func ociSignatureToPolicySignature(ctx context.Context, sigs []oci.Signature) []
 			ret = append(ret, PolicySignature{
 				Subject: csigs.CertSubject(cert),
 				Issuer:  ce.GetIssuer(),
+				GithubExtensions: GithubExtensions{
+					WorkflowTrigger: ce.GetCertExtensionGithubWorkflowTrigger(),
+					WorkflowSHA:     ce.GetExtensionGithubWorkflowSha(),
+					WorkflowName:    ce.GetCertExtensionGithubWorkflowName(),
+					WorkflowRepo:    ce.GetCertExtensionGithubWorkflowRepository(),
+					WorkflowRef:     ce.GetCertExtensionGithubWorkflowRef(),
+				},
 			})
 		} else {
 			// TODO(mattmoor): Is there anything we should encode for key-based?
