@@ -398,7 +398,11 @@ kubectl create secret generic mysecret -n cosign-system --from-file=cosign.pub=.
 If the public key is able to validate a signature for the image digest, the admission controller will admit the image.
 If the public key is not able to validate a signature for the image digest, the admission controller will deny the image.
 
-## ClusterImagePolicy Testing
+## Examples
+
+Please see the [examples/](./examples/) directory for example policies etc.
+
+## Policy Testing
 
 This repo includes a `policy-tester` tool which enables checking a policy against
 various images.
