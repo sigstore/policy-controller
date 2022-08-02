@@ -59,8 +59,8 @@ GHCR_PREFIX ?= ghcr.io/sigstore/policy-controller
 POLICY_CONTROLLER_YAML ?= policy-controller-$(GIT_TAG).yaml
 LATEST_TAG ?=
 
-.PHONY: all lint test clean cosign cross
-all: cosign
+.PHONY: all lint test clean policy-controller cross
+all: policy-controller
 
 log-%:
 	@grep -h -E '^$*:.*?## .*$$' $(MAKEFILE_LIST) | \
@@ -114,10 +114,8 @@ test:
 	go test $(shell go list ./... | grep -v third_party/)
 
 clean:
-	rm -rf cosign
 	rm -rf policy-controller
-	rm -rf sget
-	rm -rf dist/
+	rm -rf policy-webhook
 
 KOCACHE_PATH=/tmp/ko
 ARTIFACT_HUB_LABELS=--image-label io.artifacthub.package.readme-url="https://raw.githubusercontent.com/sigstore/policy-controller/main/README.md" \
