@@ -88,3 +88,83 @@ cosign attest --yes --type spdxjson \
   --predicate sboms/example.spdx.json \
   "${IMAGE}"
 ```
+
+### signed-by-aws-kms-key
+
+Source:  [policies/signed-by-aws-kms.yaml](./policies/signed-by-aws-kms.yaml)
+
+Asserts that images have been signed by a specific AWS KMS key.
+
+```
+POLICY="policies/signed-by-aws-kms.yaml"
+```
+
+#### How to satisfy this policy
+
+Create (or find) an AWS KMS key to sign your container images and note
+the ARN of the key.
+
+```sh
+$ aws kms create-key \
+  --description "Container signing key" \
+  --key-spec ECC_NIST_P256 \
+  --key-usage SIGN_VERIFY
+{
+    "KeyMetadata": {
+        "AWSAccountId": "...."
+        "Arn": "arn:aws:kms:us-west-2:123456789012:key/1234abcd-12ab-34cd-56ef-1234567890ab",
+        ....
+    }
+}
+```
+
+Next sign your container using the KMS key and `cosign`
+
+```
+cosign sign --key "awskms:///<< arn of kms key >>" "${IMAGE}"
+```
+
+### signed-by-github-actions
+
+Source:  [policies/signed-by-github-actions.yaml](./policies/signed-by-github-actions.yaml)
+
+Asserts that images have been signed by a specific Github Actions workflow
+using keyless signing.
+
+```
+POLICY="policies/signed-by-github-actions.yaml"
+```
+
+#### How to satisfy this policy
+
+To satisfy this policy you must sign your container image from within a [Github
+Actions](https://docs.github.com/en/actions) workflow. Sigstore publishes
+a cosign installer action that makes this easy. Here is an example workflow
+for signing
+
+```yaml
+jobs:
+  sign_action:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      id-token: write # NB: needed for signing the images with GitHub OIDC Token
+
+    name: Install Cosign and sign image
+    steps:
+      - uses: actions/checkout@master
+        with:
+          fetch-depth: 1
+
+      - name: Install Cosign
+        uses: sigstore/cosign-installer@main
+
+      - name: Sign the images with GitHub OIDC Token
+        run: cosign sign ${IMAGE}
+        env:
+          COSIGN_EXPERIMENTAL: true
+```
+
+To satisfy the policy, ensure that the path and branch of the workflow match
+the workflow URI in the policy.

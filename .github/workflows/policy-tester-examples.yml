@@ -107,3 +107,23 @@ jobs:
         ../policy-tester \
           --policy policies/keyless-attestation-sbom-spdxjson.yaml \
           --image "${REF}"
+
+    # This example requires public Fulcio, only run on push to main
+    - if: ${{ github.event_name == 'push' }}
+      name: Example (signed-by-github-actions)
+      working-directory: ./src/github.com/${{ github.repository }}/examples
+      run: |
+        REF="localhost:5000/examples/signed-by-github-actions"
+
+        # Push an image
+        docker pull alpine
+        docker tag alpine "${REF}"
+        docker push "${REF}"
+
+        # Sign image
+        cosign sign "${REF}"
+
+        # Ensure the image satisfies the policy
+        ../policy-tester \
+          --policy policies/signed-by-github-actions.yaml \
+          --image "${REF}"
