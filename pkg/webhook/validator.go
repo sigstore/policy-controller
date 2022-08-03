@@ -603,12 +603,6 @@ func ValidatePolicyAttestationsForAuthority(ctx context.Context, ref name.Refere
 	// possible.
 	ret := make(map[string][]PolicySignature, len(authority.Attestations))
 	for _, wantedAttestation := range authority.Attestations {
-		// If there's no type / policy to do more checking against,
-		// then we're done here. It matches all the attestations
-		if wantedAttestation.PredicateType == "" {
-			ret[wantedAttestation.Name] = ociSignatureToPolicySignature(ctx, verifiedAttestations)
-			continue
-		}
 		// There's a particular type, so we need to go through all the verified
 		// attestations and make sure that our particular one is satisfied.
 		checkedAttestations := make([]oci.Signature, 0, len(verifiedAttestations))
