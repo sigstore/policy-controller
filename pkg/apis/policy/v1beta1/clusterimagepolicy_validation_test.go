@@ -267,7 +267,7 @@ func TestKeylessValidation(t *testing.T) {
 		{
 			name:        "Should fail when keyless is empty",
 			expectErr:   true,
-			errorString: "expected exactly one, got neither: spec.authorities[0].keyless.ca-cert, spec.authorities[0].keyless.url",
+			errorString: "expected exactly one, got neither: spec.authorities[0].keyless.ca-cert, spec.authorities[0].keyless.url\nmissing field(s): spec.authorities[0].keyless.identities",
 			policy: ClusterImagePolicy{
 				Spec: ClusterImagePolicySpec{
 					Images: []ImagePattern{
@@ -312,6 +312,30 @@ func TestKeylessValidation(t *testing.T) {
 		{
 			name:      "Should pass when a valid keyless ref is specified",
 			expectErr: false,
+			policy: ClusterImagePolicy{
+				Spec: ClusterImagePolicySpec{
+					Images: []ImagePattern{
+						{
+							Glob: "globbityglob",
+						},
+					},
+					Authorities: []Authority{
+						{
+							Keyless: &KeylessRef{
+								URL: &apis.URL{
+									Host: "myhost",
+								},
+								Identities: []Identity{{SubjectRegExp: ".*subject.*", IssuerRegExp: ".*issuer.*"}},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:        "Should fail when missing the indentities in a keyless ref",
+			expectErr:   true,
+			errorString: "missing field(s): spec.authorities[0].keyless.identities",
 			policy: ClusterImagePolicy{
 				Spec: ClusterImagePolicySpec{
 					Images: []ImagePattern{
@@ -865,7 +889,7 @@ func TestIdentitiesValidation(t *testing.T) {
 								URL: &apis.URL{
 									Host: "myhost",
 								},
-								Identities: []Identity{},
+								Identities: []Identity{{SubjectRegExp: ".*subject.*", IssuerRegExp: ".*issuer.*"}},
 							},
 						},
 					},
@@ -915,7 +939,7 @@ func TestIdentitiesValidation(t *testing.T) {
 									Host: "myhost",
 								},
 
-								Identities: []Identity{{Issuer: "issuer", IssuerRegExp: "issuerregexp"}},
+								Identities: []Identity{{Issuer: "issuer", IssuerRegExp: "issuerregexp", Subject: "subject"}},
 							},
 						},
 					},
@@ -940,7 +964,7 @@ func TestIdentitiesValidation(t *testing.T) {
 									Host: "myhost",
 								},
 
-								Identities: []Identity{{Subject: "subject", SubjectRegExp: "subjectregexp"}},
+								Identities: []Identity{{Subject: "subject", SubjectRegExp: "subjectregexp", Issuer: "issuer"}},
 							},
 						},
 					},
@@ -965,7 +989,57 @@ func TestIdentitiesValidation(t *testing.T) {
 									Host: "myhost",
 								},
 
-								Identities: []Identity{{IssuerRegExp: "****"}},
+								Identities: []Identity{{IssuerRegExp: "****", Subject: "subject"}},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:        "Should fail when issuer or issuerRegExp is missing",
+			expectErr:   true,
+			errorString: "missing field(s): spec.authorities[0].keyless.identities[0].issuer, spec.authorities[0].keyless.identities[0].issuerRegExp",
+			policy: ClusterImagePolicy{
+				Spec: ClusterImagePolicySpec{
+					Images: []ImagePattern{
+						{
+							Glob: "globbityglob",
+						},
+					},
+					Authorities: []Authority{
+						{
+							Keyless: &KeylessRef{
+								URL: &apis.URL{
+									Host: "myhost",
+								},
+
+								Identities: []Identity{{Subject: "subject"}},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:        "Should fail when subject or subjectRegExp is missing",
+			expectErr:   true,
+			errorString: "missing field(s): spec.authorities[0].keyless.identities[0].subject, spec.authorities[0].keyless.identities[0].subjectRegExp",
+			policy: ClusterImagePolicy{
+				Spec: ClusterImagePolicySpec{
+					Images: []ImagePattern{
+						{
+							Glob: "globbityglob",
+						},
+					},
+					Authorities: []Authority{
+						{
+							Keyless: &KeylessRef{
+								URL: &apis.URL{
+									Host: "myhost",
+								},
+
+								Identities: []Identity{{Issuer: "issuer"}},
 							},
 						},
 					},
@@ -990,7 +1064,7 @@ func TestIdentitiesValidation(t *testing.T) {
 									Host: "myhost",
 								},
 
-								Identities: []Identity{{SubjectRegExp: "****"}},
+								Identities: []Identity{{Issuer: "issuer", SubjectRegExp: "****"}},
 							},
 						},
 					},
@@ -1039,7 +1113,8 @@ func TestIdentitiesValidation(t *testing.T) {
 
 								Identities: []Identity{
 									{
-										Issuer: "some issuer",
+										Issuer:  "some issuer",
+										Subject: "some subject",
 									},
 								},
 							},
