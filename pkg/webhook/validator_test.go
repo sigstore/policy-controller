@@ -1687,6 +1687,13 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 						"test-att": {{
 							Subject: "https://github.com/distroless/static/.github/workflows/release.yaml@refs/heads/main",
 							Issuer:  "https://token.actions.githubusercontent.com",
+							GithubExtensions: GithubExtensions{
+								WorkflowTrigger: "schedule",
+								WorkflowSHA:     "7e7572e578de7c51a2f1a1791f025cf315503aa2",
+								WorkflowName:    "Create Release",
+								WorkflowRepo:    "distroless/static",
+								WorkflowRef:     "refs/heads/main",
+							},
 						}},
 					},
 				},
