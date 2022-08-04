@@ -96,8 +96,12 @@ spec:
     type: cue
     data: |
       package sigstore
-      import "struct"
-      import "list"
+      import (
+        "list"
+        "strings"
+        "struct"
+      )
+
       authorityMatches: {
         keyatt: {
           attestations: struct.MaxFields(1) & struct.MinFields(1)
@@ -105,10 +109,18 @@ spec:
         keysignature: {
           signatures: list.MaxItems(1) & list.MinItems(1)
         },
-        if (len(authorityMatches.keylessatt.attestations) < 2) {
-          keylessattMinAttestations: 2
-          keylessattMinAttestations: "Error"
-        },
+        keylessatt: {
+          attestations: {
+            vulnkeyless: [...{
+              subject: string
+              if subject != "https://kubernetes.io/namespaces/default/serviceaccounts/default" {
+                    expectedError: "no error",
+                    err: strings.Join(["Error: subject does not match", subject], " ")
+                    expectedError: err
+              }
+            }]
+          }
+        }
         keylesssignature: {
           signatures: list.MaxItems(1) & list.MinItems(1)
         }
