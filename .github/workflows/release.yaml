@@ -1,0 +1,50 @@
+name: Cut Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+concurrency: cut-release
+
+permissions:
+  contents: write # needed to write releases
+  id-token: write # needed for keyless signing
+  packages: write # needed for pushing the images to ghcr.io
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-go@84cbf8094393cdc5fe1fe1671ff2647332956b1a # v3
+        with:
+          go-version: 1.18
+          check-latest: true
+
+      - uses: sigstore/cosign-installer@09a077b27eb1310dcfb21981bee195b30ce09de0 # v2
+      - uses: anchore/sbom-action/download-syft@bb716408e75840bbb01e839347cd213767269d4a # v0.11.0
+
+      - name: Set up Cloud SDK
+        uses: google-github-actions/auth@ceee102ec2387dd9e844e01b530ccd4ec87ce955 # v0.8.0
+        with:
+          workload_identity_provider: 'projects/498091336538/locations/global/workloadIdentityPools/githubactions/providers/sigstore-policy-controller'
+          service_account: 'gha-policy-controller@projectsigstore.iam.gserviceaccount.com'
+
+      - name: creds
+        run: gcloud auth configure-docker --quiet
+
+      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b # v3
+
+      - uses: goreleaser/goreleaser-action@68acf3b1adf004ac9c2f0a4259e85c5f66e99bef # v3
+        with:
+          install-only: true
+
+      - name: release
+        run: make release
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: copy-signed-release-to-ghcr
+        run: make copy-signed-release-to-ghcr || true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
