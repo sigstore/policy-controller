@@ -242,7 +242,7 @@ func (v *Validator) validatePodSpec(ctx context.Context, namespace string, ps *c
 						// in the errors returned to the user.
 						continue
 					} else {
-						logging.FromContext(ctx).Warnf("Validated authorities for %s", ref.Name())
+						logging.FromContext(ctx).Infof("Validated authorities for %s", ref.Name())
 						// Only say we passed (aka, we skip the traditidional check
 						// below) if more than one authority was validated, which
 						// means that there was a matching ClusterImagePolicy.
@@ -451,6 +451,17 @@ func ValidatePolicy(ctx context.Context, namespace string, ref name.Reference, c
 	// to keep checking the length on the returned calls.
 	if len(policyResult.AuthorityMatches) == 0 {
 		return nil, authorityErrors
+	}
+	for k, v := range policyResult.AuthorityMatches {
+		logging.FromContext(ctx).Infof("Authority Match: %s", k)
+		logging.FromContext(ctx).Info("Att len: %d %d ", len(v.Attestations), len(v.Signatures))
+		for k2, v2 := range v.Attestations {
+			logging.FromContext(ctx).Infof("Attestation: %s", k2)
+			for _, ff := range v2 {
+				logging.FromContext(ctx).Infof("PolicySignature: %+v", ff)
+			}
+		}
+
 	}
 	// Ok, there's at least one valid authority that matched. If there's a CIP
 	// level policy, validate it here before returning.
