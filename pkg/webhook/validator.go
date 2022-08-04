@@ -610,14 +610,9 @@ func ValidatePolicyAttestationsForAuthority(ctx context.Context, ref name.Refere
 	// possible.
 	ret := make(map[string][]PolicySignature, len(authority.Attestations))
 	for _, wantedAttestation := range authority.Attestations {
-		// If there's no type / policy to do more checking against,
-		// then we're done here. It matches all the attestations
-		if wantedAttestation.Type == "" {
-			ret[wantedAttestation.Name] = ociSignatureToPolicySignature(ctx, verifiedAttestations)
-			continue
-		}
 		// There's a particular type, so we need to go through all the verified
 		// attestations and make sure that our particular one is satisfied.
+		checkedAttestations := make([]oci.Signature, 0, len(verifiedAttestations))
 		for _, va := range verifiedAttestations {
 			attBytes, err := policy.AttestationToPayloadJSON(ctx, wantedAttestation.PredicateType, va)
 			if err != nil {
@@ -628,13 +623,19 @@ func ValidatePolicyAttestationsForAuthority(ctx context.Context, ref name.Refere
 				// attestation is not for. It's not an error, so we skip it.
 				continue
 			}
-			if err := policy.EvaluatePolicyAgainstJSON(ctx, wantedAttestation.Name, wantedAttestation.Type, wantedAttestation.Data, attBytes); err != nil {
-				return nil, err
+			if wantedAttestation.Type != "" {
+				if err := policy.EvaluatePolicyAgainstJSON(ctx, wantedAttestation.Name, wantedAttestation.Type, wantedAttestation.Data, attBytes); err != nil {
+					return nil, err
+				}
 			}
 			// Ok, so this passed aok, jot it down to our result set as
 			// verified attestation with the predicate type match
-			ret[wantedAttestation.Name] = ociSignatureToPolicySignature(ctx, verifiedAttestations)
+			checkedAttestations = append(checkedAttestations, va)
 		}
+		if len(checkedAttestations) == 0 {
+			return nil, fmt.Errorf("%w with type %s", cosign.ErrNoMatchingAttestations, wantedAttestation.PredicateType)
+		}
+		ret[wantedAttestation.Name] = ociSignatureToPolicySignature(ctx, checkedAttestations)
 	}
 	return ret, nil
 }
