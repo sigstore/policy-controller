@@ -424,3 +424,10 @@ Then run it pointing to a YAML file containing a ClusterImagePolicy, and an imag
 
 Should you discover any security issues, please refer to sigstores [security
 process](https://github.com/sigstore/community/blob/main/SECURITY.md)
+
+## Release Cadence
+
+We are intending to move to a monthly cadence for minor releases.
+Minor releases will be published around the beginning of the month.
+We may cut a patch release instead, if the changes are small enough not to warrant a minor release.
+We will also cut patch releases periodically as needed to address bugs.
