@@ -32,7 +32,7 @@ package webhook
 type PolicyResult struct {
 	// AuthorityMatches will have an entry for each successful Authority check
 	// on it. Key in the map is the Attestation.Name
-	AuthorityMatches map[string]AuthorityMatch `json:"authorityMatches"`
+	AuthorityMatches map[string]AuthorityMatch `json:"authorityMatches,omitempty"`
 }
 
 // AuthorityMatch returns either Signatures (if there are no Attestations
@@ -41,10 +41,10 @@ type AuthorityMatch struct {
 	// All of the matching signatures for this authority
 	// Wonder if for consistency this should also have the matching
 	// attestations name, aka, make this into a map.
-	Signatures []PolicySignature `json:"signatures"`
+	Signatures []PolicySignature `json:"signatures,omitempty"`
 
 	// Mapping from attestation name to all of verified attestations
-	Attestations map[string][]PolicySignature `json:"attestations"`
+	Attestations map[string][]PolicySignature `json:"attestations,omitempty"`
 
 	// Static indicates whether this authority matched due to static
 	// e.g. static: { action: pass }
@@ -56,9 +56,9 @@ type AuthorityMatch struct {
 // (.att).
 type PolicySignature struct {
 	// Subject that was found to match on the Cert.
-	Subject string `json:"subject"`
+	Subject string `json:"subject,omitempty"`
 	// Issure that was found to match on the Cert.
-	Issuer string `json:"issuer"`
+	Issuer string `json:"issuer,omitempty"`
 
 	// GithubExtensions holds the Github-related OID extensions.
 	// See also: https://github.com/sigstore/fulcio/blob/main/docs/oid-info.md
