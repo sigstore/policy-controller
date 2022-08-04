@@ -18,6 +18,10 @@ name: CodeQL
 on:
   push:
     branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    - cron: '45 10 * * 1'
 
 env:
   CODEQL_EXTRACTOR_GO_BUILD_TRACING: true
@@ -63,8 +67,10 @@ jobs:
       with:
         languages: ${{ matrix.language }}
 
-    - name: Build cosign for CodeQL
-      run: make cosign
+    - name: Build policy controller for CodeQL
+      run: |
+        make policy-webhook
+        make policy-controller
 
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@2ca79b6fa8d3ec278944088b4aa5f46912db5d63 # v2.1.14
