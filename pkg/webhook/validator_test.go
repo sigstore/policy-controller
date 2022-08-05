@@ -1682,17 +1682,21 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 		want: &PolicyResult{
 			AuthorityMatches: map[string]AuthorityMatch{
 				"authority-0": {
-					Attestations: map[string][]PolicySignature{
+					Attestations: map[string][]PolicyAttestation{
 						"test-att": {{
-							Subject: "https://github.com/distroless/static/.github/workflows/release.yaml@refs/heads/main",
-							Issuer:  "https://token.actions.githubusercontent.com",
-							GithubExtensions: GithubExtensions{
-								WorkflowTrigger: "schedule",
-								WorkflowSHA:     "7e7572e578de7c51a2f1a1791f025cf315503aa2",
-								WorkflowName:    "Create Release",
-								WorkflowRepo:    "distroless/static",
-								WorkflowRef:     "refs/heads/main",
+							PolicySignature: PolicySignature{
+								Subject: "https://github.com/distroless/static/.github/workflows/release.yaml@refs/heads/main",
+								Issuer:  "https://token.actions.githubusercontent.com",
+								GithubExtensions: GithubExtensions{
+									WorkflowTrigger: "schedule",
+									WorkflowSHA:     "7e7572e578de7c51a2f1a1791f025cf315503aa2",
+									WorkflowName:    "Create Release",
+									WorkflowRepo:    "distroless/static",
+									WorkflowRef:     "refs/heads/main",
+								},
 							},
+							PredicateType: "vuln",
+							Payload:       []byte(`{"_type":"https://in-toto.io/Statement/v0.1","predicateType":"cosign.sigstore.dev/attestation/vuln/v1","subject":[{"name":"ghcr.io/distroless/static","digest":{"sha256":"a1e82f6a5f6dfc735165d3442e7cc5a615f72abac3db19452481f5f3c90fbfa8"}}],"predicate":{"invocation":{"parameters":null,"uri":"https://github.com/distroless/static/actions/runs/2757953139","event_id":"2757953139","builder.id":"Create Release"},"scanner":{"uri":"https://github.com/aquasecurity/trivy","version":"0.29.2","db":{"uri":"","version":""},"result":{"$schema":"https://json.schemastore.org/sarif-2.1.0-rtm.5.json","runs":[{"columnKind":"utf16CodeUnits","originalUriBaseIds":{"ROOTPATH":{"uri":"file:///"}},"results":[],"tool":{"driver":{"fullName":"Trivy Vulnerability Scanner","informationUri":"https://github.com/aquasecurity/trivy","name":"Trivy","rules":[],"version":"0.29.2"}}}],"version":"2.1.0"}},"metadata":{"scanStartedOn":"2022-07-29T02:28:42Z","scanFinishedOn":"2022-07-29T02:28:48Z"}}}`),
 						}},
 					},
 				},
