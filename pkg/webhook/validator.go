@@ -498,6 +498,10 @@ func ociSignatureToPolicySignature(ctx context.Context, sigs []oci.Signature) []
 	return ret
 }
 
+// attestation is used to accumulate the signature along with extracted and
+// validated metadata during validation to construct a list of
+// PolicyAttestations upon completion without needing to refetch any of the
+// parts.
 type attestation struct {
 	oci.Signature
 
@@ -505,7 +509,7 @@ type attestation struct {
 	Payload       []byte
 }
 
-func attestationToPolicyAttestation(ctx context.Context, atts []attestation) []PolicyAttestation {
+func attestationToPolicyAttestations(ctx context.Context, atts []attestation) []PolicyAttestation {
 	ret := make([]PolicyAttestation, 0, len(atts))
 	for _, att := range atts {
 		logging.FromContext(ctx).Debugf("Converting attestation %+v", att)
@@ -684,7 +688,7 @@ func ValidatePolicyAttestationsForAuthority(ctx context.Context, ref name.Refere
 		if len(checkedAttestations) == 0 {
 			return nil, fmt.Errorf("%w with type %s", cosign.ErrNoMatchingAttestations, wantedAttestation.PredicateType)
 		}
-		ret[wantedAttestation.Name] = attestationToPolicyAttestation(ctx, checkedAttestations)
+		ret[wantedAttestation.Name] = attestationToPolicyAttestations(ctx, checkedAttestations)
 	}
 	return ret, nil
 }
