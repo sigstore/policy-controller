@@ -44,7 +44,7 @@ type AuthorityMatch struct {
 	Signatures []PolicySignature `json:"signatures,omitempty"`
 
 	// Mapping from attestation name to all of verified attestations
-	Attestations map[string][]PolicySignature `json:"attestations,omitempty"`
+	Attestations map[string][]PolicyAttestation `json:"attestations,omitempty"`
 
 	// Static indicates whether this authority matched due to static
 	// e.g. static: { action: pass }
@@ -63,6 +63,22 @@ type PolicySignature struct {
 	// GithubExtensions holds the Github-related OID extensions.
 	// See also: https://github.com/sigstore/fulcio/blob/main/docs/oid-info.md
 	GithubExtensions `json:",inline"`
+}
+
+// PolicyAttestation contains a normalized result of a validated attestation,
+// which consists of the PolicySignature part, and some additional attestation
+// specific fields.
+type PolicyAttestation struct {
+	PolicySignature `json:",inline"`
+
+	// PredicateType is the in-toto predicate type of this attestation.
+	PredicateType string `json:"predicateType,omitempty"`
+
+	// Payload is the bytes of the in-toto statement's predicate payload.
+	// This is included for the benefit of the caller of ValidatePolicy, and is
+	// not intended for consumption in the ClusterImagePolicy's outer policy
+	// block.
+	Payload []byte `json:"-"`
 }
 
 // GithubExtensions holds the Github-related OID extensions.

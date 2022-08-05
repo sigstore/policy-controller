@@ -359,7 +359,7 @@ func ValidatePolicy(ctx context.Context, namespace string, ref name.Reference, c
 	type retChannelType struct {
 		name         string
 		static       bool
-		attestations map[string][]PolicySignature
+		attestations map[string][]PolicyAttestation
 		signatures   []PolicySignature
 		err          error
 	}
@@ -490,8 +490,57 @@ func ociSignatureToPolicySignature(ctx context.Context, sigs []oci.Signature) []
 				},
 			})
 		} else {
-			// TODO(mattmoor): Is there anything we should encode for key-based?
-			ret = append(ret, PolicySignature{})
+			ret = append(ret, PolicySignature{
+				// TODO(mattmoor): Is there anything we should encode for key-based?
+			})
+		}
+	}
+	return ret
+}
+
+// attestation is used to accumulate the signature along with extracted and
+// validated metadata during validation to construct a list of
+// PolicyAttestations upon completion without needing to refetch any of the
+// parts.
+type attestation struct {
+	oci.Signature
+
+	PredicateType string
+	Payload       []byte
+}
+
+func attestationToPolicyAttestations(ctx context.Context, atts []attestation) []PolicyAttestation {
+	ret := make([]PolicyAttestation, 0, len(atts))
+	for _, att := range atts {
+		logging.FromContext(ctx).Debugf("Converting attestation %+v", att)
+
+		if cert, err := att.Cert(); err == nil && cert != nil {
+			ce := cosign.CertExtensions{
+				Cert: cert,
+			}
+			ret = append(ret, PolicyAttestation{
+				PolicySignature: PolicySignature{
+					Subject: csigs.CertSubject(cert),
+					Issuer:  ce.GetIssuer(),
+					GithubExtensions: GithubExtensions{
+						WorkflowTrigger: ce.GetCertExtensionGithubWorkflowTrigger(),
+						WorkflowSHA:     ce.GetExtensionGithubWorkflowSha(),
+						WorkflowName:    ce.GetCertExtensionGithubWorkflowName(),
+						WorkflowRepo:    ce.GetCertExtensionGithubWorkflowRepository(),
+						WorkflowRef:     ce.GetCertExtensionGithubWorkflowRef(),
+					},
+				},
+				PredicateType: att.PredicateType,
+				Payload:       att.Payload,
+			})
+		} else {
+			ret = append(ret, PolicyAttestation{
+				PolicySignature: PolicySignature{
+					// TODO(mattmoor): Is there anything we should encode for key-based?
+				},
+				PredicateType: att.PredicateType,
+				Payload:       att.Payload,
+			})
 		}
 	}
 	return ret
@@ -550,7 +599,7 @@ func ValidatePolicySignaturesForAuthority(ctx context.Context, ref name.Referenc
 
 // ValidatePolicyAttestationsForAuthority takes the Authority and tries to
 // verify attestations against it.
-func ValidatePolicyAttestationsForAuthority(ctx context.Context, ref name.Reference, authority webhookcip.Authority, remoteOpts ...ociremote.Option) (map[string][]PolicySignature, error) {
+func ValidatePolicyAttestationsForAuthority(ctx context.Context, ref name.Reference, authority webhookcip.Authority, remoteOpts ...ociremote.Option) (map[string][]PolicyAttestation, error) {
 	name := authority.Name
 	var rekorClient *client.Rekor
 	var err error
@@ -608,11 +657,11 @@ func ValidatePolicyAttestationsForAuthority(ctx context.Context, ref name.Refere
 	// them.
 	// TODO(vaikas): Pretty inefficient here, figure out a better way if
 	// possible.
-	ret := make(map[string][]PolicySignature, len(authority.Attestations))
+	ret := make(map[string][]PolicyAttestation, len(authority.Attestations))
 	for _, wantedAttestation := range authority.Attestations {
 		// There's a particular type, so we need to go through all the verified
 		// attestations and make sure that our particular one is satisfied.
-		checkedAttestations := make([]oci.Signature, 0, len(verifiedAttestations))
+		checkedAttestations := make([]attestation, 0, len(verifiedAttestations))
 		for _, va := range verifiedAttestations {
 			attBytes, err := policy.AttestationToPayloadJSON(ctx, wantedAttestation.PredicateType, va)
 			if err != nil {
@@ -630,12 +679,16 @@ func ValidatePolicyAttestationsForAuthority(ctx context.Context, ref name.Refere
 			}
 			// Ok, so this passed aok, jot it down to our result set as
 			// verified attestation with the predicate type match
-			checkedAttestations = append(checkedAttestations, va)
+			checkedAttestations = append(checkedAttestations, attestation{
+				Signature:     va,
+				PredicateType: wantedAttestation.PredicateType,
+				Payload:       attBytes,
+			})
 		}
 		if len(checkedAttestations) == 0 {
 			return nil, fmt.Errorf("%w with type %s", cosign.ErrNoMatchingAttestations, wantedAttestation.PredicateType)
 		}
-		ret[wantedAttestation.Name] = ociSignatureToPolicySignature(ctx, checkedAttestations)
+		ret[wantedAttestation.Name] = attestationToPolicyAttestations(ctx, checkedAttestations)
 	}
 	return ret, nil
 }
