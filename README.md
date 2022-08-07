@@ -147,8 +147,10 @@ Each `keyless` authority can contain these properties:
   - `secretRef.name`: specifies the secret location name in the same namespace where `policy-controller` is installed. <br/>The first key value will be used in the secret for the `ca-cert`.
   - `data`: specifies the inline certificate data
 - `keyless.identities`: Identity may contain an array of `issuer` and/or the `subject` found in the transparency log. Either field supports a regex.
-  - `issuer`: specifies the issuer found in the transparency log. Regex patterns are supported.
-  - `subject`: specifies the subject found in the transparency log. Regex patterns are supported.
+  - `issuer`: specifies the issuer found in the transparency log. Exact match is required.
+  - `subject`: specifies the subject found in the transparency log. Exact match is required.
+  - `issuerRegExp`: specifies the issuer found in the transparency log. Regex patterns are supported. Regex patterns are supported.
+  - `subjectRegExp`: specifies the subject found in the transparency log. Regex patterns are supported. Regex patterns are supported.
 
 #### Configuring Remote Signature Location
 
