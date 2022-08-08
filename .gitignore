@@ -32,3 +32,6 @@ policyImagerefs
 **verify-experimental*
 
 policy-tester
+
+# Vim
+*.swp
