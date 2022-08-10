@@ -267,7 +267,7 @@ func TestKeylessValidation(t *testing.T) {
 		{
 			name:        "Should fail when keyless is empty",
 			expectErr:   true,
-			errorString: "expected exactly one, got neither: spec.authorities[0].keyless.ca-cert, spec.authorities[0].keyless.url\nmissing field(s): spec.authorities[0].keyless.identities",
+			errorString: "expected exactly one, got neither: spec.authorities[0].keyless.ca-cert, spec.authorities[0].keyless.url",
 			policy: ClusterImagePolicy{
 				Spec: ClusterImagePolicySpec{
 					Images: []ImagePattern{
@@ -333,9 +333,8 @@ func TestKeylessValidation(t *testing.T) {
 			},
 		},
 		{
-			name:        "Should fail when missing the indentities in a keyless ref",
-			expectErr:   true,
-			errorString: "missing field(s): spec.authorities[0].keyless.identities",
+			name:      "Should pass when missing the indentities in a keyless ref",
+			expectErr: false,
 			policy: ClusterImagePolicy{
 				Spec: ClusterImagePolicySpec{
 					Images: []ImagePattern{
@@ -871,6 +870,7 @@ func TestIdentitiesValidation(t *testing.T) {
 	tests := []struct {
 		name        string
 		expectErr   bool
+		expectWarn  bool
 		errorString string
 		policy      ClusterImagePolicy
 	}{
@@ -997,8 +997,9 @@ func TestIdentitiesValidation(t *testing.T) {
 			},
 		},
 		{
-			name:        "Should fail when issuer or issuerRegExp is missing",
-			expectErr:   true,
+			name:        "Should warn when issuer or issuerRegExp is missing",
+			expectErr:   false,
+			expectWarn:  true,
 			errorString: "missing field(s): spec.authorities[0].keyless.identities[0].issuer, spec.authorities[0].keyless.identities[0].issuerRegExp",
 			policy: ClusterImagePolicy{
 				Spec: ClusterImagePolicySpec{
@@ -1022,8 +1023,9 @@ func TestIdentitiesValidation(t *testing.T) {
 			},
 		},
 		{
-			name:        "Should fail when subject or subjectRegExp is missing",
-			expectErr:   true,
+			name:        "Should warn when subject or subjectRegExp is missing",
+			expectErr:   false,
+			expectWarn:  true,
 			errorString: "missing field(s): spec.authorities[0].keyless.identities[0].subject, spec.authorities[0].keyless.identities[0].subjectRegExp",
 			policy: ClusterImagePolicy{
 				Spec: ClusterImagePolicySpec{
@@ -1127,10 +1129,16 @@ func TestIdentitiesValidation(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			err := test.policy.Validate(context.TODO())
-			if test.expectErr {
+			switch {
+			case test.expectErr:
 				require.NotNil(t, err)
 				require.EqualError(t, err, test.errorString)
-			} else {
+			case test.expectWarn:
+				err = err.Filter(apis.WarningLevel)
+				if err.Level == apis.WarningLevel {
+					require.EqualError(t, err, test.errorString)
+				}
+			default:
 				require.Nil(t, err)
 			}
 		})
