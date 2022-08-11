@@ -27,7 +27,7 @@ kubectl label namespace my-secure-namespace policy.sigstore.dev/include=true
 An image is admitted after it has been validated against all `ClusterImagePolicy` that matched the digest of the image
 and that there was at least one valid signature or attestation obtained from the authorities provided in each of the matched `ClusterImagePolicy`.
 So each `ClusterImagePolicy` that matches is `AND` for admission, and within each `ClusterImagePolicy` authorities
-are `ON`.
+are `OR`.
 
 See the [Configuring Image Pattern](#configuring-image-patterns) for more information.
 
