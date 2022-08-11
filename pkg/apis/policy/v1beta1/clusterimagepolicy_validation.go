@@ -226,7 +226,7 @@ func (p *Policy) Validate(ctx context.Context) *apis.FieldError {
 func (identity *Identity) Validate(ctx context.Context) *apis.FieldError {
 	var errs *apis.FieldError
 	if identity.Issuer == "" && identity.Subject == "" && identity.IssuerRegExp == "" && identity.SubjectRegExp == "" {
-		errs = errs.Also(apis.ErrMissingField("issuer", "subject", "issuerRegExp", "subjectRegExp"))
+		return apis.ErrMissingField("issuer", "subject", "issuerRegExp", "subjectRegExp")
 	}
 	if identity.Issuer != "" && identity.IssuerRegExp != "" {
 		errs = errs.Also(apis.ErrMultipleOneOf("issuer", "issuerRegExp"))
@@ -239,6 +239,12 @@ func (identity *Identity) Validate(ctx context.Context) *apis.FieldError {
 	}
 	if identity.SubjectRegExp != "" {
 		errs = errs.Also(ValidateRegex(identity.SubjectRegExp).ViaField("subjectRegExp"))
+	}
+	if identity.SubjectRegExp == "" && identity.Subject == "" {
+		errs = errs.Also(apis.ErrMissingField("subject", "subjectRegExp").At(apis.WarningLevel))
+	}
+	if identity.IssuerRegExp == "" && identity.Issuer == "" {
+		errs = errs.Also(apis.ErrMissingField("issuer", "issuerRegExp").At(apis.WarningLevel))
 	}
 	return errs
 }

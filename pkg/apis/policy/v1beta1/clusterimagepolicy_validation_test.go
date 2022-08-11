@@ -325,6 +325,29 @@ func TestKeylessValidation(t *testing.T) {
 								URL: &apis.URL{
 									Host: "myhost",
 								},
+								Identities: []Identity{{SubjectRegExp: ".*subject.*", IssuerRegExp: ".*issuer.*"}},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:      "Should pass when missing the indentities in a keyless ref",
+			expectErr: false,
+			policy: ClusterImagePolicy{
+				Spec: ClusterImagePolicySpec{
+					Images: []ImagePattern{
+						{
+							Glob: "globbityglob",
+						},
+					},
+					Authorities: []Authority{
+						{
+							Keyless: &KeylessRef{
+								URL: &apis.URL{
+									Host: "myhost",
+								},
 							},
 						},
 					},
@@ -847,6 +870,7 @@ func TestIdentitiesValidation(t *testing.T) {
 	tests := []struct {
 		name        string
 		expectErr   bool
+		expectWarn  bool
 		errorString string
 		policy      ClusterImagePolicy
 	}{
@@ -865,7 +889,7 @@ func TestIdentitiesValidation(t *testing.T) {
 								URL: &apis.URL{
 									Host: "myhost",
 								},
-								Identities: []Identity{},
+								Identities: []Identity{{SubjectRegExp: ".*subject.*", IssuerRegExp: ".*issuer.*"}},
 							},
 						},
 					},
@@ -915,7 +939,7 @@ func TestIdentitiesValidation(t *testing.T) {
 									Host: "myhost",
 								},
 
-								Identities: []Identity{{Issuer: "issuer", IssuerRegExp: "issuerregexp"}},
+								Identities: []Identity{{Issuer: "issuer", IssuerRegExp: "issuerregexp", Subject: "subject"}},
 							},
 						},
 					},
@@ -940,7 +964,7 @@ func TestIdentitiesValidation(t *testing.T) {
 									Host: "myhost",
 								},
 
-								Identities: []Identity{{Subject: "subject", SubjectRegExp: "subjectregexp"}},
+								Identities: []Identity{{Subject: "subject", SubjectRegExp: "subjectregexp", Issuer: "issuer"}},
 							},
 						},
 					},
@@ -965,7 +989,59 @@ func TestIdentitiesValidation(t *testing.T) {
 									Host: "myhost",
 								},
 
-								Identities: []Identity{{IssuerRegExp: "****"}},
+								Identities: []Identity{{IssuerRegExp: "****", Subject: "subject"}},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:        "Should warn when issuer or issuerRegExp is missing",
+			expectErr:   false,
+			expectWarn:  true,
+			errorString: "missing field(s): spec.authorities[0].keyless.identities[0].issuer, spec.authorities[0].keyless.identities[0].issuerRegExp",
+			policy: ClusterImagePolicy{
+				Spec: ClusterImagePolicySpec{
+					Images: []ImagePattern{
+						{
+							Glob: "globbityglob",
+						},
+					},
+					Authorities: []Authority{
+						{
+							Keyless: &KeylessRef{
+								URL: &apis.URL{
+									Host: "myhost",
+								},
+
+								Identities: []Identity{{Subject: "subject"}},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:        "Should warn when subject or subjectRegExp is missing",
+			expectErr:   false,
+			expectWarn:  true,
+			errorString: "missing field(s): spec.authorities[0].keyless.identities[0].subject, spec.authorities[0].keyless.identities[0].subjectRegExp",
+			policy: ClusterImagePolicy{
+				Spec: ClusterImagePolicySpec{
+					Images: []ImagePattern{
+						{
+							Glob: "globbityglob",
+						},
+					},
+					Authorities: []Authority{
+						{
+							Keyless: &KeylessRef{
+								URL: &apis.URL{
+									Host: "myhost",
+								},
+
+								Identities: []Identity{{Issuer: "issuer"}},
 							},
 						},
 					},
@@ -990,7 +1066,7 @@ func TestIdentitiesValidation(t *testing.T) {
 									Host: "myhost",
 								},
 
-								Identities: []Identity{{SubjectRegExp: "****"}},
+								Identities: []Identity{{Issuer: "issuer", SubjectRegExp: "****"}},
 							},
 						},
 					},
@@ -1039,7 +1115,8 @@ func TestIdentitiesValidation(t *testing.T) {
 
 								Identities: []Identity{
 									{
-										Issuer: "some issuer",
+										Issuer:  "some issuer",
+										Subject: "some subject",
 									},
 								},
 							},
@@ -1052,10 +1129,16 @@ func TestIdentitiesValidation(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			err := test.policy.Validate(context.TODO())
-			if test.expectErr {
+			switch {
+			case test.expectErr:
 				require.NotNil(t, err)
 				require.EqualError(t, err, test.errorString)
-			} else {
+			case test.expectWarn:
+				err = err.Filter(apis.WarningLevel)
+				if err.Level == apis.WarningLevel {
+					require.EqualError(t, err, test.errorString)
+				}
+			default:
 				require.Nil(t, err)
 			}
 		})
