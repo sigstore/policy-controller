@@ -39,9 +39,8 @@ jobs:
         - v1.24.x
 
     env:
-      KNATIVE_VERSION: "1.5.0"
       KO_DOCKER_REPO: "registry.local:5000/policy-controller"
-      SCAFFOLDING_RELEASE_VERSION: "v0.4.2"
+      SCAFFOLDING_RELEASE_VERSION: "v0.4.3"
       GO111MODULE: on
       GOFLAGS: -ldflags=-s -ldflags=-w
       KOCACHE: ~/ko
