@@ -45,7 +45,7 @@ require (
 	github.com/sigstore/sigstore v1.2.1-0.20220614141825-9c0e2e247545
 	github.com/stretchr/testify v1.8.0
 	github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399
-	go.uber.org/atomic v1.9.0
+	go.uber.org/atomic v1.10.0
 	go.uber.org/zap v1.22.0
 	golang.org/x/crypto v0.0.0-20220622213112-05595931fe9d
 	golang.org/x/net v0.0.0-20220708220712-1185a9018129
