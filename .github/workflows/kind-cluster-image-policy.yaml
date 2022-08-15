@@ -36,6 +36,11 @@ jobs:
         - v1.23.x
         - v1.24.x
 
+        script:
+        - cluster_image_policy
+        - cluster_image_policy_with_attestations
+        - cluster_with_scalable
+
     env:
       KO_DOCKER_REPO: "registry.local:5000/policy-controller"
       SCAFFOLDING_RELEASE_VERSION: "v0.4.3"
@@ -90,7 +95,7 @@ jobs:
     - name: Run Cluster Image Policy Tests
       timeout-minutes: 15
       run: |
-        ./test/e2e_test_cluster_image_policy.sh
+        ./test/e2e_test_${{ matrix.script }}.sh
 
     - name: Collect diagnostics
       if: ${{ failure() }}
