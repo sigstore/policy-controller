@@ -43,7 +43,7 @@ jobs:
 
     env:
       KO_DOCKER_REPO: "registry.local:5000/policy-controller"
-      SCAFFOLDING_RELEASE_VERSION: "v0.4.3"
+      SCAFFOLDING_RELEASE_VERSION: "v0.4.4"
       GO111MODULE: on
       GOFLAGS: -ldflags=-s -ldflags=-w
       KOCACHE: ~/ko
@@ -87,6 +87,9 @@ jobs:
         POLICY_CONTROLLER_ARCHS: linux/amd64
       run: |
         make ko-policy-controller
+        # Super hackery, this should use kustomize
+        sed 's@#"--mirror"@"--mirror"@' policy-controller-e2e.yaml > policy-controller-e2e-tmp.yaml
+        sed 's@#"--root"@"--root"@' policy-controller-e2e-tmp.yaml > policy-controller-e2e.yaml
         kubectl apply -f policy-controller-e2e.yaml
 
         # Wait for the webhook to come up and become Ready
