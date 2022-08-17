@@ -93,8 +93,7 @@ jobs:
         POLICY_CONTROLLER_ARCHS: linux/amd64
       run: |
         make ko-policy-controller
-        cd test/kustomize
-        kustomize build | kubectl apply -f -
+        kustomize build test/kustomize | kubectl apply -f -
 
         # Wait for the webhook to come up and become Ready
         kubectl rollout status --timeout 5m --namespace cosign-system deployments/webhook
