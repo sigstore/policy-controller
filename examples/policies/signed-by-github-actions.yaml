@@ -37,4 +37,4 @@ spec:
       - issuer: https://token.actions.githubusercontent.com
         # Matches a specific github workflow on main branch. Here we use the
         # sigstore policy controller example testing workflow as an example.
-        subject: "https://github.com/sigstore/policy-controller/.github/workflows/policy-tester-examples.yml@refs/head/main"
+        subject: "https://github.com/sigstore/policy-controller/.github/workflows/policy-tester-examples.yml@refs/heads/main"
