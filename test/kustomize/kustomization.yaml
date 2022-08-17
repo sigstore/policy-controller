@@ -24,7 +24,7 @@ patches:
       value: --tuf-mirror=http://tuf.tuf-system.svc
     - op: add
       path: /spec/template/spec/containers/0/args/-
-      value: --tuf-root=/var/run/tuf/tuf-root.json
+      value: --tuf-root=/var/run/tuf/root.json
 
   target:
     kind: Deployment
