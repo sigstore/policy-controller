@@ -88,15 +88,13 @@ jobs:
         GIT_HASH: ${{ github.sha }}
         GIT_VERSION: ci
         LDFLAGS: ""
-        POLICY_CONTROLLER_YAML: policy-controller-e2e.yaml
+        POLICY_CONTROLLER_YAML: test/kustomize/policy-controller-e2e.yaml
         KO_PREFIX: registry.local:5000/policy-controller
         POLICY_CONTROLLER_ARCHS: linux/amd64
       run: |
         make ko-policy-controller
-        # Super hackery, this should use kustomize
-        sed 's@#"--mirror"@"--mirror"@' policy-controller-e2e.yaml > policy-controller-e2e-tmp.yaml
-        sed 's@#"--root"@"--root"@' policy-controller-e2e-tmp.yaml > policy-controller-e2e.yaml
-        kubectl apply -f policy-controller-e2e.yaml
+        cd test/kustomize
+        kustomize build | kubectl apply -f -
 
         # Wait for the webhook to come up and become Ready
         kubectl rollout status --timeout 5m --namespace cosign-system deployments/webhook

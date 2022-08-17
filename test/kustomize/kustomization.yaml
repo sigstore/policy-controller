@@ -1,0 +1,17 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- policy-controller-e2e.yaml
+
+patches:
+- patch: |-
+    - op: add
+      path: /spec/template/spec/initContainers/0/args/-
+      value: --mirror=http://tuf.tuf-system.svc
+    - op: add
+      path: /spec/template/spec/initContainers/0/args/-
+      value: --root=/var/run/tuf/root.json
+
+  target:
+    kind: Deployment
+    name: webhook
