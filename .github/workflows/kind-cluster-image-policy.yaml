@@ -80,7 +80,6 @@ jobs:
     - name: Copy TUF root to policy-controller namespace and default
       run: |
         kubectl create ns cosign-system
-        kubectl -n tuf-system get secrets tuf-root -oyaml | sed 's/namespace: .*/namespace: default/' | kubectl create -f -
         kubectl -n tuf-system get secrets tuf-root -oyaml | sed 's/namespace: .*/namespace: cosign-system/' | kubectl create -f -
         echo "TUF_ROOT=./root.json" >> $GITHUB_ENV
 
