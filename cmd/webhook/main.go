@@ -18,6 +18,7 @@ package main
 import (
 	"context"
 	"flag"
+	"io/ioutil"
 	"log"
 
 	policyduckv1beta1 "github.com/sigstore/policy-controller/pkg/apis/duck/v1beta1"
@@ -39,6 +40,8 @@ import (
 	"knative.dev/pkg/webhook/resourcesemantics/validation"
 	"sigs.k8s.io/release-utils/version"
 
+	"github.com/sigstore/sigstore/pkg/tuf"
+
 	"github.com/sigstore/policy-controller/pkg/apis/config"
 	cwebhook "github.com/sigstore/policy-controller/pkg/webhook"
 )
@@ -55,6 +58,9 @@ var secretName = flag.String("secret-name", "", "The name of the secret in the w
 //    https://github.com/sigstore/helm-charts/blob/main/charts/policy-controller/templates/webhook/webhook_validating.yaml
 var webhookName = flag.String("webhook-name", "policy.sigstore.dev", "The name of the validating and mutating webhook configurations as well as the webhook name that is automatically configured, if exists, with different rules and client settings setting how the admission requests to be dispatched to policy-controller.")
 
+var tufMirror = flag.String("tuf-mirror", tuf.DefaultRemoteRoot, "Alternate TUF mirror. If left blank, public sigstore one is used")
+var tufRoot = flag.String("tuf-root", "", "Alternate TUF root.json. If left blank, public sigstore one is used")
+
 func main() {
 	opts := webhook.Options{
 		ServiceName: "webhook",
@@ -65,6 +71,21 @@ func main() {
 
 	// Allow folks to configure the port the webhook serves on.
 	flag.IntVar(&opts.Port, "secure-port", opts.Port, "The port on which to serve HTTPS.")
+
+	flag.Parse()
+
+	// If they provided an alternate TUF root file to use, read it here.
+	var tufRootBytes []byte
+	var err error
+	if *tufRoot != "" {
+		tufRootBytes, err = ioutil.ReadFile(*tufRoot)
+		if err != nil {
+			logging.FromContext(ctx).Panicf("Failed to read alternate TUF root file %s : %v", *tufRoot, err)
+		}
+	}
+	if err := tuf.Initialize(ctx, *tufMirror, tufRootBytes); err != nil {
+		logging.FromContext(ctx).Panicf("Failed to initialize TUF client from %s : %v", *tufRoot, err)
+	}
 
 	v := version.GetVersionInfo()
 	vJSON, _ := v.JSONString()

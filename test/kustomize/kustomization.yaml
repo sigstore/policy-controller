@@ -20,11 +20,11 @@ resources:
 patches:
 - patch: |-
     - op: add
-      path: /spec/template/spec/initContainers/0/args/-
-      value: --mirror=http://tuf.tuf-system.svc
+      path: /spec/template/spec/containers/0/args/-
+      value: --tuf-mirror=http://tuf.tuf-system.svc
     - op: add
-      path: /spec/template/spec/initContainers/0/args/-
-      value: --root=/var/run/tuf/root.json
+      path: /spec/template/spec/containers/0/args/-
+      value: --tuf-root=/var/run/tuf/tuf-root.json
 
   target:
     kind: Deployment

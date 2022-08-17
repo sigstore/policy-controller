@@ -39,36 +39,19 @@ spec:
             weight: 100
 
       serviceAccountName: webhook
-      # We use an init container to run cosign initialize in the main
-      # container. Note that in order for the initialize to then "stick" for
-      # the main container, we mount an empty dir where the tuf root then
-      # gets initialized and will be used by the main container.
-      initContainers:
-      - name: cosign-initialize
-        image: gcr.io/projectsigstore/cosign@sha256:9377edd13ae515dcb97c15052e577a2cbce098f36b0361bdb2348e3bdd8fe536 # cosign v1.10.1
-        args: [
-          "initialize",
-          # Uncomment these to initialize with a custom TUF root.
-          # TODO: How to specify the entire TUF directory for multiple
-          # TUF roots.
-          #"--mirror", "http://tuf.tuf-system.svc",
-          #"--root", "/var/run/tuf/root.json",
-        ]
-        env:
-        - name: HOME
-          value: "/var/run/sigstore"
-        volumeMounts:
-        - name: tuf-root
-          mountPath: "/var/run/tuf"
-          readOnly: true
-        - name: homedir
-          mountPath: "/var/run/sigstore"
       containers:
       - name: webhook
         # This is the Go import path for the binary that is containerized
         # and substituted here.
         image: ko://github.com/sigstore/policy-controller/cmd/webhook
-        args: ["-secret-name=verification-key"]
+        args: [
+          "-secret-name=verification-key",
+          # Uncomment these to initialize with a custom TUF root.
+          # TODO: How to specify the entire TUF directory for multiple
+          # TUF roots.
+          #"--tuf-mirror", "http://tuf.tuf-system.svc",
+          #"--tuf-root", "/var/run/tuf/root.json",
+        ]
         resources:
           requests:
             cpu: 20m
@@ -103,6 +86,9 @@ spec:
         volumeMounts:
         - name: homedir
           mountPath: "/var/run/sigstore"
+        - name: tuf-root
+          mountPath: "/var/run/tuf"
+          readOnly: true
 
         readinessProbe: &probe
           failureThreshold: 6
