@@ -44,7 +44,14 @@ spec:
         # This is the Go import path for the binary that is containerized
         # and substituted here.
         image: ko://github.com/sigstore/policy-controller/cmd/webhook
-        args: ["-secret-name=verification-key"]
+        args: [
+          "-secret-name=verification-key",
+          # Uncomment these to initialize with a custom TUF root.
+          # TODO: How to specify the entire TUF directory for multiple
+          # TUF roots.
+          #"--tuf-mirror", "http://tuf.tuf-system.svc",
+          #"--tuf-root", "/var/run/tuf/root.json",
+        ]
         resources:
           requests:
             cpu: 20m
@@ -63,12 +70,10 @@ spec:
           value: sigstore.dev/policy
         - name: WEBHOOK_NAME
           value: webhook
-        # Since we need to validate against different Rekor clients based on
-        # differing policies, we fetch the Rekor public key during validation.
-        - name: SIGSTORE_TRUST_REKOR_API_PUBLIC_KEY
-          value: "true"
         - name: KUBERNETES_MIN_VERSION
           value: "1.21.0"
+        - name: HOME
+          value: "/var/run/sigstore"
 
         securityContext:
           allowPrivilegeEscalation: false
@@ -79,9 +84,11 @@ spec:
             - all
 
         volumeMounts:
-        # Failing to provide a writable $HOME can cause TUF client initialization to panic
-        - mountPath: /home/nonroot
-          name: writable-home-dir
+        - name: homedir
+          mountPath: "/var/run/sigstore"
+        - name: tuf-root
+          mountPath: "/var/run/tuf"
+          readOnly: true
 
         readinessProbe: &probe
           failureThreshold: 6
@@ -101,7 +108,17 @@ spec:
 
       volumes:
       - emptyDir: {}
-        name: writable-home-dir
+        name: homedir
+      - name: tuf-root
+        secret:
+          secretName: tuf-root
+          # This is marked as optional, since if you are using public
+          # instance, TUF root is built in to the cosign container.
+          optional: true
+          items:
+          - key: root
+            path: root.json
+
 ---
 apiVersion: v1
 kind: Secret

@@ -40,8 +40,13 @@ if [[ -z "${REKOR_URL}" ]]; then
   exit 1
 fi
 
-if [[ -z "${SIGSTORE_CT_LOG_PUBLIC_KEY_FILE}" ]]; then
-  echo "must specify env variable SIGSTORE_CT_LOG_PUBLIC_KEY_FILE"
+if [[ -z "${TUF_ROOT_FILE}" ]]; then
+  echo "must specify env variable TUF_ROOT_FILE"
+  exit 1
+fi
+
+if [[ -z "${TUF_MIRROR}" ]]; then
+  echo "must specify env variable TUF_MIRROR"
   exit 1
 fi
 
@@ -52,8 +57,8 @@ else
   export TIMESTAMP="TIMESTAMP"
 fi
 
-# Trust our own custom Rekor API
-export SIGSTORE_TRUST_REKOR_API_PUBLIC_KEY=1
+# Initialize cosign with our TUF root
+cosign initialize --mirror ${TUF_MIRROR} --root ${TUF_ROOT_FILE}
 
 # To simplify testing failures, use this function to execute a kubectl to scale
 # deployment up and verify that the failure is expected.

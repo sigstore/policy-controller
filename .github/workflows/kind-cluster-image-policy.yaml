@@ -43,7 +43,7 @@ jobs:
 
     env:
       KO_DOCKER_REPO: "registry.local:5000/policy-controller"
-      SCAFFOLDING_RELEASE_VERSION: "v0.4.3"
+      SCAFFOLDING_RELEASE_VERSION: "v0.4.4"
       GO111MODULE: on
       GOFLAGS: -ldflags=-s -ldflags=-w
       KOCACHE: ~/ko
@@ -77,17 +77,23 @@ jobs:
         k8s-version: ${{ matrix.k8s-version}}
         version: ${{ env.SCAFFOLDING_RELEASE_VERSION }}
 
+    - name: Copy TUF root to policy-controller namespace
+      run: |
+        kubectl create ns cosign-system
+        kubectl -n tuf-system get secrets tuf-root -oyaml | sed 's/namespace: .*/namespace: cosign-system/' | kubectl create -f -
+        echo "TUF_ROOT_FILE=./root.json" >> $GITHUB_ENV
+
     - name: Install policy-controller
       env:
         GIT_HASH: ${{ github.sha }}
         GIT_VERSION: ci
         LDFLAGS: ""
-        POLICY_CONTROLLER_YAML: policy-controller-e2e.yaml
+        POLICY_CONTROLLER_YAML: test/kustomize/policy-controller-e2e.yaml
         KO_PREFIX: registry.local:5000/policy-controller
         POLICY_CONTROLLER_ARCHS: linux/amd64
       run: |
         make ko-policy-controller
-        kubectl apply -f policy-controller-e2e.yaml
+        kustomize build test/kustomize | kubectl apply -f -
 
         # Wait for the webhook to come up and become Ready
         kubectl rollout status --timeout 5m --namespace cosign-system deployments/webhook
