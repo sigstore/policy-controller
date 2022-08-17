@@ -41,11 +41,6 @@ if [[ -z "${REKOR_URL}" ]]; then
   exit 1
 fi
 
-if [[ -z "${TUF_ROOT}" ]]; then
-  echo "must specify env variable TUF_ROOT"
-  exit 1
-fi
-
 if [[ -z "${TUF_MIRROR}" ]]; then
   echo "must specify env variable TUF_MIRROR"
   exit 1
@@ -58,8 +53,10 @@ else
   export TIMESTAMP="TIMESTAMP"
 fi
 
+unset TUF_ROOT
+
 # Initialize cosign with our TUF root
-cosign initialize --mirror ${TUF_MIRROR} --root ${TUF_ROOT}
+cosign initialize --mirror ${TUF_MIRROR} --root ./root.json
 
 # To simplify testing failures, use this function to execute a kubectl to create
 # our job and verify that the failure is expected.
