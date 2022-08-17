@@ -77,11 +77,11 @@ jobs:
         k8s-version: ${{ matrix.k8s-version}}
         version: ${{ env.SCAFFOLDING_RELEASE_VERSION }}
 
-    - name: Copy TUF root to policy-controller namespace and default
+    - name: Copy TUF root to policy-controller namespace
       run: |
         kubectl create ns cosign-system
         kubectl -n tuf-system get secrets tuf-root -oyaml | sed 's/namespace: .*/namespace: cosign-system/' | kubectl create -f -
-        echo "TUF_ROOT=./root.json" >> $GITHUB_ENV
+        echo "TUF_ROOT_FILE=./root.json" >> $GITHUB_ENV
 
     - name: Install policy-controller
       env:
