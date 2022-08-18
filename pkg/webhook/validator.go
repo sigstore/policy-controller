@@ -225,14 +225,38 @@ func (v *Validator) validatePodSpec(ctx context.Context, namespace string, ps *c
 						// Do we really want to add all the error details here?
 						// Seems like we can just say which policy failed, so
 						// doing that for now.
+						// Split the errors and warnings to their own
+						// error levels.
+						hasWarnings := false
+						hasErrors := false
 						for failingPolicy, policyErrs := range fieldErrors {
-							errorField := apis.ErrGeneric(fmt.Sprintf("failed policy: %s", failingPolicy), "image").ViaFieldIndex(field, i)
 							errDetails := c.Image
+							warnDetails := c.Image
 							for _, policyErr := range policyErrs {
-								errDetails = errDetails + " " + policyErr.Error()
+								var fe *apis.FieldError
+								if errors.As(policyErr, &fe) {
+									if fe.Filter(apis.WarningLevel) != nil {
+										warnDetails = warnDetails + " " + fe.Message
+										hasWarnings = true
+									} else {
+										errDetails = errDetails + " " + fe.Message
+										hasErrors = true
+									}
+								} else {
+									// Just a regular error.
+									errDetails = errDetails + " " + policyErr.Error()
+								}
 							}
-							errorField.Details = errDetails
-							errs = errs.Also(errorField)
+							if hasWarnings {
+								warnField := apis.ErrGeneric(fmt.Sprintf("failed policy: %s", failingPolicy), "image").ViaFieldIndex(field, i)
+								warnField.Details = warnDetails
+								errs = errs.Also(warnField).At(apis.WarningLevel)
+							}
+							if hasErrors {
+								errorField := apis.ErrGeneric(fmt.Sprintf("failed policy: %s", failingPolicy), "image").ViaFieldIndex(field, i)
+								errorField.Details = errDetails
+								errs = errs.Also(errorField)
+							}
 						}
 						// Because there was at least one policy that was
 						// supposed to be validated, but it failed, then fail
@@ -346,6 +370,14 @@ func validatePolicies(ctx context.Context, namespace string, ref name.Reference,
 	return policyResults, ret
 }
 
+func asFieldError(warn bool, err error) *apis.FieldError {
+	r := &apis.FieldError{Message: err.Error()}
+	if warn {
+		return r.At(apis.WarningLevel)
+	}
+	return r.At(apis.ErrorLevel)
+}
+
 // ValidatePolicy will go through all the Authorities for a given image/policy
 // and return validated authorities if at least one of the Authorities
 // validated the signatures OR attestations if atttestations were specified.
@@ -423,7 +455,10 @@ func ValidatePolicy(ctx context.Context, namespace string, ref name.Reference, c
 			}
 			switch {
 			case result.err != nil:
-				authorityErrors = append(authorityErrors, result.err)
+				// We only wrap actual policy failures as FieldErrors with the
+				// possibly Warn level. Other things imho should be still
+				// be considered errors.
+				authorityErrors = append(authorityErrors, asFieldError(cip.Mode == "warn", result.err))
 
 			case len(result.signatures) > 0:
 				policyResult.AuthorityMatches[result.name] = AuthorityMatch{Signatures: result.signatures}
@@ -463,7 +498,7 @@ func ValidatePolicy(ctx context.Context, namespace string, ref name.Reference, c
 		err = policy.EvaluatePolicyAgainstJSON(ctx, "ClusterImagePolicy", cip.Policy.Type, cip.Policy.Data, policyJSON)
 		if err != nil {
 			logging.FromContext(ctx).Warnf("Failed to validate CIP level policy against %s", string(policyJSON))
-			return nil, append(authorityErrors, err)
+			return nil, append(authorityErrors, asFieldError(cip.Mode == "warn", err))
 		}
 	}
 	return policyResult, authorityErrors

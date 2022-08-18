@@ -59,6 +59,7 @@ func (spec *ClusterImagePolicySpec) ConvertTo(ctx context.Context, sink *v1beta1
 		}
 		sink.Authorities = append(sink.Authorities, v1beta1Authority)
 	}
+	sink.Mode = spec.Mode
 	return nil
 }
 
@@ -136,6 +137,7 @@ func (spec *ClusterImagePolicySpec) ConvertFrom(ctx context.Context, source *v1b
 		}
 		spec.Authorities = append(spec.Authorities, authority)
 	}
+	spec.Mode = source.Mode
 	return nil
 }
 

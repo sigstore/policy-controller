@@ -39,6 +39,9 @@ var (
 	// TODO(vaikas): Consider adding a warn which would pass but use
 	// `warn` as return type for the webhook response.
 	validStaticRefTypes = sets.NewString("fail", "pass")
+
+	// Valid modes for a policy
+	validModes = sets.NewString("enforce", "warn")
 )
 
 // Validate implements apis.Validatable
@@ -59,6 +62,10 @@ func (spec *ClusterImagePolicySpec) Validate(ctx context.Context) (errors *apis.
 	for i, authority := range spec.Authorities {
 		errors = errors.Also(authority.Validate(ctx).ViaFieldIndex("authorities", i))
 	}
+	if spec.Mode != "" && !validModes.Has(spec.Mode) {
+		errors = errors.Also(apis.ErrInvalidValue(spec.Mode, "mode", "unsupported mode"))
+	}
+
 	errors = errors.Also(spec.Policy.Validate(ctx))
 
 	return

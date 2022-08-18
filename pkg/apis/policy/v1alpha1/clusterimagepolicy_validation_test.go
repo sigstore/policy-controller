@@ -458,6 +458,48 @@ func TestStaticValidation(t *testing.T) {
 	}
 }
 
+func TestModeValidation(t *testing.T) {
+	tests := []struct {
+		name        string
+		expectErr   bool
+		errorString string
+		mode        string
+	}{{
+		name: "Should work when mode is empty",
+		mode: "",
+	}, {
+		name: "Should work with mode enforce",
+		mode: "enforce",
+	}, {
+		name: "Should work with mode warn",
+		mode: "warn",
+	}, {
+		name:        "Should not work with mode garbage",
+		mode:        "garbage",
+		expectErr:   true,
+		errorString: "invalid value: garbage: spec.mode\nunsupported mode",
+	}}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			policy := ClusterImagePolicy{
+				Spec: ClusterImagePolicySpec{
+					Images:      []ImagePattern{{Glob: "globbityglob"}},
+					Authorities: []Authority{{Static: &StaticRef{Action: "pass"}}},
+					Mode:        test.mode,
+				},
+			}
+			err := policy.Validate(context.TODO())
+			if test.expectErr {
+				require.NotNil(t, err)
+				require.EqualError(t, err, test.errorString)
+			} else {
+				require.Nil(t, err)
+			}
+		})
+	}
+}
+
 func TestAuthoritiesValidation(t *testing.T) {
 	tests := []struct {
 		name        string

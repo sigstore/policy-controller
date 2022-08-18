@@ -18,6 +18,7 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -30,6 +31,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	ociremote "github.com/sigstore/cosign/pkg/oci/remote"
 	"go.uber.org/zap"
+	"knative.dev/pkg/apis"
 	"knative.dev/pkg/logging"
 	"sigs.k8s.io/yaml"
 
@@ -55,8 +57,9 @@ var (
 )
 
 type output struct {
-	Errors []string              `json:"errors"`
-	Result *webhook.PolicyResult `json:"result"`
+	Errors   []string              `json:"errors,omitempty"`
+	Warnings []string              `json:"warnings,omitempty"`
+	Result   *webhook.PolicyResult `json:"result"`
 }
 
 func main() {
@@ -126,12 +129,22 @@ func main() {
 
 	result, errs := webhook.ValidatePolicy(ctx, ns, ref, *cip, remoteOpts...)
 	errStrings := []string{}
+	warningStrings := []string{}
 	for _, err := range errs {
+		var fe *apis.FieldError
+		if errors.As(err, &fe) {
+			if fe.Level == apis.WarningLevel {
+				warningStrings = append(warningStrings, strings.Trim(err.Error(), "\n"))
+				continue
+			}
+		}
 		errStrings = append(errStrings, strings.Trim(err.Error(), "\n"))
 	}
-	o, err := json.Marshal(&output{
-		Errors: errStrings,
-		Result: result,
+	var o []byte
+	o, err = json.Marshal(&output{
+		Errors:   errStrings,
+		Warnings: warningStrings,
+		Result:   result,
 	})
 	if err != nil {
 		log.Fatal(err)

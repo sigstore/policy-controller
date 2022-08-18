@@ -44,6 +44,12 @@ type ClusterImagePolicy struct {
 	// Authorities. Will not get evaluated unless at least one Authority
 	// succeeds.
 	Policy *AttestationPolicy `json:"policy,omitempty"`
+	// Mode controls whether a failing policy will be rejected (not admitted),
+	// or if errors are converted to Warnings.
+	// enforce - Reject (default)
+	// warn - allow but warn
+	// +optional
+	Mode string `json:"mode,omitempty"`
 }
 
 type Authority struct {
@@ -209,6 +215,7 @@ func ConvertClusterImagePolicyV1alpha1ToWebhook(in *v1alpha1.ClusterImagePolicy)
 		Images:      copyIn.Spec.Images,
 		Authorities: outAuthorities,
 		Policy:      cipAttestationPolicy,
+		Mode:        in.Spec.Mode,
 	}
 }
 

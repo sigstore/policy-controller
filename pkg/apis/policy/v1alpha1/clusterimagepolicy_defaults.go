@@ -27,6 +27,9 @@ func (c *ClusterImagePolicy) SetDefaults(ctx context.Context) {
 }
 
 func (spec *ClusterImagePolicySpec) SetDefaults(ctx context.Context) {
+	if spec.Mode == "" {
+		spec.Mode = "enforce"
+	}
 	for i, authority := range spec.Authorities {
 		if authority.Name == "" {
 			spec.Authorities[i].Name = fmt.Sprintf("authority-%d", i)
