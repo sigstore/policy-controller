@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ---
-# ERROR:invalid value: garbage: spec.mode\nunsupported mode
+# ERROR:invalid value: garbage: spec.mode
 apiVersion: policy.sigstore.dev/v1beta1
 kind: ClusterImagePolicy
 metadata:

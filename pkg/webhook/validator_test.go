@@ -581,7 +581,6 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			for _, mode := range []string{"", "enforce", "warn"} {
-
 				cosignVerifySignatures = test.cvs
 				testContext := context.Background()
 				// By default we want errors. However, iff the mode above is

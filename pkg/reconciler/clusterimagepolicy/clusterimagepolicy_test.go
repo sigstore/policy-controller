@@ -64,10 +64,10 @@ RCTfQ5s1kD+hGMSE1rH7s46hmXEeyhnlRnaGF8eMU/SBJE/2NKPnxE7WzQ==
 -----END PUBLIC KEY-----`
 
 	// This is the patch for replacing a single entry in the ConfigMap
-	replaceCIPPatch = `[{"op":"replace","path":"/data/test-cip","value":"{\"images\":[{\"glob\":\"ghcr.io/example/*\"}],\"authorities\":[{\"name\":\"authority-0\",\"key\":{\"data\":\"-----BEGIN PUBLIC KEY-----\\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAExB6+H6054/W1SJgs5JR6AJr6J35J\\nRCTfQ5s1kD+hGMSE1rH7s46hmXEeyhnlRnaGF8eMU/SBJE/2NKPnxE7WzQ==\\n-----END PUBLIC KEY-----\"}}]}"}]`
+	replaceCIPPatch = `[{"op":"replace","path":"/data/test-cip","value":"{\"images\":[{\"glob\":\"ghcr.io/example/*\"}],\"authorities\":[{\"name\":\"authority-0\",\"key\":{\"data\":\"-----BEGIN PUBLIC KEY-----\\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAExB6+H6054/W1SJgs5JR6AJr6J35J\\nRCTfQ5s1kD+hGMSE1rH7s46hmXEeyhnlRnaGF8eMU/SBJE/2NKPnxE7WzQ==\\n-----END PUBLIC KEY-----\"}}],\"mode\":\"enforce\"}"}]`
 
 	// This is the patch for adding an entry for non-existing KMS for cipName2
-	addCIP2Patch = `[{"op":"add","path":"/data/test-cip-2","value":"{\"images\":[{\"glob\":\"ghcr.io/example/*\"}],\"authorities\":[{\"name\":\"authority-0\",\"key\":{\"data\":\"azure-kms://foo/bar\"}}]}"}]`
+	addCIP2Patch = `[{"op":"add","path":"/data/test-cip-2","value":"{\"images\":[{\"glob\":\"ghcr.io/example/*\"}],\"authorities\":[{\"name\":\"authority-0\",\"key\":{\"data\":\"azure-kms://foo/bar\"}}],\"mode\":\"enforce\"}"}]`
 
 	// This is the patch for removing the last entry, leaving just the
 	// configmap objectmeta, no data.
@@ -82,9 +82,9 @@ RCTfQ5s1kD+hGMSE1rH7s46hmXEeyhnlRnaGF8eMU/SBJE/2NKPnxE7WzQ==
 	removeSingleEntryKeylessPatch = `[{"op":"remove","path":"/data/test-cip-2"}]`
 
 	// This is the patch for inlined secret for keyless cakey ref data
-	inlinedSecretKeylessPatch = `[{"op":"replace","path":"/data/test-cip-2","value":"{\"images\":[{\"glob\":\"ghcr.io/example/*\"}],\"authorities\":[{\"name\":\"authority-0\",\"keyless\":{\"ca-cert\":{\"data\":\"-----BEGIN PUBLIC KEY-----\\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAExB6+H6054/W1SJgs5JR6AJr6J35J\\nRCTfQ5s1kD+hGMSE1rH7s46hmXEeyhnlRnaGF8eMU/SBJE/2NKPnxE7WzQ==\\n-----END PUBLIC KEY-----\"}}}]}"}]`
+	inlinedSecretKeylessPatch = `[{"op":"replace","path":"/data/test-cip-2","value":"{\"images\":[{\"glob\":\"ghcr.io/example/*\"}],\"authorities\":[{\"name\":\"authority-0\",\"keyless\":{\"ca-cert\":{\"data\":\"-----BEGIN PUBLIC KEY-----\\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAExB6+H6054/W1SJgs5JR6AJr6J35J\\nRCTfQ5s1kD+hGMSE1rH7s46hmXEeyhnlRnaGF8eMU/SBJE/2NKPnxE7WzQ==\\n-----END PUBLIC KEY-----\"}}}],\"mode\":\"enforce\"}"}]`
 
-	replaceCIPKeySourcePatch = `[{"op":"replace","path":"/data/test-cip","value":"{\"images\":[{\"glob\":\"ghcr.io/example/*\"}],\"authorities\":[{\"name\":\"authority-0\",\"key\":{\"data\":\"-----BEGIN PUBLIC KEY-----\\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAExB6+H6054/W1SJgs5JR6AJr6J35J\\nRCTfQ5s1kD+hGMSE1rH7s46hmXEeyhnlRnaGF8eMU/SBJE/2NKPnxE7WzQ==\\n-----END PUBLIC KEY-----\"},\"source\":[{\"oci\":\"example.com/alternative/signature\",\"signaturePullSecrets\":[{\"name\":\"signaturePullSecretName\"}]}]}]}"}]`
+	replaceCIPKeySourcePatch = `[{"op":"replace","path":"/data/test-cip","value":"{\"images\":[{\"glob\":\"ghcr.io/example/*\"}],\"authorities\":[{\"name\":\"authority-0\",\"key\":{\"data\":\"-----BEGIN PUBLIC KEY-----\\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAExB6+H6054/W1SJgs5JR6AJr6J35J\\nRCTfQ5s1kD+hGMSE1rH7s46hmXEeyhnlRnaGF8eMU/SBJE/2NKPnxE7WzQ==\\n-----END PUBLIC KEY-----\"},\"source\":[{\"oci\":\"example.com/alternative/signature\",\"signaturePullSecrets\":[{\"name\":\"signaturePullSecretName\"}]}]}],\"mode\":\"enforce\"}"}]`
 )
 
 func TestReconcile(t *testing.T) {
@@ -119,6 +119,7 @@ func TestReconcile(t *testing.T) {
 		SkipNamespaceValidation: true, // Cluster scoped
 		Objects: []runtime.Object{
 			NewClusterImagePolicy(cipName,
+				WithMode("warn"),
 				WithImagePattern(v1alpha1.ImagePattern{
 					Glob: glob,
 				}),
@@ -127,7 +128,7 @@ func TestReconcile(t *testing.T) {
 						Data: validPublicKeyData,
 					}}))},
 		WantCreates: []runtime.Object{
-			makeConfigMap(),
+			makeConfigMapWithWarn(),
 		},
 		WantPatches: []clientgotesting.PatchActionImpl{
 			patchFinalizers(system.Namespace(), cipName),
@@ -142,6 +143,7 @@ func TestReconcile(t *testing.T) {
 		SkipNamespaceValidation: true, // Cluster scoped
 		Objects: []runtime.Object{
 			NewClusterImagePolicy(cipName,
+				WithMode("enforce"),
 				WithFinalizer,
 				WithImagePattern(v1alpha1.ImagePattern{
 					Glob: glob,
@@ -635,7 +637,19 @@ func makeConfigMap() *corev1.ConfigMap {
 			Name:      config.ImagePoliciesConfigName,
 		},
 		Data: map[string]string{
-			cipName: `{"images":[{"glob":"ghcr.io/example/*"}],"authorities":[{"name":"authority-0","key":{"data":"-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAExB6+H6054/W1SJgs5JR6AJr6J35J\nRCTfQ5s1kD+hGMSE1rH7s46hmXEeyhnlRnaGF8eMU/SBJE/2NKPnxE7WzQ==\n-----END PUBLIC KEY-----"}}]}`,
+			cipName: `{"images":[{"glob":"ghcr.io/example/*"}],"authorities":[{"name":"authority-0","key":{"data":"-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAExB6+H6054/W1SJgs5JR6AJr6J35J\nRCTfQ5s1kD+hGMSE1rH7s46hmXEeyhnlRnaGF8eMU/SBJE/2NKPnxE7WzQ==\n-----END PUBLIC KEY-----"}}],"mode":"enforce"}`,
+		},
+	}
+}
+
+func makeConfigMapWithWarn() *corev1.ConfigMap {
+	return &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: system.Namespace(),
+			Name:      config.ImagePoliciesConfigName,
+		},
+		Data: map[string]string{
+			cipName: `{"images":[{"glob":"ghcr.io/example/*"}],"authorities":[{"name":"authority-0","key":{"data":"-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAExB6+H6054/W1SJgs5JR6AJr6J35J\nRCTfQ5s1kD+hGMSE1rH7s46hmXEeyhnlRnaGF8eMU/SBJE/2NKPnxE7WzQ==\n-----END PUBLIC KEY-----"}}],"mode":"warn"}`,
 		},
 	}
 }
@@ -646,7 +660,7 @@ func patchKMS(ctx context.Context, t *testing.T, kmsKey string) clientgotesting.
 		t.Fatalf("Failed to read KMS key ID %q: %v", kmsKey, err)
 	}
 
-	patch := `[{"op":"add","path":"/data","value":{"test-kms-cip":"{\"images\":[{\"glob\":\"ghcr.io/example/*\"}],\"authorities\":[{\"name\":\"authority-0\",\"key\":{\"data\":\"` + strings.ReplaceAll(pubKey, "\n", "\\\\n") + `\"}}]}"}}]`
+	patch := `[{"op":"add","path":"/data","value":{"test-kms-cip":"{\"images\":[{\"glob\":\"ghcr.io/example/*\"}],\"authorities\":[{\"name\":\"authority-0\",\"key\":{\"data\":\"` + strings.ReplaceAll(pubKey, "\n", "\\\\n") + `\"}}],\"mode\":\"enforce\"}"}}]`
 
 	return clientgotesting.PatchActionImpl{
 		ActionImpl: clientgotesting.ActionImpl{
@@ -678,7 +692,7 @@ func makeConfigMapWithTwoEntries() *corev1.ConfigMap {
 			Name:      config.ImagePoliciesConfigName,
 		},
 		Data: map[string]string{
-			cipName:  `{"images":[{"glob":"ghcr.io/example/*"}],"authorities":[{"name":"authority-0","key":{"data":"-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAExB6+H6054/W1SJgs5JR6AJr6J35J\nRCTfQ5s1kD+hGMSE1rH7s46hmXEeyhnlRnaGF8eMU/SBJE/2NKPnxE7WzQ==\n-----END PUBLIC KEY-----"}}]}`,
+			cipName:  `{"images":[{"glob":"ghcr.io/example/*"}],"authorities":[{"name":"authority-0","key":{"data":"-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAExB6+H6054/W1SJgs5JR6AJr6J35J\nRCTfQ5s1kD+hGMSE1rH7s46hmXEeyhnlRnaGF8eMU/SBJE/2NKPnxE7WzQ==\n-----END PUBLIC KEY-----"}}],"mode":"enforce"}`,
 			cipName2: "remove me please",
 		},
 	}
