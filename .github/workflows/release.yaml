@@ -23,6 +23,7 @@ jobs:
 
       - uses: sigstore/cosign-installer@b3413d484cc23cf8778c3d2aa361568d4eb54679 # v2
       - uses: anchore/sbom-action/download-syft@bb716408e75840bbb01e839347cd213767269d4a # v0.11.0
+      - uses: imjasonh/setup-ko@78eea08f10db87a7a23a666a4a6fe2734f2eeb8d # v0.4
 
       - name: Set up Cloud SDK
         uses: google-github-actions/auth@ceee102ec2387dd9e844e01b530ccd4ec87ce955 # v0.8.0
