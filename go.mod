@@ -54,11 +54,25 @@ require (
 	google.golang.org/grpc v1.48.0
 	google.golang.org/protobuf v1.28.1
 	gopkg.in/square/go-jose.v2 v2.6.0
+<<<<<<< HEAD
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/api v0.23.9
 	k8s.io/apimachinery v0.23.9
 	k8s.io/client-go v0.23.9
 	k8s.io/code-generator v0.23.9
+||||||| parent of be9c98e (checkpoint)
+	gopkg.in/yaml.v2 v2.4.0
+	k8s.io/api v0.23.8
+	k8s.io/apimachinery v0.23.8
+	k8s.io/client-go v0.23.8
+	k8s.io/code-generator v0.23.8
+=======
+	gopkg.in/yaml.v2 v2.4.0
+	k8s.io/api v0.23.9
+	k8s.io/apimachinery v0.23.9
+	k8s.io/client-go v0.23.9
+	k8s.io/code-generator v0.23.9
+>>>>>>> be9c98e (checkpoint)
 	k8s.io/kube-openapi v0.0.0-20220124234850-424119656bbf
 	knative.dev/hack v0.0.0-20220815132133-e9a8475f4329
 	knative.dev/hack/schema v0.0.0-20220224013837-e1785985d364
@@ -304,3 +318,5 @@ require (
 // TODO: this dependency causes issues on webhook startup due
 // to conflicting "log_dir" flags between this and klog (knative)
 replace github.com/golang/glog => github.com/jdolitsky/glog v0.0.0-20220729172235-78744e90d087
+
+replace knative.dev/pkg => github.com/vaikas/pkg v0.0.0-20220819115840-ce1adbeef376

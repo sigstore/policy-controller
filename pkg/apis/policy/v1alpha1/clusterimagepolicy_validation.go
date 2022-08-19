@@ -27,6 +27,7 @@ import (
 	"github.com/sigstore/policy-controller/pkg/apis/utils"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"knative.dev/pkg/apis"
+	"knative.dev/pkg/logging"
 )
 
 const awsKMSPrefix = "awskms://"
@@ -65,8 +66,10 @@ func (spec *ClusterImagePolicySpec) Validate(ctx context.Context) (errors *apis.
 	if spec.Mode != "" && !validModes.Has(spec.Mode) {
 		errors = errors.Also(apis.ErrInvalidValue(spec.Mode, "mode", "unsupported mode"))
 	}
+	errors = errors.Also(apis.ErrInvalidValue(spec.Mode, "mode", "vaikas testing").At(apis.WarningLevel))
+	errors = errors.Also(apis.ErrInvalidValue(spec.Mode, "mode", "vaikas testing")).At(apis.WarningLevel)
 	errors = errors.Also(spec.Policy.Validate(ctx))
-
+	logging.FromContext(ctx).Warnf("Returning the following errors: %+v", errors)
 	return
 }
 
@@ -232,7 +235,7 @@ func (p *Policy) Validate(ctx context.Context) *apis.FieldError {
 func (identity *Identity) Validate(ctx context.Context) *apis.FieldError {
 	var errs *apis.FieldError
 	if identity.Issuer == "" && identity.Subject == "" && identity.IssuerRegExp == "" && identity.SubjectRegExp == "" {
-		errs = errs.Also(apis.ErrMissingField("issuer", "subject", "issuerRegExp", "subjectRegExp"))
+		return apis.ErrMissingField("issuer", "subject", "issuerRegExp", "subjectRegExp")
 	}
 	if identity.Issuer != "" && identity.IssuerRegExp != "" {
 		errs = errs.Also(apis.ErrMultipleOneOf("issuer", "issuerRegExp"))
@@ -245,6 +248,12 @@ func (identity *Identity) Validate(ctx context.Context) *apis.FieldError {
 	}
 	if identity.SubjectRegExp != "" {
 		errs = errs.Also(ValidateRegex(identity.SubjectRegExp).ViaField("subjectRegExp"))
+	}
+	if identity.SubjectRegExp == "" && identity.Subject == "" {
+		errs = errs.Also(apis.ErrMissingField("subject", "subjectRegExp").At(apis.WarningLevel))
+	}
+	if identity.IssuerRegExp == "" && identity.Issuer == "" {
+		errs = errs.Also(apis.ErrMissingField("issuer", "issuerRegExp").At(apis.WarningLevel))
 	}
 	return errs
 }
