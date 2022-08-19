@@ -1905,6 +1905,8 @@ github.com/urfave/cli v1.22.4/go.mod h1:Gos4lmkARVdJ6EkW0WaNv/tZAAMe9V7XWyB60NtX
 github.com/urfave/cli v1.22.7 h1:aXiFAgRugfJ27UFDsGJ9DB2FvTC73hlVXFSqq5bo9eU=
 github.com/urfave/cli v1.22.7/go.mod h1:Gos4lmkARVdJ6EkW0WaNv/tZAAMe9V7XWyB60NtXRu0=
 github.com/uudashr/gocognit v1.0.5/go.mod h1:wgYz0mitoKOTysqxTDMOUXg+Jb5SvtihkfmugIZYpEA=
+github.com/vaikas/pkg v0.0.0-20220819171407-98f8be2a596f h1:RgSWNvCuguJfGsmVVD5MLTW0VvonzOnoWY0LEJuzogk=
+github.com/vaikas/pkg v0.0.0-20220819171407-98f8be2a596f/go.mod h1:YLjXbkQLlGHok+u0FLfMbBHFzY9WGu3GHhnrptoAy8I=
 github.com/valyala/bytebufferpool v1.0.0/go.mod h1:6bBcMArwyJ5K/AmCkWv1jt77kVWyCJ6HpOuEn7z0Csc=
 github.com/valyala/fasthttp v1.30.0/go.mod h1:2rsYD01CKFrjjsvFxx75KlEUNpWNBY9JWD3K/7o2Cus=
 github.com/valyala/quicktemplate v1.7.0/go.mod h1:sqKJnoaOF88V07vkO+9FL8fb9uZg/VPSJnLYn+LmLk8=

@@ -22,6 +22,7 @@ import (
 	"log"
 
 	policyduckv1beta1 "github.com/sigstore/policy-controller/pkg/apis/duck/v1beta1"
+	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	batchv1beta1 "k8s.io/api/batch/v1beta1"
@@ -98,17 +99,37 @@ func main() {
 	)
 }
 
+var (
+	_ resourcesemantics.SubResourceLimited = (*crdNoStatusUpdatesOrDeletes)(nil)
+	_ resourcesemantics.VerbLimited        = (*crdNoStatusUpdatesOrDeletes)(nil)
+)
+
+type crdNoStatusUpdatesOrDeletes struct {
+	resourcesemantics.GenericCRD
+}
+
+func (c *crdNoStatusUpdatesOrDeletes) SupportedSubResources() []string {
+	// We do not want any updates that are for status, scale, or anything else.
+	return []string{""}
+}
+
+func (c *crdNoStatusUpdatesOrDeletes) SupportedVerbs() []admissionregistrationv1.OperationType {
+	return []admissionregistrationv1.OperationType{admissionregistrationv1.Create,
+		admissionregistrationv1.Update,
+	}
+}
+
 var types = map[schema.GroupVersionKind]resourcesemantics.GenericCRD{
-	corev1.SchemeGroupVersion.WithKind("Pod"): &duckv1.Pod{},
+	corev1.SchemeGroupVersion.WithKind("Pod"): &crdNoStatusUpdatesOrDeletes{GenericCRD: &duckv1.Pod{}},
 
-	appsv1.SchemeGroupVersion.WithKind("ReplicaSet"):  &policyduckv1beta1.PodScalable{},
-	appsv1.SchemeGroupVersion.WithKind("Deployment"):  &policyduckv1beta1.PodScalable{},
-	appsv1.SchemeGroupVersion.WithKind("StatefulSet"): &policyduckv1beta1.PodScalable{},
-	appsv1.SchemeGroupVersion.WithKind("DaemonSet"):   &duckv1.WithPod{},
-	batchv1.SchemeGroupVersion.WithKind("Job"):        &duckv1.WithPod{},
+	appsv1.SchemeGroupVersion.WithKind("ReplicaSet"):  &crdNoStatusUpdatesOrDeletes{GenericCRD: &policyduckv1beta1.PodScalable{}},
+	appsv1.SchemeGroupVersion.WithKind("Deployment"):  &crdNoStatusUpdatesOrDeletes{GenericCRD: &policyduckv1beta1.PodScalable{}},
+	appsv1.SchemeGroupVersion.WithKind("StatefulSet"): &crdNoStatusUpdatesOrDeletes{GenericCRD: &policyduckv1beta1.PodScalable{}},
+	appsv1.SchemeGroupVersion.WithKind("DaemonSet"):   &crdNoStatusUpdatesOrDeletes{GenericCRD: &duckv1.WithPod{}},
+	batchv1.SchemeGroupVersion.WithKind("Job"):        &crdNoStatusUpdatesOrDeletes{GenericCRD: &duckv1.WithPod{}},
 
-	batchv1.SchemeGroupVersion.WithKind("CronJob"):      &duckv1.CronJob{},
-	batchv1beta1.SchemeGroupVersion.WithKind("CronJob"): &duckv1.CronJob{},
+	batchv1.SchemeGroupVersion.WithKind("CronJob"):      &crdNoStatusUpdatesOrDeletes{GenericCRD: &duckv1.CronJob{}},
+	batchv1beta1.SchemeGroupVersion.WithKind("CronJob"): &crdNoStatusUpdatesOrDeletes{GenericCRD: &duckv1.CronJob{}},
 }
 
 func NewValidatingAdmissionController(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
