@@ -422,10 +422,18 @@ Then run it pointing to a YAML file containing a ClusterImagePolicy, and an imag
         --image=ghcr.io/sigstore/cosign/cosign:v1.9.0 | jq)
 ```
 
-## Security
+## Support Policy
 
-Should you discover any security issues, please refer to sigstores [security
-process](https://github.com/sigstore/community/blob/main/SECURITY.md)
+This policy-controller's versions are able to run in the following versions of Kubernetes:
+
+|  | policy-controller `> 0.2.x` |
+|---|:---:|
+| Kubernetes 1.22 | ✓ |
+| Kubernetes 1.23 | ✓ |
+| Kubernetes 1.24 | ✓ |
+| Kubernetes 1.25 | (✓) * |
+
+note: not fully tested yet, but can be installed
 
 ## Release Cadence
 
@@ -433,3 +441,8 @@ We are intending to move to a monthly cadence for minor releases.
 Minor releases will be published around the beginning of the month.
 We may cut a patch release instead, if the changes are small enough not to warrant a minor release.
 We will also cut patch releases periodically as needed to address bugs.
+
+## Security
+
+Should you discover any security issues, please refer to sigstores [security
+process](https://github.com/sigstore/community/blob/main/SECURITY.md)
