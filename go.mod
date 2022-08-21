@@ -40,7 +40,7 @@ require (
 	github.com/pierrec/lz4 v2.6.1+incompatible
 	github.com/ryanuber/go-glob v1.0.0
 	github.com/sigstore/cosign v1.11.0
-	github.com/sigstore/fulcio v0.1.2-0.20220114150912-86a2036f9bc7
+	github.com/sigstore/fulcio v0.5.2
 	github.com/sigstore/rekor v0.11.0
 	github.com/sigstore/sigstore v1.4.0
 	github.com/stretchr/testify v1.8.0
@@ -88,8 +88,6 @@ require (
 	github.com/Azure/go-autorest/logger v0.2.1 // indirect
 	github.com/Azure/go-autorest/tracing v0.6.0 // indirect
 	github.com/OneOfOne/xxhash v1.2.8 // indirect
-	github.com/PaesslerAG/gval v1.0.0 // indirect
-	github.com/PaesslerAG/jsonpath v0.1.1 // indirect
 	github.com/ThalesIgnite/crypto11 v1.2.5 // indirect
 	github.com/agnivade/levenshtein v1.0.1 // indirect
 	github.com/asaskevich/govalidator v0.0.0-20210307081110-f21760c49a8d // indirect
@@ -123,7 +121,6 @@ require (
 	github.com/cockroachdb/apd/v2 v2.0.1 // indirect
 	github.com/common-nighthawk/go-figure v0.0.0-20210622060536-734e95fb86be // indirect
 	github.com/containerd/stargz-snapshotter/estargz v0.12.0 // indirect
-	github.com/coreos/go-oidc/v3 v3.2.0 // indirect
 	github.com/coreos/go-semver v0.3.0 // indirect
 	github.com/coreos/go-systemd/v22 v22.3.2 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
@@ -184,7 +181,7 @@ require (
 	github.com/grpc-ecosystem/go-grpc-middleware v1.3.0 // indirect
 	github.com/grpc-ecosystem/go-grpc-prometheus v1.2.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway v1.16.0 // indirect
-	github.com/grpc-ecosystem/grpc-gateway/v2 v2.7.0 // indirect
+	github.com/grpc-ecosystem/grpc-gateway/v2 v2.11.0 // indirect
 	github.com/hashicorp/vault/api v1.7.2 // indirect
 	github.com/imdario/mergo v0.3.12 // indirect
 	github.com/in-toto/in-toto-golang v0.3.4-0.20220709202702-fa494aaa0add // indirect
@@ -282,7 +279,7 @@ require (
 	golang.org/x/oauth2 v0.0.0-20220722155238-128564f6959c // indirect
 	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4 // indirect
 	golang.org/x/term v0.0.0-20220526004731-065cf7ba2467 // indirect
-	golang.org/x/text v0.3.7 // indirect
+	golang.org/x/text v0.3.8-0.20211004125949-5bd84dd9b33b // indirect
 	golang.org/x/tools v0.1.11 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.2.0 // indirect
 	google.golang.org/api v0.92.0 // indirect
