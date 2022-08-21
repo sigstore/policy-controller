@@ -306,10 +306,10 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 		want: func() *apis.FieldError {
 			var errs *apis.FieldError
 			fe := apis.ErrGeneric("failed policy: cluster-image-policy-keyless", "image").ViaFieldIndex("initContainers", 0)
-			fe.Details = fmt.Sprintf("%s %s", digest.String(), `fetching FulcioRoot: getting root cert: parse "http://http:%2F%2Fexample.com%2F/api/v1/rootCert": invalid port ":%2F%2Fexample.com%2F" after host`)
+			fe.Details = fmt.Sprintf("%s %s", digest.String(), `fetching FulcioRoot: getting root cert: request: parse "http://http:%2F%2Fexample.com%2F/api/v1/rootCert": invalid port ":%2F%2Fexample.com%2F" after host`)
 			errs = errs.Also(fe)
 			fe2 := apis.ErrGeneric("failed policy: cluster-image-policy-keyless", "image").ViaFieldIndex("containers", 0)
-			fe2.Details = fmt.Sprintf("%s %s", digest.String(), `fetching FulcioRoot: getting root cert: parse "http://http:%2F%2Fexample.com%2F/api/v1/rootCert": invalid port ":%2F%2Fexample.com%2F" after host`)
+			fe2.Details = fmt.Sprintf("%s %s", digest.String(), `fetching FulcioRoot: getting root cert: request: parse "http://http:%2F%2Fexample.com%2F/api/v1/rootCert": invalid port ":%2F%2Fexample.com%2F" after host`)
 			errs = errs.Also(fe2)
 			return errs
 		}(),
@@ -1615,7 +1615,7 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 					}},
 				}},
 		},
-		wantErrs: []string{`fetching FulcioRoot: getting root cert: parse "http://http:%2F%2Fexample.com%2F/api/v1/rootCert": invalid port ":%2F%2Fexample.com%2F" after host`},
+		wantErrs: []string{`fetching FulcioRoot: getting root cert: request: parse "http://http:%2F%2Fexample.com%2F/api/v1/rootCert": invalid port ":%2F%2Fexample.com%2F" after host`},
 		cvs:      authorityPublicKeyCVS,
 	}, {
 		name: "simple, static set to pass",
