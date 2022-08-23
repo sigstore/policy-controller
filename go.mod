@@ -29,7 +29,7 @@ require (
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/hashicorp/hcl v1.0.0
 	github.com/hashicorp/vault/sdk v0.5.3
-	github.com/hashicorp/yamux v0.1.0
+	github.com/hashicorp/yamux v0.1.1
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/letsencrypt/boulder v0.0.0-20220723181115-27de4befb95e
 	github.com/mitchellh/copystructure v1.2.0
