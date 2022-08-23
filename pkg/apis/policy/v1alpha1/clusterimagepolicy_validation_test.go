@@ -899,208 +899,264 @@ func TestIdentitiesValidation(t *testing.T) {
 	tests := []struct {
 		name        string
 		expectErr   bool
+		expectWarn  bool
 		errorString string
 		policy      ClusterImagePolicy
-	}{
-		{
-			name: "Should pass when identities is empty",
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{
-					Images: []ImagePattern{
-						{
-							Glob: "globbityglob",
+	}{{
+		name: "Should pass with identities",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{
+					{
+						Glob: "globbityglob",
+					},
+				},
+				Authorities: []Authority{
+					{
+						Keyless: &KeylessRef{
+							URL: &apis.URL{
+								Host: "myhost",
+							},
+							Identities: []Identity{{SubjectRegExp: ".*subject.*", IssuerRegExp: ".*issuer.*"}},
 						},
 					},
-					Authorities: []Authority{
-						{
-							Keyless: &KeylessRef{
-								URL: &apis.URL{
-									Host: "myhost",
+				},
+			},
+		},
+	}, {
+		name:        "Should fail when identities fields are empty",
+		expectErr:   true,
+		errorString: "missing field(s): spec.authorities[0].keyless.identities[0].issuer, spec.authorities[0].keyless.identities[0].issuerRegExp, spec.authorities[0].keyless.identities[0].subject, spec.authorities[0].keyless.identities[0].subjectRegExp",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{
+					{
+						Glob: "globbityglob",
+					},
+				},
+				Authorities: []Authority{
+					{
+						Keyless: &KeylessRef{
+							URL: &apis.URL{
+								Host: "myhost",
+							},
+							Identities: []Identity{{Issuer: ""}},
+						},
+					},
+				},
+			},
+		},
+	}, {
+		name:        "Should fail with both issuer and issuerRegExp",
+		expectErr:   true,
+		errorString: "expected exactly one, got both: spec.authorities[0].keyless.identities[0].issuer, spec.authorities[0].keyless.identities[0].issuerRegExp",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{
+					{
+						Glob: "globbityglob",
+					},
+				},
+				Authorities: []Authority{
+					{
+						Keyless: &KeylessRef{
+							URL: &apis.URL{
+								Host: "myhost",
+							},
+
+							Identities: []Identity{{Issuer: "issuer", IssuerRegExp: "issuerregexp", Subject: "subject"}},
+						},
+					},
+				},
+			},
+		},
+	}, {
+		name:        "Should fail with both subject and subjectRegExp",
+		expectErr:   true,
+		errorString: "expected exactly one, got both: spec.authorities[0].keyless.identities[0].subject, spec.authorities[0].keyless.identities[0].subjectRegExp",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{
+					{
+						Glob: "globbityglob",
+					},
+				},
+				Authorities: []Authority{
+					{
+						Keyless: &KeylessRef{
+							URL: &apis.URL{
+								Host: "myhost",
+							},
+
+							Identities: []Identity{{Subject: "subject", SubjectRegExp: "subjectregexp", Issuer: "issuer"}},
+						},
+					},
+				},
+			},
+		},
+	}, {
+		name:        "Should fail when issuer has invalid regex",
+		expectErr:   true,
+		errorString: "invalid value: ****: spec.authorities[0].keyless.identities[0].issuerRegExp\nregex is invalid: error parsing regexp: missing argument to repetition operator: `*`",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{
+					{
+						Glob: "globbityglob",
+					},
+				},
+				Authorities: []Authority{
+					{
+						Keyless: &KeylessRef{
+							URL: &apis.URL{
+								Host: "myhost",
+							},
+
+							Identities: []Identity{{IssuerRegExp: "****", Subject: "subject"}},
+						},
+					},
+				},
+			},
+		},
+	}, {
+		name:        "Should warn when issuer or issuerRegExp is missing",
+		expectErr:   false,
+		expectWarn:  true,
+		errorString: "missing field(s): spec.authorities[0].keyless.identities[0].issuer, spec.authorities[0].keyless.identities[0].issuerRegExp",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{
+					{
+						Glob: "globbityglob",
+					},
+				},
+				Authorities: []Authority{
+					{
+						Keyless: &KeylessRef{
+							URL: &apis.URL{
+								Host: "myhost",
+							},
+
+							Identities: []Identity{{Subject: "subject"}},
+						},
+					},
+				},
+			},
+		},
+	}, {
+		name:        "Should warn when subject or subjectRegExp is missing",
+		expectErr:   false,
+		expectWarn:  true,
+		errorString: "missing field(s): spec.authorities[0].keyless.identities[0].subject, spec.authorities[0].keyless.identities[0].subjectRegExp",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{
+					{
+						Glob: "globbityglob",
+					},
+				},
+				Authorities: []Authority{
+					{
+						Keyless: &KeylessRef{
+							URL: &apis.URL{
+								Host: "myhost",
+							},
+
+							Identities: []Identity{{Issuer: "issuer"}},
+						},
+					},
+				},
+			},
+		},
+	}, {
+		name:        "Should fail when subject has invalid regex",
+		expectErr:   true,
+		errorString: "invalid value: ****: spec.authorities[0].keyless.identities[0].subjectRegExp\nregex is invalid: error parsing regexp: missing argument to repetition operator: `*`",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{
+					{
+						Glob: "globbityglob",
+					},
+				},
+				Authorities: []Authority{
+					{
+						Keyless: &KeylessRef{
+							URL: &apis.URL{
+								Host: "myhost",
+							},
+
+							Identities: []Identity{{Issuer: "issuer", SubjectRegExp: "****"}},
+						},
+					},
+				},
+			},
+		},
+	}, {
+		name: "Should pass when subject and issuer have valid regex",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{
+					{
+						Glob: "globbityglob",
+					},
+				},
+				Authorities: []Authority{
+					{
+						Keyless: &KeylessRef{
+							URL: &apis.URL{
+								Host: "myhost",
+							},
+
+							Identities: []Identity{{SubjectRegExp: ".*subject.*", IssuerRegExp: ".*issuer.*"}},
+						},
+					},
+				},
+			},
+		},
+	}, {
+		name:      "Should pass when identities is valid",
+		expectErr: false,
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{
+					{
+						Glob: "globbityglob",
+					},
+				},
+				Authorities: []Authority{
+					{
+						Keyless: &KeylessRef{
+							URL: &apis.URL{
+								Host: "myhost",
+							},
+
+							Identities: []Identity{
+								{
+									Issuer:  "some issuer",
+									Subject: "some subject",
 								},
-								Identities: []Identity{},
 							},
 						},
 					},
 				},
 			},
 		},
-		{
-			name:        "Should fail when identities fields are empty",
-			expectErr:   true,
-			errorString: "missing field(s): spec.authorities[0].keyless.identities[0].issuer, spec.authorities[0].keyless.identities[0].issuerRegExp, spec.authorities[0].keyless.identities[0].subject, spec.authorities[0].keyless.identities[0].subjectRegExp",
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{
-					Images: []ImagePattern{
-						{
-							Glob: "globbityglob",
-						},
-					},
-					Authorities: []Authority{
-						{
-							Keyless: &KeylessRef{
-								URL: &apis.URL{
-									Host: "myhost",
-								},
-								Identities: []Identity{{Issuer: ""}},
-							},
-						},
-					},
-				},
-			},
-		},
-		{
-			name:        "Should fail with both issuer and issuerRegExp",
-			expectErr:   true,
-			errorString: "expected exactly one, got both: spec.authorities[0].keyless.identities[0].issuer, spec.authorities[0].keyless.identities[0].issuerRegExp",
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{
-					Images: []ImagePattern{
-						{
-							Glob: "globbityglob",
-						},
-					},
-					Authorities: []Authority{
-						{
-							Keyless: &KeylessRef{
-								URL: &apis.URL{
-									Host: "myhost",
-								},
-								Identities: []Identity{{Issuer: "issuer", IssuerRegExp: "issuerregexp"}},
-							},
-						},
-					},
-				},
-			},
-		},
-		{
-			name:        "Should fail with both subject and subjectRegExp",
-			expectErr:   true,
-			errorString: "expected exactly one, got both: spec.authorities[0].keyless.identities[0].subject, spec.authorities[0].keyless.identities[0].subjectRegExp",
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{
-					Images: []ImagePattern{
-						{
-							Glob: "globbityglob",
-						},
-					},
-					Authorities: []Authority{
-						{
-							Keyless: &KeylessRef{
-								URL: &apis.URL{
-									Host: "myhost",
-								},
-								Identities: []Identity{{Subject: "subject", SubjectRegExp: "subjectregexp"}},
-							},
-						},
-					},
-				},
-			},
-		},
-		{
-			name:        "Should fail when issuer has invalid regex",
-			expectErr:   true,
-			errorString: "invalid value: ****: spec.authorities[0].keyless.identities[0].issuerRegExp\nregex is invalid: error parsing regexp: missing argument to repetition operator: `*`",
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{
-					Images: []ImagePattern{
-						{
-							Glob: "globbityglob",
-						},
-					},
-					Authorities: []Authority{
-						{
-							Keyless: &KeylessRef{
-								URL: &apis.URL{
-									Host: "myhost",
-								},
-								Identities: []Identity{{IssuerRegExp: "****"}},
-							},
-						},
-					},
-				},
-			},
-		},
-		{
-			name:        "Should fail when subject has invalid regex",
-			expectErr:   true,
-			errorString: "invalid value: ****: spec.authorities[0].keyless.identities[0].subjectRegExp\nregex is invalid: error parsing regexp: missing argument to repetition operator: `*`",
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{
-					Images: []ImagePattern{
-						{
-							Glob: "globbityglob",
-						},
-					},
-					Authorities: []Authority{
-						{
-							Keyless: &KeylessRef{
-								URL: &apis.URL{
-									Host: "myhost",
-								},
-								Identities: []Identity{{SubjectRegExp: "****"}},
-							},
-						},
-					},
-				},
-			},
-		},
-		{
-			name: "Should pass when subject and issuer have valid regex",
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{
-					Images: []ImagePattern{
-						{
-							Glob: "globbityglob",
-						},
-					},
-					Authorities: []Authority{
-						{
-							Keyless: &KeylessRef{
-								URL: &apis.URL{
-									Host: "myhost",
-								},
-								Identities: []Identity{{SubjectRegExp: ".*subject.*", IssuerRegExp: ".*issuer.*"}},
-							},
-						},
-					},
-				},
-			},
-		},
-		{
-			name:      "Should pass when identities is valid",
-			expectErr: false,
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{
-					Images: []ImagePattern{
-						{
-							Glob: "globbityglob",
-						},
-					},
-					Authorities: []Authority{
-						{
-							Keyless: &KeylessRef{
-								URL: &apis.URL{
-									Host: "myhost",
-								},
-								Identities: []Identity{
-									{
-										Issuer: "some issuer",
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
+	},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			err := test.policy.Validate(context.TODO())
-			if test.expectErr {
+			switch {
+			case test.expectErr:
 				require.NotNil(t, err)
 				require.EqualError(t, err, test.errorString)
-			} else {
+			case test.expectWarn:
+				err = err.Filter(apis.WarningLevel)
+				if err.Level == apis.WarningLevel {
+					require.EqualError(t, err, test.errorString)
+				}
+			default:
 				require.Nil(t, err)
 			}
 		})

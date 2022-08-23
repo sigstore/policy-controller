@@ -27,7 +27,6 @@ import (
 	"github.com/sigstore/policy-controller/pkg/apis/utils"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"knative.dev/pkg/apis"
-	"knative.dev/pkg/logging"
 )
 
 const awsKMSPrefix = "awskms://"
@@ -66,10 +65,7 @@ func (spec *ClusterImagePolicySpec) Validate(ctx context.Context) (errors *apis.
 	if spec.Mode != "" && !validModes.Has(spec.Mode) {
 		errors = errors.Also(apis.ErrInvalidValue(spec.Mode, "mode", "unsupported mode"))
 	}
-	errors = errors.Also(apis.ErrInvalidValue(spec.Mode, "mode", "vaikas testing").At(apis.WarningLevel))
-	errors = errors.Also(apis.ErrInvalidValue(spec.Mode, "mode", "vaikas testing")).At(apis.WarningLevel)
 	errors = errors.Also(spec.Policy.Validate(ctx))
-	logging.FromContext(ctx).Warnf("Returning the following errors: %+v", errors)
 	return
 }
 

@@ -238,7 +238,6 @@ func (v *Validator) validatePodSpec(ctx context.Context, namespace string, ps *c
 									if fe.Filter(apis.WarningLevel) != nil {
 										warnDetails = warnDetails + " " + fe.Message
 										hasWarnings = true
-										logging.FromContext(ctx).Warnf("GOT WARNINGS: %+v", fe)
 									} else {
 										errDetails = errDetails + " " + fe.Message
 										hasErrors = true
@@ -252,7 +251,6 @@ func (v *Validator) validatePodSpec(ctx context.Context, namespace string, ps *c
 								warnField := apis.ErrGeneric(fmt.Sprintf("failed policy: %s", failingPolicy), "image").ViaFieldIndex(field, i)
 								warnField.Details = warnDetails
 								errs = errs.Also(warnField).At(apis.WarningLevel)
-								logging.FromContext(ctx).Warnf("SETTING WARNINGS: %+v", warnField)
 							}
 							if hasErrors {
 								errorField := apis.ErrGeneric(fmt.Sprintf("failed policy: %s", failingPolicy), "image").ViaFieldIndex(field, i)
