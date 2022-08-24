@@ -40,6 +40,7 @@ jobs:
         - cluster_image_policy
         - cluster_image_policy_with_attestations
         - cluster_with_scalable
+        - cluster_image_policy_with_warn
 
     env:
       KO_DOCKER_REPO: "registry.local:5000/policy-controller"

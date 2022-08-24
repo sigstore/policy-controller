@@ -58,6 +58,12 @@ func WithAuthority(a v1alpha1.Authority) ClusterImagePolicyOption {
 	}
 }
 
+func WithMode(m string) ClusterImagePolicyOption {
+	return func(cip *v1alpha1.ClusterImagePolicy) {
+		cip.Spec.Mode = m
+	}
+}
+
 func WithFinalizer(cip *v1alpha1.ClusterImagePolicy) {
 	cip.Finalizers = []string{finalizerName}
 }

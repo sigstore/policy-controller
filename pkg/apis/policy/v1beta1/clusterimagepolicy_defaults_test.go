@@ -52,6 +52,35 @@ func TestNameDefaulting(t *testing.T) {
 	}
 }
 
+func TestModeDefaulting(t *testing.T) {
+	tests := []struct {
+		name     string
+		mode     string
+		wantMode string
+	}{{
+		name:     "empty",
+		wantMode: "enforce",
+	}, {
+		name:     "enforce",
+		mode:     "enforce",
+		wantMode: "enforce",
+	}, {
+		name:     "warn",
+		mode:     "warn",
+		wantMode: "warn",
+	}}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			tc := tc
+			in := ClusterImagePolicy{Spec: ClusterImagePolicySpec{Mode: tc.mode}}
+			in.SetDefaults(context.TODO())
+			if in.Spec.Mode != tc.wantMode {
+				t.Errorf("Wanted mode: %s got %s", tc.wantMode, in.Spec.Mode)
+			}
+		})
+	}
+}
+
 func TestKeylessURLDefaulting(t *testing.T) {
 	tests := []struct {
 		name    string

@@ -88,6 +88,7 @@ func TestConversionRoundTripV1alpha1(t *testing.T) {
 				Name: "test-cip",
 			},
 			Spec: ClusterImagePolicySpec{
+				Mode:   "warn",
 				Images: []ImagePattern{{Glob: "*"}},
 				Authorities: []Authority{
 					{Key: &KeyRef{

@@ -36,9 +36,10 @@ var (
 	validPredicateTypes = sets.NewString("custom", "slsaprovenance", "spdx", "spdxjson", "cyclonedx", "link", "vuln")
 
 	// If a static matches, define the behaviour for it.
-	// TODO(vaikas): Consider adding a warn which would pass but use
-	// `warn` as return type for the webhook response.
 	validStaticRefTypes = sets.NewString("fail", "pass")
+
+	// Valid modes for a policy
+	validModes = sets.NewString("enforce", "warn")
 )
 
 // Validate implements apis.Validatable
@@ -59,8 +60,10 @@ func (spec *ClusterImagePolicySpec) Validate(ctx context.Context) (errors *apis.
 	for i, authority := range spec.Authorities {
 		errors = errors.Also(authority.Validate(ctx).ViaFieldIndex("authorities", i))
 	}
+	if spec.Mode != "" && !validModes.Has(spec.Mode) {
+		errors = errors.Also(apis.ErrInvalidValue(spec.Mode, "mode", "unsupported mode"))
+	}
 	errors = errors.Also(spec.Policy.Validate(ctx))
-
 	return
 }
 
@@ -172,6 +175,10 @@ func (keyless *KeylessRef) Validate(ctx context.Context) *apis.FieldError {
 	if keyless.CACert != nil {
 		errs = errs.Also(keyless.DeepCopy().CACert.Validate(ctx).ViaField("ca-cert"))
 	}
+	// Warn if there are no identities specified
+	if len(keyless.Identities) == 0 {
+		errs = errs.Also(apis.ErrMissingField("identities").At(apis.WarningLevel))
+	}
 	for i, identity := range keyless.Identities {
 		errs = errs.Also(identity.Validate(ctx).ViaFieldIndex("identities", i))
 	}
@@ -225,9 +232,6 @@ func (p *Policy) Validate(ctx context.Context) *apis.FieldError {
 
 func (identity *Identity) Validate(ctx context.Context) *apis.FieldError {
 	var errs *apis.FieldError
-	if identity.Issuer == "" && identity.Subject == "" && identity.IssuerRegExp == "" && identity.SubjectRegExp == "" {
-		errs = errs.Also(apis.ErrMissingField("issuer", "subject", "issuerRegExp", "subjectRegExp"))
-	}
 	if identity.Issuer != "" && identity.IssuerRegExp != "" {
 		errs = errs.Also(apis.ErrMultipleOneOf("issuer", "issuerRegExp"))
 	}
@@ -239,6 +243,12 @@ func (identity *Identity) Validate(ctx context.Context) *apis.FieldError {
 	}
 	if identity.SubjectRegExp != "" {
 		errs = errs.Also(ValidateRegex(identity.SubjectRegExp).ViaField("subjectRegExp"))
+	}
+	if identity.SubjectRegExp == "" && identity.Subject == "" {
+		errs = errs.Also(apis.ErrMissingField("subject", "subjectRegExp").At(apis.WarningLevel))
+	}
+	if identity.IssuerRegExp == "" && identity.Issuer == "" {
+		errs = errs.Also(apis.ErrMissingField("issuer", "issuerRegExp").At(apis.WarningLevel))
 	}
 	return errs
 }

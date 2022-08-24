@@ -580,93 +580,148 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			cosignVerifySignatures = test.cvs
-			testContext := context.Background()
+			for _, mode := range []string{"", "enforce", "warn"} {
+				cosignVerifySignatures = test.cvs
+				testContext := context.Background()
+				// By default we want errors. However, iff the mode above is
+				// warn, and we're using a custom context and therefore
+				// triggering the CIP.mode twiddling below, check for warnings.
+				wantWarn := false
+				if test.customContext != nil {
+					if mode == "warn" {
+						wantWarn = true
+					}
+					// If we are testing with custom context, loop through
+					// all the modes here. It's a bit silly that we spin through
+					// all the tests 3 times, but for now this is better than
+					// duplicating all the CIPs with just different modes.
+					testContext = test.customContext
 
-			if test.customContext != nil {
-				testContext = test.customContext
-			}
+					// Twiddle the mode for tests.
+					cfg := config.FromContext(testContext)
+					newPolicies := make(map[string]webhookcip.ClusterImagePolicy, len(cfg.ImagePolicyConfig.Policies))
+					for k, v := range cfg.ImagePolicyConfig.Policies {
+						v.Mode = mode
+						newPolicies[k] = v
+					}
+					cfg.ImagePolicyConfig.Policies = newPolicies
+					config.ToContext(testContext, cfg)
+				}
 
-			// Check the core mechanics
-			got := v.validatePodSpec(testContext, system.Namespace(), test.ps, k8schain.Options{})
-			if (got != nil) != (test.want != nil) {
-				t.Errorf("validatePodSpec() = %v, wanted %v", got, test.want)
-			} else if got != nil && got.Error() != test.want.Error() {
-				t.Errorf("validatePodSpec() = %v, wanted %v", got, test.want)
-			}
+				// Check the core mechanics
+				got := v.validatePodSpec(testContext, system.Namespace(), test.ps, k8schain.Options{})
+				if (got != nil) != (test.want != nil) {
+					t.Errorf("validatePodSpec() = %v, wanted %v", got, test.want)
+				} else if got != nil && got.Error() != test.want.Error() {
+					t.Errorf("validatePodSpec() = %v, wanted %v", got, test.want)
+				}
 
-			// Check wrapped in a Pod
-			pod := &duckv1.Pod{
-				Spec: *test.ps,
-			}
-			got = v.ValidatePod(testContext, pod)
-			want := test.want.ViaField("spec")
-			if (got != nil) != (want != nil) {
-				t.Errorf("ValidatePod() = %v, wanted %v", got, want)
-			} else if got != nil && got.Error() != want.Error() {
-				t.Errorf("ValidatePod() = %v, wanted %v", got, want)
-			}
-			// Check that we don't block things being deleted.
-			if got := v.ValidatePod(apis.WithinDelete(testContext), pod); got != nil {
-				t.Errorf("ValidatePod() = %v, wanted nil", got)
-			}
+				if test.want != nil {
+					if wantWarn {
+						test.want.Level = apis.WarningLevel
+					} else {
+						test.want.Level = apis.ErrorLevel
+					}
+				}
+				// Check wrapped in a Pod
+				pod := &duckv1.Pod{
+					Spec: *test.ps,
+				}
+				got = v.ValidatePod(testContext, pod)
+				want := test.want.ViaField("spec")
+				if (got != nil) != (want != nil) {
+					t.Errorf("ValidatePod() = %v, wanted %v", got, want)
+				} else if got != nil && got.Error() != want.Error() {
+					t.Errorf("ValidatePod() = %v, wanted %v", got, want)
+				}
+				// Check the warning/error level.
+				if got != nil && test.want != nil {
+					if got.Level != want.Level {
+						t.Errorf("ValidatePod() Wrong Level = %v, wanted %v", got.Level, want.Level)
+					}
+				}
+				// Check that we don't block things being deleted.
+				if got := v.ValidatePod(apis.WithinDelete(testContext), pod); got != nil {
+					t.Errorf("ValidatePod() = %v, wanted nil", got)
+				}
 
-			// Check wrapped in a WithPod
-			withPod := &duckv1.WithPod{
-				Spec: duckv1.WithPodSpec{
-					Template: duckv1.PodSpecable{
-						Spec: *test.ps,
+				// Check wrapped in a WithPod
+				withPod := &duckv1.WithPod{
+					Spec: duckv1.WithPodSpec{
+						Template: duckv1.PodSpecable{
+							Spec: *test.ps,
+						},
 					},
-				},
-			}
-			got = v.ValidatePodSpecable(testContext, withPod)
-			want = test.want.ViaField("spec.template.spec")
-			if (got != nil) != (want != nil) {
-				t.Errorf("ValidatePodSpecable() = %v, wanted %v", got, want)
-			} else if got != nil && got.Error() != want.Error() {
-				t.Errorf("ValidatePodSpecable() = %v, wanted %v", got, want)
-			}
-			// Check that we don't block things being deleted.
-			if got := v.ValidatePodSpecable(apis.WithinDelete(testContext), withPod); got != nil {
-				t.Errorf("ValidatePodSpecable() = %v, wanted nil", got)
-			}
+				}
+				got = v.ValidatePodSpecable(testContext, withPod)
+				want = test.want.ViaField("spec.template.spec")
+				if (got != nil) != (want != nil) {
+					t.Errorf("ValidatePodSpecable() = %v, wanted %v", got, want)
+				} else if got != nil && got.Error() != want.Error() {
+					t.Errorf("ValidatePodSpecable() = %v, wanted %v", got, want)
+				}
+				// Check the warning/error level.
+				if got != nil && test.want != nil {
+					if got.Level != want.Level {
+						t.Errorf("ValidatePodSpecable() Wrong Level = %v, wanted %v", got.Level, want.Level)
+					}
+				}
 
-			// Check wrapped in a podScalable
-			podScalable := &policyduckv1beta1.PodScalable{
-				Spec: policyduckv1beta1.PodScalableSpec{
-					Replicas: ptr.Int32(3),
-					Template: corev1.PodTemplateSpec{
-						Spec: *test.ps,
+				// Check that we don't block things being deleted.
+				if got := v.ValidatePodSpecable(apis.WithinDelete(testContext), withPod); got != nil {
+					t.Errorf("ValidatePodSpecable() = %v, wanted nil", got)
+				}
+
+				// Check wrapped in a podScalable
+				podScalable := &policyduckv1beta1.PodScalable{
+					Spec: policyduckv1beta1.PodScalableSpec{
+						Replicas: ptr.Int32(3),
+						Template: corev1.PodTemplateSpec{
+							Spec: *test.ps,
+						},
 					},
-				},
-			}
-			got = v.ValidatePodScalable(testContext, podScalable)
-			want = test.want.ViaField("spec.template.spec")
-			if (got != nil) != (want != nil) {
-				t.Errorf("ValidatePodScalable() = %v, wanted %v", got, want)
-			} else if got != nil && got.Error() != want.Error() {
-				t.Errorf("ValidatePodScalable() = %v, wanted %v", got, want)
-			}
-			// Check that we don't block things being deleted.
-			if got := v.ValidatePodScalable(apis.WithinDelete(testContext), podScalable); got != nil {
-				t.Errorf("ValidatePodSpecable() = %v, wanted nil", got)
-			}
+				}
+				got = v.ValidatePodScalable(testContext, podScalable)
+				want = test.want.ViaField("spec.template.spec")
+				if (got != nil) != (want != nil) {
+					t.Errorf("ValidatePodScalable() = %v, wanted %v", got, want)
+				} else if got != nil && got.Error() != want.Error() {
+					t.Errorf("ValidatePodScalable() = %v, wanted %v", got, want)
+				}
+				// Check the warning/error level.
+				if got != nil && test.want != nil {
+					if got.Level != want.Level {
+						t.Errorf("ValidatePodScalable() Wrong Level = %v, wanted %v", got.Level, want.Level)
+					}
+				}
 
-			// Check that we don't block things being scaled down.
-			original := podScalable.DeepCopy()
-			original.Spec.Replicas = ptr.Int32(4)
-			if got := v.ValidatePodScalable(apis.WithinUpdate(testContext, original), podScalable); got != nil {
-				t.Errorf("ValidatePodSpecable() = %v, wanted nil", got)
-			}
+				// Check that we don't block things being deleted.
+				if got := v.ValidatePodScalable(apis.WithinDelete(testContext), podScalable); got != nil {
+					t.Errorf("ValidatePodSpecable() = %v, wanted nil", got)
+				}
 
-			// Check that we fail as expected if being scaled up.
-			original.Spec.Replicas = ptr.Int32(2)
-			got = v.ValidatePodScalable(apis.WithinUpdate(testContext, original), podScalable)
-			want = test.want.ViaField("spec.template.spec")
-			if (got != nil) != (want != nil) {
-				t.Errorf("ValidatePodScalable() = %v, wanted %v", got, want)
-			} else if got != nil && got.Error() != want.Error() {
-				t.Errorf("ValidatePodScalable() = %v, wanted %v", got, want)
+				// Check that we don't block things being scaled down.
+				original := podScalable.DeepCopy()
+				original.Spec.Replicas = ptr.Int32(4)
+				if got := v.ValidatePodScalable(apis.WithinUpdate(testContext, original), podScalable); got != nil {
+					t.Errorf("ValidatePodSpecable() scaling down = %v, wanted nil", got)
+				}
+
+				// Check that we fail as expected if being scaled up.
+				original.Spec.Replicas = ptr.Int32(2)
+				got = v.ValidatePodScalable(apis.WithinUpdate(testContext, original), podScalable)
+				want = test.want.ViaField("spec.template.spec")
+				if (got != nil) != (want != nil) {
+					t.Errorf("ValidatePodScalable() scaling up = %v, wanted %v", got, want)
+				} else if got != nil && got.Error() != want.Error() {
+					t.Errorf("ValidatePodScalable() scaling up = %v, wanted %v", got, want)
+				}
+				// Check the warning/error level.
+				if got != nil && test.want != nil {
+					if got.Level != want.Level {
+						t.Errorf("ValidatePodScalable() scaling up Wrong Level = %v, wanted %v", got.Level, want.Level)
+					}
+				}
 			}
 		})
 	}

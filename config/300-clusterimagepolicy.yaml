@@ -197,6 +197,9 @@ spec:
                       glob:
                         description: Glob defines a globbing pattern.
                         type: string
+                mode:
+                  description: Mode controls whether a failing policy will be rejected (not admitted), or if errors are converted to Warnings. enforce - Reject (default) warn - allow but warn
+                  type: string
                 policy:
                   description: Policy is an optional policy that can be applied against all the successfully validated Authorities. If no authorities pass, this does not even get evaluated, as the Policy is considered failed.
                   type: object
@@ -357,6 +360,9 @@ spec:
                     properties:
                       glob:
                         type: string
+                mode:
+                  description: Mode controls whether a failing policy will be rejected (not admitted), or if errors are converted to Warnings. enforce - Reject (default) warn - allow but warn
+                  type: string
                 policy:
                   description: Policy is an optional policy that can be applied against all the successfully validated Authorities. If no authorities pass, this does not even get evaluated, as the Policy is considered failed.
                   type: object

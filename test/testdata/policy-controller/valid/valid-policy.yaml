@@ -17,6 +17,7 @@ kind: ClusterImagePolicy
 metadata:
   name: image-policy
 spec:
+  mode: enforce
   images:
   - glob: images.*
   - glob: image*

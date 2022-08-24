@@ -61,6 +61,12 @@ type ClusterImagePolicySpec struct {
 	// not even get evaluated, as the Policy is considered failed.
 	// +optional
 	Policy *Policy `json:"policy,omitempty"`
+	// Mode controls whether a failing policy will be rejected (not admitted),
+	// or if errors are converted to Warnings.
+	// enforce - Reject (default)
+	// warn - allow but warn
+	// +optional
+	Mode string `json:"mode,omitempty"`
 }
 
 // ImagePattern defines a pattern and its associated authorties
