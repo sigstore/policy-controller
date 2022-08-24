@@ -103,6 +103,13 @@ jobs:
       run: |
         ./test/e2e_test_${{ matrix.script }}.sh
 
+    - name: Make sure validatingwebookconfiguration contains no status subresources
+      run: |
+      if kubectl get validatingwebhookconfigurations -oyaml policy.sigstore.dev | grep -q status; then
+        echo Found status resources in the webhook configuration
+        exit 1
+      fi
+
     - name: Collect diagnostics
       if: ${{ failure() }}
       uses: chainguard-dev/actions/kind-diag@84c993eaf02da1c325854fb272a4df9184bd80fc # main

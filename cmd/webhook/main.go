@@ -52,11 +52,12 @@ var secretName = flag.String("secret-name", "", "The name of the secret in the w
 // webhookName holds the name of the validating and mutating webhook
 // configuration resources dispatching admission requests to policy-controller.
 // It is also the name of the webhook which is injected by the controller
-// with the resource types, namespace selectors, CABindle and service path.
+// with the resource types, namespace selectors, CABundle and service path.
 // If this changes, you must also change:
-//    ./config/500-webhook-configuration.yaml
-//    https://github.com/sigstore/helm-charts/blob/main/charts/policy-controller/templates/webhook/webhook_mutating.yaml
-//    https://github.com/sigstore/helm-charts/blob/main/charts/policy-controller/templates/webhook/webhook_validating.yaml
+//
+//	./config/500-webhook-configuration.yaml
+//	https://github.com/sigstore/helm-charts/blob/main/charts/policy-controller/templates/webhook/webhook_mutating.yaml
+//	https://github.com/sigstore/helm-charts/blob/main/charts/policy-controller/templates/webhook/webhook_validating.yaml
 var webhookName = flag.String("webhook-name", "policy.sigstore.dev", "The name of the validating and mutating webhook configurations as well as the webhook name that is automatically configured, if exists, with different rules and client settings setting how the admission requests to be dispatched to policy-controller.")
 
 var tufMirror = flag.String("tuf-mirror", tuf.DefaultRemoteRoot, "Alternate TUF mirror. If left blank, public sigstore one is used")
@@ -114,7 +115,8 @@ func (c *crdNoStatusUpdatesOrDeletes) SupportedSubResources() []string {
 }
 
 func (c *crdNoStatusUpdatesOrDeletes) SupportedVerbs() []admissionregistrationv1.OperationType {
-	return []admissionregistrationv1.OperationType{admissionregistrationv1.Create,
+	return []admissionregistrationv1.OperationType{
+		admissionregistrationv1.Create,
 		admissionregistrationv1.Update,
 	}
 }
