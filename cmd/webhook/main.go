@@ -22,6 +22,7 @@ import (
 	"log"
 
 	policyduckv1beta1 "github.com/sigstore/policy-controller/pkg/apis/duck/v1beta1"
+	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	batchv1beta1 "k8s.io/api/batch/v1beta1"
@@ -51,11 +52,12 @@ var secretName = flag.String("secret-name", "", "The name of the secret in the w
 // webhookName holds the name of the validating and mutating webhook
 // configuration resources dispatching admission requests to policy-controller.
 // It is also the name of the webhook which is injected by the controller
-// with the resource types, namespace selectors, CABindle and service path.
+// with the resource types, namespace selectors, CABundle and service path.
 // If this changes, you must also change:
-//    ./config/500-webhook-configuration.yaml
-//    https://github.com/sigstore/helm-charts/blob/main/charts/policy-controller/templates/webhook/webhook_mutating.yaml
-//    https://github.com/sigstore/helm-charts/blob/main/charts/policy-controller/templates/webhook/webhook_validating.yaml
+//
+//	./config/500-webhook-configuration.yaml
+//	https://github.com/sigstore/helm-charts/blob/main/charts/policy-controller/templates/webhook/webhook_mutating.yaml
+//	https://github.com/sigstore/helm-charts/blob/main/charts/policy-controller/templates/webhook/webhook_validating.yaml
 var webhookName = flag.String("webhook-name", "policy.sigstore.dev", "The name of the validating and mutating webhook configurations as well as the webhook name that is automatically configured, if exists, with different rules and client settings setting how the admission requests to be dispatched to policy-controller.")
 
 var tufMirror = flag.String("tuf-mirror", tuf.DefaultRemoteRoot, "Alternate TUF mirror. If left blank, public sigstore one is used")
@@ -98,17 +100,38 @@ func main() {
 	)
 }
 
+var (
+	_ resourcesemantics.SubResourceLimited = (*crdNoStatusUpdatesOrDeletes)(nil)
+	_ resourcesemantics.VerbLimited        = (*crdNoStatusUpdatesOrDeletes)(nil)
+)
+
+type crdNoStatusUpdatesOrDeletes struct {
+	resourcesemantics.GenericCRD
+}
+
+func (c *crdNoStatusUpdatesOrDeletes) SupportedSubResources() []string {
+	// We do not want any updates that are for status, scale, or anything else.
+	return []string{""}
+}
+
+func (c *crdNoStatusUpdatesOrDeletes) SupportedVerbs() []admissionregistrationv1.OperationType {
+	return []admissionregistrationv1.OperationType{
+		admissionregistrationv1.Create,
+		admissionregistrationv1.Update,
+	}
+}
+
 var types = map[schema.GroupVersionKind]resourcesemantics.GenericCRD{
-	corev1.SchemeGroupVersion.WithKind("Pod"): &duckv1.Pod{},
+	corev1.SchemeGroupVersion.WithKind("Pod"): &crdNoStatusUpdatesOrDeletes{GenericCRD: &duckv1.Pod{}},
 
-	appsv1.SchemeGroupVersion.WithKind("ReplicaSet"):  &policyduckv1beta1.PodScalable{},
-	appsv1.SchemeGroupVersion.WithKind("Deployment"):  &policyduckv1beta1.PodScalable{},
-	appsv1.SchemeGroupVersion.WithKind("StatefulSet"): &policyduckv1beta1.PodScalable{},
-	appsv1.SchemeGroupVersion.WithKind("DaemonSet"):   &duckv1.WithPod{},
-	batchv1.SchemeGroupVersion.WithKind("Job"):        &duckv1.WithPod{},
+	appsv1.SchemeGroupVersion.WithKind("ReplicaSet"):  &crdNoStatusUpdatesOrDeletes{GenericCRD: &policyduckv1beta1.PodScalable{}},
+	appsv1.SchemeGroupVersion.WithKind("Deployment"):  &crdNoStatusUpdatesOrDeletes{GenericCRD: &policyduckv1beta1.PodScalable{}},
+	appsv1.SchemeGroupVersion.WithKind("StatefulSet"): &crdNoStatusUpdatesOrDeletes{GenericCRD: &policyduckv1beta1.PodScalable{}},
+	appsv1.SchemeGroupVersion.WithKind("DaemonSet"):   &crdNoStatusUpdatesOrDeletes{GenericCRD: &duckv1.WithPod{}},
+	batchv1.SchemeGroupVersion.WithKind("Job"):        &crdNoStatusUpdatesOrDeletes{GenericCRD: &duckv1.WithPod{}},
 
-	batchv1.SchemeGroupVersion.WithKind("CronJob"):      &duckv1.CronJob{},
-	batchv1beta1.SchemeGroupVersion.WithKind("CronJob"): &duckv1.CronJob{},
+	batchv1.SchemeGroupVersion.WithKind("CronJob"):      &crdNoStatusUpdatesOrDeletes{GenericCRD: &duckv1.CronJob{}},
+	batchv1beta1.SchemeGroupVersion.WithKind("CronJob"): &crdNoStatusUpdatesOrDeletes{GenericCRD: &duckv1.CronJob{}},
 }
 
 func NewValidatingAdmissionController(ctx context.Context, cmw configmap.Watcher) *controller.Impl {

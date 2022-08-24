@@ -43,7 +43,7 @@ jobs:
 
     env:
       KO_DOCKER_REPO: "registry.local:5000/policy-controller"
-      SCAFFOLDING_RELEASE_VERSION: "v0.4.5"
+      SCAFFOLDING_RELEASE_VERSION: "v0.4.6"
       GO111MODULE: on
       GOFLAGS: -ldflags=-s -ldflags=-w
       KOCACHE: ~/ko
@@ -102,6 +102,13 @@ jobs:
       timeout-minutes: 15
       run: |
         ./test/e2e_test_${{ matrix.script }}.sh
+
+    - name: Make sure validatingwebookconfiguration contains no status subresources
+      run: |
+        if kubectl get validatingwebhookconfigurations -oyaml policy.sigstore.dev | grep -q status; then
+          echo Found status resources in the webhook configuration
+          exit 1
+        fi
 
     - name: Collect diagnostics
       if: ${{ failure() }}
