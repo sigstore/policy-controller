@@ -57,7 +57,8 @@ func TestModeDefaulting(t *testing.T) {
 		name     string
 		mode     string
 		wantMode string
-	}{{name: "empty",
+	}{{
+		name:     "empty",
 		wantMode: "enforce",
 	}, {
 		name:     "enforce",

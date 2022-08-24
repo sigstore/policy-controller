@@ -133,12 +133,15 @@ func main() {
 	for _, err := range errs {
 		var fe *apis.FieldError
 		if errors.As(err, &fe) {
-			if fe.Level == apis.WarningLevel {
-				warningStrings = append(warningStrings, strings.Trim(err.Error(), "\n"))
-				continue
+			if warnFE := fe.Filter(apis.WarningLevel); warnFE != nil {
+				warningStrings = append(warningStrings, strings.Trim(warnFE.Error(), "\n"))
 			}
+			if errorFE := fe.Filter(apis.WarningLevel); errorFE != nil {
+				warningStrings = append(warningStrings, strings.Trim(errorFE.Error(), "\n"))
+			}
+		} else {
+			errStrings = append(errStrings, strings.Trim(err.Error(), "\n"))
 		}
-		errStrings = append(errStrings, strings.Trim(err.Error(), "\n"))
 	}
 	var o []byte
 	o, err = json.Marshal(&output{
