@@ -136,8 +136,8 @@ func main() {
 			if warnFE := fe.Filter(apis.WarningLevel); warnFE != nil {
 				warningStrings = append(warningStrings, strings.Trim(warnFE.Error(), "\n"))
 			}
-			if errorFE := fe.Filter(apis.WarningLevel); errorFE != nil {
-				warningStrings = append(warningStrings, strings.Trim(errorFE.Error(), "\n"))
+			if errorFE := fe.Filter(apis.ErrorLevel); errorFE != nil {
+				errStrings = append(errStrings, strings.Trim(errorFE.Error(), "\n"))
 			}
 		} else {
 			errStrings = append(errStrings, strings.Trim(err.Error(), "\n"))
