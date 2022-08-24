@@ -63,7 +63,7 @@ cosign initialize --mirror ${TUF_MIRROR} --root ${TUF_ROOT_FILE}
 
 # To simplify testing warnings, use this function to execute a kubectl to create
 # our job and verify that the warning is as expected.
-assert_error() {
+assert_warning() {
   local KUBECTL_OUT_FILE="/tmp/kubectl.warning.out"
   match="$@"
   echo looking for ${match}
