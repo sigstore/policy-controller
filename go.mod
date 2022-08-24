@@ -60,9 +60,9 @@ require (
 	k8s.io/client-go v0.23.9
 	k8s.io/code-generator v0.23.9
 	k8s.io/kube-openapi v0.0.0-20220124234850-424119656bbf
-	knative.dev/hack v0.0.0-20220815132133-e9a8475f4329
+	knative.dev/hack v0.0.0-20220823140917-8d1e4ccf9dc3
 	knative.dev/hack/schema v0.0.0-20220224013837-e1785985d364
-	knative.dev/pkg v0.0.0-20220819090049-2e08ca63a922
+	knative.dev/pkg v0.0.0-20220823195218-da7191979f8b
 	sigs.k8s.io/release-utils v0.7.3
 	sigs.k8s.io/yaml v1.3.0
 )
@@ -304,5 +304,3 @@ require (
 // TODO: this dependency causes issues on webhook startup due
 // to conflicting "log_dir" flags between this and klog (knative)
 replace github.com/golang/glog => github.com/jdolitsky/glog v0.0.0-20220729172235-78744e90d087
-
-replace knative.dev/pkg => github.com/vaikas/pkg v0.0.0-20220819171407-98f8be2a596f
