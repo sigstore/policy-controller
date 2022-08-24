@@ -49,8 +49,8 @@ spec:
           # Uncomment these to initialize with a custom TUF root.
           # TODO: How to specify the entire TUF directory for multiple
           # TUF roots.
-          "--tuf-mirror", "http://tuf.tuf-system.svc",
-          "--tuf-root", "/var/run/tuf/root.json",
+          #"--tuf-mirror", "http://tuf.tuf-system.svc",
+          #"--tuf-root", "/var/run/tuf/root.json",
         ]
         resources:
           requests:
