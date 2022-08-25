@@ -18,8 +18,8 @@
 set -ex
 
 if [[ -z "${OIDC_TOKEN}" ]]; then
-  if [[ -z "${TOKEN_ISSUER}" ]]; then
-    echo "Must specify either env variable OIDC_TOKEN or TOKEN_ISSUER"
+  if [[ -z "${ISSUER_URL}" ]]; then
+    echo "Must specify either env variable OIDC_TOKEN or ISSUER_URL"
     exit 1
   else
     export OIDC_TOKEN=`curl -s ${ISSUER_URL}`
