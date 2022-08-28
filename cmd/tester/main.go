@@ -94,7 +94,14 @@ func main() {
 
 	validateErrs := v1alpha1cip.Validate(ctx)
 	if validateErrs != nil {
-		log.Fatalf("CIP is invalid: %s", validateErrs.Error())
+		// CIP validation can return Warnings so let's just go through them
+		// and only exit if there are Errors.
+		if warnFE := validateErrs.Filter(apis.WarningLevel); warnFE != nil {
+			log.Printf("CIP has warnings:\n%s\n", warnFE.Error())
+		}
+		if errorFE := validateErrs.Filter(apis.ErrorLevel); errorFE != nil {
+			log.Fatalf("CIP is invalid: %s", errorFE.Error())
+		}
 	}
 	cip := webhookcip.ConvertClusterImagePolicyV1alpha1ToWebhook(&v1alpha1cip)
 
