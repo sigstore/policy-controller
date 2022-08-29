@@ -63,7 +63,7 @@ func TestGetAuthorities(t *testing.T) {
 	c, err := defaults.GetMatchingPolicies("rando")
 	checkGetMatches(t, c, err)
 	matchedPolicy := "cluster-image-policy-0"
-	want := "inlinedata here"
+	want := inlineKeyData
 	if got := getAuthority(t, c, matchedPolicy).Key.Data; got != want {
 		t.Errorf("Did not get what I wanted %q, got %+v", want, got)
 	}
@@ -71,14 +71,14 @@ func TestGetAuthorities(t *testing.T) {
 	c, err = defaults.GetMatchingPolicies("randomstuffhere")
 	checkGetMatches(t, c, err)
 	matchedPolicy = "cluster-image-policy-1"
-	want = "otherinline here"
+	want = inlineKeyData
 	if got := getAuthority(t, c, matchedPolicy).Key.Data; got != want {
 		t.Errorf("Did not get what I wanted %q, got %+v", want, got)
 	}
 	c, err = defaults.GetMatchingPolicies("rando3")
 	checkGetMatches(t, c, err)
 	matchedPolicy = "cluster-image-policy-2"
-	want = "cacert chilling here"
+	want = inlineKeyData
 	if got := getAuthority(t, c, matchedPolicy).Keyless.CACert.Data; got != want {
 		t.Errorf("Did not get what I wanted %q, got %+v", want, got)
 	}
@@ -134,7 +134,7 @@ func TestGetAuthorities(t *testing.T) {
 	checkPublicKey(t, getAuthority(t, c, matchedPolicy).Key.PublicKeys[0])
 
 	matchedPolicy = "cluster-image-policy-5"
-	want = "inlinedata here"
+	want = inlineKeyData
 	if got := getAuthority(t, c, matchedPolicy).Key.Data; got != want {
 		t.Errorf("Did not get what I wanted %q, got %+v", want, got)
 	}
@@ -197,6 +197,17 @@ func TestGetAuthorities(t *testing.T) {
 	want = "examplePullSecret"
 	if got := getAuthority(t, c, matchedPolicy).Sources[0].SignaturePullSecrets[0].Name; got != want {
 		t.Errorf("Did not get what I wanted %q, got %+v", want, got)
+	}
+}
+
+func TestFailsToLoadInvalid(t *testing.T) {
+	wantErr := "failed to parse the entry \"cluster-image-policy-0\""
+	_, example := ConfigMapsFromTestFile(t, "config-invalid-image-policy")
+	_, err := NewImagePoliciesConfigFromConfigMap(example)
+	if err == nil {
+		t.Error("Did not fail with invalid configmap")
+	} else if !strings.Contains(err.Error(), wantErr) {
+		t.Errorf("Unexpected error, wanted to contain %s : got %v", wantErr, err)
 	}
 }
 

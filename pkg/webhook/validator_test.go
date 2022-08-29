@@ -1617,6 +1617,15 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 		cvs           func(context.Context, name.Reference, *cosign.CheckOpts) ([]oci.Signature, bool, error)
 		customContext context.Context
 	}{{
+		name: "fail with no public key",
+		policy: webhookcip.ClusterImagePolicy{
+			Authorities: []webhookcip.Authority{{
+				Name: "authority-0",
+				Key:  &webhookcip.KeyRef{},
+			}},
+		},
+		wantErrs: []string{"there are no public keys for authority authority-0"},
+	}, {
 		name: "simple, public key, no matches",
 		policy: webhookcip.ClusterImagePolicy{
 			Authorities: []webhookcip.Authority{{
