@@ -3058,8 +3058,6 @@ knative.dev/hack v0.0.0-20220823140917-8d1e4ccf9dc3 h1:umaeMRecA0g5g48L9tnEAkTBI
 knative.dev/hack v0.0.0-20220823140917-8d1e4ccf9dc3/go.mod h1:t/azP8I/Cygaw+87O7rkAPrNRjCelmtfSzWzu/9TM7I=
 knative.dev/hack/schema v0.0.0-20220224013837-e1785985d364 h1:iuM9VFi9cjSNuVc3x5gUbPQn4zndXfjWDYCJ1fYpk18=
 knative.dev/hack/schema v0.0.0-20220224013837-e1785985d364/go.mod h1:ffjwmdcrH5vN3mPhO8RrF2KfNnbHeCE2C60A+2cv3U0=
-knative.dev/pkg v0.0.0-20220824011017-a6afcab5bd78 h1:6pCkAEem4KV7AMljwrreAgF2psSjne4mSvDFzOceSt4=
-knative.dev/pkg v0.0.0-20220824011017-a6afcab5bd78/go.mod h1:WIQZyPTLzT+z0V3/gB91aWugIi3E1mkU9rjCrLfjOwY=
 knative.dev/pkg v0.0.0-20220826162920-93b66e6a8700 h1:6xjS69vf5Pbwu+dWckqPALmm5pc3p0/XScPpRBhugRc=
 knative.dev/pkg v0.0.0-20220826162920-93b66e6a8700/go.mod h1:WIQZyPTLzT+z0V3/gB91aWugIi3E1mkU9rjCrLfjOwY=
 mvdan.cc/gofumpt v0.1.1/go.mod h1:yXG1r1WqZVKWbVRtBWKWX9+CxGYfA51nSomhM0woR48=
