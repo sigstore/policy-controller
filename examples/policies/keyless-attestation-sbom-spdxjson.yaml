@@ -32,6 +32,9 @@ spec:
   - name: keyless
     keyless:
       url: "https://fulcio.sigstore.dev"
+      identities:
+        - issuer: https://token.actions.githubusercontent.com
+          subject: "https://github.com/sigstore/policy-controller/.github/workflows/policy-tester-examples.yml@refs/heads/main"
     attestations:
     - name: must-have-spdxjson
       predicateType: spdxjson
