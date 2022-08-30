@@ -23,6 +23,7 @@ import (
 	"crypto/elliptic"
 	"crypto/x509"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -44,10 +45,12 @@ import (
 	policyduckv1beta1 "github.com/sigstore/policy-controller/pkg/apis/duck/v1beta1"
 	"github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
 	webhookcip "github.com/sigstore/policy-controller/pkg/webhook/clusterimagepolicy"
+	admissionv1 "k8s.io/api/admission/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+	"k8s.io/apimachinery/pkg/types"
 	"knative.dev/pkg/apis"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
 	fakekube "knative.dev/pkg/client/injection/kube/client/fake"
@@ -1843,4 +1846,721 @@ func TestValidatePoliciesCancelled(t *testing.T) {
 	cancelFunc()
 	_, gotErrs := validatePolicies(testContext, system.Namespace(), digest, map[string]webhookcip.ClusterImagePolicy{"testcip": cip})
 	validateErrors(t, wantErrs, gotErrs["internalerror"])
+}
+
+func TestValidatePodSpecNonDefaultNamespace(t *testing.T) {
+	tag := name.MustParseReference("gcr.io/distroless/static:nonroot")
+	// Resolved via crane digest on 2021/09/25
+	digest := name.MustParseReference("gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4")
+
+	ctx, _ := rtesting.SetupFakeContext(t)
+	si := fakesecret.Get(ctx)
+
+	secretName := "blah"
+
+	// Non-existent URL for testing complete failure
+	badURL := apis.HTTP("http://example.com/")
+
+	// Spin up a Fulcio that responds with a Root Cert
+	fulcioServer := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+		rw.Write([]byte(fulcioRootCert))
+	}))
+	t.Cleanup(fulcioServer.Close)
+	fulcioURL, err := apis.ParseURL(fulcioServer.URL)
+	if err != nil {
+		t.Fatalf("Failed to parse fake Fulcio URL")
+	}
+
+	rekorServer := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+		rw.Write([]byte(rekorResponse))
+	}))
+	t.Cleanup(rekorServer.Close)
+	rekorURL, err := apis.ParseURL(rekorServer.URL)
+	if err != nil {
+		t.Fatalf("Failed to parse fake Rekor URL")
+	}
+
+	var authorityKeyCosignPub *ecdsa.PublicKey
+
+	pems := parsePems([]byte(authorityKeyCosignPubString))
+	if len(pems) > 0 {
+		key, _ := x509.ParsePKIXPublicKey(pems[0].Bytes)
+		authorityKeyCosignPub = key.(*ecdsa.PublicKey)
+	} else {
+		t.Errorf("Error parsing authority key from string")
+	}
+
+	si.Informer().GetIndexer().Add(&corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: system.Namespace(),
+			Name:      secretName,
+		},
+		Data: map[string][]byte{
+			// Random public key (cosign generate-key-pair) 2021-09-25
+			"cosign.pub": []byte(`-----BEGIN PUBLIC KEY-----
+MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEapTW568kniCbL0OXBFIhuhOboeox
+UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
+-----END PUBLIC KEY-----
+`),
+		},
+	})
+
+	kc := fakekube.Get(ctx)
+	// Setup service acc and fakeSignaturePullSecrets for "default", "cosign-system" and "my-secure-ns" namespace
+	for _, ns := range []string{"default", system.Namespace(), "my-secure-ns"} {
+		kc.CoreV1().ServiceAccounts(ns).Create(ctx, &corev1.ServiceAccount{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "default",
+			},
+		}, metav1.CreateOptions{})
+
+		kc.CoreV1().Secrets(ns).Create(ctx, &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "fakeSignaturePullSecrets",
+			},
+			Data: map[string][]byte{
+				"dockerconfigjson": []byte(`{"auths":{"https://index.docker.io/v1/":{"username":"username","password":"password","auth":"dXNlcm5hbWU6cGFzc3dvcmQ="}}`),
+			},
+		}, metav1.CreateOptions{})
+	}
+
+	// Create fake secret in a non-default namespace and patch the default service acc
+	kc.CoreV1().Secrets("my-secure-ns").Create(ctx, &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "fakeSignaturePullSecretsNonDefault",
+		},
+		Data: map[string][]byte{
+			"dockerconfigjson": []byte(`{"auths":{"https://index.docker.io/v1/":{"username":"username","password":"password","auth":"dXNlcm5hbWU6cGFzc3dvcmQ="}}`),
+		},
+	}, metav1.CreateOptions{})
+
+	mergePatch := map[string]interface{}{
+		"imagePullSecrets": map[string]interface{}{
+			"name": "fakeSignaturePullSecretsNonDefault",
+		},
+	}
+	patch, err := json.Marshal(mergePatch)
+	if err != nil {
+		t.Fatalf("Failed to marshal merge patch: %v", err)
+	}
+	kc.CoreV1().ServiceAccounts("my-secure-ns").Patch(ctx, "default", types.MergePatchType, patch, metav1.PatchOptions{})
+
+	v := NewValidator(ctx, secretName)
+
+	cvs := cosignVerifySignatures
+	defer func() {
+		cosignVerifySignatures = cvs
+	}()
+	// Let's just say that everything is verified.
+	pass := func(_ context.Context, _ name.Reference, _ *cosign.CheckOpts) (checkedSignatures []oci.Signature, bundleVerified bool, err error) {
+		sig, err := static.NewSignature(nil, "")
+		if err != nil {
+			return nil, false, err
+		}
+		return []oci.Signature{sig}, true, nil
+	}
+	// Let's just say that everything is not verified.
+	fail := func(_ context.Context, _ name.Reference, _ *cosign.CheckOpts) (checkedSignatures []oci.Signature, bundleVerified bool, err error) {
+		return nil, false, errors.New("bad signature")
+	}
+
+	// Let's say it is verified if it is the expected Public Key
+	authorityPublicKeyCVS := func(ctx context.Context, signedImgRef name.Reference, co *cosign.CheckOpts) (checkedSignatures []oci.Signature, bundleVerified bool, err error) {
+		actualPublicKey, _ := co.SigVerifier.PublicKey()
+		actualECDSAPubkey := actualPublicKey.(*ecdsa.PublicKey)
+		actualKeyData := elliptic.Marshal(actualECDSAPubkey, actualECDSAPubkey.X, actualECDSAPubkey.Y)
+
+		expectedKeyData := elliptic.Marshal(authorityKeyCosignPub, authorityKeyCosignPub.X, authorityKeyCosignPub.Y)
+
+		if bytes.Equal(actualKeyData, expectedKeyData) {
+			return pass(ctx, signedImgRef, co)
+		}
+
+		return fail(ctx, signedImgRef, co)
+	}
+
+	tests := []struct {
+		name          string
+		ps            *corev1.PodSpec
+		want          *apis.FieldError
+		cvs           func(context.Context, name.Reference, *cosign.CheckOpts) ([]oci.Signature, bool, error)
+		customContext context.Context
+	}{{
+		name: "simple, no error",
+		ps: &corev1.PodSpec{
+			InitContainers: []corev1.Container{{
+				Name:  "setup-stuff",
+				Image: digest.String(),
+			}},
+			Containers: []corev1.Container{{
+				Name:  "user-container",
+				Image: digest.String(),
+			}},
+		},
+		cvs: pass,
+	}, {
+		name: "bad reference",
+		ps: &corev1.PodSpec{
+			Containers: []corev1.Container{{
+				Name:  "user-container",
+				Image: "in@valid",
+			}},
+		},
+		want: &apis.FieldError{
+			Message: `could not parse reference: in@valid`,
+			Paths:   []string{"containers[0].image"},
+		},
+		cvs: fail,
+	}, {
+		name: "not digest",
+		ps: &corev1.PodSpec{
+			Containers: []corev1.Container{{
+				Name:  "user-container",
+				Image: tag.String(),
+			}},
+		},
+		want: &apis.FieldError{
+			Message: `invalid value: gcr.io/distroless/static:nonroot must be an image digest`,
+			Paths:   []string{"containers[0].image"},
+		},
+		cvs: fail,
+	}, {
+		name: "bad signature",
+		ps: &corev1.PodSpec{
+			Containers: []corev1.Container{{
+				Name:  "user-container",
+				Image: digest.String(),
+			}},
+		},
+		want: &apis.FieldError{
+			Message: `bad signature`,
+			Paths:   []string{"containers[0].image"},
+			Details: digest.String(),
+		},
+		cvs: fail,
+	}, {
+		name: "simple, no error, authority key",
+		ps: &corev1.PodSpec{
+			InitContainers: []corev1.Container{{
+				Name:  "setup-stuff",
+				Image: digest.String(),
+			}},
+			Containers: []corev1.Container{{
+				Name:  "user-container",
+				Image: digest.String(),
+			}},
+		},
+		customContext: config.ToContext(context.Background(),
+			&config.Config{
+				ImagePolicyConfig: &config.ImagePolicyConfig{
+					Policies: map[string]webhookcip.ClusterImagePolicy{
+						"cluster-image-policy": {
+							Images: []v1alpha1.ImagePattern{{
+								Glob: "gcr.io/*/*",
+							}},
+							Authorities: []webhookcip.Authority{
+								{
+									Key: &webhookcip.KeyRef{
+										Data:       authorityKeyCosignPubString,
+										PublicKeys: []crypto.PublicKey{authorityKeyCosignPub},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		),
+		cvs: authorityPublicKeyCVS,
+	}, {
+		name: "simple, error, authority keyless, bad fulcio",
+		ps: &corev1.PodSpec{
+			InitContainers: []corev1.Container{{
+				Name:  "setup-stuff",
+				Image: digest.String(),
+			}},
+			Containers: []corev1.Container{{
+				Name:  "user-container",
+				Image: digest.String(),
+			}},
+		},
+		customContext: config.ToContext(context.Background(),
+			&config.Config{
+				ImagePolicyConfig: &config.ImagePolicyConfig{
+					Policies: map[string]webhookcip.ClusterImagePolicy{
+						"cluster-image-policy-keyless": {
+							Images: []v1alpha1.ImagePattern{{
+								Glob: "gcr.io/*/*",
+							}},
+							Authorities: []webhookcip.Authority{
+								{
+									Keyless: &webhookcip.KeylessRef{
+										URL: badURL,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		),
+		want: func() *apis.FieldError {
+			var errs *apis.FieldError
+			fe := apis.ErrGeneric("failed policy: cluster-image-policy-keyless", "image").ViaFieldIndex("initContainers", 0)
+			fe.Details = fmt.Sprintf("%s %s", digest.String(), `fetching FulcioRoot: getting root cert: request: parse "http://http:%2F%2Fexample.com%2F/api/v1/rootCert": invalid port ":%2F%2Fexample.com%2F" after host`)
+			errs = errs.Also(fe)
+			fe2 := apis.ErrGeneric("failed policy: cluster-image-policy-keyless", "image").ViaFieldIndex("containers", 0)
+			fe2.Details = fmt.Sprintf("%s %s", digest.String(), `fetching FulcioRoot: getting root cert: request: parse "http://http:%2F%2Fexample.com%2F/api/v1/rootCert": invalid port ":%2F%2Fexample.com%2F" after host`)
+			errs = errs.Also(fe2)
+			return errs
+		}(),
+		cvs: fail,
+	}, {
+		name: "simple, error, authority keyless, good fulcio, no rekor",
+		ps: &corev1.PodSpec{
+			InitContainers: []corev1.Container{{
+				Name:  "setup-stuff",
+				Image: digest.String(),
+			}},
+			Containers: []corev1.Container{{
+				Name:  "user-container",
+				Image: digest.String(),
+			}},
+		},
+		customContext: config.ToContext(context.Background(),
+			&config.Config{
+				ImagePolicyConfig: &config.ImagePolicyConfig{
+					Policies: map[string]webhookcip.ClusterImagePolicy{
+						"cluster-image-policy-keyless": {
+							Images: []v1alpha1.ImagePattern{{
+								Glob: "gcr.io/*/*",
+							}},
+							Authorities: []webhookcip.Authority{
+								{
+									Keyless: &webhookcip.KeylessRef{
+										URL: fulcioURL,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		),
+		want: func() *apis.FieldError {
+			var errs *apis.FieldError
+			fe := apis.ErrGeneric("failed policy: cluster-image-policy-keyless", "image").ViaFieldIndex("initContainers", 0)
+			fe.Details = fmt.Sprintf("%s signature keyless validation failed for authority  for %s: bad signature", digest.String(), digest.Name())
+			errs = errs.Also(fe)
+			fe2 := apis.ErrGeneric("failed policy: cluster-image-policy-keyless", "image").ViaFieldIndex("containers", 0)
+			fe2.Details = fmt.Sprintf("%s signature keyless validation failed for authority  for %s: bad signature", digest.String(), digest.Name())
+			errs = errs.Also(fe2)
+			return errs
+		}(),
+		cvs: fail,
+	}, {
+		name: "simple, authority keyless checks out, good fulcio, bad cip policy",
+		ps: &corev1.PodSpec{
+			InitContainers: []corev1.Container{{
+				Name:  "setup-stuff",
+				Image: digest.String(),
+			}},
+			Containers: []corev1.Container{{
+				Name:  "user-container",
+				Image: digest.String(),
+			}},
+		},
+		customContext: config.ToContext(context.Background(),
+			&config.Config{
+				ImagePolicyConfig: &config.ImagePolicyConfig{
+					Policies: map[string]webhookcip.ClusterImagePolicy{
+						"cluster-image-policy-keyless-bad-cip": {
+							Images: []v1alpha1.ImagePattern{{
+								Glob: "gcr.io/*/*",
+							}},
+							Authorities: []webhookcip.Authority{
+								{
+									Keyless: &webhookcip.KeylessRef{
+										URL: fulcioURL,
+									},
+								},
+							},
+							Policy: &webhookcip.AttestationPolicy{
+								Name: "invalid json policy",
+								Type: "cue",
+								Data: `{"wontgo`,
+							},
+						},
+					},
+				},
+			},
+		),
+		want: func() *apis.FieldError {
+			var errs *apis.FieldError
+			fe := apis.ErrGeneric("failed policy: cluster-image-policy-keyless-bad-cip", "image").ViaFieldIndex("initContainers", 0)
+			fe.Details = fmt.Sprintf("%s failed evaluating cue policy for ClusterImagePolicy: failed to compile the cue policy with error: string literal not terminated", digest.String())
+			errs = errs.Also(fe)
+			fe2 := apis.ErrGeneric("failed policy: cluster-image-policy-keyless-bad-cip", "image").ViaFieldIndex("containers", 0)
+			fe2.Details = fmt.Sprintf("%s failed evaluating cue policy for ClusterImagePolicy: failed to compile the cue policy with error: string literal not terminated", digest.String())
+			errs = errs.Also(fe2)
+			return errs
+		}(),
+		cvs: pass,
+	}, {
+		name: "simple, no error, authority keyless, good fulcio",
+		ps: &corev1.PodSpec{
+			InitContainers: []corev1.Container{{
+				Name:  "setup-stuff",
+				Image: digest.String(),
+			}},
+			Containers: []corev1.Container{{
+				Name:  "user-container",
+				Image: digest.String(),
+			}},
+		},
+		customContext: config.ToContext(context.Background(),
+			&config.Config{
+				ImagePolicyConfig: &config.ImagePolicyConfig{
+					Policies: map[string]webhookcip.ClusterImagePolicy{
+						"cluster-image-policy-keyless": {
+							Images: []v1alpha1.ImagePattern{{
+								Glob: "gcr.io/*/*",
+							}},
+							Authorities: []webhookcip.Authority{
+								{
+									Keyless: &webhookcip.KeylessRef{
+										URL: fulcioURL,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		),
+		cvs: pass,
+	}, {
+		name: "simple, error, authority keyless, good fulcio, bad rekor",
+		ps: &corev1.PodSpec{
+			InitContainers: []corev1.Container{{
+				Name:  "setup-stuff",
+				Image: digest.String(),
+			}},
+			Containers: []corev1.Container{{
+				Name:  "user-container",
+				Image: digest.String(),
+			}},
+		},
+		customContext: config.ToContext(context.Background(),
+			&config.Config{
+				ImagePolicyConfig: &config.ImagePolicyConfig{
+					Policies: map[string]webhookcip.ClusterImagePolicy{
+						"cluster-image-policy-keyless": {
+							Images: []v1alpha1.ImagePattern{{
+								Glob: "gcr.io/*/*",
+							}},
+							Authorities: []webhookcip.Authority{
+								{
+									Keyless: &webhookcip.KeylessRef{
+										URL: fulcioURL,
+									},
+									CTLog: &v1alpha1.TLog{
+										URL: rekorURL,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		),
+		want: func() *apis.FieldError {
+			var errs *apis.FieldError
+			fe := apis.ErrGeneric("failed policy: cluster-image-policy-keyless", "image").ViaFieldIndex("initContainers", 0)
+			fe.Details = fmt.Sprintf("%s signature keyless validation failed for authority  for %s: bad signature", digest.String(), digest.Name())
+			errs = errs.Also(fe)
+			fe2 := apis.ErrGeneric("failed policy: cluster-image-policy-keyless", "image").ViaFieldIndex("containers", 0)
+			fe2.Details = fmt.Sprintf("%s signature keyless validation failed for authority  for %s: bad signature", digest.String(), digest.Name())
+			errs = errs.Also(fe2)
+			return errs
+		}(),
+		cvs: fail,
+	}, {
+		name: "simple, error, authority source signaturePullSecrets, non existing secret",
+		ps: &corev1.PodSpec{
+			InitContainers: []corev1.Container{{
+				Name:  "setup-stuff",
+				Image: digest.String(),
+			}},
+			Containers: []corev1.Container{{
+				Name:  "user-container",
+				Image: digest.String(),
+			}},
+		},
+		customContext: config.ToContext(ctx,
+			&config.Config{
+				ImagePolicyConfig: &config.ImagePolicyConfig{
+					Policies: map[string]webhookcip.ClusterImagePolicy{
+						"cluster-image-policy": {
+							Images: []v1alpha1.ImagePattern{{
+								Glob: "gcr.io/*/*",
+							}},
+							Authorities: []webhookcip.Authority{
+								{
+									Key: &webhookcip.KeyRef{
+										Data:       authorityKeyCosignPubString,
+										PublicKeys: []crypto.PublicKey{authorityKeyCosignPub},
+									},
+									Sources: []v1alpha1.Source{{
+										OCI: "example.com/alternative/signature",
+										SignaturePullSecrets: []corev1.LocalObjectReference{{
+											Name: "non-existing-secret",
+										}},
+									}},
+								},
+							},
+						},
+					},
+				},
+			},
+		),
+		want: func() *apis.FieldError {
+			var errs *apis.FieldError
+			fe := apis.ErrGeneric("failed policy: cluster-image-policy", "image").ViaFieldIndex("initContainers", 0)
+			fe.Details = fmt.Sprintf("%s secrets \"non-existing-secret\" not found", digest.String())
+			errs = errs.Also(fe)
+
+			fe2 := apis.ErrGeneric("failed policy: cluster-image-policy", "image").ViaFieldIndex("containers", 0)
+			fe2.Details = fmt.Sprintf("%s secrets \"non-existing-secret\" not found", digest.String())
+			errs = errs.Also(fe2)
+
+			return errs
+		}(),
+		cvs: fail,
+	}, {
+		name: "simple, no error, authority source signaturePullSecrets, valid secret",
+		ps: &corev1.PodSpec{
+			InitContainers: []corev1.Container{{
+				Name:  "setup-stuff",
+				Image: digest.String(),
+			}},
+			Containers: []corev1.Container{{
+				Name:  "user-container",
+				Image: digest.String(),
+			}},
+		},
+		customContext: config.ToContext(ctx,
+			&config.Config{
+				ImagePolicyConfig: &config.ImagePolicyConfig{
+					Policies: map[string]webhookcip.ClusterImagePolicy{
+						"cluster-image-policy": {
+							Images: []v1alpha1.ImagePattern{{
+								Glob: "gcr.io/*/*",
+							}},
+							Authorities: []webhookcip.Authority{
+								{
+									Key: &webhookcip.KeyRef{
+										Data:       authorityKeyCosignPubString,
+										PublicKeys: []crypto.PublicKey{authorityKeyCosignPub},
+									},
+									Sources: []v1alpha1.Source{{
+										OCI: "example.com/alternative/signature",
+										SignaturePullSecrets: []corev1.LocalObjectReference{{
+											Name: "fakeSignaturePullSecrets",
+										}},
+									}},
+								},
+							},
+						},
+					},
+				},
+			},
+		),
+		cvs: authorityPublicKeyCVS,
+	}}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			for _, mode := range []string{"", "enforce", "warn"} {
+				cosignVerifySignatures = test.cvs
+				testContext := context.Background()
+				// By default we want errors. However, iff the mode above is
+				// warn, and we're using a custom context and therefore
+				// triggering the CIP.mode twiddling below, check for warnings.
+				wantWarn := false
+				if test.customContext != nil {
+					if mode == "warn" {
+						wantWarn = true
+					}
+					// If we are testing with custom context, loop through
+					// all the modes here. It's a bit silly that we spin through
+					// all the tests 3 times, but for now this is better than
+					// duplicating all the CIPs with just different modes.
+					testContext = test.customContext
+
+					// Twiddle the mode for tests.
+					cfg := config.FromContext(testContext)
+					newPolicies := make(map[string]webhookcip.ClusterImagePolicy, len(cfg.ImagePolicyConfig.Policies))
+					for k, v := range cfg.ImagePolicyConfig.Policies {
+						v.Mode = mode
+						newPolicies[k] = v
+					}
+					cfg.ImagePolicyConfig.Policies = newPolicies
+					config.ToContext(testContext, cfg)
+				}
+
+				// The Request body bytes are consumed in every call, so we need
+				// to set an new request for every call
+				attachHTTPRequestToContext := func(context.Context) context.Context {
+					// Build fake HTTP Request
+					admissionreq := &admissionv1.AdmissionReview{
+						Request: &admissionv1.AdmissionRequest{
+							Operation: admissionv1.Create,
+							Kind: metav1.GroupVersionKind{
+								Group:   "",
+								Version: "v1",
+								Kind:    "Pod",
+							},
+							Namespace: "my-secure-ns",
+						},
+					}
+
+					reqBuf := new(bytes.Buffer)
+					err = json.NewEncoder(reqBuf).Encode(&admissionreq)
+					if err != nil {
+						t.Fatalf("Failed to marshal admission review: %v", err)
+					}
+					req, err := http.NewRequest("GET", "foo", reqBuf)
+					if err != nil {
+						t.Fatalf("NewRequest() = %v", err)
+					}
+					return apis.WithHTTPRequest(testContext, req)
+				}
+
+				testContext = attachHTTPRequestToContext(testContext)
+				// Check the core mechanics
+				got := v.validatePodSpec(testContext, "my-secure-ns", test.ps, k8schain.Options{})
+				if (got != nil) != (test.want != nil) {
+					t.Errorf("validatePodSpec() = %v, wanted %v", got, test.want)
+				} else if got != nil && got.Error() != test.want.Error() {
+					t.Errorf("validatePodSpec() = %v, wanted %v", got, test.want)
+				}
+
+				if test.want != nil {
+					if wantWarn {
+						test.want.Level = apis.WarningLevel
+					} else {
+						test.want.Level = apis.ErrorLevel
+					}
+				}
+				// Check wrapped in a Pod
+				pod := &duckv1.Pod{
+					Spec: *test.ps,
+				}
+				testContext = attachHTTPRequestToContext(testContext)
+				got = v.ValidatePod(testContext, pod)
+				want := test.want.ViaField("spec")
+				if (got != nil) != (want != nil) {
+					t.Errorf("ValidatePod() = %v, wanted %v", got, want)
+				} else if got != nil && got.Error() != want.Error() {
+					t.Errorf("ValidatePod() = %v, wanted %v", got, want)
+				}
+				// Check the warning/error level.
+				if got != nil && test.want != nil {
+					if got.Level != want.Level {
+						t.Errorf("ValidatePod() Wrong Level = %v, wanted %v", got.Level, want.Level)
+					}
+				}
+				// Check that we don't block things being deleted.
+				testContext = attachHTTPRequestToContext(testContext)
+				if got := v.ValidatePod(apis.WithinDelete(testContext), pod); got != nil {
+					t.Errorf("ValidatePod() = %v, wanted nil", got)
+				}
+
+				// Check wrapped in a WithPod
+				withPod := &duckv1.WithPod{
+					Spec: duckv1.WithPodSpec{
+						Template: duckv1.PodSpecable{
+							Spec: *test.ps,
+						},
+					},
+				}
+				testContext = attachHTTPRequestToContext(testContext)
+				got = v.ValidatePodSpecable(testContext, withPod)
+				want = test.want.ViaField("spec.template.spec")
+				if (got != nil) != (want != nil) {
+					t.Errorf("ValidatePodSpecable() = %v, wanted %v", got, want)
+				} else if got != nil && got.Error() != want.Error() {
+					t.Errorf("ValidatePodSpecable() = %v, wanted %v", got, want)
+				}
+				// Check the warning/error level.
+				if got != nil && test.want != nil {
+					if got.Level != want.Level {
+						t.Errorf("ValidatePodSpecable() Wrong Level = %v, wanted %v", got.Level, want.Level)
+					}
+				}
+
+				// Check that we don't block things being deleted.
+				testContext = attachHTTPRequestToContext(testContext)
+				if got := v.ValidatePodSpecable(apis.WithinDelete(testContext), withPod); got != nil {
+					t.Errorf("ValidatePodSpecable() = %v, wanted nil", got)
+				}
+
+				// Check wrapped in a podScalable
+				podScalable := &policyduckv1beta1.PodScalable{
+					Spec: policyduckv1beta1.PodScalableSpec{
+						Replicas: ptr.Int32(3),
+						Template: corev1.PodTemplateSpec{
+							Spec: *test.ps,
+						},
+					},
+				}
+				testContext = attachHTTPRequestToContext(testContext)
+				got = v.ValidatePodScalable(testContext, podScalable)
+				want = test.want.ViaField("spec.template.spec")
+				if (got != nil) != (want != nil) {
+					t.Errorf("ValidatePodScalable() = %v, wanted %v", got, want)
+				} else if got != nil && got.Error() != want.Error() {
+					t.Errorf("ValidatePodScalable() = %v, wanted %v", got, want)
+				}
+				// Check the warning/error level.
+				if got != nil && test.want != nil {
+					if got.Level != want.Level {
+						t.Errorf("ValidatePodScalable() Wrong Level = %v, wanted %v", got.Level, want.Level)
+					}
+				}
+
+				// Check that we don't block things being deleted.
+				testContext = attachHTTPRequestToContext(testContext)
+				if got := v.ValidatePodScalable(apis.WithinDelete(testContext), podScalable); got != nil {
+					t.Errorf("ValidatePodSpecable() = %v, wanted nil", got)
+				}
+
+				// Check that we don't block things being scaled down.
+				original := podScalable.DeepCopy()
+				original.Spec.Replicas = ptr.Int32(4)
+				testContext = attachHTTPRequestToContext(testContext)
+				if got := v.ValidatePodScalable(apis.WithinUpdate(testContext, original), podScalable); got != nil {
+					t.Errorf("ValidatePodSpecable() scaling down = %v, wanted nil", got)
+				}
+
+				// Check that we fail as expected if being scaled up.
+				original.Spec.Replicas = ptr.Int32(2)
+				testContext = attachHTTPRequestToContext(testContext)
+				got = v.ValidatePodScalable(apis.WithinUpdate(testContext, original), podScalable)
+				want = test.want.ViaField("spec.template.spec")
+				if (got != nil) != (want != nil) {
+					t.Errorf("ValidatePodScalable() scaling up = %v, wanted %v", got, want)
+				} else if got != nil && got.Error() != want.Error() {
+					t.Errorf("ValidatePodScalable() scaling up = %v, wanted %v", got, want)
+				}
+				// Check the warning/error level.
+				if got != nil && test.want != nil {
+					if got.Level != want.Level {
+						t.Errorf("ValidatePodScalable() scaling up Wrong Level = %v, wanted %v", got.Level, want.Level)
+					}
+				}
+			}
+		})
+	}
 }

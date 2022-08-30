@@ -38,6 +38,7 @@ import (
 	rekor "github.com/sigstore/rekor/pkg/client"
 	"github.com/sigstore/rekor/pkg/generated/client"
 	"github.com/sigstore/sigstore/pkg/signature"
+	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -93,12 +94,13 @@ func (v *Validator) ValidatePodScalable(ctx context.Context, ps *policyduckv1bet
 	for _, s := range ps.Spec.Template.Spec.ImagePullSecrets {
 		imagePullSecrets = append(imagePullSecrets, s.Name)
 	}
+	ns := getNamespace(ctx, ps.Namespace)
 	opt := k8schain.Options{
-		Namespace:          ps.Namespace,
+		Namespace:          ns,
 		ServiceAccountName: ps.Spec.Template.Spec.ServiceAccountName,
 		ImagePullSecrets:   imagePullSecrets,
 	}
-	return v.validatePodSpec(ctx, ps.Namespace, &ps.Spec.Template.Spec, opt).ViaField("spec.template.spec")
+	return v.validatePodSpec(ctx, ns, &ps.Spec.Template.Spec, opt).ViaField("spec.template.spec")
 }
 
 // ValidatePodSpecable implements duckv1.PodSpecValidator
@@ -112,12 +114,13 @@ func (v *Validator) ValidatePodSpecable(ctx context.Context, wp *duckv1.WithPod)
 	for _, s := range wp.Spec.Template.Spec.ImagePullSecrets {
 		imagePullSecrets = append(imagePullSecrets, s.Name)
 	}
+	ns := getNamespace(ctx, wp.Namespace)
 	opt := k8schain.Options{
-		Namespace:          wp.Namespace,
+		Namespace:          ns,
 		ServiceAccountName: wp.Spec.Template.Spec.ServiceAccountName,
 		ImagePullSecrets:   imagePullSecrets,
 	}
-	return v.validatePodSpec(ctx, wp.Namespace, &wp.Spec.Template.Spec, opt).ViaField("spec.template.spec")
+	return v.validatePodSpec(ctx, ns, &wp.Spec.Template.Spec, opt).ViaField("spec.template.spec")
 }
 
 // ValidatePod implements duckv1.PodValidator
@@ -131,12 +134,13 @@ func (v *Validator) ValidatePod(ctx context.Context, p *duckv1.Pod) *apis.FieldE
 	for _, s := range p.Spec.ImagePullSecrets {
 		imagePullSecrets = append(imagePullSecrets, s.Name)
 	}
+	ns := getNamespace(ctx, p.Namespace)
 	opt := k8schain.Options{
-		Namespace:          p.Namespace,
+		Namespace:          ns,
 		ServiceAccountName: p.Spec.ServiceAccountName,
 		ImagePullSecrets:   imagePullSecrets,
 	}
-	return v.validatePodSpec(ctx, p.Namespace, &p.Spec, opt).ViaField("spec")
+	return v.validatePodSpec(ctx, ns, &p.Spec, opt).ViaField("spec")
 }
 
 // ValidateCronJob implements duckv1.CronJobValidator
@@ -150,12 +154,13 @@ func (v *Validator) ValidateCronJob(ctx context.Context, c *duckv1.CronJob) *api
 	for _, s := range c.Spec.JobTemplate.Spec.Template.Spec.ImagePullSecrets {
 		imagePullSecrets = append(imagePullSecrets, s.Name)
 	}
+	ns := getNamespace(ctx, c.Namespace)
 	opt := k8schain.Options{
-		Namespace:          c.Namespace,
+		Namespace:          ns,
 		ServiceAccountName: c.Spec.JobTemplate.Spec.Template.Spec.ServiceAccountName,
 		ImagePullSecrets:   imagePullSecrets,
 	}
-	return v.validatePodSpec(ctx, c.Namespace, &c.Spec.JobTemplate.Spec.Template.Spec, opt).ViaField("spec.jobTemplate.spec.template.spec")
+	return v.validatePodSpec(ctx, ns, &c.Spec.JobTemplate.Spec.Template.Spec, opt).ViaField("spec.jobTemplate.spec.template.spec")
 }
 
 func (v *Validator) validatePodSpec(ctx context.Context, namespace string, ps *corev1.PodSpec, opt k8schain.Options) (errs *apis.FieldError) {
@@ -746,7 +751,7 @@ func (v *Validator) ResolvePodScalable(ctx context.Context, ps *policyduckv1beta
 		imagePullSecrets = append(imagePullSecrets, s.Name)
 	}
 	opt := k8schain.Options{
-		Namespace:          ps.Namespace,
+		Namespace:          getNamespace(ctx, ps.Namespace),
 		ServiceAccountName: ps.Spec.Template.Spec.ServiceAccountName,
 		ImagePullSecrets:   imagePullSecrets,
 	}
@@ -766,7 +771,7 @@ func (v *Validator) ResolvePodSpecable(ctx context.Context, wp *duckv1.WithPod) 
 		imagePullSecrets = append(imagePullSecrets, s.Name)
 	}
 	opt := k8schain.Options{
-		Namespace:          wp.Namespace,
+		Namespace:          getNamespace(ctx, wp.Namespace),
 		ServiceAccountName: wp.Spec.Template.Spec.ServiceAccountName,
 		ImagePullSecrets:   imagePullSecrets,
 	}
@@ -785,7 +790,7 @@ func (v *Validator) ResolvePod(ctx context.Context, p *duckv1.Pod) {
 		imagePullSecrets = append(imagePullSecrets, s.Name)
 	}
 	opt := k8schain.Options{
-		Namespace:          p.Namespace,
+		Namespace:          getNamespace(ctx, p.Namespace),
 		ServiceAccountName: p.Spec.ServiceAccountName,
 		ImagePullSecrets:   imagePullSecrets,
 	}
@@ -805,7 +810,7 @@ func (v *Validator) ResolveCronJob(ctx context.Context, c *duckv1.CronJob) {
 		imagePullSecrets = append(imagePullSecrets, s.Name)
 	}
 	opt := k8schain.Options{
-		Namespace:          c.Namespace,
+		Namespace:          getNamespace(ctx, c.Namespace),
 		ServiceAccountName: c.Spec.JobTemplate.Spec.Template.Spec.ServiceAccountName,
 		ImagePullSecrets:   imagePullSecrets,
 	}
@@ -859,4 +864,22 @@ func getFulcioCert(u *apis.URL) (*x509.CertPool, error) {
 		return nil, errors.New("error appending to root cert pool")
 	}
 	return cp, nil
+}
+
+// getNamespace tries to extract the namespace from the HTTPRequest
+// if the namespace passed as argument is empty. This is a workaround
+// for a bug in k8s <= 1.24.
+func getNamespace(ctx context.Context, namespace string) string {
+	if namespace == "" {
+		r := apis.GetHTTPRequest(ctx)
+		if r != nil && r.Body != nil {
+			var review admissionv1.AdmissionReview
+			if err := json.NewDecoder(r.Body).Decode(&review); err != nil {
+				logging.FromContext(ctx).Errorf("could not decode body:", err)
+				return ""
+			}
+			return review.Request.Namespace
+		}
+	}
+	return namespace
 }
