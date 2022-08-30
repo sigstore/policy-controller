@@ -603,7 +603,10 @@ func ValidatePolicySignaturesForAuthority(ctx context.Context, ref name.Referenc
 	}
 
 	switch {
-	case authority.Key != nil && len(authority.Key.PublicKeys) > 0:
+	case authority.Key != nil:
+		if len(authority.Key.PublicKeys) == 0 {
+			return nil, fmt.Errorf("there are no public keys for authority %s", name)
+		}
 		// TODO(vaikas): What should happen if there are multiple keys
 		// Is it even allowed? 'valid' returns success if any key
 		// matches.

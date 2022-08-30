@@ -305,8 +305,7 @@ func ConvertKeyDataToPublicKeys(pubKey string) ([]crypto.PublicKey, error) {
 	keys := []crypto.PublicKey{}
 	pems, validPEM := parsePEMKey([]byte(pubKey))
 	if !validPEM {
-		// TODO: If it is not valid report the error instead of ignore the key
-		return keys, nil
+		return keys, fmt.Errorf("failed to find a valid PEM key")
 	}
 
 	for _, p := range pems {
