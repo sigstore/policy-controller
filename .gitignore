@@ -35,3 +35,5 @@ policy-tester
 
 # Vim
 *.swp
+
+gha-creds-*.json
