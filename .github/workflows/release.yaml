@@ -16,14 +16,22 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b # v3
+
       - uses: actions/setup-go@268d8c0ca0432bb2cf416faae41297df9d262d7f # v3
         with:
           go-version: 1.18
           check-latest: true
 
       - uses: sigstore/cosign-installer@b3413d484cc23cf8778c3d2aa361568d4eb54679 # v2
+
       - uses: anchore/sbom-action/download-syft@b5042e9d19d8b32849779bfe17673ff84aec702d # v0.11.0
+
       - uses: imjasonh/setup-ko@78eea08f10db87a7a23a666a4a6fe2734f2eeb8d # v0.4
+
+      - uses: goreleaser/goreleaser-action@ff11ca24a9b39f2d36796d1fbd7a4e39c182630a # v3
+        with:
+          install-only: true
 
       - name: Set up Cloud SDK
         uses: google-github-actions/auth@ceee102ec2387dd9e844e01b530ccd4ec87ce955 # v0.8.0
@@ -33,12 +41,6 @@ jobs:
 
       - name: creds
         run: gcloud auth configure-docker --quiet
-
-      - uses: actions/checkout@2541b1294d2704b0964813337f33b291d3f8596b # v3
-
-      - uses: goreleaser/goreleaser-action@ff11ca24a9b39f2d36796d1fbd7a4e39c182630a # v3
-        with:
-          install-only: true
 
       - name: release
         run: make release
