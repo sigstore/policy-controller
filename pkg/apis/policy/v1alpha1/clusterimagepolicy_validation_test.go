@@ -165,26 +165,6 @@ func TestKeyValidation(t *testing.T) {
 			},
 		},
 		{
-			name:        "Should fail when key has mixed valid and invalid data",
-			errorString: "invalid value: -----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEaEOVJCFtduYr3xqTxeRWSW32CY/s\nTBNZj4oIUPl8JvhVPJ1TKDPlNcuT4YphSt6t3yOmMvkdQbCj8broX6vijw==\n-----END PUBLIC KEY-----\n---somedata---: spec.authorities[0].key.data",
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{
-					Images: []ImagePattern{
-						{
-							Glob: "myglob",
-						},
-					},
-					Authorities: []Authority{
-						{
-							Key: &KeyRef{
-								Data: "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEaEOVJCFtduYr3xqTxeRWSW32CY/s\nTBNZj4oIUPl8JvhVPJ1TKDPlNcuT4YphSt6t3yOmMvkdQbCj8broX6vijw==\n-----END PUBLIC KEY-----\n---somedata---",
-							},
-						},
-					},
-				},
-			},
-		},
-		{
 			name:        "Should fail when key has malformed pubkey data",
 			errorString: "invalid value: ---some key data----: spec.authorities[0].key.data",
 			policy: ClusterImagePolicy{

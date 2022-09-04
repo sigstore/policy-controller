@@ -22,10 +22,10 @@ import (
 
 	"github.com/sigstore/policy-controller/pkg/apis/config"
 	"github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
-	"github.com/sigstore/policy-controller/pkg/apis/utils"
 	clusterimagepolicyreconciler "github.com/sigstore/policy-controller/pkg/client/injection/reconciler/policy/v1alpha1/clusterimagepolicy"
 	"github.com/sigstore/policy-controller/pkg/reconciler/clusterimagepolicy/resources"
 	webhookcip "github.com/sigstore/policy-controller/pkg/webhook/clusterimagepolicy"
+	"github.com/sigstore/sigstore/pkg/cryptoutils"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
@@ -211,10 +211,10 @@ func (r *Reconciler) inlineAndTrackSecret(ctx context.Context, cip *v1alpha1.Clu
 	}
 	for k, v := range secret.Data {
 		logging.FromContext(ctx).Infof("inlining secret %q key %q", keyref.SecretRef.Name, k)
-		if !utils.IsValidKey(v) {
-			return fmt.Errorf("secret %q contains an invalid public key", keyref.SecretRef.Name)
+		publicKey, err := cryptoutils.UnmarshalPEMToPublicKey(v)
+		if err != nil || publicKey == nil {
+			return fmt.Errorf("secret %q contains an invalid public key: %w", keyref.SecretRef.Name, err)
 		}
-
 		keyref.Data = string(v)
 		keyref.SecretRef = nil
 	}

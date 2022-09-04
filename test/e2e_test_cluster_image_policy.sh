@@ -58,6 +58,8 @@ else
   export TIMESTAMP="TIMESTAMP"
 fi
 
+export COSIGN_EXPERIMENTAL="true"
+
 # Initialize cosign with our TUF root
 cosign initialize --mirror ${TUF_MIRROR} --root ${TUF_ROOT_FILE}
 
@@ -122,11 +124,16 @@ kubectl apply -f ./test/testdata/policy-controller/e2e/cip-keyless.yaml
 echo '::endgroup::'
 
 echo '::group:: Sign demo image'
-COSIGN_EXPERIMENTAL=1 cosign sign --rekor-url ${REKOR_URL} --fulcio-url ${FULCIO_URL} --force --allow-insecure-registry ${demoimage} --identity-token ${OIDC_TOKEN}
+if ! cosign sign --rekor-url ${REKOR_URL} --fulcio-url ${FULCIO_URL} --force --allow-insecure-registry ${demoimage} --identity-token ${OIDC_TOKEN} ; then
+  echo "failed to sign with keyless"
+  exit 1
+fi
 echo '::endgroup::'
 
 echo '::group:: Verify demo image'
-COSIGN_EXPERIMENTAL=1 cosign verify --rekor-url ${REKOR_URL} --allow-insecure-registry ${demoimage}
+if ! cosign verify --rekor-url ${REKOR_URL} --allow-insecure-registry ${demoimage} ; then
+  echo "failed to verify with keyless"
+fi
 echo '::endgroup::'
 
 echo '::group:: Create test namespace and label for verification'
@@ -253,11 +260,17 @@ fi
 echo '::endgroup::'
 
 echo '::group:: Sign demoimage with cosign key'
-COSIGN_PASSWORD="" cosign sign --key cosign-colocated-signing.key --force --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage}
+if ! COSIGN_PASSWORD="" cosign sign --key cosign-colocated-signing.key --force --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage} ; then
+  echo failed to sign demoimage with key
+  exit 1
+fi
 echo '::endgroup::'
 
 echo '::group:: Verify demoimage with cosign key'
-cosign verify --key cosign-colocated-signing.pub --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage}
+if ! cosign verify --key cosign-colocated-signing.pub --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage} ; then
+  echo failed to verify demo image with cosign key
+  exit 1
+fi
 echo '::endgroup::'
 
 echo '::group:: test job success'
@@ -318,7 +331,10 @@ sleep 5
 echo '::endgroup::'
 
 echo '::group:: Sign demoimage with cosign remote key'
-COSIGN_PASSWORD="" COSIGN_REPOSITORY="${KO_DOCKER_REPO}/remote-signature" cosign sign --key cosign-remote-signing.key --force --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage}
+if ! COSIGN_PASSWORD="" COSIGN_REPOSITORY="${KO_DOCKER_REPO}/remote-signature" cosign sign --key cosign-remote-signing.key --force --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage} ; then
+  echo "failed to sign with remote key"
+  exit 1
+fi
 echo '::endgroup::'
 
 echo '::group:: Verify demoimage with cosign remote key'

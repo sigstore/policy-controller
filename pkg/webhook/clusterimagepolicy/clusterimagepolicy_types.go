@@ -17,9 +17,7 @@ package clusterimagepolicy
 import (
 	"context"
 	"crypto"
-	"crypto/x509"
 	"encoding/json"
-	"encoding/pem"
 	"fmt"
 
 	"github.com/google/go-containerregistry/pkg/authn/k8schain"
@@ -27,6 +25,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	ociremote "github.com/sigstore/cosign/pkg/oci/remote"
 	"github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
+	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"knative.dev/pkg/apis"
 	kubeclient "knative.dev/pkg/client/injection/kube/client"
 	"knative.dev/pkg/logging"
@@ -126,14 +125,13 @@ func (k *KeyRef) UnmarshalJSON(data []byte) error {
 	k.Data = ret["data"]
 
 	if ret["data"] != "" {
-		publicKeys, err = ConvertKeyDataToPublicKeys(ret["data"])
+		publicKey, err := cryptoutils.UnmarshalPEMToPublicKey([]byte(ret["data"]))
 		if err != nil {
-			return err
+			return fmt.Errorf("failed to unmarshal PEM public key %w", err)
 		}
+		publicKeys = append(publicKeys, publicKey)
 	}
-
 	k.PublicKeys = publicKeys
-
 	return nil
 }
 
@@ -284,37 +282,4 @@ func convertStaticRefV1Alpha1ToWebhook(in *v1alpha1.StaticRef) *StaticRef {
 	return &StaticRef{
 		Action: in.Action,
 	}
-}
-
-func parsePEMKey(b []byte) ([]*pem.Block, bool) {
-	pemKey, rest := pem.Decode(b)
-	valid := true
-	if pemKey == nil {
-		return nil, false
-	}
-	pemBlocks := []*pem.Block{pemKey}
-
-	if len(rest) > 0 {
-		list, check := parsePEMKey(rest)
-		return append(pemBlocks, list...), check
-	}
-	return pemBlocks, valid
-}
-
-func ConvertKeyDataToPublicKeys(pubKey string) ([]crypto.PublicKey, error) {
-	keys := []crypto.PublicKey{}
-	pems, validPEM := parsePEMKey([]byte(pubKey))
-	if !validPEM {
-		return keys, fmt.Errorf("failed to find a valid PEM key")
-	}
-
-	for _, p := range pems {
-		key, err := x509.ParsePKIXPublicKey(p.Bytes)
-		if err != nil {
-			return nil, err
-		}
-		keys = append(keys, key.(crypto.PublicKey))
-	}
-
-	return keys, nil
 }
