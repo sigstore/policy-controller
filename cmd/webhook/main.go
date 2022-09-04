@@ -85,6 +85,7 @@ func main() {
 			logging.FromContext(ctx).Panicf("Failed to read alternate TUF root file %s : %v", *tufRoot, err)
 		}
 	}
+	logging.FromContext(ctx).Infof("Initializing TUF root from %s => %s", *tufRoot, *tufMirror)
 	if err := tuf.Initialize(ctx, *tufMirror, tufRootBytes); err != nil {
 		logging.FromContext(ctx).Panicf("Failed to initialize TUF client from %s : %v", *tufRoot, err)
 	}

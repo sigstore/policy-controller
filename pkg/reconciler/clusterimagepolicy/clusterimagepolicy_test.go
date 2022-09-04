@@ -453,7 +453,7 @@ func TestReconcile(t *testing.T) {
 			},
 			WantErr: true,
 			WantEvents: []string{
-				Eventf(corev1.EventTypeWarning, "InternalError", `secret "publickey-key" contains an invalid public key`),
+				Eventf(corev1.EventTypeWarning, "InternalError", `secret "publickey-key" contains an invalid public key: PEM decoding failed`),
 			},
 			PostConditions: []func(*testing.T, *TableRow){
 				AssertTrackingSecret(system.Namespace(), keySecretName),

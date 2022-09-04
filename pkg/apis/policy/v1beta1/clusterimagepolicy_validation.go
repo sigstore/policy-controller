@@ -24,7 +24,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws/arn"
 	"github.com/sigstore/policy-controller/pkg/apis/glob"
-	"github.com/sigstore/policy-controller/pkg/apis/utils"
+	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"knative.dev/pkg/apis"
 )
@@ -144,11 +144,9 @@ func (key *KeyRef) Validate(ctx context.Context) *apis.FieldError {
 		if key.KMS != "" || key.SecretRef != nil {
 			errs = errs.Also(apis.ErrMultipleOneOf("data", "kms", "secretref"))
 		}
-		validPubkey := utils.IsValidKey([]byte(key.Data))
-		if !validPubkey {
-			errs = errs.Also(
-				apis.ErrInvalidValue(key.Data, "data"),
-			)
+		publicKey, err := cryptoutils.UnmarshalPEMToPublicKey([]byte(key.Data))
+		if err != nil || publicKey == nil {
+			errs = errs.Also(apis.ErrInvalidValue(key.Data, "data"))
 		}
 	} else if key.KMS != "" && key.SecretRef != nil {
 		errs = errs.Also(apis.ErrMultipleOneOf("data", "kms", "secretref"))
