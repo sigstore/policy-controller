@@ -189,7 +189,7 @@ func getKMSPublicKey(ctx context.Context, keyID string) (string, error) {
 // is modified.
 // There's still some discussion about how to handle multiple keys in a secret
 // for now, just grab one from it. For reference, the discussion is here:
-// TODO(vaikas): https://github.com/sigstore/policy-controller/issues/1573
+// TODO(vaikas): https://github.com/sigstore/cosign/issues/1573
 func (r *Reconciler) inlineAndTrackSecret(ctx context.Context, cip *v1alpha1.ClusterImagePolicy, keyref *v1alpha1.KeyRef) error {
 	if err := r.tracker.TrackReference(tracker.Reference{
 		APIVersion: "v1",
