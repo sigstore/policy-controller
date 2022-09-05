@@ -21,7 +21,7 @@ metadata:
   name: image-policy-key
 spec:
   images:
-  - glob: registry.local:5000/policy-controller/demo*
+  - glob: "**demo**"
   authorities:
   - key:
       data: |

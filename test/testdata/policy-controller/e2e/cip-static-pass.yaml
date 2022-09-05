@@ -18,7 +18,7 @@ metadata:
   name: image-policy-static-pass
 spec:
   images:
-  - glob: registry.local:5000/policy-controller/demo*
+  - glob: "**demo**"
   authorities:
   - static:
       action: pass

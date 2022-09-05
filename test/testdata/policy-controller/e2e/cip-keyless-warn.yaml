@@ -19,7 +19,7 @@ metadata:
 spec:
   mode: warn
   images:
-  - glob: registry.local:5000/policy-controller/demo*
+  - glob: "**demo**"
   authorities:
   - keyless:
       url: http://fulcio.fulcio-system.svc

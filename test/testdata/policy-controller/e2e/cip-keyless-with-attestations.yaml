@@ -18,7 +18,7 @@ metadata:
   name: image-policy-keyless-with-attestations
 spec:
   images:
-  - glob: registry.local:5000/policy-controller/demo*
+  - glob: "**demo**"
   authorities:
   - name: attestation
     keyless:
