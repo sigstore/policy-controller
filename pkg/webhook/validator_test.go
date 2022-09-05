@@ -1803,60 +1803,6 @@ func validateErrors(t *testing.T, wantErr []string, got []error) {
 	}
 }
 
-func TestValidatePolicyCancelled(t *testing.T) {
-	var authorityKeyCosignPub *ecdsa.PublicKey
-	pems := parsePems([]byte(authorityKeyCosignPubString))
-	if len(pems) > 0 {
-		key, _ := x509.ParsePKIXPublicKey(pems[0].Bytes)
-		authorityKeyCosignPub = key.(*ecdsa.PublicKey)
-	} else {
-		t.Errorf("Error parsing authority key from string")
-	}
-	// Resolved via crane digest on 2021/09/25
-	digest := name.MustParseReference("gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4")
-
-	testContext, cancelFunc := context.WithCancel(context.Background())
-	cip := webhookcip.ClusterImagePolicy{
-		Authorities: []webhookcip.Authority{{
-			Name: "authority-0",
-			Key: &webhookcip.KeyRef{
-				PublicKeys: []crypto.PublicKey{authorityKeyCosignPub},
-			},
-		}},
-	}
-	wantErrs := []string{"context canceled before validation completed"}
-	cancelFunc()
-	_, gotErrs := ValidatePolicy(testContext, system.Namespace(), digest, cip)
-	validateErrors(t, wantErrs, gotErrs)
-}
-
-func TestValidatePoliciesCancelled(t *testing.T) {
-	var authorityKeyCosignPub *ecdsa.PublicKey
-	pems := parsePems([]byte(authorityKeyCosignPubString))
-	if len(pems) > 0 {
-		key, _ := x509.ParsePKIXPublicKey(pems[0].Bytes)
-		authorityKeyCosignPub = key.(*ecdsa.PublicKey)
-	} else {
-		t.Errorf("Error parsing authority key from string")
-	}
-	// Resolved via crane digest on 2021/09/25
-	digest := name.MustParseReference("gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4")
-
-	testContext, cancelFunc := context.WithCancel(context.Background())
-	cip := webhookcip.ClusterImagePolicy{
-		Authorities: []webhookcip.Authority{{
-			Name: "authority-0",
-			Key: &webhookcip.KeyRef{
-				PublicKeys: []crypto.PublicKey{authorityKeyCosignPub},
-			},
-		}},
-	}
-	wantErrs := []string{"context was canceled before validation completed"}
-	cancelFunc()
-	_, gotErrs := validatePolicies(testContext, system.Namespace(), digest, map[string]webhookcip.ClusterImagePolicy{"testcip": cip})
-	validateErrors(t, wantErrs, gotErrs["internalerror"])
-}
-
 func TestValidatePodSpecNonDefaultNamespace(t *testing.T) {
 	tag := name.MustParseReference("gcr.io/distroless/static:nonroot")
 	// Resolved via crane digest on 2021/09/25
@@ -2572,4 +2518,58 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 			}
 		})
 	}
+}
+
+func TestValidatePolicyCancelled(t *testing.T) {
+	var authorityKeyCosignPub *ecdsa.PublicKey
+	pems := parsePems([]byte(authorityKeyCosignPubString))
+	if len(pems) > 0 {
+		key, _ := x509.ParsePKIXPublicKey(pems[0].Bytes)
+		authorityKeyCosignPub = key.(*ecdsa.PublicKey)
+	} else {
+		t.Errorf("Error parsing authority key from string")
+	}
+	// Resolved via crane digest on 2021/09/25
+	digest := name.MustParseReference("gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4")
+
+	testContext, cancelFunc := context.WithCancel(context.Background())
+	cip := webhookcip.ClusterImagePolicy{
+		Authorities: []webhookcip.Authority{{
+			Name: "authority-0",
+			Key: &webhookcip.KeyRef{
+				PublicKeys: []crypto.PublicKey{authorityKeyCosignPub},
+			},
+		}},
+	}
+	wantErrs := []string{"context canceled before validation completed"}
+	cancelFunc()
+	_, gotErrs := ValidatePolicy(testContext, system.Namespace(), digest, cip)
+	validateErrors(t, wantErrs, gotErrs)
+}
+
+func TestValidatePoliciesCancelled(t *testing.T) {
+	var authorityKeyCosignPub *ecdsa.PublicKey
+	pems := parsePems([]byte(authorityKeyCosignPubString))
+	if len(pems) > 0 {
+		key, _ := x509.ParsePKIXPublicKey(pems[0].Bytes)
+		authorityKeyCosignPub = key.(*ecdsa.PublicKey)
+	} else {
+		t.Errorf("Error parsing authority key from string")
+	}
+	// Resolved via crane digest on 2021/09/25
+	digest := name.MustParseReference("gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4")
+
+	testContext, cancelFunc := context.WithCancel(context.Background())
+	cip := webhookcip.ClusterImagePolicy{
+		Authorities: []webhookcip.Authority{{
+			Name: "authority-0",
+			Key: &webhookcip.KeyRef{
+				PublicKeys: []crypto.PublicKey{authorityKeyCosignPub},
+			},
+		}},
+	}
+	wantErrs := []string{"context was canceled before validation completed"}
+	cancelFunc()
+	_, gotErrs := validatePolicies(testContext, system.Namespace(), digest, map[string]webhookcip.ClusterImagePolicy{"testcip": cip})
+	validateErrors(t, wantErrs, gotErrs["internalerror"])
 }
