@@ -75,7 +75,7 @@ spec:
   - keyless:
       identities:
       - issuer: "issue-details1"
-        SubjectRegExp: ".*subject.*"
+        subjectRegExp: ".*subject.*"
   - keyless:
       identities:
       - issuer: "issue.*"
