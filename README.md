@@ -135,9 +135,9 @@ spec:
     - keyless:
         identities:
           - issuer: https://accounts.google.com
-            subject: .*@example.com
+            subjectRegExp: .*@example.com
           - issuer: https://token.actions.githubusercontent.com
-            subject: https://github.com/mycompany/*/.github/workflows/*@*
+            subject: https://github.com/sigstore/policy-controller/.github/workflows/build.yaml@refs/heads/main
 
 ```
 
