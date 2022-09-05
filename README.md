@@ -135,9 +135,9 @@ spec:
     - keyless:
         identities:
           - issuer: https://accounts.google.com
-            subject: .*@example.com
+            subjectRegExp: .*@example.com
           - issuer: https://token.actions.githubusercontent.com
-            subject: https://github.com/mycompany/*/.github/workflows/*@*
+            subject: https://github.com/sigstore/policy-controller/.github/workflows/build.yaml@refs/heads/main
 
 ```
 
@@ -242,8 +242,8 @@ spec:
     keyless:
       url: http://fulcio.fulcio-system.svc
       identities:
-      - issuer: .*kubernetes.default.*
-        subject: .*kubernetes.io/namespaces/default/serviceaccounts/default
+      - issuerRegExp: .*kubernetes.default.*
+        subjectRegExp: .*kubernetes.io/namespaces/default/serviceaccounts/default
     ctlog:
       url: http://rekor.rekor-system.svc
     attestations:
