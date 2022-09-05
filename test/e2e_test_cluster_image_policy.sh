@@ -313,6 +313,53 @@ else
 fi
 echo '::endgroup::'
 
+echo '::group:: Generate new Signing key and secret used for validating secret'
+COSIGN_PASSWORD="" cosign generate-key-pair
+mv cosign.key cosign-secret.key
+mv cosign.pub cosign-secret.pub
+kubectl -n cosign-system create secret generic cip-secret --from-file=secret=./cosign-secret.pub
+echo '::endgroup::'
+
+echo '::group:: Deploy ClusterImagePolicy with secret as the key'
+kubectl apply -f ./test/testdata/policy-controller/e2e/cip-key-secret.yaml
+# Give the policy controller a moment to update the configmap
+# and pick up the change in the admission controller.
+sleep 5
+echo '::endgroup::'
+
+echo '::group:: test with key and keyless, authorities OR'
+if kubectl create -n demo-key-signing job demo-with-secret --image=${demoimage} ; then
+  echo Failed to block Job in namespace after adding a secretRef
+  exit 1
+else
+  echo Succcessfully blocked Job with secretRef key but not signed with it.
+fi
+echo '::endgroup::'
+
+echo '::group:: Sign demoimage with cosign key secret'
+if ! COSIGN_PASSWORD="" cosign sign --key cosign-secret.key --force --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage} ; then
+  echo failed to sign demoimage with key secret
+  exit 1
+fi
+echo '::endgroup::'
+
+echo '::group:: Verify demoimage with cosign key secret'
+if ! cosign verify --key cosign-secret.pub --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage} ; then
+  echo failed to verify demo image with cosign key
+  exit 1
+fi
+echo '::endgroup::'
+
+echo '::group:: test with secret signed'
+if ! kubectl create -n demo-key-signing job demo-with-secret --image=${demoimage} ; then
+  echo Failed to create Job in namespace after signing with secretRef
+  exit 1
+else
+  echo Succcessfully created Job with secretRef signed.
+fi
+echo '::endgroup::'
+
+
 echo '::group:: Generate New Signing Key For Remote Signature'
 COSIGN_PASSWORD="" cosign generate-key-pair
 mv cosign.key cosign-remote-signing.key
