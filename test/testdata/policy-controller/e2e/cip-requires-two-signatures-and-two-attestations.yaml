@@ -18,7 +18,7 @@ metadata:
   name: image-policy-requires-two-signatures-two-attestations
 spec:
   images:
-  - glob: registry.local:5000/policy-controller/demo*
+  - glob: "**demo**"
   authorities:
   - name: keylessatt
     keyless:

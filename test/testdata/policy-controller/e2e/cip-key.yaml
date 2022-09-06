@@ -18,13 +18,13 @@ metadata:
   name: image-policy-key
 spec:
   images:
-  - glob: registry.local:5000/policy-controller/demo*
+  - glob: "**demo**"
   authorities:
   - key:
       data: |
         -----BEGIN PUBLIC KEY-----
-        MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEZxAfzrQG1EbWyCI8LiSB7YgSFXoI
-        FNGTyQGKHFc6/H8TQumT9VLS78pUwtv3w7EfKoyFZoP32KrO7nzUy2q6Cw==
+        MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEIcbqK2RAVZOfPzo+kbOhNYq8DK9f
+        B2BGbU7jAXEvYthJ3vRcYq8l7g9UAXXiz9P2awFuTa4COcZU2IdEDVU0uA==
         -----END PUBLIC KEY-----
     ctlog:
       url: http://rekor.rekor-system.svc
