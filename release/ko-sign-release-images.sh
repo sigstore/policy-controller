@@ -20,11 +20,6 @@ set -o pipefail
 
 : "${GIT_HASH:?Environment variable empty or not defined.}"
 : "${GIT_VERSION:?Environment variable empty or not defined.}"
-: "${PROJECT_ID:?Environment variable empty or not defined.}"
-: "${KEY_LOCATION:?Environment variable empty or not defined.}"
-: "${KEY_RING:?Environment variable empty or not defined.}"
-: "${KEY_NAME:?Environment variable empty or not defined.}"
-: "${KEY_VERSION:?Environment variable empty or not defined.}"
 
 if [[ ! -f policyControllerImagerefs ]]; then
     echo "policyControllerImagerefs not found"
