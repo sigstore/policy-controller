@@ -51,7 +51,7 @@ jobs:
 
     - uses: imjasonh/setup-ko@ace48d793556083a76f1e3e6068850c1f4a369aa # v0.6
 
-    - uses: imranismail/setup-kustomize@8fa954828ed3cfa7a487a2ba9f7104899bb48b2f # v1.6.1
+    - uses: imranismail/setup-kustomize@aa978fb4ab742121859f62594f53d7f42c7f4ec0 # v1.6.1
 
     - name: Install yq
       uses: mikefarah/yq@3d11b0545dbc0712c2045dc9e8b6c95b298e824e # v4.27.3
