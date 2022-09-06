@@ -27,7 +27,7 @@ jobs:
 
       - uses: anchore/sbom-action/download-syft@b5042e9d19d8b32849779bfe17673ff84aec702d # v0.11.0
 
-      - uses: imjasonh/setup-ko@78eea08f10db87a7a23a666a4a6fe2734f2eeb8d # v0.4
+      - uses: imjasonh/setup-ko@ace48d793556083a76f1e3e6068850c1f4a369aa # v0.6
 
       - uses: goreleaser/goreleaser-action@ff11ca24a9b39f2d36796d1fbd7a4e39c182630a # v3
         with:
