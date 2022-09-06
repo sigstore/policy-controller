@@ -45,6 +45,7 @@ spec:
         # and substituted here.
         image: ko://github.com/sigstore/policy-controller/cmd/webhook
         args: [
+          # DEPRECATED: -secret-name will be removed in the future.
           "-secret-name=verification-key",
           # Uncomment these to initialize with a custom TUF root.
           # TODO: How to specify the entire TUF directory for multiple
