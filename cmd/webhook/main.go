@@ -47,7 +47,8 @@ import (
 	cwebhook "github.com/sigstore/policy-controller/pkg/webhook"
 )
 
-var secretName = flag.String("secret-name", "", "The name of the secret in the webhook's namespace that holds the public key for verification.")
+// Deprecated: this flag will be removed in the future
+var secretName = flag.String("secret-name", "", "Flag -secret-name has been deprecated and will be removed in the future. The name of the secret in the webhook's namespace that holds the public key for verification.")
 
 // webhookName holds the name of the validating and mutating webhook
 // configuration resources dispatching admission requests to policy-controller.
