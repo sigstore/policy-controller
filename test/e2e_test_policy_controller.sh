@@ -116,8 +116,7 @@ echo '::group:: setup multiple verification-keys'
 cosign public-key --key k8s://cosign-system/verification-key >> manykeys.pem
 
 # Save the old key
-kubectl get secret -n cosign-system verification-key -o=json | jq -r '.data["cosign.key"]' | base64 --decode > cosign.key
-kubectl delete secret -n cosign-system  verification-key
+kubectl delete secret -n cosign-system  verification-key --ignore-not-found
 kubectl create secret generic -n cosign-system verification-key --from-file=cosign.pub=manykeys.pem --from-literal=cosign.password=${COSIGN_PASSWORD} --from-file=cosign.key
 
 echo '::group:: disable verification'
@@ -193,7 +192,28 @@ echo '::group:: sign test image'
 cosign sign --key k8s://cosign-system/verification-key $DIGEST
 echo '::endgroup::'
 
+echo '::group:: setup cip using the verification key'
+cat > cip-key-verification-secret.yaml <<EOF
+apiVersion: policy.sigstore.dev/v1alpha1
+kind: ClusterImagePolicy
+metadata:
+  generateName: cip-verification-key-
+spec:
+  images:
+  - glob: $DIGEST
+  authorities:
+  - key:
+      secretRef:
+        name: verification-key
+EOF
+echo '::endgroup::'
 
+echo '::group:: Deploy ClusterImagePolicy with secret as the verification key'
+kubectl apply -f cip-key-verification-secret.yaml
+# Give the policy controller a moment to update the configmap
+# and pick up the change in the admission controller.
+sleep 5
+echo '::endgroup::'
 
 echo '::group:: test pod digest resolution'
 IMAGE=$(kubectl create --dry-run=server -f pod.yaml -oyaml | yq e '.spec.containers[0].image' -)

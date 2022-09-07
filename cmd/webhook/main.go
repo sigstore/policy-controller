@@ -47,9 +47,6 @@ import (
 	cwebhook "github.com/sigstore/policy-controller/pkg/webhook"
 )
 
-// Deprecated: this flag will be removed in the future
-var secretName = flag.String("secret-name", "", "Flag -secret-name has been deprecated and will be removed in the future. The name of the secret in the webhook's namespace that holds the public key for verification.")
-
 // webhookName holds the name of the validating and mutating webhook
 // configuration resources dispatching admission requests to policy-controller.
 // It is also the name of the webhook which is injected by the controller
@@ -140,7 +137,7 @@ func NewValidatingAdmissionController(ctx context.Context, cmw configmap.Watcher
 	// Decorate contexts with the current state of the config.
 	store := config.NewStore(logging.FromContext(ctx).Named("config-store"))
 	store.WatchConfigs(cmw)
-	validator := cwebhook.NewValidator(ctx, *secretName)
+	validator := cwebhook.NewValidator(ctx)
 
 	return validation.NewAdmissionController(ctx,
 		// Name of the resource webhook.
@@ -172,7 +169,7 @@ func NewValidatingAdmissionController(ctx context.Context, cmw configmap.Watcher
 }
 
 func NewMutatingAdmissionController(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
-	validator := cwebhook.NewValidator(ctx, *secretName)
+	validator := cwebhook.NewValidator(ctx)
 
 	return defaulting.NewAdmissionController(ctx,
 		// Name of the resource webhook.

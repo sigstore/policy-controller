@@ -48,7 +48,7 @@ An example of a denied admission would be:
 An example of no policy matched:
 1. If the image does not match against any policy
 1. Fallback to [deprecated policy-controller validation behavior](#deprecated-policy-controller-validation-behavior)
-1. Validation will be attempted against the secret defined under `cosign.secretKeyRef.name` during helm installation.
+1. Validation will be attempted against the fulcio root.
   1. If a valid signature or attestation is obtained, image is admitted
   1. If no valid signature or attestation is obtained, image is denied
 
@@ -376,29 +376,6 @@ spec:
         }
       }
 ```
-
-### Deprecated policy-controller Validation Behavior
-
-**Note:** This behavior is being deprecated in favor of using `ClusterImagePolicy` resources.
-
-During the admission validation, if no `ClusterImagePolicy` is matched, the deprecated behavior will occur.
-Image digests will be validated against the public key secret defined by `cosign.secretKeyRef.name` during installation.
-If the public key secret is not configured, the admission validation verifies against the fulcio root.
-
-When installing `policy-controller` through helm, `cosign.secretKeyRef.name` can be specified.
-```bash
-helm install policy-controller -n cosign-system sigstore/policy-controller --devel --set cosign.secretKeyRef.name=mysecret
-```
-
-The secret specified should contain the key `cosign.pub` and the public key data content.
-
-Where `cosign.pub` is a file containing the public key, the kubernetes secret can be created with:
-```bash
-kubectl create secret generic mysecret -n cosign-system --from-file=cosign.pub=./cosign.pub
-```
-
-If the public key is able to validate a signature for the image digest, the admission controller will admit the image.
-If the public key is not able to validate a signature for the image digest, the admission controller will deny the image.
 
 ## Examples
 
