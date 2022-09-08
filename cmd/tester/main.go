@@ -21,7 +21,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"net/http"
 	"os"
@@ -80,13 +80,13 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
-		defer resp.Body.Close()
-		cipRaw, err = ioutil.ReadAll(resp.Body)
+		cipRaw, err = io.ReadAll(resp.Body)
+		resp.Body.Close()
 		if err != nil {
 			log.Fatal(err)
 		}
 	} else {
-		cipRaw, err = ioutil.ReadFile(*cipFilePath)
+		cipRaw, err = os.ReadFile(*cipFilePath)
 		if err != nil {
 			log.Fatal(err)
 		}

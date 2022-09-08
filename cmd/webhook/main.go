@@ -18,8 +18,8 @@ package main
 import (
 	"context"
 	"flag"
-	"io/ioutil"
 	"log"
+	"os"
 
 	policyduckv1beta1 "github.com/sigstore/policy-controller/pkg/apis/duck/v1beta1"
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
@@ -81,7 +81,7 @@ func main() {
 	var tufRootBytes []byte
 	var err error
 	if *tufRoot != "" {
-		tufRootBytes, err = ioutil.ReadFile(*tufRoot)
+		tufRootBytes, err = os.ReadFile(*tufRoot)
 		if err != nil {
 			logging.FromContext(ctx).Panicf("Failed to read alternate TUF root file %s : %v", *tufRoot, err)
 		}
