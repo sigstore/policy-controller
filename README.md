@@ -31,8 +31,6 @@ are `OR`.
 
 See the [Configuring Image Pattern](#configuring-image-patterns) for more information.
 
-If no policy is matched against the image digest, the [deprecated policy-controller validation behavior](#deprecated-policy-controller-validation-behavior) will occur.
-
 An example of an allowed admission would be:
 1. If the image matched against `policy1` and `policy3`
 1. A valid signature or attestation was obtained for `policy1` with at least one of the `policy1` authorities
@@ -45,12 +43,7 @@ An example of a denied admission would be:
 1. No valid signature or attestation was obtained for `policy2` with at least one of the `policy2` authorities
 1. The image is not admitted
 
-An example of no policy matched:
-1. If the image does not match against any policy
-1. Fallback to [deprecated policy-controller validation behavior](#deprecated-policy-controller-validation-behavior)
-1. Validation will be attempted against the fulcio root.
-  1. If a valid signature or attestation is obtained, image is admitted
-  1. If no valid signature or attestation is obtained, image is denied
+**If an image does not match a policy, it will be admitted**
 
 ### Configuring policy-controller ClusterImagePolicy
 

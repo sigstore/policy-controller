@@ -181,6 +181,27 @@ func TestValidatePodSpec(t *testing.T) {
 			}},
 		},
 		cvs: pass,
+		customContext: config.ToContext(context.Background(),
+			&config.Config{
+				ImagePolicyConfig: &config.ImagePolicyConfig{
+					Policies: map[string]webhookcip.ClusterImagePolicy{
+						"cluster-image-policy": {
+							Images: []v1alpha1.ImagePattern{{
+								Glob: "gcr.io/*/*",
+							}},
+							Authorities: []webhookcip.Authority{
+								{
+									Key: &webhookcip.KeyRef{
+										Data:       authorityKeyCosignPubString,
+										PublicKeys: []crypto.PublicKey{authorityKeyCosignPub},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		),
 	}, {
 		name: "bad reference",
 		ps: &corev1.PodSpec{
@@ -205,20 +226,6 @@ func TestValidatePodSpec(t *testing.T) {
 		want: &apis.FieldError{
 			Message: `invalid value: gcr.io/distroless/static:nonroot must be an image digest`,
 			Paths:   []string{"containers[0].image"},
-		},
-		cvs: fail,
-	}, {
-		name: "bad signature",
-		ps: &corev1.PodSpec{
-			Containers: []corev1.Container{{
-				Name:  "user-container",
-				Image: digest.String(),
-			}},
-		},
-		want: &apis.FieldError{
-			Message: `bad signature`,
-			Paths:   []string{"containers[0].image"},
-			Details: digest.String(),
 		},
 		cvs: fail,
 	}, {
@@ -732,13 +739,13 @@ func TestValidateCronJob(t *testing.T) {
 		cosignVerifySignatures = cvs
 	}()
 	// Let's just say that everything is verified.
-	pass := func(ctx context.Context, signedImgRef name.Reference, co *cosign.CheckOpts) (checkedSignatures []oci.Signature, bundleVerified bool, err error) {
+	/*pass := func(ctx context.Context, signedImgRef name.Reference, co *cosign.CheckOpts) (checkedSignatures []oci.Signature, bundleVerified bool, err error) {
 		sig, err := static.NewSignature(nil, "")
 		if err != nil {
 			return nil, false, err
 		}
 		return []oci.Signature{sig}, true, nil
-	}
+	}*/
 	// Let's just say that everything is not verified.
 	fail := func(ctx context.Context, signedImgRef name.Reference, co *cosign.CheckOpts) (checkedSignatures []oci.Signature, bundleVerified bool, err error) {
 		return nil, false, errors.New("bad signature")
@@ -750,29 +757,6 @@ func TestValidateCronJob(t *testing.T) {
 		want *apis.FieldError
 		cvs  func(context.Context, name.Reference, *cosign.CheckOpts) ([]oci.Signature, bool, error)
 	}{{
-		name: "simple, no error",
-		c: &duckv1.CronJob{
-			Spec: batchv1.CronJobSpec{
-				JobTemplate: batchv1.JobTemplateSpec{
-					Spec: batchv1.JobSpec{
-						Template: corev1.PodTemplateSpec{
-							Spec: corev1.PodSpec{
-								InitContainers: []corev1.Container{{
-									Name:  "setup-stuff",
-									Image: digest.String(),
-								}},
-								Containers: []corev1.Container{{
-									Name:  "user-container",
-									Image: digest.String(),
-								}},
-							},
-						},
-					},
-				},
-			},
-		},
-		cvs: pass,
-	}, {
 		name: "k8schain error (bad service account)",
 		c: &duckv1.CronJob{
 			Spec: batchv1.CronJobSpec{
@@ -872,30 +856,6 @@ func TestValidateCronJob(t *testing.T) {
 		want: &apis.FieldError{
 			Message: `invalid value: gcr.io/distroless/static:nonroot must be an image digest`,
 			Paths:   []string{"spec.jobTemplate.spec.template.spec.containers[0].image"},
-		},
-		cvs: fail,
-	}, {
-		name: "bad signature",
-		c: &duckv1.CronJob{
-			Spec: batchv1.CronJobSpec{
-				JobTemplate: batchv1.JobTemplateSpec{
-					Spec: batchv1.JobSpec{
-						Template: corev1.PodTemplateSpec{
-							Spec: corev1.PodSpec{
-								Containers: []corev1.Container{{
-									Name:  "user-container",
-									Image: digest.String(),
-								}},
-							},
-						},
-					},
-				},
-			},
-		},
-		want: &apis.FieldError{
-			Message: `bad signature`,
-			Paths:   []string{"spec.jobTemplate.spec.template.spec.containers[0].image"},
-			Details: digest.String(),
 		},
 		cvs: fail,
 	}}
@@ -1850,6 +1810,27 @@ func TestValidatePodSpecNonDefaultNamespace(t *testing.T) {
 				Image: digest.String(),
 			}},
 		},
+		customContext: config.ToContext(context.Background(),
+			&config.Config{
+				ImagePolicyConfig: &config.ImagePolicyConfig{
+					Policies: map[string]webhookcip.ClusterImagePolicy{
+						"cluster-image-policy": {
+							Images: []v1alpha1.ImagePattern{{
+								Glob: "gcr.io/*/*",
+							}},
+							Authorities: []webhookcip.Authority{
+								{
+									Key: &webhookcip.KeyRef{
+										Data:       authorityKeyCosignPubString,
+										PublicKeys: []crypto.PublicKey{authorityKeyCosignPub},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		),
 		cvs: pass,
 	}, {
 		name: "bad reference",
@@ -1875,20 +1856,6 @@ func TestValidatePodSpecNonDefaultNamespace(t *testing.T) {
 		want: &apis.FieldError{
 			Message: `invalid value: gcr.io/distroless/static:nonroot must be an image digest`,
 			Paths:   []string{"containers[0].image"},
-		},
-		cvs: fail,
-	}, {
-		name: "bad signature",
-		ps: &corev1.PodSpec{
-			Containers: []corev1.Container{{
-				Name:  "user-container",
-				Image: digest.String(),
-			}},
-		},
-		want: &apis.FieldError{
-			Message: `bad signature`,
-			Paths:   []string{"containers[0].image"},
-			Details: digest.String(),
 		},
 		cvs: fail,
 	}, {

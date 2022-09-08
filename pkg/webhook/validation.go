@@ -20,10 +20,8 @@ import (
 	"crypto"
 	"crypto/x509"
 	"encoding/pem"
-	"fmt"
 
 	"github.com/google/go-containerregistry/pkg/name"
-	"knative.dev/pkg/apis"
 	"knative.dev/pkg/logging"
 
 	"github.com/sigstore/cosign/pkg/cosign"
@@ -123,28 +121,6 @@ func validAttestationsWithFulcio(ctx context.Context, ref name.Reference, fulcio
 		Identities:         ids,
 	})
 	return attestations, err
-}
-
-func getKeys(ctx context.Context, cfg map[string][]byte) ([]crypto.PublicKey, *apis.FieldError) {
-	keys := []crypto.PublicKey{}
-	errs := []error{}
-
-	logging.FromContext(ctx).Debugf("Got public key: %v", cfg["cosign.pub"])
-
-	pems := parsePems(cfg["cosign.pub"])
-	for _, p := range pems {
-		// TODO: (@dlorenc) check header
-		key, err := x509.ParsePKIXPublicKey(p.Bytes)
-		if err != nil {
-			errs = append(errs, err)
-		} else {
-			keys = append(keys, key.(crypto.PublicKey))
-		}
-	}
-	if keys == nil {
-		return nil, apis.ErrGeneric(fmt.Sprintf("malformed cosign.pub: %v", errs), apis.CurrentField)
-	}
-	return keys, nil
 }
 
 func parsePems(b []byte) []*pem.Block {

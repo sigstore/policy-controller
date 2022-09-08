@@ -50,12 +50,12 @@ import (
 )
 
 type Validator struct {
-	client     kubernetes.Interface
+	client kubernetes.Interface
 }
 
 func NewValidator(ctx context.Context) *Validator {
 	return &Validator{
-		client:     kubeclient.Get(ctx),
+		client: kubeclient.Get(ctx),
 	}
 }
 
@@ -162,8 +162,6 @@ func (v *Validator) validatePodSpec(ctx context.Context, namespace string, ps *c
 		return apis.ErrGeneric(err.Error(), apis.CurrentField)
 	}
 
-	keys := make([]crypto.PublicKey, 0)
-
 	checkContainers := func(cs []corev1.Container, field string) {
 		for i, c := range cs {
 			ref, err := name.ParseReference(c.Image)
@@ -182,7 +180,6 @@ func (v *Validator) validatePodSpec(ctx context.Context, namespace string, ps *c
 				continue
 			}
 
-			containerKeys := keys
 			config := config.FromContext(ctx)
 
 			// During the migration from the secret only validation into policy
@@ -252,8 +249,7 @@ func (v *Validator) validatePodSpec(ctx context.Context, namespace string, ps *c
 						continue
 					} else {
 						logging.FromContext(ctx).Warnf("Validated authorities for %s", ref.Name())
-						// Only say we passed (aka, we skip the traditidional check
-						// below) if more than one authority was validated, which
+						// Only say we passed if more than one authority was validated, which
 						// means that there was a matching ClusterImagePolicy.
 						if len(signatures) > 0 {
 							passedPolicyChecks = true
@@ -268,14 +264,6 @@ func (v *Validator) validatePodSpec(ctx context.Context, namespace string, ps *c
 				continue
 			}
 			logging.FromContext(ctx).Errorf("ref: for %v", ref)
-			logging.FromContext(ctx).Errorf("container Keys: for %v", containerKeys)
-
-			if _, err := valid(ctx, ref, nil, containerKeys, ociremote.WithRemoteOptions(remote.WithAuthFromKeychain(kc))); err != nil {
-				errorField := apis.ErrGeneric(err.Error(), "image").ViaFieldIndex(field, i)
-				errorField.Details = c.Image
-				errs = errs.Also(errorField)
-				continue
-			}
 		}
 	}
 
