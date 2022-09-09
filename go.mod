@@ -3,7 +3,7 @@ module github.com/sigstore/policy-controller
 go 1.18
 
 require (
-	github.com/armon/go-metrics v0.4.0
+	github.com/armon/go-metrics v0.4.1
 	github.com/armon/go-radix v1.0.0
 	github.com/aws/aws-sdk-go-v2 v1.16.14
 	github.com/cenkalti/backoff/v3 v3.2.2
