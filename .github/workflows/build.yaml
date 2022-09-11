@@ -43,7 +43,7 @@ jobs:
           check-latest: true
 
       # will use the latest release available for ko
-      - uses: imjasonh/setup-ko@ace48d793556083a76f1e3e6068850c1f4a369aa # v0.6
+      - uses: imjasonh/setup-ko@v0.6 # v0.6
 
       - uses: chainguard-dev/actions/goimports@dacf41f3472c33979cfd49bca5b503236be57de0 # main
 
