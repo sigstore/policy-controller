@@ -70,7 +70,7 @@ jobs:
       with:
         mirror: mirror.gcr.io
 
-    - uses: sigstore/cosign-installer@b3413d484cc23cf8778c3d2aa361568d4eb54679 # v2.3.0
+    - uses: sigstore/cosign-installer@f3c664df7af409cb4873aa5068053ba9d61a57b6 # v2.3.0
 
     - name: Install cluster + sigstore
       uses: sigstore/scaffolding/actions/setup@main
