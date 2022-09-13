@@ -54,7 +54,7 @@ jobs:
     - uses: imranismail/setup-kustomize@aa978fb4ab742121859f62594f53d7f42c7f4ec0 # v1.6.1
 
     - name: Install yq
-      uses: mikefarah/yq@3d11b0545dbc0712c2045dc9e8b6c95b298e824e # v4.27.3
+      uses: mikefarah/yq@9b6961875e10b058aeb482f263f26ca0f6b18eb8 # v4.27.3
 
     - uses: sigstore/cosign-installer@f3c664df7af409cb4873aa5068053ba9d61a57b6 # v2.3.0
 
