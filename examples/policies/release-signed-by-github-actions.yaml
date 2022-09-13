@@ -1,0 +1,40 @@
+# Copyright 2022 The Sigstore Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+#
+# Name: release-signed-by-github-actions
+#
+# Description:
+#   Assert that a policy-controller release was signed by expected subject
+#   and issuer.
+#
+
+apiVersion: policy.sigstore.dev/v1alpha1
+kind: ClusterImagePolicy
+metadata:
+  name: image-is-signed-by-github-actions
+spec:
+  images:
+  # This is the release v0.3.0
+  - glob: "gcr.io/projectsigstore/policy-webhook@sha256:d1e7af59381793687db4673277005276eb73a06cf555503138dd18eaa1ca47d6"
+  authorities:
+  - keyless:
+      # Signed by the public Fulcio certificate authority
+      url: https://fulcio.sigstore.dev
+      identities:
+      # Matches the Github Actions OIDC issuer
+      - issuer: https://token.actions.githubusercontent.com
+        # Matches a specific github workflow on main branch. Here we use the
+        # sigstore policy controller example testing workflow as an example.
+        subject: "https://github.com/sigstore/policy-controller/.github/workflows/release.yaml@refs/tags/v0.3.0"

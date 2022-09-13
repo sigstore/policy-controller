@@ -21,8 +21,9 @@ import (
 	"errors"
 	"flag"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
+	"net/http"
 	"os"
 	"strings"
 
@@ -63,7 +64,7 @@ type output struct {
 }
 
 func main() {
-	cipFilePath := flag.String("policy", "", "path to ClusterImagePolicy")
+	cipFilePath := flag.String("policy", "", "path to ClusterImagePolicy or URL to fetch from (http/https)")
 	image := flag.String("image", "", "image to compare against policy")
 	flag.Parse()
 	if *cipFilePath == "" || *image == "" {
@@ -71,9 +72,24 @@ func main() {
 		os.Exit(1)
 	}
 
-	cipRaw, err := ioutil.ReadFile(*cipFilePath)
-	if err != nil {
-		log.Fatal(err)
+	var cipRaw []byte
+	var err error
+	if strings.HasPrefix(*cipFilePath, "https://") || strings.HasPrefix(*cipFilePath, "http://") {
+		log.Printf("Fetching CIP from: %s", *cipFilePath)
+		resp, err := http.Get(*cipFilePath)
+		if err != nil {
+			log.Fatal(err)
+		}
+		cipRaw, err = io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if err != nil {
+			log.Fatal(err)
+		}
+	} else {
+		cipRaw, err = os.ReadFile(*cipFilePath)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	// TODO(jdolitsky): This should use v1beta1 once there exists a
