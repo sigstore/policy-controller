@@ -6,6 +6,11 @@
 release:
 	LDFLAGS="$(LDFLAGS)" goreleaser release --timeout 120m
 
+# used when releasing together with GCP CloudBuild
+.PHONY: snapshot
+snapshot:
+	LDFLAGS="$(LDFLAGS)" goreleaser release --rm-dist --snapshot --skip-sign --timeout 120m
+
 ######################
 # sign section
 ######################

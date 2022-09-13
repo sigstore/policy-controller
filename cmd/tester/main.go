@@ -34,6 +34,7 @@ import (
 	"go.uber.org/zap"
 	"knative.dev/pkg/apis"
 	"knative.dev/pkg/logging"
+	"sigs.k8s.io/release-utils/version"
 	"sigs.k8s.io/yaml"
 
 	"github.com/sigstore/policy-controller/pkg/apis/glob"
@@ -65,8 +66,16 @@ type output struct {
 
 func main() {
 	cipFilePath := flag.String("policy", "", "path to ClusterImagePolicy or URL to fetch from (http/https)")
+	versionFlag := flag.Bool("version", false, "return the policy-controller tester version")
 	image := flag.String("image", "", "image to compare against policy")
 	flag.Parse()
+
+	if *versionFlag {
+		v := version.GetVersionInfo()
+		fmt.Println(v.String())
+		os.Exit(0)
+	}
+
 	if *cipFilePath == "" || *image == "" {
 		flag.Usage()
 		os.Exit(1)
