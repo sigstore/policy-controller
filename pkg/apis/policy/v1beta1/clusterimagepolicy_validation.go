@@ -23,6 +23,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws/arn"
+	"github.com/sigstore/cosign/cmd/cosign/cli/options"
 	"github.com/sigstore/policy-controller/pkg/apis/glob"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"k8s.io/apimachinery/pkg/util/sets"
@@ -138,6 +139,14 @@ func (key *KeyRef) Validate(ctx context.Context) *apis.FieldError {
 
 	if key.Data == "" && key.KMS == "" && key.SecretRef == nil {
 		errs = errs.Also(apis.ErrMissingOneOf("data", "kms", "secretref"))
+	}
+
+	if key.HashAlgorithm != "" {
+		digestAlgo := options.SignatureDigestOptions{AlgorithmName: key.HashAlgorithm}
+		_, err := digestAlgo.HashAlgorithm()
+		if err != nil {
+			errs = errs.Also(apis.ErrInvalidValue(key.HashAlgorithm, "hashAlgorithm"))
+		}
 	}
 
 	if key.Data != "" {

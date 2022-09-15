@@ -70,6 +70,8 @@ SID/4H61ZiRzN4nqONzp+ZF22qQTk3MFO3D0/ZKmWHAosIf2pf2GHH7myA==
 -----END PUBLIC KEY-----`
 )
 
+var signatureSHA256HashAlgorithm = "sha256"
+
 func TestValidatePodSpec(t *testing.T) {
 	tag := name.MustParseReference("gcr.io/distroless/static:nonroot")
 	// Resolved via crane digest on 2021/09/25
@@ -246,8 +248,10 @@ func TestValidatePodSpec(t *testing.T) {
 							Authorities: []webhookcip.Authority{
 								{
 									Key: &webhookcip.KeyRef{
-										Data:       authorityKeyCosignPubString,
-										PublicKeys: []crypto.PublicKey{authorityKeyCosignPub},
+										Data:              authorityKeyCosignPubString,
+										PublicKeys:        []crypto.PublicKey{authorityKeyCosignPub},
+										HashAlgorithm:     signatureSHA256HashAlgorithm,
+										HashAlgorithmCode: crypto.SHA256,
 									},
 								},
 							},
@@ -493,8 +497,10 @@ func TestValidatePodSpec(t *testing.T) {
 							Authorities: []webhookcip.Authority{
 								{
 									Key: &webhookcip.KeyRef{
-										Data:       authorityKeyCosignPubString,
-										PublicKeys: []crypto.PublicKey{authorityKeyCosignPub},
+										Data:              authorityKeyCosignPubString,
+										PublicKeys:        []crypto.PublicKey{authorityKeyCosignPub},
+										HashAlgorithmCode: crypto.SHA256,
+										HashAlgorithm:     signatureSHA256HashAlgorithm,
 									},
 									Sources: []v1alpha1.Source{{
 										OCI: "example.com/alternative/signature",
@@ -545,8 +551,10 @@ func TestValidatePodSpec(t *testing.T) {
 							Authorities: []webhookcip.Authority{
 								{
 									Key: &webhookcip.KeyRef{
-										Data:       authorityKeyCosignPubString,
-										PublicKeys: []crypto.PublicKey{authorityKeyCosignPub},
+										Data:              authorityKeyCosignPubString,
+										PublicKeys:        []crypto.PublicKey{authorityKeyCosignPub},
+										HashAlgorithm:     signatureSHA256HashAlgorithm,
+										HashAlgorithmCode: crypto.SHA256,
 									},
 									Sources: []v1alpha1.Source{{
 										OCI: "example.com/alternative/signature",
@@ -1510,7 +1518,9 @@ func TestValidatePolicy(t *testing.T) {
 			Authorities: []webhookcip.Authority{{
 				Name: "authority-0",
 				Key: &webhookcip.KeyRef{
-					PublicKeys: []crypto.PublicKey{authorityKeyCosignPub},
+					PublicKeys:        []crypto.PublicKey{authorityKeyCosignPub},
+					HashAlgorithm:     signatureSHA256HashAlgorithm,
+					HashAlgorithmCode: crypto.SHA256,
 				},
 			}},
 		},
@@ -1522,7 +1532,9 @@ func TestValidatePolicy(t *testing.T) {
 			Authorities: []webhookcip.Authority{{
 				Name: "authority-0",
 				Key: &webhookcip.KeyRef{
-					PublicKeys: []crypto.PublicKey{authorityKeyCosignPub},
+					PublicKeys:        []crypto.PublicKey{authorityKeyCosignPub},
+					HashAlgorithm:     signatureSHA256HashAlgorithm,
+					HashAlgorithmCode: crypto.SHA256,
 				},
 			}},
 		},
@@ -1541,7 +1553,9 @@ func TestValidatePolicy(t *testing.T) {
 			Authorities: []webhookcip.Authority{{
 				Name: "authority-0",
 				Key: &webhookcip.KeyRef{
-					PublicKeys: []crypto.PublicKey{authorityKeyCosignPub},
+					PublicKeys:        []crypto.PublicKey{authorityKeyCosignPub},
+					HashAlgorithm:     signatureSHA256HashAlgorithm,
+					HashAlgorithmCode: crypto.SHA256,
 				},
 			}, {
 				Name: "authority-1",
@@ -1594,7 +1608,9 @@ func TestValidatePolicy(t *testing.T) {
 			Authorities: []webhookcip.Authority{{
 				Name: "authority-0",
 				Key: &webhookcip.KeyRef{
-					PublicKeys: []crypto.PublicKey{authorityKeyCosignPub},
+					PublicKeys:        []crypto.PublicKey{authorityKeyCosignPub},
+					HashAlgorithm:     signatureSHA256HashAlgorithm,
+					HashAlgorithmCode: crypto.SHA256,
 				},
 			}},
 		},
@@ -1881,8 +1897,10 @@ func TestValidatePodSpecNonDefaultNamespace(t *testing.T) {
 							Authorities: []webhookcip.Authority{
 								{
 									Key: &webhookcip.KeyRef{
-										Data:       authorityKeyCosignPubString,
-										PublicKeys: []crypto.PublicKey{authorityKeyCosignPub},
+										Data:              authorityKeyCosignPubString,
+										PublicKeys:        []crypto.PublicKey{authorityKeyCosignPub},
+										HashAlgorithm:     signatureSHA256HashAlgorithm,
+										HashAlgorithmCode: crypto.SHA256,
 									},
 								},
 							},
@@ -2128,8 +2146,10 @@ func TestValidatePodSpecNonDefaultNamespace(t *testing.T) {
 							Authorities: []webhookcip.Authority{
 								{
 									Key: &webhookcip.KeyRef{
-										Data:       authorityKeyCosignPubString,
-										PublicKeys: []crypto.PublicKey{authorityKeyCosignPub},
+										Data:              authorityKeyCosignPubString,
+										PublicKeys:        []crypto.PublicKey{authorityKeyCosignPub},
+										HashAlgorithm:     signatureSHA256HashAlgorithm,
+										HashAlgorithmCode: crypto.SHA256,
 									},
 									Sources: []v1alpha1.Source{{
 										OCI: "example.com/alternative/signature",
@@ -2180,8 +2200,10 @@ func TestValidatePodSpecNonDefaultNamespace(t *testing.T) {
 							Authorities: []webhookcip.Authority{
 								{
 									Key: &webhookcip.KeyRef{
-										Data:       authorityKeyCosignPubString,
-										PublicKeys: []crypto.PublicKey{authorityKeyCosignPub},
+										Data:              authorityKeyCosignPubString,
+										PublicKeys:        []crypto.PublicKey{authorityKeyCosignPub},
+										HashAlgorithm:     signatureSHA256HashAlgorithm,
+										HashAlgorithmCode: crypto.SHA256,
 									},
 									Sources: []v1alpha1.Source{{
 										OCI: "example.com/alternative/signature",
@@ -2402,7 +2424,9 @@ func TestValidatePolicyCancelled(t *testing.T) {
 		Authorities: []webhookcip.Authority{{
 			Name: "authority-0",
 			Key: &webhookcip.KeyRef{
-				PublicKeys: []crypto.PublicKey{authorityKeyCosignPub},
+				PublicKeys:        []crypto.PublicKey{authorityKeyCosignPub},
+				HashAlgorithm:     signatureSHA256HashAlgorithm,
+				HashAlgorithmCode: crypto.SHA256,
 			},
 		}},
 	}
@@ -2429,7 +2453,9 @@ func TestValidatePoliciesCancelled(t *testing.T) {
 		Authorities: []webhookcip.Authority{{
 			Name: "authority-0",
 			Key: &webhookcip.KeyRef{
-				PublicKeys: []crypto.PublicKey{authorityKeyCosignPub},
+				PublicKeys:        []crypto.PublicKey{authorityKeyCosignPub},
+				HashAlgorithm:     signatureSHA256HashAlgorithm,
+				HashAlgorithmCode: crypto.SHA256,
 			},
 		}},
 	}

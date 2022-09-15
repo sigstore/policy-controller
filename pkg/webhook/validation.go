@@ -33,7 +33,7 @@ import (
 	"github.com/sigstore/sigstore/pkg/signature"
 )
 
-func valid(ctx context.Context, ref name.Reference, rekorClient *client.Rekor, keys []crypto.PublicKey, opts ...ociremote.Option) ([]oci.Signature, error) {
+func valid(ctx context.Context, ref name.Reference, rekorClient *client.Rekor, keys []crypto.PublicKey, hashAlgo crypto.Hash, opts ...ociremote.Option) ([]oci.Signature, error) {
 	if len(keys) == 0 {
 		// If there are no keys, then verify against the fulcio root.
 		fulcioRoots, err := fulcioroots.Get()
@@ -45,7 +45,7 @@ func valid(ctx context.Context, ref name.Reference, rekorClient *client.Rekor, k
 	// We return nil if ANY key matches
 	var lastErr error
 	for _, k := range keys {
-		verifier, err := signature.LoadVerifier(k, crypto.SHA256)
+		verifier, err := signature.LoadVerifier(k, hashAlgo)
 		if err != nil {
 			logging.FromContext(ctx).Errorf("error creating verifier: %v", err)
 			lastErr = err

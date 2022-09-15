@@ -26,6 +26,12 @@ import (
 
 const validPublicKey = "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEaEOVJCFtduYr3xqTxeRWSW32CY/s\nTBNZj4oIUPl8JvhVPJ1TKDPlNcuT4YphSt6t3yOmMvkdQbCj8broX6vijw==\n-----END PUBLIC KEY-----"
 
+const (
+	signatureSHA512HashAlgorithm     = "sha512"
+	signatureSHA256HashAlgorithm     = "sha256"
+	signatureSHAInvalidHashAlgorithm = "shaInvalid"
+)
+
 func TestImagePatternValidation(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -715,6 +721,62 @@ func TestAuthoritiesValidation(t *testing.T) {
 					Authorities: []Authority{
 						{
 							Key: &KeyRef{KMS: "kms://key/path"},
+							Sources: []Source{
+								{
+									OCI: "registry1",
+									SignaturePullSecrets: []v1.LocalObjectReference{
+										{Name: "testPullSecrets"},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:        "Should fail with invalid signature hash algorithm",
+			errorString: "invalid value: " + signatureSHAInvalidHashAlgorithm + ": spec.authorities[0].key.hashAlgorithm",
+			policy: ClusterImagePolicy{
+				Spec: ClusterImagePolicySpec{
+					Images: []ImagePattern{{Glob: "*"}},
+					Authorities: []Authority{
+						{
+							Key: &KeyRef{KMS: "kms://key/path", HashAlgorithm: signatureSHAInvalidHashAlgorithm},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "Should pass with sha256 signature hash algorithm",
+			policy: ClusterImagePolicy{
+				Spec: ClusterImagePolicySpec{
+					Images: []ImagePattern{{Glob: "*"}},
+					Authorities: []Authority{
+						{
+							Key: &KeyRef{KMS: "kms://key/path", HashAlgorithm: signatureSHA256HashAlgorithm},
+							Sources: []Source{
+								{
+									OCI: "registry1",
+									SignaturePullSecrets: []v1.LocalObjectReference{
+										{Name: "testPullSecrets"},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "Should pass with sha512 signature hash algorithm",
+			policy: ClusterImagePolicy{
+				Spec: ClusterImagePolicySpec{
+					Images: []ImagePattern{{Glob: "*"}},
+					Authorities: []Authority{
+						{
+							Key: &KeyRef{KMS: "kms://key/path", HashAlgorithm: signatureSHA512HashAlgorithm},
 							Sources: []Source{
 								{
 									OCI: "registry1",

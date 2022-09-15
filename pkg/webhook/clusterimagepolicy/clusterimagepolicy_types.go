@@ -23,6 +23,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/authn/k8schain"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
+	"github.com/sigstore/cosign/cmd/cosign/cli/options"
 	ociremote "github.com/sigstore/cosign/pkg/oci/remote"
 	"github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
@@ -80,6 +81,12 @@ type KeyRef struct {
 	// Data contains the inline public key
 	// +optional
 	Data string `json:"data,omitempty"`
+	// HashAlgorithm always default to sha256 if the algorithm hasn't been explicitly set
+	// +optional
+	HashAlgorithm string `json:"hashAlgorithm,omitempty"`
+	// HashAlgorithmCode sets the crypto.Hash code based on the value of HashAlgorithm
+	// +optional
+	HashAlgorithmCode crypto.Hash `json:"-"`
 	// PublicKeys are not marshalled because JSON unmarshalling
 	// errors for *big.Int
 	// +optional
@@ -123,6 +130,16 @@ func (k *KeyRef) UnmarshalJSON(data []byte) error {
 	}
 
 	k.Data = ret["data"]
+	k.HashAlgorithmCode = crypto.SHA256
+	k.HashAlgorithm = "sha256"
+	if ret["hashAlgorithm"] != "" {
+		k.HashAlgorithm = ret["hashAlgorithm"]
+		digestAlgo := options.SignatureDigestOptions{AlgorithmName: ret["hashAlgorithm"]}
+		k.HashAlgorithmCode, err = digestAlgo.HashAlgorithm()
+		if err != nil {
+			return err
+		}
+	}
 
 	if ret["data"] != "" {
 		publicKey, err := cryptoutils.UnmarshalPEMToPublicKey([]byte(ret["data"]))
@@ -132,6 +149,7 @@ func (k *KeyRef) UnmarshalJSON(data []byte) error {
 		publicKeys = append(publicKeys, publicKey)
 	}
 	k.PublicKeys = publicKeys
+
 	return nil
 }
 
@@ -254,9 +272,20 @@ func convertKeyRefV1Alpha1ToWebhook(in *v1alpha1.KeyRef) *KeyRef {
 	if in == nil {
 		return nil
 	}
+	// Convert the hash algorithm name to the code and reuse it evertwhere else
+	algorithmCode := crypto.SHA256
+	algorithm := "sha256"
+	if in.HashAlgorithm != "" {
+		algorithm = in.HashAlgorithm
+		digestAlgo := options.SignatureDigestOptions{AlgorithmName: in.HashAlgorithm}
+		// Ignore the error. It was already validated by the validation webhook
+		algorithmCode, _ = digestAlgo.HashAlgorithm() // nolint: staticcheck
+	}
 
 	return &KeyRef{
-		Data: in.Data,
+		Data:              in.Data,
+		HashAlgorithm:     algorithm,
+		HashAlgorithmCode: algorithmCode,
 	}
 }
 
