@@ -632,9 +632,8 @@ func ValidatePolicySignaturesForAuthority(ctx context.Context, ref name.Referenc
 			}
 			logging.FromContext(ctx).Debugf("validated signature for %s, got %d signatures", ref.Name(), len(sps))
 			return ociSignatureToPolicySignature(ctx, sps), nil
-		} else {
-			return nil, fmt.Errorf("no Keyless URL specified")
 		}
+		return nil, fmt.Errorf("no Keyless URL specified")
 	}
 
 	// This should never happen because authority has to have been validated to
