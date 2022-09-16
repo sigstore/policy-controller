@@ -40,7 +40,6 @@ require (
 	github.com/pierrec/lz4 v2.6.1+incompatible
 	github.com/ryanuber/go-glob v1.0.0
 	github.com/sigstore/cosign v1.11.1
-	github.com/sigstore/fulcio v0.5.3
 	github.com/sigstore/rekor v0.11.0
 	github.com/sigstore/sigstore v1.4.1-0.20220823190236-c645ceb9d075
 	github.com/stretchr/testify v1.8.0
