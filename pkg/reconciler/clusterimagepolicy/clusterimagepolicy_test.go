@@ -26,6 +26,7 @@ import (
 
 	"github.com/sigstore/policy-controller/pkg/apis/config"
 	"github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
+	"github.com/sigstore/policy-controller/pkg/apis/signaturealgo"
 	fakecosignclient "github.com/sigstore/policy-controller/pkg/client/injection/client/fake"
 	"github.com/sigstore/policy-controller/pkg/client/injection/reconciler/policy/v1alpha1/clusterimagepolicy"
 	corev1 "k8s.io/api/core/v1"
@@ -85,8 +86,6 @@ RCTfQ5s1kD+hGMSE1rH7s46hmXEeyhnlRnaGF8eMU/SBJE/2NKPnxE7WzQ==
 	inlinedSecretKeylessPatch = `[{"op":"replace","path":"/data/test-cip-2","value":"{\"images\":[{\"glob\":\"ghcr.io/example/*\"}],\"authorities\":[{\"name\":\"authority-0\",\"keyless\":{\"ca-cert\":{\"data\":\"-----BEGIN PUBLIC KEY-----\\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAExB6+H6054/W1SJgs5JR6AJr6J35J\\nRCTfQ5s1kD+hGMSE1rH7s46hmXEeyhnlRnaGF8eMU/SBJE/2NKPnxE7WzQ==\\n-----END PUBLIC KEY-----\",\"hashAlgorithm\":\"sha256\"}}}],\"mode\":\"enforce\"}"}]`
 
 	replaceCIPKeySourcePatch = `[{"op":"replace","path":"/data/test-cip","value":"{\"images\":[{\"glob\":\"ghcr.io/example/*\"}],\"authorities\":[{\"name\":\"authority-0\",\"key\":{\"data\":\"-----BEGIN PUBLIC KEY-----\\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAExB6+H6054/W1SJgs5JR6AJr6J35J\\nRCTfQ5s1kD+hGMSE1rH7s46hmXEeyhnlRnaGF8eMU/SBJE/2NKPnxE7WzQ==\\n-----END PUBLIC KEY-----\",\"hashAlgorithm\":\"sha256\"},\"source\":[{\"oci\":\"example.com/alternative/signature\",\"signaturePullSecrets\":[{\"name\":\"signaturePullSecretName\"}]}]}],\"mode\":\"enforce\"}"}]`
-
-	hashSHA256Algorithm = "sha256"
 )
 
 func TestReconcile(t *testing.T) {
@@ -528,12 +527,12 @@ func TestReconcile(t *testing.T) {
 					WithAuthority(v1alpha1.Authority{
 						Key: &v1alpha1.KeyRef{
 							KMS:           fakeKMSKey,
-							HashAlgorithm: hashSHA256Algorithm,
+							HashAlgorithm: signaturealgo.DefaultSignatureAlgorithm,
 						}})),
 				makeEmptyConfigMap(), // Make the existing configmap
 			},
 			WantPatches: []clientgotesting.PatchActionImpl{
-				patchKMS(mainContext, t, fakeKMSKey, hashSHA256Algorithm),
+				patchKMS(mainContext, t, fakeKMSKey, signaturealgo.DefaultSignatureAlgorithm),
 			},
 		}, {
 			Name: "Key with data, source, and signature pull secrets",

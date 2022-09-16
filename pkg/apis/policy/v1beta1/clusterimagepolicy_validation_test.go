@@ -19,6 +19,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/sigstore/policy-controller/pkg/apis/signaturealgo"
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
 	"knative.dev/pkg/apis"
@@ -28,7 +29,6 @@ const validPublicKey = "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0D
 
 const (
 	signatureSHA512HashAlgorithm     = "sha512"
-	signatureSHA256HashAlgorithm     = "sha256"
 	signatureSHAInvalidHashAlgorithm = "shaInvalid"
 )
 
@@ -755,7 +755,7 @@ func TestAuthoritiesValidation(t *testing.T) {
 					Images: []ImagePattern{{Glob: "*"}},
 					Authorities: []Authority{
 						{
-							Key: &KeyRef{KMS: "kms://key/path", HashAlgorithm: signatureSHA256HashAlgorithm},
+							Key: &KeyRef{KMS: "kms://key/path", HashAlgorithm: signaturealgo.DefaultSignatureAlgorithm},
 							Sources: []Source{
 								{
 									OCI: "registry1",

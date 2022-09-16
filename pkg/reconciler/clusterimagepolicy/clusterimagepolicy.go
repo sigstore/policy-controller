@@ -22,6 +22,7 @@ import (
 
 	"github.com/sigstore/policy-controller/pkg/apis/config"
 	"github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
+	"github.com/sigstore/policy-controller/pkg/apis/signaturealgo"
 	clusterimagepolicyreconciler "github.com/sigstore/policy-controller/pkg/client/injection/reconciler/policy/v1alpha1/clusterimagepolicy"
 	"github.com/sigstore/policy-controller/pkg/reconciler/clusterimagepolicy/resources"
 	webhookcip "github.com/sigstore/policy-controller/pkg/webhook/clusterimagepolicy"
@@ -39,7 +40,6 @@ import (
 	"knative.dev/pkg/system"
 	"knative.dev/pkg/tracker"
 
-	"github.com/sigstore/cosign/cmd/cosign/cli/options"
 	sigs "github.com/sigstore/cosign/pkg/signature"
 	"github.com/sigstore/sigstore/pkg/signature/kms"
 	signatureoptions "github.com/sigstore/sigstore/pkg/signature/options"
@@ -173,9 +173,8 @@ func (r *Reconciler) inlinePublicKeys(ctx context.Context, cip *v1alpha1.Cluster
 func getKMSPublicKey(ctx context.Context, keyID string, hashAlgorithm string) (string, error) {
 	algorithm := crypto.SHA256
 	if hashAlgorithm != "" {
-		digestAlgo := options.SignatureDigestOptions{AlgorithmName: hashAlgorithm}
 		var err error
-		algorithm, err = digestAlgo.HashAlgorithm()
+		algorithm, err = signaturealgo.HashAlgorithm(hashAlgorithm)
 		if err != nil {
 			logging.FromContext(ctx).Errorf("Failed to extract the signature hash algorithm: %w", err)
 			return "", fmt.Errorf("failed to extract the signature hash algorithm: %w", err)

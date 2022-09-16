@@ -23,9 +23,9 @@ import (
 	"github.com/google/go-containerregistry/pkg/authn/k8schain"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
-	"github.com/sigstore/cosign/cmd/cosign/cli/options"
 	ociremote "github.com/sigstore/cosign/pkg/oci/remote"
 	"github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
+	signaturealgo "github.com/sigstore/policy-controller/pkg/apis/signaturealgo"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"knative.dev/pkg/apis"
 	kubeclient "knative.dev/pkg/client/injection/kube/client"
@@ -131,11 +131,10 @@ func (k *KeyRef) UnmarshalJSON(data []byte) error {
 
 	k.Data = ret["data"]
 	k.HashAlgorithmCode = crypto.SHA256
-	k.HashAlgorithm = "sha256"
+	k.HashAlgorithm = signaturealgo.DefaultSignatureAlgorithm
 	if ret["hashAlgorithm"] != "" {
 		k.HashAlgorithm = ret["hashAlgorithm"]
-		digestAlgo := options.SignatureDigestOptions{AlgorithmName: ret["hashAlgorithm"]}
-		k.HashAlgorithmCode, err = digestAlgo.HashAlgorithm()
+		k.HashAlgorithmCode, err = signaturealgo.HashAlgorithm(ret["hashAlgorithm"])
 		if err != nil {
 			return err
 		}
@@ -274,12 +273,11 @@ func convertKeyRefV1Alpha1ToWebhook(in *v1alpha1.KeyRef) *KeyRef {
 	}
 	// Convert the hash algorithm name to the code and reuse it evertwhere else
 	algorithmCode := crypto.SHA256
-	algorithm := "sha256"
+	algorithm := signaturealgo.DefaultSignatureAlgorithm
 	if in.HashAlgorithm != "" {
 		algorithm = in.HashAlgorithm
-		digestAlgo := options.SignatureDigestOptions{AlgorithmName: in.HashAlgorithm}
 		// Ignore the error. It was already validated by the validation webhook
-		algorithmCode, _ = digestAlgo.HashAlgorithm() // nolint: staticcheck
+		algorithmCode, _ = signaturealgo.HashAlgorithm(in.HashAlgorithm) // nolint: staticcheck
 	}
 
 	return &KeyRef{
