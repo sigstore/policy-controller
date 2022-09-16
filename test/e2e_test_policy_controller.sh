@@ -77,66 +77,21 @@ spec:
 EOF
 echo '::endgroup::'
 
-cat > manykeys.pem <<EOF
------BEGIN PUBLIC KEY-----
-MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEQaXTMA1eCVAGCTWxTe8ZQ0JVNSXV
-A+6/ffM1bfNnq3AGkhGNfJTI3P0w1Y69gBTF/AfXhYuEc/SxmX0b3PwzWg==
------END PUBLIC KEY-----
------BEGIN PUBLIC KEY-----
-MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE40I8/4Q4k7IhuJvesexymMH4mQa6
-nD9c9iLu5S/Y5yjCDYtDTB7MzwTy+0RtIdIAv1ePBVGVQ/s7M2QDdrA8SQ==
------END PUBLIC KEY-----
-EOF
-
-echo '::endgroup::'
-
-
 echo '::group:: enable verification'
 kubectl label namespace default --overwrite policy.sigstore.dev/include=true
 echo '::endgroup::'
 
-
-echo '::group:: test pod success (Fulcio root)'
+echo '::group:: test pod success (no policy applied yet)'
 # This time it should succeed!
 if ! kubectl create -f distroless-pod.yaml ; then
-  echo Failed to create Pod signed by Fulcio!
+  echo Failed to create Pod signed by Fulcio without any matching policy!
   exit 1
 else
-  echo Successfully created Pod signed by Fulcio.
+  echo Successfully created Pod signed by Fulcio without any matching policy.
 fi
 echo '::endgroup::'
 
-
-echo '::group:: setup verification-key'
-# Update the cosign verification-key secret with a proper key pair.
-cosign generate-key-pair k8s://cosign-system/verification-key
-echo '::endgroup::'
-
-echo '::group:: setup multiple verification-keys'
-cosign public-key --key k8s://cosign-system/verification-key >> manykeys.pem
-
-# Save the old key
-kubectl get secret -n cosign-system verification-key -o=json | jq -r '.data["cosign.key"]' | base64 --decode > cosign.key
-kubectl delete secret -n cosign-system  verification-key
-kubectl create secret generic -n cosign-system verification-key --from-file=cosign.pub=manykeys.pem --from-literal=cosign.password=${COSIGN_PASSWORD} --from-file=cosign.key
-
-echo '::group:: disable verification'
-kubectl label namespace default --overwrite policy.sigstore.dev/include=false
-echo '::endgroup::'
-
-
-echo '::group:: test pod success (before labeling)'
-# This time it should succeed!
-if ! kubectl create -f pod.yaml ; then
-  echo Failed to create Pod in namespace without label!
-  exit 1
-else
-  echo Successfully created Pod in namespace without label.
-fi
-echo '::endgroup::'
-
-
-echo '::group:: test job success'
+echo '::group:: test job success (no policy applied yet)'
 # This time it should succeed!
 if ! kubectl create -f job.yaml ; then
   echo Failed to create Job in namespace without label!
@@ -146,7 +101,7 @@ else
 fi
 echo '::endgroup::'
 
-echo '::group:: test cronjob success'
+echo '::group:: test cronjob success (no policy applied yet)'
 # This time it should succeed!
 if ! kubectl create -f cronjob.yaml ; then
   echo Failed to create CronJob in namespace without label!
@@ -156,105 +111,36 @@ else
 fi
 echo '::endgroup::'
 
-echo '::group:: enable verification'
-kubectl label namespace default --overwrite policy.sigstore.dev/include=true
+echo '::group:: disable verification'
+kubectl label namespace default --overwrite policy.sigstore.dev/include=false
 echo '::endgroup::'
 
-
-echo '::group:: test pod rejection'
-if kubectl create -f pod.yaml ; then
-  echo Failed to block Pod creation!
-  exit 1
-else
-  echo Successfully blocked Pod creation.
-fi
-echo '::endgroup::'
-
-
-echo '::group:: test job rejection'
-if kubectl create -f job.yaml ; then
-  echo Failed to block Job creation!
-  exit 1
-else
-  echo Successfully blocked Job creation.
-fi
-echo '::endgroup::'
-
-echo '::group:: test cronjob rejection'
-if kubectl create -f cronjob.yaml ; then
-  echo Failed to block CronJob creation!
-  exit 1
-else
-  echo Successfully blocked CronJob creation.
-fi
-echo '::endgroup::'
-
-echo '::group:: sign test image'
-cosign sign --key k8s://cosign-system/verification-key $DIGEST
-echo '::endgroup::'
-
-
-
-echo '::group:: test pod digest resolution'
-IMAGE=$(kubectl create --dry-run=server -f pod.yaml -oyaml | yq e '.spec.containers[0].image' -)
-
-if [ "$IMAGE" != "$DIGEST" ] ; then
-  echo Failed to resolve tag to digest!
-  exit 1
-else
-  echo Successfully resolved tag to digest.
-fi
-echo '::endgroup::'
-
-echo '::group:: test job digest resolution'
-IMAGE=$(kubectl create --dry-run=server -f job.yaml -oyaml | yq e '.spec.template.spec.containers[0].image' -)
-
-if [ "$IMAGE" != "$DIGEST" ] ; then
-  echo Failed to resolve tag to digest!
-  exit 1
-else
-  echo Successfully resolved tag to digest.
-fi
-echo '::endgroup::'
-
-echo '::group:: test cronjob digest resolution'
-IMAGE=$(kubectl create --dry-run=server -f cronjob.yaml -oyaml | yq e '.spec.jobTemplate.spec.template.spec.containers[0].image' -)
-
-if [ "$IMAGE" != "$DIGEST" ] ; then
-  echo Failed to resolve tag to digest!
-  exit 1
-else
-  echo Successfully resolved tag to digest.
-fi
-echo '::endgroup::'
-
-echo '::group:: test pod success'
+echo '::group:: test pod success (before labeling and without any matching policy)'
 # This time it should succeed!
 if ! kubectl create -f pod.yaml ; then
-  echo Failed to create Pod with properly signed image!
+  echo Failed to create Pod in namespace without label!
   exit 1
 else
-  echo Successfully created Pod from signed image.
+  echo Successfully created Pod in namespace without label.
 fi
 echo '::endgroup::'
 
-
-echo '::group:: test job success'
+echo '::group:: test job success (before labeling and without any matching policy)'
 # This time it should succeed!
 if ! kubectl create -f job.yaml ; then
-  echo Failed to create Job with properly signed image!
+  echo Failed to create Job in namespace without label!
   exit 1
 else
-  echo Successfully created Job from signed image.
+  echo Successfully created Job in namespace without label.
 fi
 echo '::endgroup::'
 
-echo '::group:: test cronjob success'
+echo '::group:: test cronjob success (before labeling and without any matching policy)'
 # This time it should succeed!
 if ! kubectl create -f cronjob.yaml ; then
-  echo Failed to create CronJob with properly signed image!
+  echo Failed to create CronJob in namespace without label!
   exit 1
 else
-  echo Successfully created CronJob from signed image.
+  echo Successfully created CronJob in namespace without label.
 fi
 echo '::endgroup::'

@@ -45,8 +45,6 @@ spec:
         # and substituted here.
         image: ko://github.com/sigstore/policy-controller/cmd/webhook
         args: [
-          # DEPRECATED: -secret-name will be removed in the future.
-          "-secret-name=verification-key",
           # Uncomment these to initialize with a custom TUF root.
           # TODO: How to specify the entire TUF directory for multiple
           # TUF roots.
@@ -120,13 +118,4 @@ spec:
           - key: root
             path: root.json
 
----
-apiVersion: v1
-kind: Secret
-metadata:
-  name: verification-key
-  namespace: cosign-system
-# stringData:
-#   cosign.pub: |
-#     <PEM encoded public key>
 ---

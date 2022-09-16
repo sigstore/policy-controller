@@ -54,7 +54,6 @@ import (
 	"knative.dev/pkg/apis"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
 	fakekube "knative.dev/pkg/client/injection/kube/client/fake"
-	fakesecret "knative.dev/pkg/injection/clients/namespacedkube/informers/core/v1/secret/fake"
 	"knative.dev/pkg/ptr"
 	rtesting "knative.dev/pkg/reconciler/testing"
 	"knative.dev/pkg/system"
@@ -77,9 +76,6 @@ func TestValidatePodSpec(t *testing.T) {
 	digest := name.MustParseReference("gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4")
 
 	ctx, _ := rtesting.SetupFakeContext(t)
-	si := fakesecret.Get(ctx)
-
-	secretName := "blah"
 
 	// Non-existent URL for testing complete failure
 	badURL := apis.HTTP("http://example.com/")
@@ -113,21 +109,6 @@ func TestValidatePodSpec(t *testing.T) {
 		t.Errorf("Error parsing authority key from string")
 	}
 
-	si.Informer().GetIndexer().Add(&corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: system.Namespace(),
-			Name:      secretName,
-		},
-		Data: map[string][]byte{
-			// Random public key (cosign generate-key-pair) 2021-09-25
-			"cosign.pub": []byte(`-----BEGIN PUBLIC KEY-----
-MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEapTW568kniCbL0OXBFIhuhOboeox
-UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
------END PUBLIC KEY-----
-`),
-		},
-	})
-
 	kc := fakekube.Get(ctx)
 	// Setup service acc and fakeSignaturePullSecrets for "default" and "cosign-system" namespace
 	for _, ns := range []string{"default", system.Namespace()} {
@@ -147,7 +128,7 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 		}, metav1.CreateOptions{})
 	}
 
-	v := NewValidator(ctx, secretName)
+	v := NewValidator(ctx)
 
 	cvs := cosignVerifySignatures
 	defer func() {
@@ -200,6 +181,27 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 			}},
 		},
 		cvs: pass,
+		customContext: config.ToContext(context.Background(),
+			&config.Config{
+				ImagePolicyConfig: &config.ImagePolicyConfig{
+					Policies: map[string]webhookcip.ClusterImagePolicy{
+						"cluster-image-policy": {
+							Images: []v1alpha1.ImagePattern{{
+								Glob: "gcr.io/*/*",
+							}},
+							Authorities: []webhookcip.Authority{
+								{
+									Key: &webhookcip.KeyRef{
+										Data:       authorityKeyCosignPubString,
+										PublicKeys: []crypto.PublicKey{authorityKeyCosignPub},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		),
 	}, {
 		name: "bad reference",
 		ps: &corev1.PodSpec{
@@ -224,20 +226,6 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 		want: &apis.FieldError{
 			Message: `invalid value: gcr.io/distroless/static:nonroot must be an image digest`,
 			Paths:   []string{"containers[0].image"},
-		},
-		cvs: fail,
-	}, {
-		name: "bad signature",
-		ps: &corev1.PodSpec{
-			Containers: []corev1.Container{{
-				Name:  "user-container",
-				Image: digest.String(),
-			}},
-		},
-		want: &apis.FieldError{
-			Message: `bad signature`,
-			Paths:   []string{"containers[0].image"},
-			Details: digest.String(),
 		},
 		cvs: fail,
 	}, {
@@ -736,19 +724,6 @@ func TestValidateCronJob(t *testing.T) {
 	digest := name.MustParseReference("gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4")
 
 	ctx, _ := rtesting.SetupFakeContext(t)
-	si := fakesecret.Get(ctx)
-
-	secretName := "blah"
-
-	si.Informer().GetIndexer().Add(&corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: system.Namespace(),
-			Name:      secretName,
-		},
-		Data: map[string][]byte{
-			// No data should make us verify against Fulcio.
-		},
-	})
 
 	kc := fakekube.Get(ctx)
 	kc.CoreV1().ServiceAccounts("default").Create(ctx, &corev1.ServiceAccount{
@@ -757,20 +732,20 @@ func TestValidateCronJob(t *testing.T) {
 		},
 	}, metav1.CreateOptions{})
 
-	v := NewValidator(ctx, secretName)
+	v := NewValidator(ctx)
 
 	cvs := cosignVerifySignatures
 	defer func() {
 		cosignVerifySignatures = cvs
 	}()
 	// Let's just say that everything is verified.
-	pass := func(ctx context.Context, signedImgRef name.Reference, co *cosign.CheckOpts) (checkedSignatures []oci.Signature, bundleVerified bool, err error) {
+	/*pass := func(ctx context.Context, signedImgRef name.Reference, co *cosign.CheckOpts) (checkedSignatures []oci.Signature, bundleVerified bool, err error) {
 		sig, err := static.NewSignature(nil, "")
 		if err != nil {
 			return nil, false, err
 		}
 		return []oci.Signature{sig}, true, nil
-	}
+	}*/
 	// Let's just say that everything is not verified.
 	fail := func(ctx context.Context, signedImgRef name.Reference, co *cosign.CheckOpts) (checkedSignatures []oci.Signature, bundleVerified bool, err error) {
 		return nil, false, errors.New("bad signature")
@@ -782,29 +757,6 @@ func TestValidateCronJob(t *testing.T) {
 		want *apis.FieldError
 		cvs  func(context.Context, name.Reference, *cosign.CheckOpts) ([]oci.Signature, bool, error)
 	}{{
-		name: "simple, no error",
-		c: &duckv1.CronJob{
-			Spec: batchv1.CronJobSpec{
-				JobTemplate: batchv1.JobTemplateSpec{
-					Spec: batchv1.JobSpec{
-						Template: corev1.PodTemplateSpec{
-							Spec: corev1.PodSpec{
-								InitContainers: []corev1.Container{{
-									Name:  "setup-stuff",
-									Image: digest.String(),
-								}},
-								Containers: []corev1.Container{{
-									Name:  "user-container",
-									Image: digest.String(),
-								}},
-							},
-						},
-					},
-				},
-			},
-		},
-		cvs: pass,
-	}, {
 		name: "k8schain error (bad service account)",
 		c: &duckv1.CronJob{
 			Spec: batchv1.CronJobSpec{
@@ -906,30 +858,6 @@ func TestValidateCronJob(t *testing.T) {
 			Paths:   []string{"spec.jobTemplate.spec.template.spec.containers[0].image"},
 		},
 		cvs: fail,
-	}, {
-		name: "bad signature",
-		c: &duckv1.CronJob{
-			Spec: batchv1.CronJobSpec{
-				JobTemplate: batchv1.JobTemplateSpec{
-					Spec: batchv1.JobSpec{
-						Template: corev1.PodTemplateSpec{
-							Spec: corev1.PodSpec{
-								Containers: []corev1.Container{{
-									Name:  "user-container",
-									Image: digest.String(),
-								}},
-							},
-						},
-					},
-				},
-			},
-		},
-		want: &apis.FieldError{
-			Message: `bad signature`,
-			Paths:   []string{"spec.jobTemplate.spec.template.spec.containers[0].image"},
-			Details: digest.String(),
-		},
-		cvs: fail,
 	}}
 
 	for _, test := range tests {
@@ -964,22 +892,6 @@ func TestResolvePodSpec(t *testing.T) {
 	digest := name.MustParseReference("gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4")
 
 	ctx, _ := rtesting.SetupFakeContext(t)
-	si := fakesecret.Get(ctx)
-	secretName := "blah"
-	si.Informer().GetIndexer().Add(&corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: system.Namespace(),
-			Name:      secretName,
-		},
-		Data: map[string][]byte{
-			// Random public key (cosign generate-key-pair) 2021-09-25
-			"cosign.pub": []byte(`-----BEGIN PUBLIC KEY-----
-MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEapTW568kniCbL0OXBFIhuhOboeox
-UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
------END PUBLIC KEY-----
-`),
-		},
-	})
 
 	kc := fakekube.Get(ctx)
 	kc.CoreV1().ServiceAccounts("default").Create(ctx, &corev1.ServiceAccount{
@@ -988,7 +900,7 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 		},
 	}, metav1.CreateOptions{})
 
-	v := NewValidator(ctx, secretName)
+	v := NewValidator(ctx)
 
 	rrd := remoteResolveDigest
 	defer func() {
@@ -1264,22 +1176,6 @@ func TestResolveCronJob(t *testing.T) {
 	digest := name.MustParseReference("gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4")
 
 	ctx, _ := rtesting.SetupFakeContext(t)
-	si := fakesecret.Get(ctx)
-	secretName := "blah"
-	si.Informer().GetIndexer().Add(&corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: system.Namespace(),
-			Name:      secretName,
-		},
-		Data: map[string][]byte{
-			// Random public key (cosign generate-key-pair) 2021-09-25
-			"cosign.pub": []byte(`-----BEGIN PUBLIC KEY-----
-MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEapTW568kniCbL0OXBFIhuhOboeox
-UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
------END PUBLIC KEY-----
-`),
-		},
-	})
 
 	kc := fakekube.Get(ctx)
 	kc.CoreV1().ServiceAccounts("default").Create(ctx, &corev1.ServiceAccount{
@@ -1288,7 +1184,7 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 		},
 	}, metav1.CreateOptions{})
 
-	v := NewValidator(ctx, secretName)
+	v := NewValidator(ctx)
 
 	rrd := remoteResolveDigest
 	defer func() {
@@ -1499,11 +1395,6 @@ func TestValidatePolicy(t *testing.T) {
 	// Resolved via crane digest on 2021/09/25
 	digest := name.MustParseReference("gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4")
 
-	ctx, _ := rtesting.SetupFakeContext(t)
-	si := fakesecret.Get(ctx)
-
-	secretName := "blah"
-
 	// Non-existent URL for testing complete failure
 	badURL := apis.HTTP("http://example.com/")
 	t.Logf("badURL: %s", badURL.String())
@@ -1537,21 +1428,6 @@ func TestValidatePolicy(t *testing.T) {
 	} else {
 		t.Errorf("Error parsing authority key from string")
 	}
-
-	si.Informer().GetIndexer().Add(&corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: system.Namespace(),
-			Name:      secretName,
-		},
-		Data: map[string][]byte{
-			// Random public key (cosign generate-key-pair) 2021-09-25
-			"cosign.pub": []byte(`-----BEGIN PUBLIC KEY-----
-MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEapTW568kniCbL0OXBFIhuhOboeox
-UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
------END PUBLIC KEY-----
-`),
-		},
-	})
 
 	cvs := cosignVerifySignatures
 	defer func() {
@@ -1809,9 +1685,6 @@ func TestValidatePodSpecNonDefaultNamespace(t *testing.T) {
 	digest := name.MustParseReference("gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4")
 
 	ctx, _ := rtesting.SetupFakeContext(t)
-	si := fakesecret.Get(ctx)
-
-	secretName := "blah"
 
 	// Non-existent URL for testing complete failure
 	badURL := apis.HTTP("http://example.com/")
@@ -1844,21 +1717,6 @@ func TestValidatePodSpecNonDefaultNamespace(t *testing.T) {
 	} else {
 		t.Errorf("Error parsing authority key from string")
 	}
-
-	si.Informer().GetIndexer().Add(&corev1.Secret{
-		ObjectMeta: metav1.ObjectMeta{
-			Namespace: system.Namespace(),
-			Name:      secretName,
-		},
-		Data: map[string][]byte{
-			// Random public key (cosign generate-key-pair) 2021-09-25
-			"cosign.pub": []byte(`-----BEGIN PUBLIC KEY-----
-MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEapTW568kniCbL0OXBFIhuhOboeox
-UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
------END PUBLIC KEY-----
-`),
-		},
-	})
 
 	kc := fakekube.Get(ctx)
 	// Setup service acc and fakeSignaturePullSecrets for "default", "cosign-system" and "my-secure-ns" namespace
@@ -1900,7 +1758,7 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 	}
 	kc.CoreV1().ServiceAccounts("my-secure-ns").Patch(ctx, "default", types.MergePatchType, patch, metav1.PatchOptions{})
 
-	v := NewValidator(ctx, secretName)
+	v := NewValidator(ctx)
 
 	cvs := cosignVerifySignatures
 	defer func() {
@@ -1952,6 +1810,27 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 				Image: digest.String(),
 			}},
 		},
+		customContext: config.ToContext(context.Background(),
+			&config.Config{
+				ImagePolicyConfig: &config.ImagePolicyConfig{
+					Policies: map[string]webhookcip.ClusterImagePolicy{
+						"cluster-image-policy": {
+							Images: []v1alpha1.ImagePattern{{
+								Glob: "gcr.io/*/*",
+							}},
+							Authorities: []webhookcip.Authority{
+								{
+									Key: &webhookcip.KeyRef{
+										Data:       authorityKeyCosignPubString,
+										PublicKeys: []crypto.PublicKey{authorityKeyCosignPub},
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		),
 		cvs: pass,
 	}, {
 		name: "bad reference",
@@ -1977,20 +1856,6 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 		want: &apis.FieldError{
 			Message: `invalid value: gcr.io/distroless/static:nonroot must be an image digest`,
 			Paths:   []string{"containers[0].image"},
-		},
-		cvs: fail,
-	}, {
-		name: "bad signature",
-		ps: &corev1.PodSpec{
-			Containers: []corev1.Container{{
-				Name:  "user-container",
-				Image: digest.String(),
-			}},
-		},
-		want: &apis.FieldError{
-			Message: `bad signature`,
-			Paths:   []string{"containers[0].image"},
-			Details: digest.String(),
 		},
 		cvs: fail,
 	}, {

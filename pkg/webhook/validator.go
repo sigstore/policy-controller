@@ -40,30 +40,22 @@ import (
 	"github.com/sigstore/sigstore/pkg/signature"
 	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
-	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes"
-	listersv1 "k8s.io/client-go/listers/core/v1"
 	"knative.dev/pkg/apis"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
 
 	kubeclient "knative.dev/pkg/client/injection/kube/client"
-	secretinformer "knative.dev/pkg/injection/clients/namespacedkube/informers/core/v1/secret"
 	"knative.dev/pkg/logging"
-	"knative.dev/pkg/system"
 )
 
 type Validator struct {
-	client     kubernetes.Interface
-	lister     listersv1.SecretLister
-	secretName string
+	client kubernetes.Interface
 }
 
-func NewValidator(ctx context.Context, secretName string) *Validator {
+func NewValidator(ctx context.Context) *Validator {
 	return &Validator{
-		client:     kubeclient.Get(ctx),
-		lister:     secretinformer.Get(ctx).Lister(),
-		secretName: secretName,
+		client: kubeclient.Get(ctx),
 	}
 }
 
@@ -170,20 +162,6 @@ func (v *Validator) validatePodSpec(ctx context.Context, namespace string, ps *c
 		return apis.ErrGeneric(err.Error(), apis.CurrentField)
 	}
 
-	s, err := v.lister.Secrets(system.Namespace()).Get(v.secretName)
-	if err != nil && !apierrs.IsNotFound(err) {
-		return apis.ErrGeneric(err.Error(), apis.CurrentField)
-	}
-	// If the secret is not found, we verify against the fulcio root.
-	keys := make([]crypto.PublicKey, 0)
-	if err == nil {
-		var kerr *apis.FieldError
-		keys, kerr = getKeys(ctx, s.Data)
-		if kerr != nil {
-			return kerr
-		}
-	}
-
 	checkContainers := func(cs []corev1.Container, field string) {
 		for i, c := range cs {
 			ref, err := name.ParseReference(c.Image)
@@ -202,7 +180,6 @@ func (v *Validator) validatePodSpec(ctx context.Context, namespace string, ps *c
 				continue
 			}
 
-			containerKeys := keys
 			config := config.FromContext(ctx)
 
 			// During the migration from the secret only validation into policy
@@ -272,8 +249,7 @@ func (v *Validator) validatePodSpec(ctx context.Context, namespace string, ps *c
 						continue
 					} else {
 						logging.FromContext(ctx).Warnf("Validated authorities for %s", ref.Name())
-						// Only say we passed (aka, we skip the traditidional check
-						// below) if more than one authority was validated, which
+						// Only say we passed if more than one authority was validated, which
 						// means that there was a matching ClusterImagePolicy.
 						if len(signatures) > 0 {
 							passedPolicyChecks = true
@@ -288,14 +264,6 @@ func (v *Validator) validatePodSpec(ctx context.Context, namespace string, ps *c
 				continue
 			}
 			logging.FromContext(ctx).Errorf("ref: for %v", ref)
-			logging.FromContext(ctx).Errorf("container Keys: for %v", containerKeys)
-
-			if _, err := valid(ctx, ref, nil, containerKeys, ociremote.WithRemoteOptions(remote.WithAuthFromKeychain(kc))); err != nil {
-				errorField := apis.ErrGeneric(err.Error(), "image").ViaFieldIndex(field, i)
-				errorField.Details = c.Image
-				errs = errs.Also(errorField)
-				continue
-			}
 		}
 	}
 
