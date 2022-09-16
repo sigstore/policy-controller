@@ -126,7 +126,7 @@ type KeyRef struct {
 	// Supported formats differ based on the KMS system used.
 	// +optional
 	KMS string `json:"kms,omitempty"`
-	// HashAlgorithm always default to sha256 if the algorithm hasn't been explicitly set
+	// HashAlgorithm always defaults to sha256 if the algorithm hasn't been explicitly set
 	// +optional
 	HashAlgorithm string `json:"hashAlgorithm,omitempty"`
 }

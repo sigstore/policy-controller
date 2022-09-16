@@ -81,10 +81,11 @@ type KeyRef struct {
 	// Data contains the inline public key
 	// +optional
 	Data string `json:"data,omitempty"`
-	// HashAlgorithm always default to sha256 if the algorithm hasn't been explicitly set
+	// HashAlgorithm always defaults to sha256 if the algorithm hasn't been explicitly set
 	// +optional
 	HashAlgorithm string `json:"hashAlgorithm,omitempty"`
-	// HashAlgorithmCode sets the crypto.Hash code based on the value of HashAlgorithm
+	// HashAlgorithmCode sets the crypto.Hash code based on the value of HashAlgorithm.
+	// HashAlgorithmCode is not marshalled, but we use the calculated crypto.Hash in the validations
 	// +optional
 	HashAlgorithmCode crypto.Hash `json:"-"`
 	// PublicKeys are not marshalled because JSON unmarshalling
@@ -271,7 +272,7 @@ func convertKeyRefV1Alpha1ToWebhook(in *v1alpha1.KeyRef) *KeyRef {
 	if in == nil {
 		return nil
 	}
-	// Convert the hash algorithm name to the code and reuse it evertwhere else
+	// Convert the hash algorithm name to the code and reuse it everywhere else
 	algorithmCode := crypto.SHA256
 	algorithm := signaturealgo.DefaultSignatureAlgorithm
 	if in.HashAlgorithm != "" {

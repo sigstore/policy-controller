@@ -33,11 +33,10 @@ var supportedSignatureAlgorithms = map[string]crypto.Hash{
 
 // HashAlgorithm returns a crypto.Hash code using an algorithm name as input parameter
 func HashAlgorithm(algorithmName string) (crypto.Hash, error) {
-	normalizedAlgo := strings.ToLower(strings.TrimSpace(algorithmName))
-
-	if normalizedAlgo == "" {
+	if algorithmName == "" {
 		return crypto.SHA256, nil
 	}
+	normalizedAlgo := strings.ToLower(strings.TrimSpace(algorithmName))
 
 	algo, exists := supportedSignatureAlgorithms[normalizedAlgo]
 	if !exists {
