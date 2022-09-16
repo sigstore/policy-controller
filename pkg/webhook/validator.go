@@ -18,7 +18,6 @@ package webhook
 import (
 	"context"
 	"crypto"
-	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -31,12 +30,12 @@ import (
 	ociremote "github.com/sigstore/cosign/pkg/oci/remote"
 	"github.com/sigstore/cosign/pkg/policy"
 	csigs "github.com/sigstore/cosign/pkg/signature"
-	"github.com/sigstore/fulcio/pkg/api"
 	"github.com/sigstore/policy-controller/pkg/apis/config"
 	policyduckv1beta1 "github.com/sigstore/policy-controller/pkg/apis/duck/v1beta1"
 	webhookcip "github.com/sigstore/policy-controller/pkg/webhook/clusterimagepolicy"
 	rekor "github.com/sigstore/rekor/pkg/client"
 	"github.com/sigstore/rekor/pkg/generated/client"
+	"github.com/sigstore/sigstore/pkg/fulcioroots"
 	"github.com/sigstore/sigstore/pkg/signature"
 	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -619,19 +618,22 @@ func ValidatePolicySignaturesForAuthority(ctx context.Context, ref name.Referenc
 		return ociSignatureToPolicySignature(ctx, sps), nil
 
 	case authority.Keyless != nil:
-		if authority.Keyless != nil && authority.Keyless.URL != nil {
-			logging.FromContext(ctx).Debugf("Fetching FulcioRoot for %s : From: %s ", ref.Name(), authority.Keyless.URL)
-			fulcioroot, err := getFulcioCert(authority.Keyless.URL)
+		if authority.Keyless.URL != nil {
+			// TODO: This will probably need to change for:
+			// https://github.com/sigstore/policy-controller/issues/138
+			fulcioRoots, err := fulcioroots.Get()
 			if err != nil {
 				return nil, fmt.Errorf("fetching FulcioRoot: %w", err)
 			}
-			sps, err := validSignaturesWithFulcio(ctx, ref, fulcioroot, rekorClient, authority.Keyless.Identities, remoteOpts...)
+			sps, err := validSignaturesWithFulcio(ctx, ref, fulcioRoots, rekorClient, authority.Keyless.Identities, remoteOpts...)
 			if err != nil {
 				logging.FromContext(ctx).Errorf("failed validSignatures for authority %s with fulcio for %s: %v", name, ref.Name(), err)
 				return nil, fmt.Errorf("signature keyless validation failed for authority %s for %s: %w", name, ref.Name(), err)
 			}
 			logging.FromContext(ctx).Debugf("validated signature for %s, got %d signatures", ref.Name(), len(sps))
 			return ociSignatureToPolicySignature(ctx, sps), nil
+		} else {
+			return nil, fmt.Errorf("no Keyless URL specified")
 		}
 	}
 
@@ -674,12 +676,13 @@ func ValidatePolicyAttestationsForAuthority(ctx context.Context, ref name.Refere
 
 	case authority.Keyless != nil:
 		if authority.Keyless != nil && authority.Keyless.URL != nil {
-			logging.FromContext(ctx).Debugf("Fetching FulcioRoot for %s : From: %s ", ref.Name(), authority.Keyless.URL)
-			fulcioroot, err := getFulcioCert(authority.Keyless.URL)
+			// TODO: This will probably need to change for:
+			// https://github.com/sigstore/policy-controller/issues/138
+			fulcioRoots, err := fulcioroots.Get()
 			if err != nil {
 				return nil, fmt.Errorf("fetching FulcioRoot: %w", err)
 			}
-			va, err := validAttestationsWithFulcio(ctx, ref, fulcioroot, rekorClient, authority.Keyless.Identities, remoteOpts...)
+			va, err := validAttestationsWithFulcio(ctx, ref, fulcioRoots, rekorClient, authority.Keyless.Identities, remoteOpts...)
 			if err != nil {
 				logging.FromContext(ctx).Errorf("failed validAttestationsWithFulcio for authority %s with fulcio for %s: %v", name, ref.Name(), err)
 				return nil, fmt.Errorf("attestation keyless validation failed for authority %s for %s: %w", name, ref.Name(), err)
@@ -853,20 +856,6 @@ func (v *Validator) resolvePodSpec(ctx context.Context, ps *corev1.PodSpec, opt 
 
 	resolveContainers(ps.InitContainers)
 	resolveContainers(ps.Containers)
-}
-
-func getFulcioCert(u *apis.URL) (*x509.CertPool, error) {
-	fClient := api.NewClient(u.URL())
-	rootCertResponse, err := fClient.RootCert()
-	if err != nil {
-		return nil, fmt.Errorf("getting root cert: %w", err)
-	}
-
-	cp := x509.NewCertPool()
-	if !cp.AppendCertsFromPEM(rootCertResponse.ChainPEM) {
-		return nil, errors.New("error appending to root cert pool")
-	}
-	return cp, nil
 }
 
 // getNamespace tries to extract the namespace from the HTTPRequest

@@ -84,12 +84,7 @@ func TestValidatePodSpec(t *testing.T) {
 	// Non-existent URL for testing complete failure
 	badURL := apis.HTTP("http://example.com/")
 
-	// Spin up a Fulcio that responds with a Root Cert
-	fulcioServer := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
-		rw.Write([]byte(fulcioRootCert))
-	}))
-	t.Cleanup(fulcioServer.Close)
-	fulcioURL, err := apis.ParseURL(fulcioServer.URL)
+	fulcioURL, err := apis.ParseURL("https://fulcio.sigstore.dev")
 	if err != nil {
 		t.Fatalf("Failed to parse fake Fulcio URL")
 	}
@@ -308,11 +303,11 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 		),
 		want: func() *apis.FieldError {
 			var errs *apis.FieldError
-			fe := apis.ErrGeneric("failed policy: cluster-image-policy-keyless", "image").ViaFieldIndex("initContainers", 0)
-			fe.Details = fmt.Sprintf("%s %s", digest.String(), `fetching FulcioRoot: getting root cert: request: parse "http://http:%2F%2Fexample.com%2F/api/v1/rootCert": invalid port ":%2F%2Fexample.com%2F" after host`)
+			fe := apis.ErrGeneric("failed policy: cluster-image-policy-keyless", "image").ViaFieldIndex("containers", 0)
+			fe.Details = fmt.Sprintf("%s %s", digest.String(), `signature keyless validation failed for authority  for gcr.io/distroless/static@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4: bad signature`)
 			errs = errs.Also(fe)
-			fe2 := apis.ErrGeneric("failed policy: cluster-image-policy-keyless", "image").ViaFieldIndex("containers", 0)
-			fe2.Details = fmt.Sprintf("%s %s", digest.String(), `fetching FulcioRoot: getting root cert: request: parse "http://http:%2F%2Fexample.com%2F/api/v1/rootCert": invalid port ":%2F%2Fexample.com%2F" after host`)
+			fe2 := apis.ErrGeneric("failed policy: cluster-image-policy-keyless", "image").ViaFieldIndex("initContainers", 0)
+			fe2.Details = fe.Details
 			errs = errs.Also(fe2)
 			return errs
 		}(),
@@ -1513,11 +1508,11 @@ func TestValidatePolicy(t *testing.T) {
 		rw.Write([]byte(fulcioRootCert))
 	}))
 	t.Cleanup(fulcioServer.Close)
-	fulcioURL, err := apis.ParseURL(fulcioServer.URL)
+
+	fulcioURL, err := apis.ParseURL("https://fulcio.sigstore.dev")
 	if err != nil {
 		t.Fatalf("Failed to parse fake Fulcio URL")
 	}
-	t.Logf("fulcioURL: %s", fulcioURL.String())
 
 	rekorServer := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
 		rw.Write([]byte(rekorResponse))
@@ -1598,6 +1593,11 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 
 	// Let's say it is verified if it is the expected Public Key
 	authorityPublicKeyCVS := func(ctx context.Context, signedImgRef name.Reference, co *cosign.CheckOpts) (checkedSignatures []oci.Signature, bundleVerified bool, err error) {
+		// Because we use this below and it gets called for both key / keyless
+		// in the keyless case there's no SigVerifier, so fail it.
+		if co.SigVerifier == nil {
+			return nil, false, errors.New("Keyless used for key")
+		}
 		actualPublicKey, _ := co.SigVerifier.PublicKey()
 		actualECDSAPubkey := actualPublicKey.(*ecdsa.PublicKey)
 		actualKeyData := elliptic.Marshal(actualECDSAPubkey, actualECDSAPubkey.X, actualECDSAPubkey.Y)
@@ -1682,7 +1682,7 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 					}},
 				}},
 		},
-		wantErrs: []string{`fetching FulcioRoot: getting root cert: request: parse "http://http:%2F%2Fexample.com%2F/api/v1/rootCert": invalid port ":%2F%2Fexample.com%2F" after host`},
+		wantErrs: []string{`signature keyless validation failed for authority authority-1 for gcr.io/distroless/static@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4: Keyless used for key`},
 		cvs:      authorityPublicKeyCVS,
 	}, {
 		name: "simple, static set to pass",
@@ -1821,7 +1821,7 @@ func TestValidatePodSpecNonDefaultNamespace(t *testing.T) {
 		rw.Write([]byte(fulcioRootCert))
 	}))
 	t.Cleanup(fulcioServer.Close)
-	fulcioURL, err := apis.ParseURL(fulcioServer.URL)
+	fulcioURL, err := apis.ParseURL("https://fulcio.sigstore.dev")
 	if err != nil {
 		t.Fatalf("Failed to parse fake Fulcio URL")
 	}
@@ -2061,11 +2061,11 @@ UoJou2P8sbDxpLiE/v3yLw1/jyOrCPWYHWFXnyyeGlkgSVefG54tNoK7Uw==
 		),
 		want: func() *apis.FieldError {
 			var errs *apis.FieldError
-			fe := apis.ErrGeneric("failed policy: cluster-image-policy-keyless", "image").ViaFieldIndex("initContainers", 0)
-			fe.Details = fmt.Sprintf("%s %s", digest.String(), `fetching FulcioRoot: getting root cert: request: parse "http://http:%2F%2Fexample.com%2F/api/v1/rootCert": invalid port ":%2F%2Fexample.com%2F" after host`)
+			fe := apis.ErrGeneric("failed policy: cluster-image-policy-keyless", "image").ViaFieldIndex("containers", 0)
+			fe.Details = fmt.Sprintf("%s %s", digest.String(), `signature keyless validation failed for authority  for gcr.io/distroless/static@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4: bad signature`)
 			errs = errs.Also(fe)
-			fe2 := apis.ErrGeneric("failed policy: cluster-image-policy-keyless", "image").ViaFieldIndex("containers", 0)
-			fe2.Details = fmt.Sprintf("%s %s", digest.String(), `fetching FulcioRoot: getting root cert: request: parse "http://http:%2F%2Fexample.com%2F/api/v1/rootCert": invalid port ":%2F%2Fexample.com%2F" after host`)
+			fe2 := apis.ErrGeneric("failed policy: cluster-image-policy-keyless", "image").ViaFieldIndex("initContainers", 0)
+			fe2.Details = fe.Details
 			errs = errs.Also(fe2)
 			return errs
 		}(),
