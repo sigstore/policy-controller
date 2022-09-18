@@ -24,6 +24,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws/arn"
 	"github.com/sigstore/policy-controller/pkg/apis/glob"
+	"github.com/sigstore/policy-controller/pkg/apis/signaturealgo"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"knative.dev/pkg/apis"
@@ -138,6 +139,13 @@ func (key *KeyRef) Validate(ctx context.Context) *apis.FieldError {
 
 	if key.Data == "" && key.KMS == "" && key.SecretRef == nil {
 		errs = errs.Also(apis.ErrMissingOneOf("data", "kms", "secretref"))
+	}
+
+	if key.HashAlgorithm != "" {
+		_, err := signaturealgo.HashAlgorithm(key.HashAlgorithm)
+		if err != nil {
+			errs = errs.Also(apis.ErrInvalidValue(key.HashAlgorithm, "hashAlgorithm"))
+		}
 	}
 
 	if key.Data != "" {

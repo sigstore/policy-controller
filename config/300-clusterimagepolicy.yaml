@@ -102,6 +102,9 @@ spec:
                           data:
                             description: Data contains the inline public key.
                             type: string
+                          hashAlgorithm:
+                            description: HashAlgorithm always defaults to sha256 if the algorithm hasn't been explicitly set
+                            type: string
                           kms:
                             description: KMS contains the KMS url of the public key Supported formats differ based on the KMS system used.
                             type: string
@@ -125,6 +128,9 @@ spec:
                             properties:
                               data:
                                 description: Data contains the inline public key.
+                                type: string
+                              hashAlgorithm:
+                                description: HashAlgorithm always defaults to sha256 if the algorithm hasn't been explicitly set
                                 type: string
                               kms:
                                 description: KMS contains the KMS url of the public key Supported formats differ based on the KMS system used.
@@ -280,6 +286,9 @@ spec:
                           data:
                             description: Data contains the inline public key
                             type: string
+                          hashAlgorithm:
+                            description: HashAlgorithm always defaults to sha256 if the algorithm hasn't been explicitly set
+                            type: string
                           kms:
                             description: KMS contains the KMS url of the public key
                             type: string
@@ -300,6 +309,9 @@ spec:
                             properties:
                               data:
                                 description: Data contains the inline public key
+                                type: string
+                              hashAlgorithm:
+                                description: HashAlgorithm always defaults to sha256 if the algorithm hasn't been explicitly set
                                 type: string
                               kms:
                                 description: KMS contains the KMS url of the public key

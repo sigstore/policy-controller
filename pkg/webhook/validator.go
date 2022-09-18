@@ -17,7 +17,6 @@ package webhook
 
 import (
 	"context"
-	"crypto"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -578,7 +577,7 @@ func ValidatePolicySignaturesForAuthority(ctx context.Context, ref name.Referenc
 		// Is it even allowed? 'valid' returns success if any key
 		// matches.
 		// https://github.com/sigstore/policy-controller/issues/1652
-		sps, err := valid(ctx, ref, rekorClient, authority.Key.PublicKeys, remoteOpts...)
+		sps, err := valid(ctx, ref, rekorClient, authority.Key.PublicKeys, authority.Key.HashAlgorithmCode, remoteOpts...)
 		if err != nil {
 			return nil, fmt.Errorf("signature key validation failed for authority %s for %s: %w", name, ref.Name(), err)
 		}
@@ -628,7 +627,7 @@ func ValidatePolicyAttestationsForAuthority(ctx context.Context, ref name.Refere
 	switch {
 	case authority.Key != nil && len(authority.Key.PublicKeys) > 0:
 		for _, k := range authority.Key.PublicKeys {
-			verifier, err := signature.LoadVerifier(k, crypto.SHA256)
+			verifier, err := signature.LoadVerifier(k, authority.Key.HashAlgorithmCode)
 			if err != nil {
 				logging.FromContext(ctx).Errorf("error creating verifier: %v", err)
 				return nil, fmt.Errorf("creating verifier: %w", err)

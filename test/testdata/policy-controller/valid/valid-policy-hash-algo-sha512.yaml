@@ -1,0 +1,41 @@
+# Copyright 2022 The Sigstore Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http:#www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+---
+apiVersion: policy.sigstore.dev/v1alpha1
+kind: ClusterImagePolicy
+metadata:
+  name: image-policy
+spec:
+  mode: enforce
+  images:
+  - glob: ghcr.io/sgtcodfish/ace:0.5
+  authorities:
+  - key:
+      hashAlgorithm: sha512
+      data: |
+        -----BEGIN PUBLIC KEY-----
+        MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEA0ot0jdXzRcIjpyKH5462
+        SJE2eI3PHGwIFiOLvFQpz9q/OkUMc8eaUeDmzMXobJJw+53AyYhUEkBhhaxVggbH
+        n9WR6tf7/PwAHeTMYYC+bUsVvjQGZT5Hji9qpZQzZTJYh/XOIAqkZAl5CEPk6zjs
+        klY/ySwM2eD9Y3H31UQZZ3fI3TH/dRc+C7K1DrkEgKGZxhd9IDhKHy7Me747WXQN
+        XBieAT8LWGzGihtP5U99QdAjopgZ6Ffvvg3cTGIb8+bxye9qeGyiMsMKjsG4HCtP
+        gXkiQ7LYesr+C1OLscG11Q00+AgdVRQ8RP7njWkv3h0v0Qb+ixjw0kijVPdAk9Ny
+        Chg5DYzVHwa+NatCci8oqE38Aimpy368hNhLgY2gEc31YTIrTYfK5cfRhp5GkWXu
+        tqHTX2qmfgW4F2TIJlO1Vyk8geimd2UfoEg2TLeHUItC7IdaITQ710R0NAsmic1A
+        v9qAf6rHaswmeJQiulCHAbJxjepXCy0+2hzRMSHMb2DouUBvTxHbKZcAzgEttrF5
+        0tWdESOdIZ6y+81GfUnWwLrRqNoZ5PbN8x/K5fY2dXzrg+myB8yd9k+Hec5rOYtT
+        +pfD/+qjQTRPFkinbBkRlSm7qTLVrn75Qux897xCmO2ANj+lG3tlW98BcCi0Ea2i
+        lXETwlnDnEpb6wPrg6MricsCAwEAAQ==
+        -----END PUBLIC KEY-----
+

@@ -435,3 +435,31 @@ kubectl delete cip --all
 kubectl delete ns demo-key-signing demo-keyless-signing demo-key-remote
 rm cosign*.key cosign*.pub
 echo '::endgroup::'
+
+demoimageSignature="quay.io/jetstack/cert-manager-acmesolver:v1.9.1"
+
+echo '::group:: Create test namespace and label for signature digest sha512'
+kubectl create namespace demo-key-sha512
+kubectl label namespace demo-key-sha512 policy.sigstore.dev/include=true
+echo '::endgroup::'
+
+echo '::group:: Deploy ClusterImagePolicy With signature digest sha512'
+yq '. | .metadata.name = "image-policy-sha512-key"' \
+  ./test/testdata/policy-controller/e2e/cip-key-hash-algorithm.yaml | \
+  kubectl apply -f -
+echo '::endgroup::'
+
+echo '::group:: Verify ClusterImagePolicy With signature digest sha512 using a pod'
+# We use a signed image provided by jetstack for cert-manager-acmesolver:v1.9.1
+if ! kubectl run -n demo-key-sha512 job demo-sha512-key --image=${demoimageSignature}; then
+  echo Failed to create Pod with signature digest sha512
+  exit 1
+else
+  echo Succcessfully created Pod with signature digest sha512
+fi
+echo '::endgroup::'
+
+echo '::group::' Cleanup
+kubectl delete cip --all
+kubectl delete ns demo-key-sha512
+echo '::endgroup::'

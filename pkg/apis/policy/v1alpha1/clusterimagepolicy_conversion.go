@@ -123,6 +123,7 @@ func (key *KeyRef) ConvertTo(ctx context.Context, sink *v1beta1.KeyRef) {
 	sink.SecretRef = key.SecretRef.DeepCopy()
 	sink.Data = key.Data
 	sink.KMS = key.KMS
+	sink.HashAlgorithm = key.HashAlgorithm
 }
 
 func (spec *ClusterImagePolicySpec) ConvertFrom(ctx context.Context, source *v1beta1.ClusterImagePolicySpec) error {
@@ -199,4 +200,5 @@ func (key *KeyRef) ConvertFrom(ctx context.Context, source *v1beta1.KeyRef) {
 	key.SecretRef = source.SecretRef.DeepCopy()
 	key.Data = source.Data
 	key.KMS = source.KMS
+	key.HashAlgorithm = source.HashAlgorithm
 }

@@ -22,6 +22,7 @@ import (
 
 	"github.com/sigstore/policy-controller/pkg/apis/config"
 	"github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
+	"github.com/sigstore/policy-controller/pkg/apis/signaturealgo"
 	clusterimagepolicyreconciler "github.com/sigstore/policy-controller/pkg/client/injection/reconciler/policy/v1alpha1/clusterimagepolicy"
 	"github.com/sigstore/policy-controller/pkg/reconciler/clusterimagepolicy/resources"
 	webhookcip "github.com/sigstore/policy-controller/pkg/webhook/clusterimagepolicy"
@@ -156,7 +157,7 @@ func (r *Reconciler) inlinePublicKeys(ctx context.Context, cip *v1alpha1.Cluster
 			}
 		}
 		if authority.Key != nil && strings.Contains(authority.Key.KMS, "://") {
-			pubKeyString, err := getKMSPublicKey(ctx, authority.Key.KMS)
+			pubKeyString, err := getKMSPublicKey(ctx, authority.Key.KMS, authority.Key.HashAlgorithm)
 			if err != nil {
 				return nil, err
 			}
@@ -169,8 +170,17 @@ func (r *Reconciler) inlinePublicKeys(ctx context.Context, cip *v1alpha1.Cluster
 }
 
 // getKMSPublicKey returns the public key as a string from the configured KMS service using the key ID
-func getKMSPublicKey(ctx context.Context, keyID string) (string, error) {
-	kmsSigner, err := kms.Get(ctx, keyID, crypto.SHA256)
+func getKMSPublicKey(ctx context.Context, keyID string, hashAlgorithm string) (string, error) {
+	algorithm := crypto.SHA256
+	if hashAlgorithm != "" {
+		var err error
+		algorithm, err = signaturealgo.HashAlgorithm(hashAlgorithm)
+		if err != nil {
+			logging.FromContext(ctx).Errorf("Failed to extract the signature hash algorithm: %w", err)
+			return "", fmt.Errorf("failed to extract the signature hash algorithm: %w", err)
+		}
+	}
+	kmsSigner, err := kms.Get(ctx, keyID, algorithm)
 	if err != nil {
 		logging.FromContext(ctx).Errorf("Failed to read KMS key ID %q: %v", keyID, err)
 		return "", err
