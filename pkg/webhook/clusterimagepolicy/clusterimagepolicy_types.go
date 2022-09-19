@@ -50,6 +50,8 @@ type ClusterImagePolicy struct {
 	// warn - allow but warn
 	// +optional
 	Mode string `json:"mode,omitempty"`
+	// Match allows selecting resources based on their properties.
+	Match []v1alpha1.MatchResource `json:"match,omitempty"`
 }
 
 type Authority struct {
@@ -232,6 +234,7 @@ func ConvertClusterImagePolicyV1alpha1ToWebhook(in *v1alpha1.ClusterImagePolicy)
 		Authorities: outAuthorities,
 		Policy:      cipAttestationPolicy,
 		Mode:        in.Spec.Mode,
+		Match:       in.Spec.Match,
 	}
 }
 

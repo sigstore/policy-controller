@@ -21,6 +21,7 @@ import (
 
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"knative.dev/pkg/apis"
 )
 
@@ -1122,6 +1123,156 @@ func TestAWSKMSValidation(t *testing.T) {
 			err = keylessRef.Validate(context.TODO())
 			caCertErrString := strings.Replace(test.errorString, "KMSORCACERT", "ca-cert.kms", 1)
 			validateError(t, caCertErrString, "", err)
+		})
+	}
+}
+
+func TestMatchValidation(t *testing.T) {
+	tests := []struct {
+		name        string
+		errorString string
+		warnString  string
+		policy      ClusterImagePolicy
+	}{{
+		name: "Should pass with identities",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{
+					{
+						Glob: "globbityglob",
+					},
+				},
+				Authorities: []Authority{
+					{
+						Keyless: &KeylessRef{
+							URL: &apis.URL{
+								Host: "myhost",
+							},
+							Identities: []Identity{{SubjectRegExp: ".*subject.*", IssuerRegExp: ".*issuer.*"}},
+						},
+					},
+				},
+			},
+		},
+	}, {
+		name: "Should pass with match label selector",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{
+					{
+						Glob: "globbityglob",
+					},
+				},
+				Match: []MatchResource{
+					{
+						GroupVersionResource: metav1.GroupVersionResource{
+							Group:    "apps",
+							Version:  "v1",
+							Resource: "replicasets",
+						},
+						ResourceSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{"a": "b", "c": "d"},
+						},
+					},
+				},
+				Authorities: []Authority{
+					{
+						Keyless: &KeylessRef{
+							URL: &apis.URL{
+								Host: "myhost",
+							},
+
+							Identities: []Identity{
+								{
+									Issuer:  "some issuer",
+									Subject: "some subject",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}, {
+		name: "Should pass with match resource types",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{
+					{
+						Glob: "globbityglob",
+					},
+				},
+				Match: []MatchResource{
+					{
+						GroupVersionResource: metav1.GroupVersionResource{
+							Group:    "apps",
+							Version:  "v1",
+							Resource: "replicasets",
+						},
+					},
+				},
+				Authorities: []Authority{
+					{
+						Keyless: &KeylessRef{
+							URL: &apis.URL{
+								Host: "myhost",
+							},
+
+							Identities: []Identity{
+								{
+									Issuer:  "some issuer",
+									Subject: "some subject",
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	},
+		{
+			name:        "Should fail with invalid match resource type",
+			errorString: "invalid value: myobject: spec.match[0].resource\nunsupported resource name",
+			policy: ClusterImagePolicy{
+				Spec: ClusterImagePolicySpec{
+					Images: []ImagePattern{
+						{
+							Glob: "globbityglob",
+						},
+					},
+					Match: []MatchResource{
+						{
+							GroupVersionResource: metav1.GroupVersionResource{
+								Group:    "",
+								Version:  "v1",
+								Resource: "myobject",
+							},
+						},
+					},
+					Authorities: []Authority{
+						{
+							Keyless: &KeylessRef{
+								URL: &apis.URL{
+									Host: "myhost",
+								},
+
+								Identities: []Identity{
+									{
+										Issuer:  "some issuer",
+										Subject: "some subject",
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			err := test.policy.Validate(context.TODO())
+			validateError(t, test.errorString, test.warnString, err)
 		})
 	}
 }

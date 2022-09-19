@@ -67,6 +67,9 @@ type ClusterImagePolicySpec struct {
 	// warn - allow but warn
 	// +optional
 	Mode string `json:"mode,omitempty"`
+	// Match allows selecting resources based on their properties.
+	// +optional
+	Match []MatchResource `json:"match,omitempty"`
 }
 
 // ImagePattern defines a pattern and its associated authorties
@@ -188,6 +191,16 @@ type Attestation struct {
 	// the matching attestations (whose attestations are verified).
 	// +optional
 	Policy *Policy `json:"policy,omitempty"`
+}
+
+// MatchResource allows selecting resources based
+// on its version, group and resource. It is also possible to select resources based
+// on a list of matching labels.
+type MatchResource struct {
+	// +optional
+	metav1.GroupVersionResource `json:",inline,omitempty"`
+	// +optional
+	ResourceSelector *metav1.LabelSelector `json:"selector,omitempty"`
 }
 
 // Policy specifies a policy to use for Attestation validation.
