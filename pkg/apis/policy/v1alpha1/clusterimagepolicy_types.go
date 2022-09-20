@@ -193,9 +193,8 @@ type Attestation struct {
 	Policy *Policy `json:"policy,omitempty"`
 }
 
-// MatchResource allows selecting resources based
-// on its version, group and resource. It is also possible to select resources based
-// on a list of matching labels.
+// MatchResource allows selecting resources based on its version, group and resource.
+// It is also possible to select resources based on a list of matching labels.
 type MatchResource struct {
 	// +optional
 	metav1.GroupVersionResource `json:",inline"`

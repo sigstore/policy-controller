@@ -71,10 +71,10 @@ func (spec *ClusterImagePolicySpec) ConvertTo(ctx context.Context, sink *v1beta1
 	return nil
 }
 
-func (m *MatchResource) ConvertTo(ctx context.Context, sink *v1beta1.MatchResource) error {
-	sink.GroupVersionResource = *m.GroupVersionResource.DeepCopy()
-	if m.ResourceSelector != nil {
-		sink.ResourceSelector = m.ResourceSelector.DeepCopy()
+func (matchResource *MatchResource) ConvertTo(ctx context.Context, sink *v1beta1.MatchResource) error {
+	sink.GroupVersionResource = *matchResource.GroupVersionResource.DeepCopy()
+	if matchResource.ResourceSelector != nil {
+		sink.ResourceSelector = matchResource.ResourceSelector.DeepCopy()
 	}
 
 	return nil
@@ -156,12 +156,12 @@ func (spec *ClusterImagePolicySpec) ConvertFrom(ctx context.Context, source *v1b
 		spec.Authorities = append(spec.Authorities, authority)
 	}
 	for i := range source.Match {
-		m := MatchResource{}
-		err := m.ConvertFrom(ctx, &source.Match[i])
+		matchResource := MatchResource{}
+		err := matchResource.ConvertFrom(ctx, &source.Match[i])
 		if err != nil {
 			return err
 		}
-		spec.Match = append(spec.Match, m)
+		spec.Match = append(spec.Match, matchResource)
 	}
 	spec.Mode = source.Mode
 	return nil
@@ -228,10 +228,10 @@ func (key *KeyRef) ConvertFrom(ctx context.Context, source *v1beta1.KeyRef) {
 	key.HashAlgorithm = source.HashAlgorithm
 }
 
-func (m *MatchResource) ConvertFrom(ctx context.Context, source *v1beta1.MatchResource) error {
-	m.GroupVersionResource = *source.GroupVersionResource.DeepCopy()
+func (matchResource *MatchResource) ConvertFrom(ctx context.Context, source *v1beta1.MatchResource) error {
+	matchResource.GroupVersionResource = *source.GroupVersionResource.DeepCopy()
 	if source.ResourceSelector != nil {
-		m.ResourceSelector = source.ResourceSelector.DeepCopy()
+		matchResource.ResourceSelector = source.ResourceSelector.DeepCopy()
 	}
 	return nil
 }

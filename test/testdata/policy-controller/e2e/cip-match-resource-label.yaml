@@ -20,9 +20,8 @@ spec:
   images:
   - glob: "**demo**"
   match:
-  - resource: jobs
+  - resource: pods
     version: v1
-    group: batch
     selector:
       matchLabels:
          match: "match"

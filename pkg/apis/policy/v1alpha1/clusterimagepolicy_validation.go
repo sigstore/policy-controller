@@ -43,7 +43,7 @@ var (
 	validModes = sets.NewString("enforce", "warn")
 
 	// ValidResourceNames for a policy match selector
-	validResourceNames = sets.NewString("replicasets", "deployments", "pods", "cronjobs", "jobs", "statefulsets", "daemonsetss")
+	validResourceNames = sets.NewString("replicasets", "deployments", "pods", "cronjobs", "jobs", "statefulsets", "daemonsets")
 )
 
 // Validate implements apis.Validatable

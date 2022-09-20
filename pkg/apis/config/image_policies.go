@@ -29,6 +29,7 @@ import (
 	"sigs.k8s.io/yaml"
 )
 
+// TODO (hectorj2f): Find an optimal function to match GroupVersionResource with the provided kind and apiVersion
 var kindResourceMap = map[string]schema.GroupVersionResource{
 	"Deployment": {
 		Group:    "apps",
@@ -132,33 +133,32 @@ func (p *ImagePolicyConfig) GetMatchingPolicies(image string, kind, apiVersion s
 	// way to go from image to Authorities, but just seeing if this is even
 	// workable so fine for now.
 	for k, v := range p.Policies {
-		// TODO(hector): this is not very performant
 		if len(v.Match) > 0 {
 			foundMatch := false
-			for _, m := range v.Match {
-				resourceGroupVersion := kindResourceMap[kind]
+			resourceGroupVersion := kindResourceMap[kind]
+			for _, matchResource := range v.Match {
 				// TODO: Check version
-				if m.Resource == resourceGroupVersion.Resource && m.Version == resourceGroupVersion.Version && m.Group == resourceGroupVersion.Group {
-					if m.ResourceSelector != nil {
-						selector, err := metav1.LabelSelectorAsSelector(m.ResourceSelector)
+				if matchResource.Resource == resourceGroupVersion.Resource && matchResource.Version == resourceGroupVersion.Version && matchResource.Group == resourceGroupVersion.Group {
+					if matchResource.ResourceSelector != nil {
+						selector, err := metav1.LabelSelectorAsSelector(matchResource.ResourceSelector)
 						if err != nil {
 							return nil, errors.New("policy with wrong match label selector")
 						}
 						if !selector.Matches(metalabels.Set(labels)) {
 							continue
 						}
-						// We found a resource that matches the labels
+						// We found a resource type that matches the provided labels
 						foundMatch = true
 						break
 					} else {
-						// We found a resource that matches the specifications
+						// We found a resource that matches the available name, version and group
 						foundMatch = true
 						break
 					}
 				}
 			}
 			if !foundMatch {
-				// We didn't find any match with the current resource, so we continue looking for policies
+				// We didn't find any match with the current resource types, so we continue looking for policies
 				continue
 			}
 		}
