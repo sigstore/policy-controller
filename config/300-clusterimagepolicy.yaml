@@ -402,11 +402,13 @@ spec:
                             description: Action defines how to handle a matching policy.
                             type: string
                 images:
+                  description: Images defines the patterns of image names that should be subject to this policy.
                   type: array
                   items:
                     type: object
                     properties:
                       glob:
+                        description: Glob defines a globbing pattern.
                         type: string
                 match:
                   description: Match allows selecting resources based on their properties.

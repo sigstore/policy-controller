@@ -90,7 +90,8 @@ func (v *Validator) ValidatePodScalable(ctx context.Context, ps *policyduckv1bet
 		ServiceAccountName: ps.Spec.Template.Spec.ServiceAccountName,
 		ImagePullSecrets:   imagePullSecrets,
 	}
-	return v.validatePodSpec(ctx, ns, &ps.Spec.Template.Spec, opt).ViaField("spec.template.spec")
+
+	return v.validatePodSpec(ctx, ns, ps.Kind, ps.APIVersion, ps.ObjectMeta.Labels, &ps.Spec.Template.Spec, opt).ViaField("spec.template.spec")
 }
 
 // ValidatePodSpecable implements duckv1.PodSpecValidator
@@ -110,7 +111,7 @@ func (v *Validator) ValidatePodSpecable(ctx context.Context, wp *duckv1.WithPod)
 		ServiceAccountName: wp.Spec.Template.Spec.ServiceAccountName,
 		ImagePullSecrets:   imagePullSecrets,
 	}
-	return v.validatePodSpec(ctx, ns, &wp.Spec.Template.Spec, opt).ViaField("spec.template.spec")
+	return v.validatePodSpec(ctx, ns, wp.Kind, wp.APIVersion, wp.ObjectMeta.Labels, &wp.Spec.Template.Spec, opt).ViaField("spec.template.spec")
 }
 
 // ValidatePod implements duckv1.PodValidator
@@ -130,7 +131,7 @@ func (v *Validator) ValidatePod(ctx context.Context, p *duckv1.Pod) *apis.FieldE
 		ServiceAccountName: p.Spec.ServiceAccountName,
 		ImagePullSecrets:   imagePullSecrets,
 	}
-	return v.validatePodSpec(ctx, ns, &p.Spec, opt).ViaField("spec")
+	return v.validatePodSpec(ctx, ns, p.Kind, p.APIVersion, p.ObjectMeta.Labels, &p.Spec, opt).ViaField("spec")
 }
 
 // ValidateCronJob implements duckv1.CronJobValidator
@@ -150,10 +151,11 @@ func (v *Validator) ValidateCronJob(ctx context.Context, c *duckv1.CronJob) *api
 		ServiceAccountName: c.Spec.JobTemplate.Spec.Template.Spec.ServiceAccountName,
 		ImagePullSecrets:   imagePullSecrets,
 	}
-	return v.validatePodSpec(ctx, ns, &c.Spec.JobTemplate.Spec.Template.Spec, opt).ViaField("spec.jobTemplate.spec.template.spec")
+
+	return v.validatePodSpec(ctx, ns, c.Kind, c.APIVersion, c.ObjectMeta.Labels, &c.Spec.JobTemplate.Spec.Template.Spec, opt).ViaField("spec.jobTemplate.spec.template.spec")
 }
 
-func (v *Validator) validatePodSpec(ctx context.Context, namespace string, ps *corev1.PodSpec, opt k8schain.Options) (errs *apis.FieldError) {
+func (v *Validator) validatePodSpec(ctx context.Context, namespace, kind, apiVersion string, labels map[string]string, ps *corev1.PodSpec, opt k8schain.Options) (errs *apis.FieldError) {
 	kc, err := k8schain.New(ctx, v.client, opt)
 	if err != nil {
 		logging.FromContext(ctx).Warnf("Unable to build k8schain: %v", err)
@@ -187,7 +189,7 @@ func (v *Validator) validatePodSpec(ctx context.Context, namespace string, ps *c
 			// necessarily going to play nicely together.
 			passedPolicyChecks := false
 			if config != nil {
-				policies, err := config.ImagePolicyConfig.GetMatchingPolicies(ref.Name())
+				policies, err := config.ImagePolicyConfig.GetMatchingPolicies(ref.Name(), kind, apiVersion, labels)
 				if err != nil {
 					errorField := apis.ErrGeneric(err.Error(), "image").ViaFieldIndex(field, i)
 					errorField.Details = c.Image

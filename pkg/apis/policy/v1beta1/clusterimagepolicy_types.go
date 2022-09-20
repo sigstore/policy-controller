@@ -214,7 +214,7 @@ type Policy struct {
 // on a list of matching labels.
 type MatchResource struct {
 	// +optional
-	metav1.GroupVersionResource `json:",inline,omitempty"`
+	metav1.GroupVersionResource `json:",inline"`
 	// +optional
 	ResourceSelector *metav1.LabelSelector `json:"selector,omitempty"`
 }
