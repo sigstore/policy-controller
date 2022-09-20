@@ -40,7 +40,7 @@ require (
 	github.com/pierrec/lz4 v2.6.1+incompatible
 	github.com/ryanuber/go-glob v1.0.0
 	github.com/sigstore/cosign v1.11.1
-	github.com/sigstore/rekor v0.11.0
+	github.com/sigstore/rekor v0.12.0
 	github.com/sigstore/sigstore v1.4.1-0.20220823190236-c645ceb9d075
 	github.com/stretchr/testify v1.8.0
 	github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399
@@ -274,6 +274,7 @@ require (
 	go.opentelemetry.io/proto/otlp v0.16.0 // indirect
 	go.uber.org/automaxprocs v1.5.1 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
+	golang.org/x/exp v0.0.0-20220823124025-807a23277127 // indirect
 	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
 	golang.org/x/oauth2 v0.0.0-20220822191816-0ebed06d0094 // indirect
 	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4 // indirect
