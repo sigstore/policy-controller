@@ -113,10 +113,10 @@ spec:
                             type: object
                             properties:
                               name:
-                                description: Name is unique within a namespace to reference a secret resource.
+                                description: name is unique within a namespace to reference a secret resource.
                                 type: string
                               namespace:
-                                description: Namespace defines the space within which the secret name must be unique.
+                                description: namespace defines the space within which the secret name must be unique.
                                 type: string
                       keyless:
                         description: Keyless sets the configuration to verify the authority against a Fulcio instance.
@@ -140,10 +140,10 @@ spec:
                                 type: object
                                 properties:
                                   name:
-                                    description: Name is unique within a namespace to reference a secret resource.
+                                    description: name is unique within a namespace to reference a secret resource.
                                     type: string
                                   namespace:
-                                    description: Namespace defines the space within which the secret name must be unique.
+                                    description: namespace defines the space within which the secret name must be unique.
                                     type: string
                           identities:
                             description: Identities sets a list of identities.
