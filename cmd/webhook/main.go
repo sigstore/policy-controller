@@ -44,6 +44,7 @@ import (
 	"github.com/sigstore/sigstore/pkg/tuf"
 
 	"github.com/sigstore/policy-controller/pkg/apis/config"
+	policycontrollerconfig "github.com/sigstore/policy-controller/pkg/config"
 	cwebhook "github.com/sigstore/policy-controller/pkg/webhook"
 )
 
@@ -137,6 +138,8 @@ func NewValidatingAdmissionController(ctx context.Context, cmw configmap.Watcher
 	// Decorate contexts with the current state of the config.
 	store := config.NewStore(logging.FromContext(ctx).Named("config-store"))
 	store.WatchConfigs(cmw)
+	policyControllerConfigStore := policycontrollerconfig.NewStore(logging.FromContext(ctx).Named("config-policy-controller"))
+	policyControllerConfigStore.WatchConfigs(cmw)
 	validator := cwebhook.NewValidator(ctx)
 
 	return validation.NewAdmissionController(ctx,
@@ -152,6 +155,7 @@ func NewValidatingAdmissionController(ctx context.Context, cmw configmap.Watcher
 		// A function that infuses the context passed to Validate/SetDefaults with custom metadata.
 		func(ctx context.Context) context.Context {
 			ctx = store.ToContext(ctx)
+			ctx = policyControllerConfigStore.ToContext(ctx)
 			ctx = policyduckv1beta1.WithPodScalableValidator(ctx, validator.ValidatePodScalable)
 			ctx = duckv1.WithPodValidator(ctx, validator.ValidatePod)
 			ctx = duckv1.WithPodSpecValidator(ctx, validator.ValidatePodSpecable)

@@ -31,6 +31,7 @@ import (
 	csigs "github.com/sigstore/cosign/pkg/signature"
 	"github.com/sigstore/policy-controller/pkg/apis/config"
 	policyduckv1beta1 "github.com/sigstore/policy-controller/pkg/apis/duck/v1beta1"
+	policycontrollerconfig "github.com/sigstore/policy-controller/pkg/config"
 	webhookcip "github.com/sigstore/policy-controller/pkg/webhook/clusterimagepolicy"
 	rekor "github.com/sigstore/rekor/pkg/client"
 	"github.com/sigstore/rekor/pkg/generated/client"
@@ -265,6 +266,24 @@ func (v *Validator) validatePodSpec(ctx context.Context, namespace, kind, apiVer
 			if passedPolicyChecks {
 				logging.FromContext(ctx).Debugf("Found at least one matching policy and it was validated for %s", ref.Name())
 				continue
+			}
+			// There were no matching policies found against this image.
+			// Check what the configuration is and act accordingly.
+			pcConfig := policycontrollerconfig.FromContext(ctx)
+
+			noMatchingPolicyError := apis.ErrGeneric(err.Error(), "image").ViaFieldIndex(field, i)
+			noMatchingPolicyError.Details = c.Image + "matched no policies"
+			switch pcConfig.NoMatchPolicy {
+			case policycontrollerconfig.AllowAll:
+				logging.FromContext(ctx).Debugf("no policies matching %s and default is allow all", c.Image)
+			case policycontrollerconfig.DenyAll:
+				errs = errs.Also(noMatchingPolicyError)
+			case policycontrollerconfig.WarnAll:
+				noMatchingPolicyError.At(apis.WarningLevel)
+				errs = errs.Also(noMatchingPolicyError)
+			default:
+				// Fail closed.
+				errs = errs.Also(noMatchingPolicyError)
 			}
 			logging.FromContext(ctx).Errorf("ref: for %v", ref)
 		}
