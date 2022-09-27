@@ -198,7 +198,10 @@ func (v *Validator) validatePodSpec(ctx context.Context, namespace string, ps *c
 				// If there is at least one policy that matches, that means it
 				// has to be satisfied.
 				if len(policies) > 0 {
-					signatures, fieldErrors := validatePolicies(ctx, namespace, ref, policies, ociremote.WithRemoteOptions(remote.WithAuthFromKeychain(kc)))
+					signatures, fieldErrors := validatePolicies(ctx, namespace, ref, policies, ociremote.WithRemoteOptions(
+						remote.WithContext(ctx),
+						remote.WithAuthFromKeychain(kc),
+					))
 
 					if len(signatures) != len(policies) {
 						logging.FromContext(ctx).Warnf("Failed to validate at least one policy for %s", ref.Name())
@@ -810,7 +813,10 @@ func (v *Validator) resolvePodSpec(ctx context.Context, ps *corev1.PodSpec, opt 
 			// If we are in the context of a mutating webhook, then resolve the tag to a digest.
 			switch {
 			case apis.IsInCreate(ctx), apis.IsInUpdate(ctx):
-				digest, err := remoteResolveDigest(ref, ociremote.WithRemoteOptions(remote.WithAuthFromKeychain(kc)))
+				digest, err := remoteResolveDigest(ref, ociremote.WithRemoteOptions(
+					remote.WithContext(ctx),
+					remote.WithAuthFromKeychain(kc),
+				))
 				if err != nil {
 					logging.FromContext(ctx).Debugf("Unable to resolve digest %q: %v", ref.String(), err)
 					continue

@@ -203,7 +203,10 @@ func (a *Authority) SourceSignaturePullSecretsOpts(ctx context.Context, namespac
 				return nil, err
 			}
 
-			ret = append(ret, ociremote.WithRemoteOptions(remote.WithAuthFromKeychain(kc)))
+			ret = append(ret, ociremote.WithRemoteOptions(
+				remote.WithContext(ctx),
+				remote.WithAuthFromKeychain(kc),
+			))
 		}
 	}
 
