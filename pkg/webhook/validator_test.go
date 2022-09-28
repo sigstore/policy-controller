@@ -2610,6 +2610,5 @@ func TestPolicyControllerConfigNoMatchPolicy(t *testing.T) {
 				t.Errorf("ValidatePod() Wrong Level = %v, wanted %v", got.Level, tc.want.Level)
 			}
 		}
-
 	}
 }
