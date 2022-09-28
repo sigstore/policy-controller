@@ -45,6 +45,7 @@ import (
 	policyduckv1beta1 "github.com/sigstore/policy-controller/pkg/apis/duck/v1beta1"
 	"github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
 	"github.com/sigstore/policy-controller/pkg/apis/signaturealgo"
+	policycontrollerconfig "github.com/sigstore/policy-controller/pkg/config"
 	webhookcip "github.com/sigstore/policy-controller/pkg/webhook/clusterimagepolicy"
 	admissionv1 "k8s.io/api/admission/v1"
 	batchv1 "k8s.io/api/batch/v1"
@@ -2514,4 +2515,101 @@ func TestValidatePoliciesCancelled(t *testing.T) {
 	cancelFunc()
 	_, gotErrs := validatePolicies(testContext, system.Namespace(), digest, map[string]webhookcip.ClusterImagePolicy{"testcip": cip})
 	validateErrors(t, wantErrs, gotErrs["internalerror"])
+}
+
+func TestPolicyControllerConfigNoMatchPolicy(t *testing.T) {
+	digest := "gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4"
+
+	testPodSpec := &corev1.PodSpec{
+		Containers: []corev1.Container{{
+			Name:  "test-container",
+			Image: digest,
+		}},
+	}
+
+	ctx, _ := rtesting.SetupFakeContext(t)
+	policies := &config.ImagePolicyConfig{
+		Policies: map[string]webhookcip.ClusterImagePolicy{},
+	}
+	ctx = config.ToContext(ctx, &config.Config{ImagePolicyConfig: policies})
+	v := NewValidator(ctx)
+	// no policies
+	kc := fakekube.Get(ctx)
+	// Setup service acc and fakeSignaturePullSecrets for "default", "cosign-system" and "my-secure-ns" namespace
+	for _, ns := range []string{"default", system.Namespace()} {
+		kc.CoreV1().ServiceAccounts(ns).Create(ctx, &corev1.ServiceAccount{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "default",
+			},
+		}, metav1.CreateOptions{})
+
+		kc.CoreV1().Secrets(ns).Create(ctx, &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "fakeSignaturePullSecrets",
+			},
+			Data: map[string][]byte{
+				"dockerconfigjson": []byte(`{"auths":{"https://index.docker.io/v1/":{"username":"username","password":"password","auth":"dXNlcm5hbWU6cGFzc3dvcmQ="}}`),
+			},
+		}, metav1.CreateOptions{})
+	}
+
+	tests := []struct {
+		name          string
+		noMatchPolicy string
+		want          *apis.FieldError
+		// If above should be at warning level.
+		wantWarn bool
+	}{{
+		name: "empty value - implicit deny", // this will fail because default is deny.
+		want: func() *apis.FieldError {
+			var errs *apis.FieldError
+			fe := apis.ErrGeneric("no matching policies", "image").ViaFieldIndex("containers", 0)
+			fe.Details = digest
+			errs = errs.Also(fe)
+			return errs
+		}(),
+	}, {
+		name:          "explicit deny",
+		noMatchPolicy: "deny",
+		want: func() *apis.FieldError {
+			var errs *apis.FieldError
+			fe := apis.ErrGeneric("no matching policies", "image").ViaFieldIndex("containers", 0)
+			fe.Details = digest
+			errs = errs.Also(fe)
+			return errs
+		}(),
+	}, {
+		name:          "warn",
+		noMatchPolicy: "warn",
+		want: func() *apis.FieldError {
+			var errs *apis.FieldError
+			fe := apis.ErrGeneric("no matching policies", "image").ViaFieldIndex("containers", 0)
+			fe.Details = digest
+			errs = errs.Also(fe)
+			return errs
+		}(),
+	}, {
+		name:          "allow",
+		noMatchPolicy: "allow",
+	}}
+	for _, tc := range tests {
+		testCtx := policycontrollerconfig.ToContext(ctx, &policycontrollerconfig.PolicyControllerConfig{NoMatchPolicy: tc.noMatchPolicy})
+
+		got := v.validatePodSpec(testCtx, system.Namespace(), testPodSpec, k8schain.Options{})
+		if (got != nil) != (tc.want != nil) {
+			t.Errorf("ValidatePodSpecable() = %v, wanted %v", got, tc.want)
+		} else if got != nil && got.Error() != tc.want.Error() {
+			t.Errorf("ValidatePodSpecable() = %v, wanted %v", got, tc.want)
+		}
+		if tc.want != nil && tc.wantWarn {
+			tc.want.Level = apis.WarningLevel
+		}
+		// Check the warning/error level.
+		if got != nil && tc.want != nil {
+			if got.Level != tc.want.Level {
+				t.Errorf("ValidatePod() Wrong Level = %v, wanted %v", got.Level, tc.want.Level)
+			}
+		}
+
+	}
 }

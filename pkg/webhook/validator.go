@@ -260,7 +260,6 @@ func (v *Validator) validatePodSpec(ctx context.Context, namespace, kind, apiVer
 						}
 					}
 				}
-				logging.FromContext(ctx).Errorf("policies: for %v", policies)
 			}
 
 			if passedPolicyChecks {
@@ -271,16 +270,15 @@ func (v *Validator) validatePodSpec(ctx context.Context, namespace, kind, apiVer
 			// Check what the configuration is and act accordingly.
 			pcConfig := policycontrollerconfig.FromContext(ctx)
 
-			noMatchingPolicyError := apis.ErrGeneric(err.Error(), "image").ViaFieldIndex(field, i)
-			noMatchingPolicyError.Details = c.Image + "matched no policies"
+			noMatchingPolicyError := apis.ErrGeneric("no matching policies", "image").ViaFieldIndex(field, i)
+			noMatchingPolicyError.Details = c.Image
 			switch pcConfig.NoMatchPolicy {
 			case policycontrollerconfig.AllowAll:
 				logging.FromContext(ctx).Debugf("no policies matching %s and default is allow all", c.Image)
 			case policycontrollerconfig.DenyAll:
 				errs = errs.Also(noMatchingPolicyError)
 			case policycontrollerconfig.WarnAll:
-				noMatchingPolicyError.At(apis.WarningLevel)
-				errs = errs.Also(noMatchingPolicyError)
+				errs = errs.Also(noMatchingPolicyError.At(apis.WarningLevel))
 			default:
 				// Fail closed.
 				errs = errs.Also(noMatchingPolicyError)
