@@ -137,8 +137,7 @@ func (p *ImagePolicyConfig) GetMatchingPolicies(image string, kind, apiVersion s
 			foundMatch := false
 			resourceGroupVersion := kindResourceMap[kind]
 			for _, matchResource := range v.Match {
-				// TODO: Check version
-				if matchResource.Resource == resourceGroupVersion.Resource && matchResource.Version == resourceGroupVersion.Version && matchResource.Group == resourceGroupVersion.Group {
+				if matchResource.Resource == resourceGroupVersion.Resource && (matchResource.Version == resourceGroupVersion.Version || matchResource.Version == "*") && matchResource.Group == resourceGroupVersion.Group {
 					if matchResource.ResourceSelector != nil {
 						selector, err := metav1.LabelSelectorAsSelector(matchResource.ResourceSelector)
 						if err != nil {
@@ -163,35 +162,6 @@ func (p *ImagePolicyConfig) GetMatchingPolicies(image string, kind, apiVersion s
 			}
 		}
 
-		for _, pattern := range v.Images {
-			if pattern.Glob != "" {
-				if matched, err := glob.Match(pattern.Glob, image); err != nil {
-					lastError = err
-				} else if matched {
-					ret[k] = v
-				}
-			}
-		}
-	}
-	return ret, lastError
-}
-
-// GetMatchingPolicies returns all matching Policies and their Authorities that
-// need to be matched the Image.
-// Returned map contains the name of the CIP as the key, and a normalized
-// ClusterImagePolicy for it.
-func (p *ImagePolicyConfig) GetMatchingPoliciesByImage(image string) (map[string]webhookcip.ClusterImagePolicy, error) {
-	if p == nil {
-		return nil, errors.New("config is nil")
-	}
-
-	var lastError error
-	ret := make(map[string]webhookcip.ClusterImagePolicy)
-
-	// TODO(vaikas): this is very inefficient, we should have a better
-	// way to go from image to Authorities, but just seeing if this is even
-	// workable so fine for now.
-	for k, v := range p.Policies {
 		for _, pattern := range v.Images {
 			if pattern.Glob != "" {
 				if matched, err := glob.Match(pattern.Glob, image); err != nil {

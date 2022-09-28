@@ -21,7 +21,7 @@ spec:
   - glob: "**demo**"
   match:
   - resource: pods
-    version: v1
+    version: "*"
     selector:
       matchLabels:
          match: "match"

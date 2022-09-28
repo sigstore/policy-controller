@@ -60,7 +60,7 @@ func TestGetAuthorities(t *testing.T) {
 	if err != nil {
 		t.Error("NewImagePoliciesConfigFromConfigMap(example) =", err)
 	}
-	c, err := defaults.GetMatchingPoliciesByImage("rando")
+	c, err := defaults.GetMatchingPolicies("rando", "Pod", "v1", map[string]string{})
 	checkGetMatches(t, c, err)
 	matchedPolicy := "cluster-image-policy-0"
 	want := inlineKeyData
@@ -68,14 +68,14 @@ func TestGetAuthorities(t *testing.T) {
 		t.Errorf("Did not get what I wanted %q, got %+v", want, got)
 	}
 	// Make sure glob matches 'randomstuff*'
-	c, err = defaults.GetMatchingPoliciesByImage("randomstuffhere")
+	c, err = defaults.GetMatchingPolicies("randomstuffhere", "Pod", "v1", map[string]string{})
 	checkGetMatches(t, c, err)
 	matchedPolicy = "cluster-image-policy-1"
 	want = inlineKeyData
 	if got := getAuthority(t, c, matchedPolicy).Key.Data; got != want {
 		t.Errorf("Did not get what I wanted %q, got %+v", want, got)
 	}
-	c, err = defaults.GetMatchingPoliciesByImage("rando3")
+	c, err = defaults.GetMatchingPolicies("rando3", "Pod", "v1", map[string]string{})
 	checkGetMatches(t, c, err)
 	matchedPolicy = "cluster-image-policy-2"
 	want = inlineKeyData
@@ -91,7 +91,7 @@ func TestGetAuthorities(t *testing.T) {
 		t.Errorf("Did not get what I wanted %q, got %+v", want, got)
 	}
 	// Make sure regex matches "regexstring*"
-	c, err = defaults.GetMatchingPoliciesByImage("regexstringstuff")
+	c, err = defaults.GetMatchingPolicies("regexstringstuff", "Pod", "v1", map[string]string{})
 	checkGetMatches(t, c, err)
 	matchedPolicy = "cluster-image-policy-4"
 	want = inlineKeyData
@@ -101,7 +101,7 @@ func TestGetAuthorities(t *testing.T) {
 	checkPublicKey(t, getAuthority(t, c, matchedPolicy).Key.PublicKeys[0])
 
 	// Test multiline yaml cert
-	c, err = defaults.GetMatchingPoliciesByImage("inlinecert")
+	c, err = defaults.GetMatchingPolicies("inlinecert", "Pod", "v1", map[string]string{})
 	checkGetMatches(t, c, err)
 	matchedPolicy = "cluster-image-policy-3"
 	want = inlineKeyData
@@ -111,7 +111,7 @@ func TestGetAuthorities(t *testing.T) {
 	checkPublicKey(t, getAuthority(t, c, matchedPolicy).Key.PublicKeys[0])
 
 	// Test multiline cert but json encoded
-	c, err = defaults.GetMatchingPoliciesByImage("ghcr.io/example/foo")
+	c, err = defaults.GetMatchingPolicies("ghcr.io/example/foo", "Pod", "v1", map[string]string{})
 	checkGetMatches(t, c, err)
 	matchedPolicy = "cluster-image-policy-json"
 	want = inlineKeyData
@@ -121,7 +121,7 @@ func TestGetAuthorities(t *testing.T) {
 	checkPublicKey(t, getAuthority(t, c, matchedPolicy).Key.PublicKeys[0])
 
 	// Test multiple matches
-	c, err = defaults.GetMatchingPoliciesByImage("regexstringtoo")
+	c, err = defaults.GetMatchingPolicies("regexstringtoo", "Pod", "v1", map[string]string{})
 	checkGetMatches(t, c, err)
 	if len(c) != 2 {
 		t.Errorf("Wanted two matches, got %d", len(c))
@@ -140,7 +140,7 @@ func TestGetAuthorities(t *testing.T) {
 	}
 
 	// Test attestations + top level policy
-	c, err = defaults.GetMatchingPoliciesByImage("withattestations")
+	c, err = defaults.GetMatchingPolicies("withattestations", "Pod", "v1", map[string]string{})
 	checkGetMatches(t, c, err)
 	if len(c) != 1 {
 		t.Errorf("Wanted 1 match, got %d", len(c))
