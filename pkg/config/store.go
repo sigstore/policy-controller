@@ -55,8 +55,15 @@ type PolicyControllerConfig struct {
 
 func NewPolicyControllerConfigFromMap(data map[string]string) (*PolicyControllerConfig, error) {
 	ret := &PolicyControllerConfig{NoMatchPolicy: "deny"}
-	if data[NoMatchPolicyKey] == AllowAll {
+	switch data[NoMatchPolicyKey] {
+	case DenyAll:
+		ret.NoMatchPolicy = DenyAll
+	case AllowAll:
 		ret.NoMatchPolicy = AllowAll
+	case WarnAll:
+		ret.NoMatchPolicy = WarnAll
+	default:
+		ret.NoMatchPolicy = DenyAll
 	}
 	return ret, nil
 }

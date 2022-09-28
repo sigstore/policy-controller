@@ -270,11 +270,13 @@ func (v *Validator) validatePodSpec(ctx context.Context, namespace, kind, apiVer
 			// Check what the configuration is and act accordingly.
 			pcConfig := policycontrollerconfig.FromContext(ctx)
 
+			logging.FromContext(ctx).Infof("No matching policies found for %s policy is: %s", c.Image, pcConfig.NoMatchPolicy)
+
 			noMatchingPolicyError := apis.ErrGeneric("no matching policies", "image").ViaFieldIndex(field, i)
 			noMatchingPolicyError.Details = c.Image
 			switch pcConfig.NoMatchPolicy {
 			case policycontrollerconfig.AllowAll:
-				logging.FromContext(ctx).Debugf("no policies matching %s and default is allow all", c.Image)
+				// Allow it through, nothing to do.
 			case policycontrollerconfig.DenyAll:
 				errs = errs.Also(noMatchingPolicyError)
 			case policycontrollerconfig.WarnAll:

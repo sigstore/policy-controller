@@ -24,20 +24,28 @@ import (
 	. "knative.dev/pkg/configmap/testing"
 )
 
-var testfiles = []string{"allow-all", "deny-all-explicit", "warn-all", "deny-all-default"}
+var testfiles = map[string]string{
+	"allow-all":         AllowAll,
+	"deny-all-explicit": DenyAll,
+	"warn-all":          WarnAll,
+	"deny-all-default":  DenyAll,
+}
 
 func TestStoreLoadWithContext(t *testing.T) {
 	store := NewStore(logtesting.TestLogger(t))
 
-	for _, file := range testfiles {
+	for file, want := range testfiles {
 		_, policyControllerConfig := ConfigMapsFromTestFile(t, file)
 
 		store.OnConfigChanged(policyControllerConfig)
 
 		config := FromContextOrDefaults(store.ToContext(context.Background()))
 
-		t.Run("policy-controller-config-test"+file, func(t *testing.T) {
+		t.Run("policy-controller-config-test-"+file, func(t *testing.T) {
 			expected, _ := NewPolicyControllerConfigFromConfigMap(policyControllerConfig)
+			if diff := cmp.Diff(want, expected.NoMatchPolicy); diff != "" {
+				t.Error("Unexpected defaults config (-want, +got):", diff)
+			}
 			if diff := cmp.Diff(expected, config); diff != "" {
 				t.Error("Unexpected defaults config (-want, +got):", diff)
 			}
@@ -46,12 +54,17 @@ func TestStoreLoadWithContext(t *testing.T) {
 }
 
 func TestStoreLoadWithContextOrDefaults(t *testing.T) {
-	for _, file := range testfiles {
+	for file := range testfiles {
 		policyControllerConfig := ConfigMapFromTestFile(t, file)
 		config := FromContextOrDefaults(context.Background())
 
-		t.Run("policy-controller-config-tests"+file, func(t *testing.T) {
+		t.Run("policy-controller-config-tests-"+file, func(t *testing.T) {
 			expected, _ := NewPolicyControllerConfigFromConfigMap(policyControllerConfig)
+			// These all should have the default, because we don't parse the
+			// _example in these tests.
+			if diff := cmp.Diff(DenyAll, expected.NoMatchPolicy); diff != "" {
+				t.Error("Unexpected defaults config (-want, +got):", diff)
+			}
 			if diff := cmp.Diff(expected, config); diff != "" {
 				t.Error("Unexpected defaults config (-want, +got):", diff)
 			}

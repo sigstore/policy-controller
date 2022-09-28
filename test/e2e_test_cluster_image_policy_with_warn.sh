@@ -160,7 +160,7 @@ if ! kubectl create -n demo-keyless-signing job demo-works --image=${demoimage2}
   echo Failed to create Job in namespace with no matching policies, but allow
   exit 1
 else
-  echo Succcessfully failed to create Job because no matching policy and allow
+  echo Succcessfully created Job because no matching policy and allow
 fi
 echo '::endgroup::'
 
@@ -174,7 +174,7 @@ sleep 5
 echo '::endgroup::'
 
 echo '::group:: test job admission with warning'
-expected_warn='Warning: no matching policies'
+expected_warn='Warning: no matching policies: spec.template.spec.containers[0].image'
 assert_warning ${expected_warn}
 echo '::endgroup::'
 
