@@ -72,7 +72,7 @@ assert_warning() {
     echo Failed to create Job when expected to warn!
     exit 1
   else
-    echo Successfully created job creation, checking warning: "${match}"
+    echo Successfully created job, checking warning: "${match}"
     if ! grep -q "${match}" ${KUBECTL_OUT_FILE} ; then
       echo Did not get expected warning message, wanted "${match}", got
       cat ${KUBECTL_OUT_FILE}
@@ -174,7 +174,7 @@ sleep 5
 echo '::endgroup::'
 
 echo '::group:: test job admission with warning'
-expected_warn='Warning: no matching policies: spec.template.spec.containers[0].image'
+expected_warn='Warning: no matching policies:'
 assert_warning ${expected_warn}
 echo '::endgroup::'
 
