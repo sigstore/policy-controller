@@ -266,26 +266,13 @@ func (v *Validator) validatePodSpec(ctx context.Context, namespace, kind, apiVer
 				logging.FromContext(ctx).Debugf("Found at least one matching policy and it was validated for %s", ref.Name())
 				continue
 			}
-			// There were no matching policies found against this image.
-			// Check what the configuration is and act accordingly.
+
+			// No matching policies, so go ahead and set it.
+			// Note that if the default is allow, errs.Also works just fine
+			// Also'ing a nil to it.
 			pcConfig := policycontrollerconfig.FromContext(ctx)
-
 			logging.FromContext(ctx).Infof("No matching policies found for %s policy is: %s", c.Image, pcConfig.NoMatchPolicy)
-
-			noMatchingPolicyError := apis.ErrGeneric("no matching policies", "image").ViaFieldIndex(field, i)
-			noMatchingPolicyError.Details = c.Image
-			switch pcConfig.NoMatchPolicy {
-			case policycontrollerconfig.AllowAll:
-				// Allow it through, nothing to do.
-			case policycontrollerconfig.DenyAll:
-				errs = errs.Also(noMatchingPolicyError)
-			case policycontrollerconfig.WarnAll:
-				errs = errs.Also(noMatchingPolicyError.At(apis.WarningLevel))
-			default:
-				// Fail closed.
-				errs = errs.Also(noMatchingPolicyError)
-			}
-			logging.FromContext(ctx).Errorf("ref: for %v", ref)
+			errs = errs.Also(setNoMatchingPoliciesError(ctx, c.Image, field, i))
 		}
 	}
 
@@ -293,6 +280,29 @@ func (v *Validator) validatePodSpec(ctx context.Context, namespace, kind, apiVer
 	checkContainers(ps.Containers, "containers")
 
 	return errs
+}
+
+// setNoMatchingPoliciesError returns nil if the no matching policies behaviour
+// has been set to allow or has not been set. Otherwise returns either a warning
+// or error based on the NoMatchPolicy.
+func setNoMatchingPoliciesError(ctx context.Context, image, field string, index int) *apis.FieldError {
+	// Check what the configuration is and act accordingly.
+	pcConfig := policycontrollerconfig.FromContext(ctx)
+
+	noMatchingPolicyError := apis.ErrGeneric("no matching policies", "image").ViaFieldIndex(field, index)
+	noMatchingPolicyError.Details = image
+	switch pcConfig.NoMatchPolicy {
+	case policycontrollerconfig.AllowAll:
+		// Allow it through, nothing to do.
+		return nil
+	case policycontrollerconfig.DenyAll:
+		return noMatchingPolicyError
+	case policycontrollerconfig.WarnAll:
+		return noMatchingPolicyError.At(apis.WarningLevel)
+	default:
+		// Fail closed.
+		return noMatchingPolicyError
+	}
 }
 
 // validatePolicies will go through all the matching Policies and their

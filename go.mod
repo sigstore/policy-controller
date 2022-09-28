@@ -2,13 +2,6 @@ module github.com/sigstore/policy-controller
 
 go 1.18
 
-// Bring this in for testing:
-//https://github.com/theupdateframework/go-tuf/pull/397
-replace github.com/theupdateframework/go-tuf => github.com/vaikas/go-tuf v0.0.0-20220924192210-488d11ce4056
-
-// And this: https://github.com/sigstore/sigstore/pull/715
-replace github.com/sigstore/sigstore => github.com/vaikas/sigstore v1.2.1-0.20220924200602-fae6e891b798
-
 require (
 	github.com/armon/go-metrics v0.4.1
 	github.com/armon/go-radix v1.0.0
