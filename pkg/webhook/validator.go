@@ -267,11 +267,10 @@ func (v *Validator) validatePodSpec(ctx context.Context, namespace, kind, apiVer
 				continue
 			}
 
-			// No matching policies, so go ahead and set it.
+			// No matching policies, so go ahead and do the right thing based
+			// on what the config is.
 			// Note that if the default is allow, errs.Also works just fine
 			// Also'ing a nil to it.
-			pcConfig := policycontrollerconfig.FromContext(ctx)
-			logging.FromContext(ctx).Infof("No matching policies found for %s policy is: %s", c.Image, pcConfig.NoMatchPolicy)
 			errs = errs.Also(setNoMatchingPoliciesError(ctx, c.Image, field, i))
 		}
 	}
@@ -291,6 +290,10 @@ func setNoMatchingPoliciesError(ctx context.Context, image, field string, index 
 
 	noMatchingPolicyError := apis.ErrGeneric("no matching policies", "image").ViaFieldIndex(field, index)
 	noMatchingPolicyError.Details = image
+	if pcConfig == nil {
+		// This should not happen, but handle it as fail close
+		return noMatchingPolicyError
+	}
 	switch pcConfig.NoMatchPolicy {
 	case policycontrollerconfig.AllowAll:
 		// Allow it through, nothing to do.
