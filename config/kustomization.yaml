@@ -30,3 +30,4 @@ resources:
   - config-logging.yaml
   - config-leader-election.yaml
   - config-image-policies.yaml
+  - config-policy-controller.yaml

@@ -72,7 +72,7 @@ assert_warning() {
     echo Failed to create Job when expected to warn!
     exit 1
   else
-    echo Successfully created job creation, checking warning: "${match}"
+    echo Successfully created job, checking warning: "${match}"
     if ! grep -q "${match}" ${KUBECTL_OUT_FILE} ; then
       echo Did not get expected warning message, wanted "${match}", got
       cat ${KUBECTL_OUT_FILE}
@@ -149,6 +149,51 @@ echo '::endgroup::'
 echo '::group:: test job admission with warning'
 expected_warn='Warning: failed policy: image-policy-keyless-warn'
 assert_warning ${expected_warn}
+echo '::endgroup::'
+
+# Change to an image that does not match any policies
+demoimage2="quay.io/jetstack/cert-manager-acmesolver:v1.9.1"
+
+# Then test the unmatched policy behaviour with default, which is allow
+echo '::group:: test no-match policy allow'
+if ! kubectl create -n demo-keyless-signing job demo-works --image=${demoimage2} ; then
+  echo Failed to create Job in namespace with no matching policies, but allow
+  exit 1
+else
+  echo Succcessfully created Job because no matching policy and allow
+fi
+echo '::endgroup::'
+
+echo '::group:: Change no-match policy to warn'
+kubectl patch configmap/config-policy-controller \
+  --namespace cosign-system \
+  --type merge \
+  --patch '{"data":{"no-match-policy":"warn"}}'
+# allow for propagation
+sleep 5
+echo '::endgroup::'
+
+echo '::group:: test job admission with warning'
+expected_warn='Warning: no matching policies:'
+assert_warning ${expected_warn}
+echo '::endgroup::'
+
+echo '::group:: Change no-match policy to deny'
+kubectl patch configmap/config-policy-controller \
+  --namespace cosign-system \
+  --type merge \
+  --patch '{"data":{"no-match-policy":"deny"}}'
+# allow for propagation
+sleep 5
+echo '::endgroup::'
+
+echo '::group:: test no-match policy deny'
+if kubectl create -n demo-keyless-signing job demo-should-not-work --image=${demoimage2} ; then
+  echo Failed to block Job with no matching policy and deny
+  exit 1
+else
+  echo Successfully blocked Job in namespace with no matching policies, and deny
+fi
 echo '::endgroup::'
 
 echo '::group::' Cleanup

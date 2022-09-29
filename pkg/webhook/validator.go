@@ -31,6 +31,7 @@ import (
 	csigs "github.com/sigstore/cosign/pkg/signature"
 	"github.com/sigstore/policy-controller/pkg/apis/config"
 	policyduckv1beta1 "github.com/sigstore/policy-controller/pkg/apis/duck/v1beta1"
+	policycontrollerconfig "github.com/sigstore/policy-controller/pkg/config"
 	webhookcip "github.com/sigstore/policy-controller/pkg/webhook/clusterimagepolicy"
 	rekor "github.com/sigstore/rekor/pkg/client"
 	"github.com/sigstore/rekor/pkg/generated/client"
@@ -259,14 +260,18 @@ func (v *Validator) validatePodSpec(ctx context.Context, namespace, kind, apiVer
 						}
 					}
 				}
-				logging.FromContext(ctx).Errorf("policies: for %v", policies)
 			}
 
 			if passedPolicyChecks {
 				logging.FromContext(ctx).Debugf("Found at least one matching policy and it was validated for %s", ref.Name())
 				continue
 			}
-			logging.FromContext(ctx).Errorf("ref: for %v", ref)
+
+			// No matching policies, so go ahead and do the right thing based
+			// on what the config is.
+			// Note that if the default is allow, errs.Also works just fine
+			// Also'ing a nil to it.
+			errs = errs.Also(setNoMatchingPoliciesError(ctx, c.Image, field, i))
 		}
 	}
 
@@ -274,6 +279,33 @@ func (v *Validator) validatePodSpec(ctx context.Context, namespace, kind, apiVer
 	checkContainers(ps.Containers, "containers")
 
 	return errs
+}
+
+// setNoMatchingPoliciesError returns nil if the no matching policies behaviour
+// has been set to allow or has not been set. Otherwise returns either a warning
+// or error based on the NoMatchPolicy.
+func setNoMatchingPoliciesError(ctx context.Context, image, field string, index int) *apis.FieldError {
+	// Check what the configuration is and act accordingly.
+	pcConfig := policycontrollerconfig.FromContext(ctx)
+
+	noMatchingPolicyError := apis.ErrGeneric("no matching policies", "image").ViaFieldIndex(field, index)
+	noMatchingPolicyError.Details = image
+	if pcConfig == nil {
+		// This should not happen, but handle it as fail close
+		return noMatchingPolicyError
+	}
+	switch pcConfig.NoMatchPolicy {
+	case policycontrollerconfig.AllowAll:
+		// Allow it through, nothing to do.
+		return nil
+	case policycontrollerconfig.DenyAll:
+		return noMatchingPolicyError
+	case policycontrollerconfig.WarnAll:
+		return noMatchingPolicyError.At(apis.WarningLevel)
+	default:
+		// Fail closed.
+		return noMatchingPolicyError
+	}
 }
 
 // validatePolicies will go through all the matching Policies and their
