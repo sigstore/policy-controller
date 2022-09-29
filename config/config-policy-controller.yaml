@@ -18,4 +18,4 @@ metadata:
   name: config-policy-controller
   namespace: cosign-system
 data:
-  no-match-policy: allow
+  no-match-policy: deny

@@ -81,7 +81,46 @@ echo '::group:: enable verification'
 kubectl label namespace default --overwrite policy.sigstore.dev/include=true
 echo '::endgroup::'
 
-echo '::group:: test pod success (no policy applied yet)'
+echo '::group:: test pod rejection (no policy applied yet, and default deny)'
+# Should fail, because no matching policy and default deny
+if kubectl create -f distroless-pod.yaml ; then
+  echo Failed to block Pod signed by Fulcio without any matching policy.
+  exit 1
+else
+  echo Successfully blocked Pod signed by Fulcio without any matching policy.
+fi
+echo '::endgroup::'
+
+echo '::group:: test job success (no policy applied yet, and default deny)'
+# Should fail, because no matching policy and default deny
+if kubectl create -f job.yaml ; then
+  echo Failed to block Job in namespace without any matching policy!
+  exit 1
+else
+  echo Successfully blocked Job in namespace without any matching policy.
+fi
+echo '::endgroup::'
+
+echo '::group:: test cronjob success (no policy applied yet, and default deny)'
+# Should fail, because no matching policy and default deny
+if kubectl create -f cronjob.yaml ; then
+  echo Failed to block CronJob in namespace without any matching policy!
+  exit 1
+else
+  echo Successfully blocked CronJob in namespace without any matching policy.
+fi
+echo '::endgroup::'
+
+echo '::group:: Change no-match policy to allow'
+kubectl patch configmap/config-policy-controller \
+  --namespace cosign-system \
+  --type merge \
+  --patch '{"data":{"no-match-policy":"allow"}}'
+# allow for propagation
+sleep 5
+echo '::endgroup::'
+
+echo '::group:: test pod success (no policy applied yet, default allow)'
 # This time it should succeed!
 if ! kubectl create -f distroless-pod.yaml ; then
   echo Failed to create Pod signed by Fulcio without any matching policy!
@@ -91,7 +130,7 @@ else
 fi
 echo '::endgroup::'
 
-echo '::group:: test job success (no policy applied yet)'
+echo '::group:: test job success (no policy applied yet, default allow)'
 # This time it should succeed!
 if ! kubectl create -f job.yaml ; then
   echo Failed to create Job in namespace without label!
@@ -101,7 +140,7 @@ else
 fi
 echo '::endgroup::'
 
-echo '::group:: test cronjob success (no policy applied yet)'
+echo '::group:: test cronjob success (no policy applied yet, default allow)'
 # This time it should succeed!
 if ! kubectl create -f cronjob.yaml ; then
   echo Failed to create CronJob in namespace without label!
@@ -115,7 +154,7 @@ echo '::group:: disable verification'
 kubectl label namespace default --overwrite policy.sigstore.dev/include=false
 echo '::endgroup::'
 
-echo '::group:: test pod success (before labeling and without any matching policy)'
+echo '::group:: test pod success (after disabling verification in namespace)'
 # This time it should succeed!
 if ! kubectl create -f pod.yaml ; then
   echo Failed to create Pod in namespace without label!
@@ -125,7 +164,7 @@ else
 fi
 echo '::endgroup::'
 
-echo '::group:: test job success (before labeling and without any matching policy)'
+echo '::group:: test job success (after disabling verification in namespace)'
 # This time it should succeed!
 if ! kubectl create -f job.yaml ; then
   echo Failed to create Job in namespace without label!
@@ -135,7 +174,7 @@ else
 fi
 echo '::endgroup::'
 
-echo '::group:: test cronjob success (before labeling and without any matching policy)'
+echo '::group:: test cronjob success (after disabling verification in namespace)'
 # This time it should succeed!
 if ! kubectl create -f cronjob.yaml ; then
   echo Failed to create CronJob in namespace without label!
