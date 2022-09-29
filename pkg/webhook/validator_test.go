@@ -77,6 +77,9 @@ func TestValidatePodSpec(t *testing.T) {
 	// Resolved via crane digest on 2021/09/25
 	digest := name.MustParseReference("gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4")
 
+	// Resolved via crane digest on 2022/09/29
+	digestNewer := name.MustParseReference("gcr.io/distroless/static:nonroot@sha256:2a9e2b4fa771d31fe3346a873be845bfc2159695b9f90ca08e950497006ccc2e")
+
 	ctx, _ := rtesting.SetupFakeContext(t)
 
 	// Non-existent URL for testing complete failure
@@ -477,6 +480,58 @@ func TestValidatePodSpec(t *testing.T) {
 		}(),
 		cvs: fail,
 	}, {
+		name: "simple with 2 containers, error, authority keyless, good fulcio, bad rekor",
+		ps: &corev1.PodSpec{
+			InitContainers: []corev1.Container{{
+				Name:  "setup-stuff",
+				Image: digest.String(),
+			}},
+			Containers: []corev1.Container{{
+				Name:  "user-container",
+				Image: digest.String(),
+			}, {
+				Name:  "user-container-2",
+				Image: digestNewer.String(),
+			}},
+		},
+		customContext: config.ToContext(context.Background(),
+			&config.Config{
+				ImagePolicyConfig: &config.ImagePolicyConfig{
+					Policies: map[string]webhookcip.ClusterImagePolicy{
+						"cluster-image-policy-keyless": {
+							Images: []v1alpha1.ImagePattern{{
+								Glob: "gcr.io/*/*",
+							}},
+							Authorities: []webhookcip.Authority{
+								{
+									Keyless: &webhookcip.KeylessRef{
+										URL: fulcioURL,
+									},
+									CTLog: &v1alpha1.TLog{
+										URL: rekorURL,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		),
+		want: func() *apis.FieldError {
+			var errs *apis.FieldError
+			fe := apis.ErrGeneric("failed policy: cluster-image-policy-keyless", "image").ViaFieldIndex("initContainers", 0)
+			fe.Details = fmt.Sprintf("%s signature keyless validation failed for authority  for %s: bad signature", digest.String(), digest.Name())
+			errs = errs.Also(fe)
+			fe2 := apis.ErrGeneric("failed policy: cluster-image-policy-keyless", "image").ViaFieldIndex("containers", 0)
+			fe2.Details = fmt.Sprintf("%s signature keyless validation failed for authority  for %s: bad signature", digest.String(), digest.Name())
+			errs = errs.Also(fe2)
+			fe3 := apis.ErrGeneric("failed policy: cluster-image-policy-keyless", "image").ViaFieldIndex("containers", 1)
+			fe3.Details = fmt.Sprintf("%s signature keyless validation failed for authority  for %s: bad signature", digestNewer.String(), digestNewer.Name())
+			errs = errs.Also(fe3)
+			return errs
+		}(),
+		cvs: fail,
+	}, {
 		name: "simple, error, authority source signaturePullSecrets, non existing secret",
 		ps: &corev1.PodSpec{
 			InitContainers: []corev1.Container{{
@@ -540,6 +595,9 @@ func TestValidatePodSpec(t *testing.T) {
 			Containers: []corev1.Container{{
 				Name:  "user-container",
 				Image: digest.String(),
+			}, {
+				Name:  "user-container-2",
+				Image: digestNewer.String(),
 			}},
 		},
 		customContext: config.ToContext(ctx,
@@ -2460,6 +2518,71 @@ func TestValidatePodSpecNonDefaultNamespace(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+func TestValidatePodSpecCancelled(t *testing.T) {
+	// Resolved via crane digest on 2021/09/25
+	digest := name.MustParseReference("gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4")
+
+	ctx, _ := rtesting.SetupFakeContext(t)
+	kc := fakekube.Get(ctx)
+	// Setup service account and fakeSignaturePullSecrets for "default"
+	// namespace
+	kc.CoreV1().ServiceAccounts("default").Create(ctx, &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "default",
+		},
+	}, metav1.CreateOptions{})
+
+	kc.CoreV1().Secrets("default").Create(ctx, &corev1.Secret{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "fakeSignaturePullSecrets",
+		},
+		Data: map[string][]byte{
+			"dockerconfigjson": []byte(`{"auths":{"https://index.docker.io/v1/":{"username":"username","password":"password","auth":"dXNlcm5hbWU6cGFzc3dvcmQ="}}`),
+		},
+	}, metav1.CreateOptions{})
+
+	v := NewValidator(ctx)
+
+	ps := &corev1.PodSpec{
+		InitContainers: []corev1.Container{{
+			Name:  "setup-stuff",
+			Image: digest.String(),
+		}},
+		Containers: []corev1.Container{{
+			Name:  "user-container",
+			Image: digest.String(),
+		}},
+	}
+	ctx = config.ToContext(ctx,
+		&config.Config{
+			ImagePolicyConfig: &config.ImagePolicyConfig{
+				Policies: map[string]webhookcip.ClusterImagePolicy{
+					"cluster-image-policy": {
+						Images: []v1alpha1.ImagePattern{{
+							Glob: "gcr.io/*/*",
+						}},
+						Authorities: []webhookcip.Authority{
+							{
+								Keyless: &webhookcip.KeylessRef{
+									URL: apis.HTTP("fulcio.sigstore.dev"),
+								}},
+						},
+					},
+				},
+			},
+		})
+
+	cancelledContext, cancelFunc := context.WithCancel(ctx)
+	wantErr := "context was canceled before validation completed"
+	cancelFunc()
+	gotErrs := v.validatePodSpec(cancelledContext, "default", "pod", "v1", map[string]string{}, ps, k8schain.Options{})
+	if gotErrs == nil {
+		t.Errorf("Did not get an error on canceled context")
+	} else if !strings.Contains(gotErrs.Error(), wantErr) {
+		t.Errorf("Did not get canceled error, got: %s", gotErrs.Error())
 	}
 }
 
