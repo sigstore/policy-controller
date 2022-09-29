@@ -41,6 +41,9 @@ var (
 
 	// Valid modes for a policy
 	validModes = sets.NewString("enforce", "warn")
+
+	// ValidResourceNames for a policy match selector
+	validResourceNames = sets.NewString("replicasets", "deployments", "pods", "cronjobs", "jobs", "statefulsets", "daemonsets")
 )
 
 // Validate implements apis.Validatable
@@ -64,6 +67,9 @@ func (spec *ClusterImagePolicySpec) Validate(ctx context.Context) (errors *apis.
 	if spec.Mode != "" && !validModes.Has(spec.Mode) {
 		errors = errors.Also(apis.ErrInvalidValue(spec.Mode, "mode", "unsupported mode"))
 	}
+	for i, m := range spec.Match {
+		errors = errors.Also(m.Validate(ctx).ViaFieldIndex("match", i))
+	}
 	errors = errors.Also(spec.Policy.Validate(ctx))
 	return
 }
@@ -73,6 +79,18 @@ func (image *ImagePattern) Validate(ctx context.Context) *apis.FieldError {
 		return apis.ErrMissingField("glob")
 	}
 	return ValidateGlob(image.Glob).ViaField("glob")
+}
+
+func (matchResource *MatchResource) Validate(ctx context.Context) *apis.FieldError {
+	var errs *apis.FieldError
+	if matchResource.Resource != "" && !validResourceNames.Has(matchResource.Resource) {
+		errs = errs.Also(apis.ErrInvalidValue(matchResource.Resource, "resource", "unsupported resource name"))
+	}
+
+	if matchResource.ResourceSelector != nil && (matchResource.Resource == "" && matchResource.Version == "" && matchResource.Group == "") {
+		errs = errs.Also(apis.ErrInvalidValue(matchResource.Resource, "selector", "selector requires a resource type to match the labels"))
+	}
+	return errs
 }
 
 func (authority *Authority) Validate(ctx context.Context) *apis.FieldError {

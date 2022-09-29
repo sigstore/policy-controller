@@ -23,8 +23,50 @@ import (
 	"github.com/sigstore/policy-controller/pkg/apis/glob"
 	webhookcip "github.com/sigstore/policy-controller/pkg/webhook/clusterimagepolicy"
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	metalabels "k8s.io/apimachinery/pkg/labels"
+	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/yaml"
 )
+
+// TODO (hectorj2f): Find an optimal function to match GroupVersionResource with the provided kind and apiVersion
+var kindResourceMap = map[string]schema.GroupVersionResource{
+	"Deployment": {
+		Group:    "apps",
+		Version:  "v1",
+		Resource: "deployments",
+	},
+	"ReplicatSet": {
+		Group:    "apps",
+		Version:  "v1",
+		Resource: "replicasets",
+	},
+	"CronJob": {
+		Group:    "batch",
+		Version:  "v1",
+		Resource: "cronjobs",
+	},
+	"Job": {
+		Group:    "batch",
+		Version:  "v1",
+		Resource: "jobs",
+	},
+	"DaemonSet": {
+		Group:    "",
+		Version:  "v1",
+		Resource: "daemonsets",
+	},
+	"StatefulSet": {
+		Group:    "apps",
+		Version:  "v1",
+		Resource: "statefulsets",
+	},
+	"Pod": {
+		Group:    "",
+		Version:  "v1",
+		Resource: "pods",
+	},
+}
 
 const (
 	// ImagePoliciesConfigName is the name of ConfigMap created by the
@@ -76,10 +118,10 @@ func parseEntry(entry string, out interface{}) error {
 }
 
 // GetMatchingPolicies returns all matching Policies and their Authorities that
-// need to be matched for the given Image.
+// need to be matched for the given kind, version and labels (if provided) to then match the Image.
 // Returned map contains the name of the CIP as the key, and a normalized
 // ClusterImagePolicy for it.
-func (p *ImagePolicyConfig) GetMatchingPolicies(image string) (map[string]webhookcip.ClusterImagePolicy, error) {
+func (p *ImagePolicyConfig) GetMatchingPolicies(image string, kind, apiVersion string, labels map[string]string) (map[string]webhookcip.ClusterImagePolicy, error) {
 	if p == nil {
 		return nil, errors.New("config is nil")
 	}
@@ -91,6 +133,35 @@ func (p *ImagePolicyConfig) GetMatchingPolicies(image string) (map[string]webhoo
 	// way to go from image to Authorities, but just seeing if this is even
 	// workable so fine for now.
 	for k, v := range p.Policies {
+		if len(v.Match) > 0 {
+			foundMatch := false
+			resourceGroupVersion := kindResourceMap[kind]
+			for _, matchResource := range v.Match {
+				if matchResource.Resource == resourceGroupVersion.Resource && (matchResource.Version == resourceGroupVersion.Version || matchResource.Version == "*") && matchResource.Group == resourceGroupVersion.Group {
+					if matchResource.ResourceSelector != nil {
+						selector, err := metav1.LabelSelectorAsSelector(matchResource.ResourceSelector)
+						if err != nil {
+							return nil, errors.New("policy with wrong match label selector")
+						}
+						if !selector.Matches(metalabels.Set(labels)) {
+							continue
+						}
+						// We found a resource type that matches the provided labels
+						foundMatch = true
+						break
+					} else {
+						// We found a resource that matches the available name, version and group
+						foundMatch = true
+						break
+					}
+				}
+			}
+			if !foundMatch {
+				// We didn't find any match with the current resource types, so we continue looking for policies
+				continue
+			}
+		}
+
 		for _, pattern := range v.Images {
 			if pattern.Glob != "" {
 				if matched, err := glob.Match(pattern.Glob, image); err != nil {

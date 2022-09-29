@@ -436,6 +436,73 @@ kubectl delete ns demo-key-signing demo-keyless-signing demo-key-remote
 rm cosign*.key cosign*.pub
 echo '::endgroup::'
 
+echo '::group:: Generate New Signing Key For Matching Resources with Labels'
+COSIGN_PASSWORD="" cosign generate-key-pair
+mv cosign.key cosign-match-signing.key
+mv cosign.pub cosign-match-signing.pub
+echo '::endgroup::'
+
+echo '::group:: Create test namespace and label for matching Pods only in namespace'
+kubectl create namespace demo-match-res-label-only
+kubectl label namespace demo-match-res-label-only policy.sigstore.dev/include=true
+echo '::endgroup::'
+
+echo '::group:: Deploy ClusterImagePolicy With Matching Resource Labels for Pods'
+yq '. | .metadata.name = "image-policy-match-label"
+    | .spec.authorities[0].key.data |= load_str("cosign-match-signing.pub")' \
+  ./test/testdata/policy-controller/e2e/cip-match-resource-label.yaml | \
+  kubectl apply -f -
+
+# Give the policy controller a moment to update the configmap
+# and pick up the change in the admission controller.
+sleep 5
+echo '::endgroup::'
+
+echo '::group:: Verify with CIP that blocks a pod with valid labels but a different key'
+if kubectl run -n demo-match-res-label-only demo-invalid-key --image=${demoimage} -l match=match; then
+  echo Failed to block signed Pod with wrong key creation!
+  exit 1
+fi
+echo '::endgroup::'
+
+echo '::group:: Verify with CIP that pods can get deployed due to unmatching labels'
+if ! kubectl run -n demo-match-res-label-only demo-valid-key --image=${demoimage}  -l test=staging; then
+  echo Failed to create Pod when labels are not matching the CIP
+  exit 1
+else
+  echo Succcessfully created Pod when labels are not matching the CIP
+fi
+echo '::endgroup::'
+
+echo '::group:: Sign demoimage with cosign key'
+if ! COSIGN_PASSWORD="" cosign sign --key cosign-match-signing.key --force --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage} ; then
+  echo failed to sign demoimage with key
+  exit 1
+fi
+echo '::endgroup::'
+
+echo '::group:: Verify demoimage with cosign key'
+if ! cosign verify --key cosign-match-signing.pub --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage} ; then
+  echo failed to verify demo image with cosign key
+  exit 1
+fi
+echo '::endgroup::'
+
+echo '::group:: Verify with CIP that blocks the pod using a valid key and labels'
+if ! kubectl run -n demo-match-res-label-only demo-valid-key-labels --image=${demoimage} -l match=match; then
+  echo Failed to create Pod with a valid key and matching labels
+  exit 1
+else
+  echo Succcessfully created Pod with a valid key and matching labels
+fi
+echo '::endgroup::'
+
+echo '::group::' Cleanup
+kubectl delete cip --all
+kubectl delete ns demo-match-res-label-only
+rm cosign*.key cosign*.pub
+echo '::endgroup::'
+
 demoimageSignature="quay.io/jetstack/cert-manager-acmesolver:v1.9.1"
 
 echo '::group:: Create test namespace and label for signature digest sha512'

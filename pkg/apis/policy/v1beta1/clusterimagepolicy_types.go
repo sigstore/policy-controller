@@ -67,6 +67,9 @@ type ClusterImagePolicySpec struct {
 	// warn - allow but warn
 	// +optional
 	Mode string `json:"mode,omitempty"`
+	// Match allows selecting resources based on their properties.
+	// +optional
+	Match []MatchResource `json:"match,omitempty"`
 }
 
 // ImagePattern defines a pattern and its associated authorties
@@ -204,6 +207,15 @@ type Policy struct {
 	// ConfigMapRef defines the reference to a configMap with the policy definition.
 	// +optional
 	ConfigMapRef *ConfigMapReference `json:"configMapRef,omitempty"`
+}
+
+// MatchResource allows selecting resources based on its version, group and resource.
+// It is also possible to select resources based on a list of matching labels.
+type MatchResource struct {
+	// +optional
+	metav1.GroupVersionResource `json:",inline"`
+	// +optional
+	ResourceSelector *metav1.LabelSelector `json:"selector,omitempty"`
 }
 
 // ConfigMapReference is cut&paste from SecretReference, but for the life of me

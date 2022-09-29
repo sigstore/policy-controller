@@ -203,6 +203,42 @@ spec:
                       glob:
                         description: Glob defines a globbing pattern.
                         type: string
+                match:
+                  description: Match allows selecting resources based on their properties.
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      group:
+                        type: string
+                      resource:
+                        type: string
+                      selector:
+                        type: object
+                        properties:
+                          matchExpressions:
+                            description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                key:
+                                  description: key is the label key that the selector applies to.
+                                  type: string
+                                operator:
+                                  description: operator represents a key's relationship to a set of values. Valid operators are In, NotIn, Exists and DoesNotExist.
+                                  type: string
+                                values:
+                                  description: values is an array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. This array is replaced during a strategic merge patch.
+                                  type: array
+                                  items:
+                                    type: string
+                          matchLabels:
+                            description: matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an element of matchExpressions, whose key field is "key", the operator is "In", and the values array contains only "value". The requirements are ANDed.
+                            type: object
+                            x-kubernetes-preserve-unknown-fields: true
+                      version:
+                        type: string
                 mode:
                   description: Mode controls whether a failing policy will be rejected (not admitted), or if errors are converted to Warnings. enforce - Reject (default) warn - allow but warn
                   type: string
@@ -366,11 +402,49 @@ spec:
                             description: Action defines how to handle a matching policy.
                             type: string
                 images:
+                  description: Images defines the patterns of image names that should be subject to this policy.
                   type: array
                   items:
                     type: object
                     properties:
                       glob:
+                        description: Glob defines a globbing pattern.
+                        type: string
+                match:
+                  description: Match allows selecting resources based on their properties.
+                  type: array
+                  items:
+                    type: object
+                    properties:
+                      group:
+                        type: string
+                      resource:
+                        type: string
+                      selector:
+                        type: object
+                        properties:
+                          matchExpressions:
+                            description: matchExpressions is a list of label selector requirements. The requirements are ANDed.
+                            type: array
+                            items:
+                              type: object
+                              properties:
+                                key:
+                                  description: key is the label key that the selector applies to.
+                                  type: string
+                                operator:
+                                  description: operator represents a key's relationship to a set of values. Valid operators are In, NotIn, Exists and DoesNotExist.
+                                  type: string
+                                values:
+                                  description: values is an array of string values. If the operator is In or NotIn, the values array must be non-empty. If the operator is Exists or DoesNotExist, the values array must be empty. This array is replaced during a strategic merge patch.
+                                  type: array
+                                  items:
+                                    type: string
+                          matchLabels:
+                            description: matchLabels is a map of {key,value} pairs. A single {key,value} in the matchLabels map is equivalent to an element of matchExpressions, whose key field is "key", the operator is "In", and the values array contains only "value". The requirements are ANDed.
+                            type: object
+                            x-kubernetes-preserve-unknown-fields: true
+                      version:
                         type: string
                 mode:
                   description: Mode controls whether a failing policy will be rejected (not admitted), or if errors are converted to Warnings. enforce - Reject (default) warn - allow but warn

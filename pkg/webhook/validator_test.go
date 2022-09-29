@@ -604,7 +604,7 @@ func TestValidatePodSpec(t *testing.T) {
 				}
 
 				// Check the core mechanics
-				got := v.validatePodSpec(testContext, system.Namespace(), test.ps, k8schain.Options{})
+				got := v.validatePodSpec(testContext, system.Namespace(), "Pod", "v1", map[string]string{}, test.ps, k8schain.Options{})
 				if (got != nil) != (test.want != nil) {
 					t.Errorf("validatePodSpec() = %v, wanted %v", got, test.want)
 				} else if got != nil && got.Error() != test.want.Error() {
@@ -2222,6 +2222,54 @@ func TestValidatePodSpecNonDefaultNamespace(t *testing.T) {
 			},
 		),
 		cvs: authorityPublicKeyCVS,
+	}, {
+		name: "simple, no error, with a resource selector based on labels and resource version",
+		ps: &corev1.PodSpec{
+			InitContainers: []corev1.Container{{
+				Name:  "setup-stuff",
+				Image: digest.String(),
+			}},
+			Containers: []corev1.Container{{
+				Name:  "user-container",
+				Image: digest.String(),
+			}},
+		},
+		customContext: config.ToContext(context.Background(),
+			&config.Config{
+				ImagePolicyConfig: &config.ImagePolicyConfig{
+					Policies: map[string]webhookcip.ClusterImagePolicy{
+						"cluster-image-policy": {
+							Images: []v1alpha1.ImagePattern{{
+								Glob: "gcr.io/*/*",
+							}},
+							Match: []v1alpha1.MatchResource{
+								{
+									GroupVersionResource: metav1.GroupVersionResource{
+										Group:    "",
+										Version:  "v1",
+										Resource: "pods",
+									},
+									ResourceSelector: &metav1.LabelSelector{
+										MatchLabels: map[string]string{"test": "test"},
+									},
+								},
+							},
+							Authorities: []webhookcip.Authority{
+								{
+									Key: &webhookcip.KeyRef{
+										Data:              authorityKeyCosignPubString,
+										PublicKeys:        []crypto.PublicKey{authorityKeyCosignPub},
+										HashAlgorithm:     signaturealgo.DefaultSignatureAlgorithm,
+										HashAlgorithmCode: crypto.SHA256,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		),
+		cvs: pass,
 	}}
 
 	for _, test := range tests {
@@ -2284,7 +2332,7 @@ func TestValidatePodSpecNonDefaultNamespace(t *testing.T) {
 
 				testContext = attachHTTPRequestToContext(testContext)
 				// Check the core mechanics
-				got := v.validatePodSpec(testContext, "my-secure-ns", test.ps, k8schain.Options{})
+				got := v.validatePodSpec(testContext, "my-secure-ns", "Pod", "v1", map[string]string{"test": "test"}, test.ps, k8schain.Options{})
 				if (got != nil) != (test.want != nil) {
 					t.Errorf("validatePodSpec() = %v, wanted %v", got, test.want)
 				} else if got != nil && got.Error() != test.want.Error() {

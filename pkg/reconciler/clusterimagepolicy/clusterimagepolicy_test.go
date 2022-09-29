@@ -85,6 +85,12 @@ RCTfQ5s1kD+hGMSE1rH7s46hmXEeyhnlRnaGF8eMU/SBJE/2NKPnxE7WzQ==
 	// This is the patch for inlined secret for keyless cakey ref data
 	inlinedSecretKeylessPatch = `[{"op":"replace","path":"/data/test-cip-2","value":"{\"images\":[{\"glob\":\"ghcr.io/example/*\"}],\"authorities\":[{\"name\":\"authority-0\",\"keyless\":{\"ca-cert\":{\"data\":\"-----BEGIN PUBLIC KEY-----\\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAExB6+H6054/W1SJgs5JR6AJr6J35J\\nRCTfQ5s1kD+hGMSE1rH7s46hmXEeyhnlRnaGF8eMU/SBJE/2NKPnxE7WzQ==\\n-----END PUBLIC KEY-----\",\"hashAlgorithm\":\"sha256\"}}}],\"mode\":\"enforce\"}"}]`
 
+	// This is the patch for inlined secret with matching resource, version and group
+	inlinedSecretKeylessMatchResourcePatch = `[{"op":"replace","path":"/data/test-cip-2","value":"{\"images\":[{\"glob\":\"ghcr.io/example/*\"}],\"authorities\":[{\"name\":\"authority-0\",\"keyless\":{\"ca-cert\":{\"data\":\"-----BEGIN PUBLIC KEY-----\\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAExB6+H6054/W1SJgs5JR6AJr6J35J\\nRCTfQ5s1kD+hGMSE1rH7s46hmXEeyhnlRnaGF8eMU/SBJE/2NKPnxE7WzQ==\\n-----END PUBLIC KEY-----\",\"hashAlgorithm\":\"sha256\"}}}],\"mode\":\"enforce\",\"match\":[{\"group\":\"apps\",\"version\":\"v1\",\"resource\":\"deployments\"}]}"}]`
+
+	// This is the patch for inlined secret with matching labels
+	inlinedSecretKeylessMatchLabelsPatch = `[{"op":"replace","path":"/data/test-cip-2","value":"{\"images\":[{\"glob\":\"ghcr.io/example/*\"}],\"authorities\":[{\"name\":\"authority-0\",\"keyless\":{\"ca-cert\":{\"data\":\"-----BEGIN PUBLIC KEY-----\\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAExB6+H6054/W1SJgs5JR6AJr6J35J\\nRCTfQ5s1kD+hGMSE1rH7s46hmXEeyhnlRnaGF8eMU/SBJE/2NKPnxE7WzQ==\\n-----END PUBLIC KEY-----\",\"hashAlgorithm\":\"sha256\"}}}],\"mode\":\"enforce\",\"match\":[{\"group\":\"apps\",\"version\":\"v1\",\"resource\":\"replicasets\",\"selector\":{\"matchLabels\":{\"match\":\"match\"}}}]}"}]`
+
 	replaceCIPKeySourcePatch = `[{"op":"replace","path":"/data/test-cip","value":"{\"images\":[{\"glob\":\"ghcr.io/example/*\"}],\"authorities\":[{\"name\":\"authority-0\",\"key\":{\"data\":\"-----BEGIN PUBLIC KEY-----\\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAExB6+H6054/W1SJgs5JR6AJr6J35J\\nRCTfQ5s1kD+hGMSE1rH7s46hmXEeyhnlRnaGF8eMU/SBJE/2NKPnxE7WzQ==\\n-----END PUBLIC KEY-----\",\"hashAlgorithm\":\"sha256\"},\"source\":[{\"oci\":\"example.com/alternative/signature\",\"signaturePullSecrets\":[{\"name\":\"signaturePullSecretName\"}]}]}],\"mode\":\"enforce\"}"}]`
 )
 
@@ -589,6 +595,79 @@ func TestReconcile(t *testing.T) {
 			WantEvents: []string{
 				Eventf(corev1.EventTypeNormal, "FinalizerUpdate", `Updated "test-kms-cip" finalizers`),
 				Eventf(corev1.EventTypeWarning, "InternalError", `no kms provider found for key reference: gcpkms://blah`),
+			},
+		}, {
+			Name: "Keyless with match label selector",
+			Key:  testKey2,
+
+			SkipNamespaceValidation: true, // Cluster scoped
+			Objects: []runtime.Object{
+				NewClusterImagePolicy(cipName2,
+					WithFinalizer,
+					WithImagePattern(v1alpha1.ImagePattern{
+						Glob: glob,
+					}),
+					WithMatch(v1alpha1.MatchResource{
+						GroupVersionResource: metav1.GroupVersionResource{
+							Group:    "apps",
+							Version:  "v1",
+							Resource: "replicasets",
+						},
+						ResourceSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{"match": "match"},
+						},
+					}),
+					WithAuthority(v1alpha1.Authority{
+						Keyless: &v1alpha1.KeylessRef{
+							CACert: &v1alpha1.KeyRef{
+								SecretRef: &corev1.SecretReference{
+									Name: keylessSecretName,
+								}},
+						}}),
+				),
+				makeConfigMapWithTwoEntries(),
+				makeSecret(keylessSecretName, validPublicKeyData),
+			},
+			WantPatches: []clientgotesting.PatchActionImpl{
+				makePatch(inlinedSecretKeylessMatchLabelsPatch),
+			},
+			PostConditions: []func(*testing.T, *TableRow){
+				AssertTrackingSecret(system.Namespace(), keylessSecretName),
+			},
+		}, {
+			Name: "Keyless with resource group and version selector",
+			Key:  testKey2,
+
+			SkipNamespaceValidation: true, // Cluster scoped
+			Objects: []runtime.Object{
+				NewClusterImagePolicy(cipName2,
+					WithFinalizer,
+					WithImagePattern(v1alpha1.ImagePattern{
+						Glob: glob,
+					}),
+					WithMatch(v1alpha1.MatchResource{
+						GroupVersionResource: metav1.GroupVersionResource{
+							Group:    "apps",
+							Version:  "v1",
+							Resource: "deployments",
+						},
+					}),
+					WithAuthority(v1alpha1.Authority{
+						Keyless: &v1alpha1.KeylessRef{
+							CACert: &v1alpha1.KeyRef{
+								SecretRef: &corev1.SecretReference{
+									Name: keylessSecretName,
+								}},
+						}}),
+				),
+				makeConfigMapWithTwoEntries(),
+				makeSecret(keylessSecretName, validPublicKeyData),
+			},
+			WantPatches: []clientgotesting.PatchActionImpl{
+				makePatch(inlinedSecretKeylessMatchResourcePatch),
+			},
+			PostConditions: []func(*testing.T, *TableRow){
+				AssertTrackingSecret(system.Namespace(), keylessSecretName),
 			},
 		}}
 
