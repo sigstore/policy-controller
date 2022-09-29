@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"sync"
 
 	"github.com/google/go-containerregistry/pkg/authn/k8schain"
 	"github.com/google/go-containerregistry/pkg/name"
@@ -163,116 +164,48 @@ func (v *Validator) validatePodSpec(ctx context.Context, namespace, kind, apiVer
 		return apis.ErrGeneric(err.Error(), apis.CurrentField)
 	}
 
+	type containerCheckResult struct {
+		index                int
+		containerCheckResult *apis.FieldError
+	}
 	checkContainers := func(cs []corev1.Container, field string) {
+		results := make(chan containerCheckResult, len(cs))
+		wg := new(sync.WaitGroup)
 		for i, c := range cs {
-			ref, err := name.ParseReference(c.Image)
-			if err != nil {
-				errs = errs.Also(apis.ErrGeneric(err.Error(), "image").ViaFieldIndex(field, i))
-				continue
-			}
+			i := i
+			c := c
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
 
-			// Require digests, otherwise the validation is meaningless
-			// since the tag can move.
-			if _, ok := ref.(name.Digest); !ok {
-				errs = errs.Also(apis.ErrInvalidValue(
-					fmt.Sprintf("%s must be an image digest", c.Image),
-					"image",
-				).ViaFieldIndex(field, i))
-				continue
-			}
-
-			config := config.FromContext(ctx)
-
-			// During the migration from the secret only validation into policy
-			// based ones. If there were matching policies that successfully
-			// validated the image, keep tally of it and if all Policies that
-			// matched validated, skip the traditional one since they are not
-			// necessarily going to play nicely together.
-			passedPolicyChecks := false
-			if config != nil {
-				policies, err := config.ImagePolicyConfig.GetMatchingPolicies(ref.Name(), kind, apiVersion, labels)
-				if err != nil {
-					errorField := apis.ErrGeneric(err.Error(), "image").ViaFieldIndex(field, i)
-					errorField.Details = c.Image
-					errs = errs.Also(errorField)
-					continue
+				// Require digests, otherwise the validation is meaningless
+				// since the tag can move.
+				_, fe := refOrFieldError(c.Image, field, i)
+				if fe != nil {
+					results <- containerCheckResult{index: i, containerCheckResult: fe}
+					return
 				}
 
-				// If there is at least one policy that matches, that means it
-				// has to be satisfied.
-				if len(policies) > 0 {
-					signatures, fieldErrors := validatePolicies(ctx, namespace, ref, policies, ociremote.WithRemoteOptions(
-						remote.WithContext(ctx),
-						remote.WithAuthFromKeychain(kc),
-					))
-
-					if len(signatures) != len(policies) {
-						logging.FromContext(ctx).Warnf("Failed to validate at least one policy for %s", ref.Name())
-						// Do we really want to add all the error details here?
-						// Seems like we can just say which policy failed, so
-						// doing that for now.
-						// Split the errors and warnings to their own
-						// error levels.
-						hasWarnings := false
-						hasErrors := false
-						for failingPolicy, policyErrs := range fieldErrors {
-							errDetails := c.Image
-							warnDetails := c.Image
-							for _, policyErr := range policyErrs {
-								var fe *apis.FieldError
-								if errors.As(policyErr, &fe) {
-									if fe.Filter(apis.WarningLevel) != nil {
-										warnDetails = warnDetails + " " + fe.Message
-										hasWarnings = true
-									} else {
-										errDetails = errDetails + " " + fe.Message
-										hasErrors = true
-									}
-								} else {
-									// Just a regular error.
-									errDetails = errDetails + " " + policyErr.Error()
-								}
-							}
-							if hasWarnings {
-								warnField := apis.ErrGeneric(fmt.Sprintf("failed policy: %s", failingPolicy), "image").ViaFieldIndex(field, i)
-								warnField.Details = warnDetails
-								errs = errs.Also(warnField).At(apis.WarningLevel)
-							}
-							if hasErrors {
-								errorField := apis.ErrGeneric(fmt.Sprintf("failed policy: %s", failingPolicy), "image").ViaFieldIndex(field, i)
-								errorField.Details = errDetails
-								errs = errs.Also(errorField)
-							}
-						}
-						// Because there was at least one policy that was
-						// supposed to be validated, but it failed, then fail
-						// this image. It should not fall through to the
-						// traditional secret checking so it does not slip
-						// through the policy cracks, and also to reduce noise
-						// in the errors returned to the user.
-						continue
-					} else {
-						logging.FromContext(ctx).Warnf("Validated authorities for %s", ref.Name())
-						// Only say we passed if more than one authority was validated, which
-						// means that there was a matching ClusterImagePolicy.
-						if len(signatures) > 0 {
-							passedPolicyChecks = true
-						}
-					}
-				}
-			}
-
-			if passedPolicyChecks {
-				logging.FromContext(ctx).Debugf("Found at least one matching policy and it was validated for %s", ref.Name())
-				continue
-			}
-
-			// No matching policies, so go ahead and do the right thing based
-			// on what the config is.
-			// Note that if the default is allow, errs.Also works just fine
-			// Also'ing a nil to it.
-			errs = errs.Also(setNoMatchingPoliciesError(ctx, c.Image, field, i))
+				containerErrors := v.validateContainer(ctx, c, namespace, field, i, kind, apiVersion, labels, ociremote.WithRemoteOptions(
+					remote.WithContext(ctx),
+					remote.WithAuthFromKeychain(kc),
+				))
+				results <- containerCheckResult{index: i, containerCheckResult: containerErrors}
+			}()
 		}
+		for i := 0; i < len(cs); i++ {
+			select {
+			case <-ctx.Done():
+				errs = errs.Also(apis.ErrGeneric("context was canceled before validation completed"))
+			case result, ok := <-results:
+				if !ok {
+					errs = errs.Also(apis.ErrGeneric("results channel failed to produce a result"))
+				} else {
+					errs = errs.Also(result.containerCheckResult)
+				}
+			}
+		}
+		wg.Wait()
 	}
 
 	checkContainers(ps.InitContainers, "initContainers")
@@ -325,6 +258,8 @@ func validatePolicies(ctx context.Context, namespace string, ref name.Reference,
 	}
 	results := make(chan retChannelType, len(policies))
 
+	wg := new(sync.WaitGroup)
+
 	// For each matching policy it must validate at least one Authority within
 	// it.
 	// From the Design document, the part about multiple Policies matching:
@@ -337,7 +272,9 @@ func validatePolicies(ctx context.Context, namespace string, ref name.Reference,
 		cipName := cipName
 		cip := cip
 		logging.FromContext(ctx).Debugf("Checking Policy: %s", cipName)
+		wg.Add(1)
 		go func() {
+			defer wg.Done()
 			result := retChannelType{name: cipName}
 
 			result.policyResult, result.errors = ValidatePolicy(ctx, namespace, ref, cip, remoteOpts...)
@@ -374,7 +311,7 @@ func validatePolicies(ctx context.Context, namespace string, ref name.Reference,
 			}
 		}
 	}
-
+	wg.Wait()
 	return policyResults, ret
 }
 
@@ -403,12 +340,16 @@ func ValidatePolicy(ctx context.Context, namespace string, ref name.Reference, c
 		signatures   []PolicySignature
 		err          error
 	}
+	wg := new(sync.WaitGroup)
+
 	results := make(chan retChannelType, len(cip.Authorities))
 	for _, authority := range cip.Authorities {
 		authority := authority // due to gofunc
 		logging.FromContext(ctx).Debugf("Checking Authority: %s", authority.Name)
 
+		wg.Add(1)
 		go func() {
+			defer wg.Done()
 			result := retChannelType{name: authority.Name}
 			// Assignment for appendAssign lint error
 			authorityRemoteOpts := remoteOpts
@@ -487,6 +428,7 @@ func ValidatePolicy(ctx context.Context, namespace string, ref name.Reference, c
 			}
 		}
 	}
+	wg.Wait()
 	// Even if there are errors, return the policies, since as per the
 	// spec, we just need one authority to pass checks. If more than
 	// one are required, that is enforced at the CIP policy level.
@@ -880,4 +822,105 @@ func getNamespace(ctx context.Context, namespace string) string {
 		}
 	}
 	return namespace
+}
+
+// validateContainer will validate the container image, and any errors will use
+// field & index to craft the meaningful error message.
+// field is necessary because higher level resources come here from different
+// contexts and the container could be nested at different levels in the
+// resource
+// index is the number in the containers array from the said context.
+//
+// Returns any encountered errors, or nil in two cases:
+// All the matched policies were validated, or
+// no matching policies were found, but the PolicyControllerConfig has been
+// configured to allow images not matching any policies.
+func (v *Validator) validateContainer(ctx context.Context, c corev1.Container, namespace, field string, index int, kind, apiVersion string, labels map[string]string, ociRemoteOpts ...ociremote.Option) *apis.FieldError {
+	ref, err := name.ParseReference(c.Image)
+	if err != nil {
+		return apis.ErrGeneric(err.Error(), "image").ViaFieldIndex(field, index)
+	}
+	config := config.FromContext(ctx)
+
+	if config != nil {
+		policies, err := config.ImagePolicyConfig.GetMatchingPolicies(ref.Name(), kind, apiVersion, labels)
+		if err != nil {
+			errorField := apis.ErrGeneric(err.Error(), "image").ViaFieldIndex(field, index)
+			errorField.Details = c.Image
+			return errorField
+		}
+
+		// If there is at least one policy that matches, that means it
+		// has to be satisfied.
+		if len(policies) > 0 {
+			signatures, fieldErrors := validatePolicies(ctx, namespace, ref, policies, ociRemoteOpts...)
+			if len(signatures) != len(policies) {
+				logging.FromContext(ctx).Warnf("Failed to validate at least one policy for %s wanted %d policies, only validated %d", ref.Name(), len(policies), len(signatures))
+			} else {
+				logging.FromContext(ctx).Infof("Validated %d policies for image %s", len(signatures), c.Image)
+			}
+			return errorsToFieldErrors(c.Image, field, index, fieldErrors)
+		}
+		// Container matched no policies, so return based on the configured
+		// NoMatchPolicy.
+		return setNoMatchingPoliciesError(ctx, c.Image, field, index)
+	}
+	return nil
+}
+
+func errorsToFieldErrors(image, field string, index int, fieldErrors map[string][]error) (errs *apis.FieldError) {
+	// Do we really want to add all the error details here?
+	// Seems like we can just say which policy failed, so
+	// doing that for now.
+	// Split the errors and warnings to their own
+	// error levels.
+	hasWarnings := false
+	hasErrors := false
+	for failingPolicy, policyErrs := range fieldErrors {
+		errDetails := image
+		warnDetails := image
+		for _, policyErr := range policyErrs {
+			var fe *apis.FieldError
+			if errors.As(policyErr, &fe) {
+				if fe.Filter(apis.WarningLevel) != nil {
+					warnDetails = warnDetails + " " + fe.Message
+					hasWarnings = true
+				} else {
+					errDetails = errDetails + " " + fe.Message
+					hasErrors = true
+				}
+			} else {
+				// Just a regular error.
+				errDetails = errDetails + " " + policyErr.Error()
+			}
+		}
+		if hasWarnings {
+			warnField := apis.ErrGeneric(fmt.Sprintf("failed policy: %s", failingPolicy), "image").ViaFieldIndex(field, index)
+			warnField.Details = warnDetails
+			errs = errs.Also(warnField).At(apis.WarningLevel)
+		}
+		if hasErrors {
+			errorField := apis.ErrGeneric(fmt.Sprintf("failed policy: %s", failingPolicy), "image").ViaFieldIndex(field, index)
+			errorField.Details = errDetails
+			errs = errs.Also(errorField)
+		}
+	}
+	return
+}
+
+// refOrFieldError parses the given image into a name.Reference, or returns
+// a properly constructed FieldError for a given field/index in the resource
+// spec.
+func refOrFieldError(image, field string, index int) (name.Reference, *apis.FieldError) {
+	ref, err := name.ParseReference(image)
+	if err != nil {
+		return nil, apis.ErrGeneric(err.Error(), "image").ViaFieldIndex(field, index)
+	}
+	if _, ok := ref.(name.Digest); !ok {
+		return nil, apis.ErrInvalidValue(
+			fmt.Sprintf("%s must be an image digest", image),
+			"image",
+		).ViaFieldIndex(field, index)
+	}
+	return ref, nil
 }
