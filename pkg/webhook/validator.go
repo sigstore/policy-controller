@@ -165,7 +165,7 @@ func (v *Validator) validatePodSpec(ctx context.Context, namespace, kind, apiVer
 
 	checkContainers := func(cs []corev1.Container, field string) {
 		for i, c := range cs {
-			passedPolicyValidations, matchedPolicies, containerErrors := v.validateContainer(ctx, c, namespace, field, i, ociremote.WithRemoteOptions(
+			passedPolicyValidations, matchedPolicies, containerErrors := v.validateContainer(ctx, c, namespace, field, i, kind, apiVersion, labels, ociremote.WithRemoteOptions(
 				remote.WithContext(ctx),
 				remote.WithAuthFromKeychain(kc),
 			))
@@ -802,7 +802,7 @@ func getNamespace(ctx context.Context, namespace string) string {
 // Returns number of passed validations (signatures) for all the CIPs that were
 // matched against this image, number of policies that were supposed to be
 // checked against this image, and lastly all the errors for the policies.
-func (v *Validator) validateContainer(ctx context.Context, c corev1.Container, namespace, field string, index int, ociRemoteOpts ...ociremote.Option) (int, int, *apis.FieldError) {
+func (v *Validator) validateContainer(ctx context.Context, c corev1.Container, namespace, field string, index int, kind, apiVersion string, labels map[string]string, ociRemoteOpts ...ociremote.Option) (int, int, *apis.FieldError) {
 	ref, err := name.ParseReference(c.Image)
 	if err != nil {
 		return 0, 0, apis.ErrGeneric(err.Error(), "image").ViaFieldIndex(field, index)
@@ -818,7 +818,7 @@ func (v *Validator) validateContainer(ctx context.Context, c corev1.Container, n
 	config := config.FromContext(ctx)
 
 	if config != nil {
-		policies, err := config.ImagePolicyConfig.GetMatchingPolicies(ref.Name())
+		policies, err := config.ImagePolicyConfig.GetMatchingPolicies(ref.Name(), kind, apiVersion, labels)
 		if err != nil {
 			errorField := apis.ErrGeneric(err.Error(), "image").ViaFieldIndex(field, index)
 			errorField.Details = c.Image
