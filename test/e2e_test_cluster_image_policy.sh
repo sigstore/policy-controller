@@ -458,12 +458,26 @@ yq '. | .metadata.name = "image-policy-match-label"
 sleep 5
 echo '::endgroup::'
 
+# For pods that do not match labels, meaning there are no matching policies, we
+# need to flip the default behaviour of deny => allow.
+# But, let's flip it here before the tests to make sure matched pods are
+# denied properly.
+echo '::group:: Change no-match policy to warn'
+kubectl patch configmap/config-policy-controller \
+  --namespace cosign-system \
+  --type merge \
+  --patch '{"data":{"no-match-policy":"allow"}}'
+# allow for propagation
+sleep 5
+echo '::endgroup::'
+
 echo '::group:: Verify with CIP that blocks a pod with valid labels but a different key'
 if kubectl run -n demo-match-res-label-only demo-invalid-key --image=${demoimage} -l match=match; then
   echo Failed to block signed Pod with wrong key creation!
   exit 1
 fi
 echo '::endgroup::'
+
 
 echo '::group:: Verify with CIP that pods can get deployed due to unmatching labels'
 if ! kubectl run -n demo-match-res-label-only demo-valid-key --image=${demoimage}  -l test=staging; then
