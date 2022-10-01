@@ -112,6 +112,11 @@ jobs:
         kubectl rollout status --timeout 5m --namespace cosign-system deployments/webhook
         kubectl wait deployment -n cosign-system --for condition=Available=True --timeout=90s --all
 
+    - name: Run Insecure Registry Tests
+      run: |
+        go install github.com/google/go-containerregistry/cmd/crane
+        ./test/e2e_test_insecure_registry.sh
+
     - name: Run Image Policy Tests
       run: |
         ./test/e2e_test_policy_crd.sh
