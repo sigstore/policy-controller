@@ -20,6 +20,7 @@ import (
 
 	"github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 )
 
 const finalizerName = "clusterimagepolicies.policy.sigstore.dev"
@@ -39,6 +40,18 @@ func NewClusterImagePolicy(name string, o ...ClusterImagePolicyOption) *v1alpha1
 	}
 	cip.SetDefaults(context.Background())
 	return cip
+}
+
+func WithUID(uid string) ClusterImagePolicyOption {
+	return func(cip *v1alpha1.ClusterImagePolicy) {
+		cip.UID = types.UID(uid)
+	}
+}
+
+func WithResourceVersion(resourceVersion string) ClusterImagePolicyOption {
+	return func(cip *v1alpha1.ClusterImagePolicy) {
+		cip.ResourceVersion = resourceVersion
+	}
 }
 
 func WithClusterImagePolicyDeletionTimestamp(cip *v1alpha1.ClusterImagePolicy) {
