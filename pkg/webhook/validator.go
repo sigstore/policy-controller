@@ -278,6 +278,11 @@ func validatePolicies(ctx context.Context, namespace string, ref name.Reference,
 			result := retChannelType{name: cipName}
 
 			result.policyResult, result.errors = ValidatePolicy(ctx, namespace, ref, cip, remoteOpts...)
+			// Cache the result.
+			FromContext(ctx).Set(ctx, ref.Name(), string(cip.UID), cip.ResourceVersion, &CacheResult{
+				PolicyResult: result.policyResult,
+				Errors:       result.errors,
+			})
 			results <- result
 		}()
 	}
@@ -330,6 +335,12 @@ func asFieldError(warn bool, err error) *apis.FieldError {
 // In any case returns all errors encountered if none of the authorities
 // passed.
 func ValidatePolicy(ctx context.Context, namespace string, ref name.Reference, cip webhookcip.ClusterImagePolicy, remoteOpts ...ociremote.Option) (*PolicyResult, []error) {
+	// Check the cache and return if hit, otherwise, check the policy
+	cacheResult := FromContext(ctx).Get(ctx, ref.String(), string(cip.UID), cip.ResourceVersion)
+	if cacheResult != nil {
+		return cacheResult.PolicyResult, cacheResult.Errors
+	}
+
 	// Each gofunc creates and puts one of these into a results channel.
 	// Once each gofunc finishes, we go through the channel and pull out
 	// the results.

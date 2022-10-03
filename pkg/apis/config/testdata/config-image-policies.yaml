@@ -28,6 +28,8 @@ data:
     #                              #
     ################################
     cluster-image-policy-0: |
+      uid: cluster-image-policy-0-uid
+      resourceVersion: cluster-image-policy-0-resource-version
       images:
       - glob: rando
       authorities:
@@ -42,6 +44,8 @@ data:
         key:
           kms: whatevs
     cluster-image-policy-1: |
+      uid: cluster-image-policy-1-uid
+      resourceVersion: cluster-image-policy-1-resource-version
       images:
       - glob: randomstuff*
       authorities:
@@ -53,6 +57,8 @@ data:
             RCTfQ5s1kD+hGMSE1rH7s46hmXEeyhnlRnaGF8eMU/SBJE/2NKPnxE7WzQ==
             -----END PUBLIC KEY-----
     cluster-image-policy-2: |
+      uid: cluster-image-policy-2-uid
+      resourceVersion: cluster-image-policy-2-resource-version
       images:
       - glob: rando3
       authorities:
@@ -69,6 +75,8 @@ data:
           - issuer: issuer
             subject: subject
     cluster-image-policy-3: |
+      uid: cluster-image-policy-3-uid
+      resourceVersion: cluster-image-policy-3-resource-version
       images:
       - glob: inlinecert
       authorities:
@@ -80,6 +88,8 @@ data:
             RCTfQ5s1kD+hGMSE1rH7s46hmXEeyhnlRnaGF8eMU/SBJE/2NKPnxE7WzQ==
             -----END PUBLIC KEY-----
     cluster-image-policy-4: |
+      uid: cluster-image-policy-4-uid
+      resourceVersion: cluster-image-policy-4-resource-version
       images:
       - glob: regexstring*
       authorities:
@@ -91,6 +101,8 @@ data:
             RCTfQ5s1kD+hGMSE1rH7s46hmXEeyhnlRnaGF8eMU/SBJE/2NKPnxE7WzQ==
             -----END PUBLIC KEY-----
     cluster-image-policy-5: |
+      uid: cluster-image-policy-5-uid
+      resourceVersion: cluster-image-policy-5-resource-version
       images:
       - glob: regexstringtoo*
       authorities:

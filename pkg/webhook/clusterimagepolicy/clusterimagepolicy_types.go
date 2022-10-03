@@ -27,6 +27,7 @@ import (
 	"github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
 	signaturealgo "github.com/sigstore/policy-controller/pkg/apis/signaturealgo"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
+	"k8s.io/apimachinery/pkg/types"
 	"knative.dev/pkg/apis"
 	kubeclient "knative.dev/pkg/client/injection/kube/client"
 	"knative.dev/pkg/logging"
@@ -38,6 +39,11 @@ import (
 // KeyRef does not store secretRefs in internal representation.
 // KeyRef does store parsed publicKeys from Data in internal representation.
 type ClusterImagePolicy struct {
+	// UID of the CIP so we can tell if they've been deleted/recreated
+	UID types.UID `json:"uid,inline"`
+	// ResourceVersion can be used to know if the CIP has been modified
+	ResourceVersion string `json:"resourceVersion"`
+
 	Images      []v1alpha1.ImagePattern `json:"images"`
 	Authorities []Authority             `json:"authorities"`
 	// Policy is an optional policy used to evaluate the results of valid
@@ -233,11 +239,13 @@ func ConvertClusterImagePolicyV1alpha1ToWebhook(in *v1alpha1.ClusterImagePolicy)
 		}
 	}
 	return &ClusterImagePolicy{
-		Images:      copyIn.Spec.Images,
-		Authorities: outAuthorities,
-		Policy:      cipAttestationPolicy,
-		Mode:        in.Spec.Mode,
-		Match:       in.Spec.Match,
+		UID:             copyIn.UID,
+		ResourceVersion: copyIn.ResourceVersion,
+		Images:          copyIn.Spec.Images,
+		Authorities:     outAuthorities,
+		Policy:          cipAttestationPolicy,
+		Mode:            in.Spec.Mode,
+		Match:           in.Spec.Match,
 	}
 }
 

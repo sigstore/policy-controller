@@ -18,6 +18,7 @@ import (
 	"crypto"
 	"crypto/x509"
 	"encoding/pem"
+	"fmt"
 	"strings"
 	"testing"
 
@@ -67,6 +68,8 @@ func TestGetAuthorities(t *testing.T) {
 	if got := getAuthority(t, c, matchedPolicy).Key.Data; got != want {
 		t.Errorf("Did not get what I wanted %q, got %+v", want, got)
 	}
+	// Make sure UID and ResourceVersion are unserialized properly
+	checkUIDAndResourceVersion(t, matchedPolicy, c[matchedPolicy])
 	// Make sure glob matches 'randomstuff*'
 	c, err = defaults.GetMatchingPolicies("randomstuffhere", "Pod", "v1", map[string]string{})
 	checkGetMatches(t, c, err)
@@ -75,9 +78,11 @@ func TestGetAuthorities(t *testing.T) {
 	if got := getAuthority(t, c, matchedPolicy).Key.Data; got != want {
 		t.Errorf("Did not get what I wanted %q, got %+v", want, got)
 	}
+	// Make sure UID and ResourceVersion are unserialized properly
+	checkUIDAndResourceVersion(t, matchedPolicy, c[matchedPolicy])
 	c, err = defaults.GetMatchingPolicies("rando3", "Pod", "v1", map[string]string{})
-	checkGetMatches(t, c, err)
 	matchedPolicy = "cluster-image-policy-2"
+	checkGetMatches(t, c, err)
 	want = inlineKeyData
 	if got := getAuthority(t, c, matchedPolicy).Keyless.CACert.Data; got != want {
 		t.Errorf("Did not get what I wanted %q, got %+v", want, got)
@@ -90,6 +95,9 @@ func TestGetAuthorities(t *testing.T) {
 	if got := getAuthority(t, c, matchedPolicy).Keyless.Identities[0].Subject; got != want {
 		t.Errorf("Did not get what I wanted %q, got %+v", want, got)
 	}
+	// Make sure UID and ResourceVersion are unserialized properly
+	checkUIDAndResourceVersion(t, matchedPolicy, c[matchedPolicy])
+
 	// Make sure regex matches "regexstring*"
 	c, err = defaults.GetMatchingPolicies("regexstringstuff", "Pod", "v1", map[string]string{})
 	checkGetMatches(t, c, err)
@@ -99,6 +107,8 @@ func TestGetAuthorities(t *testing.T) {
 		t.Errorf("Did not get what I wanted %q, got %+v", want, got)
 	}
 	checkPublicKey(t, getAuthority(t, c, matchedPolicy).Key.PublicKeys[0])
+	// Make sure UID and ResourceVersion are unserialized properly
+	checkUIDAndResourceVersion(t, matchedPolicy, c[matchedPolicy])
 
 	// Test multiline yaml cert
 	c, err = defaults.GetMatchingPolicies("inlinecert", "Pod", "v1", map[string]string{})
@@ -260,5 +270,17 @@ func checkSourceOCI(t *testing.T, authority []webhookcip.Authority) {
 	want := len(authority[0].Sources)
 	if got := len(authority[0].RemoteOpts); got != want {
 		t.Errorf("Did not get what I wanted %d, got %d", want, got)
+	}
+}
+
+func checkUIDAndResourceVersion(t *testing.T, cipName string, cip webhookcip.ClusterImagePolicy) {
+	t.Helper()
+	wantUID := fmt.Sprintf("%s-uid", cipName)
+	if wantUID != string(cip.UID) {
+		t.Errorf("UID mismatch want: %s got: %s", wantUID, cip.UID)
+	}
+	wantResourceVersion := fmt.Sprintf("%s-resource-version", cipName)
+	if wantResourceVersion != cip.ResourceVersion {
+		t.Errorf("UID mismatch want: %s got: %s", wantResourceVersion, cip.ResourceVersion)
 	}
 }
