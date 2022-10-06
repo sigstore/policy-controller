@@ -807,6 +807,34 @@ func TestAuthoritiesValidation(t *testing.T) {
 	}
 }
 
+func TestEmptyAuthoritiesValidation(t *testing.T) {
+	tests := []struct {
+		name        string
+		errorString string
+		warnString  string
+		policy      ClusterImagePolicy
+	}{
+		{
+			name: "Should pass when Authorities is empty",
+			policy: ClusterImagePolicy{
+				Spec: ClusterImagePolicySpec{
+					Images:      []ImagePattern{{Glob: "*"}},
+					Authorities: []Authority{},
+				},
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			testContext := policycontrollerconfig.ToContext(context.TODO(), &policycontrollerconfig.PolicyControllerConfig{NoMatchPolicy: policycontrollerconfig.AllowAll, FailOnEmptyAuthorities: false})
+
+			err := test.policy.Validate(testContext)
+			validateError(t, test.errorString, test.warnString, err)
+		})
+	}
+}
+
 func TestAttestationsValidation(t *testing.T) {
 	tests := []struct {
 		name        string
