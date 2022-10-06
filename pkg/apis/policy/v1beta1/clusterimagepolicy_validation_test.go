@@ -24,6 +24,8 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"knative.dev/pkg/apis"
+
+	policycontrollerconfig "github.com/sigstore/policy-controller/pkg/config"
 )
 
 const validPublicKey = "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEaEOVJCFtduYr3xqTxeRWSW32CY/s\nTBNZj4oIUPl8JvhVPJ1TKDPlNcuT4YphSt6t3yOmMvkdQbCj8broX6vijw==\n-----END PUBLIC KEY-----"
@@ -87,7 +89,9 @@ func TestImagePatternValidation(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			err := test.policy.Validate(context.TODO())
+			testContext := policycontrollerconfig.ToContext(context.TODO(), &policycontrollerconfig.PolicyControllerConfig{NoMatchPolicy: policycontrollerconfig.AllowAll, FailOnEmptyAuthorities: true})
+
+			err := test.policy.Validate(testContext)
 			validateError(t, test.errorString, "", err)
 		})
 	}
@@ -795,7 +799,9 @@ func TestAuthoritiesValidation(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			err := test.policy.Validate(context.TODO())
+			testContext := policycontrollerconfig.ToContext(context.TODO(), &policycontrollerconfig.PolicyControllerConfig{NoMatchPolicy: policycontrollerconfig.AllowAll, FailOnEmptyAuthorities: true})
+
+			err := test.policy.Validate(testContext)
 			validateError(t, test.errorString, test.warnString, err)
 		})
 	}

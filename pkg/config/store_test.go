@@ -24,11 +24,17 @@ import (
 	. "knative.dev/pkg/configmap/testing"
 )
 
-var testfiles = map[string]string{
-	"allow-all":         AllowAll,
-	"deny-all-explicit": DenyAll,
-	"warn-all":          WarnAll,
-	"deny-all-default":  DenyAll,
+type testData struct {
+	noMatchPolicy          string
+	failOnEmptyAuthorities bool
+}
+
+var testfiles = map[string]testData{
+	"allow-all":               {noMatchPolicy: AllowAll, failOnEmptyAuthorities: true},
+	"deny-all-explicit":       {noMatchPolicy: DenyAll, failOnEmptyAuthorities: true},
+	"warn-all":                {noMatchPolicy: WarnAll, failOnEmptyAuthorities: true},
+	"deny-all-default":        {noMatchPolicy: DenyAll, failOnEmptyAuthorities: true},
+	"allow-empty-authorities": {noMatchPolicy: DenyAll, failOnEmptyAuthorities: false},
 }
 
 func TestStoreLoadWithContext(t *testing.T) {
@@ -43,7 +49,10 @@ func TestStoreLoadWithContext(t *testing.T) {
 
 		t.Run("policy-controller-config-test-"+file, func(t *testing.T) {
 			expected, _ := NewPolicyControllerConfigFromConfigMap(policyControllerConfig)
-			if diff := cmp.Diff(want, expected.NoMatchPolicy); diff != "" {
+			if diff := cmp.Diff(want.noMatchPolicy, expected.NoMatchPolicy); diff != "" {
+				t.Error("Unexpected defaults config (-want, +got):", diff)
+			}
+			if diff := cmp.Diff(want.failOnEmptyAuthorities, expected.FailOnEmptyAuthorities); diff != "" {
 				t.Error("Unexpected defaults config (-want, +got):", diff)
 			}
 			if diff := cmp.Diff(expected, config); diff != "" {
