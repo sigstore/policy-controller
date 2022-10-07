@@ -28,6 +28,8 @@ import (
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"knative.dev/pkg/apis"
+
+	policycontrollerconfig "github.com/sigstore/policy-controller/pkg/config"
 )
 
 const awsKMSPrefix = "awskms://"
@@ -52,13 +54,17 @@ func (c *ClusterImagePolicy) Validate(ctx context.Context) *apis.FieldError {
 }
 
 func (spec *ClusterImagePolicySpec) Validate(ctx context.Context) (errors *apis.FieldError) {
+	// Check what the configuration is and act accordingly.
+	pcConfig := policycontrollerconfig.FromContext(ctx)
+
 	if len(spec.Images) == 0 {
 		errors = errors.Also(apis.ErrMissingField("images"))
 	}
 	for i, image := range spec.Images {
 		errors = errors.Also(image.Validate(ctx).ViaFieldIndex("images", i))
 	}
-	if len(spec.Authorities) == 0 {
+	// Check if PolicyControllerConfig is configured to fail when having empty authorities
+	if len(spec.Authorities) == 0 && pcConfig.FailOnEmptyAuthorities {
 		errors = errors.Also(apis.ErrMissingField("authorities"))
 	}
 	for i, authority := range spec.Authorities {

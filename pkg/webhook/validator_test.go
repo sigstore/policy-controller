@@ -2412,7 +2412,7 @@ func TestValidatePodSpecNonDefaultNamespace(t *testing.T) {
 				testContext = attachHTTPRequestToContext(testContext)
 				// Set the policy config to pass anything that doesn't match any
 				// policies.
-				testContext = policycontrollerconfig.ToContext(testContext, &policycontrollerconfig.PolicyControllerConfig{NoMatchPolicy: policycontrollerconfig.AllowAll})
+				testContext = policycontrollerconfig.ToContext(testContext, &policycontrollerconfig.PolicyControllerConfig{NoMatchPolicy: policycontrollerconfig.AllowAll, FailOnEmptyAuthorities: true})
 
 				got = v.ValidatePod(testContext, pod)
 				want := test.want.ViaField("spec")
@@ -2720,7 +2720,7 @@ func TestPolicyControllerConfigNoMatchPolicy(t *testing.T) {
 		noMatchPolicy: "allow",
 	}}
 	for _, tc := range tests {
-		testCtx := policycontrollerconfig.ToContext(ctx, &policycontrollerconfig.PolicyControllerConfig{NoMatchPolicy: tc.noMatchPolicy})
+		testCtx := policycontrollerconfig.ToContext(ctx, &policycontrollerconfig.PolicyControllerConfig{NoMatchPolicy: tc.noMatchPolicy, FailOnEmptyAuthorities: true})
 
 		got := v.validatePodSpec(testCtx, system.Namespace(), "pod", "v1", map[string]string{}, testPodSpec, k8schain.Options{})
 		if (got != nil) != (tc.want != nil) {

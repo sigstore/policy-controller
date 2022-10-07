@@ -17,6 +17,7 @@ package config
 
 import (
 	"context"
+	"strconv"
 
 	corev1 "k8s.io/api/core/v1"
 	"knative.dev/pkg/configmap"
@@ -40,6 +41,8 @@ const (
 	WarnAll = "warn"
 
 	NoMatchPolicyKey = "no-match-policy"
+
+	FailOnEmptyAuthorities = "fail-on-empty-authorities"
 )
 
 // PolicyControllerConfig controls the behaviour of policy-controller that needs
@@ -51,10 +54,12 @@ type PolicyControllerConfig struct {
 	// NoMatchPolicy says what do in the case where an image does not match
 	// any policy.
 	NoMatchPolicy string `json:"no-match-policy"`
+	// FailOnEmptyAuthorities configures the validating webhook to allow creating CIP without a list authorities
+	FailOnEmptyAuthorities bool `json:"fail-on-empty-authorities"`
 }
 
 func NewPolicyControllerConfigFromMap(data map[string]string) (*PolicyControllerConfig, error) {
-	ret := &PolicyControllerConfig{NoMatchPolicy: "deny"}
+	ret := &PolicyControllerConfig{NoMatchPolicy: "deny", FailOnEmptyAuthorities: true}
 	switch data[NoMatchPolicyKey] {
 	case DenyAll:
 		ret.NoMatchPolicy = DenyAll
@@ -65,6 +70,12 @@ func NewPolicyControllerConfigFromMap(data map[string]string) (*PolicyController
 	default:
 		ret.NoMatchPolicy = DenyAll
 	}
+	if val, ok := data[FailOnEmptyAuthorities]; ok {
+		var err error
+		ret.FailOnEmptyAuthorities, err = strconv.ParseBool(val)
+		return ret, err
+	}
+	ret.FailOnEmptyAuthorities = true
 	return ret, nil
 }
 
@@ -89,7 +100,8 @@ func FromContextOrDefaults(ctx context.Context) *PolicyControllerConfig {
 		return cfg
 	}
 	return &PolicyControllerConfig{
-		NoMatchPolicy: DenyAll,
+		NoMatchPolicy:          DenyAll,
+		FailOnEmptyAuthorities: true,
 	}
 }
 

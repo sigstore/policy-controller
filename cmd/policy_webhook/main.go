@@ -24,6 +24,7 @@ import (
 	"knative.dev/pkg/configmap"
 	"knative.dev/pkg/controller"
 	"knative.dev/pkg/injection/sharedmain"
+	"knative.dev/pkg/logging"
 	"knative.dev/pkg/signals"
 	"knative.dev/pkg/webhook"
 	"knative.dev/pkg/webhook/certificates"
@@ -36,6 +37,7 @@ import (
 	"github.com/sigstore/policy-controller/pkg/apis/policy"
 	"github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
 	"github.com/sigstore/policy-controller/pkg/apis/policy/v1beta1"
+	"github.com/sigstore/policy-controller/pkg/config"
 	"github.com/sigstore/policy-controller/pkg/reconciler/clusterimagepolicy"
 
 	// Register the provider-specific plugins
@@ -96,12 +98,18 @@ func main() {
 }
 
 func NewPolicyValidatingAdmissionController(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
+	store := config.NewStore(logging.FromContext(ctx).Named("config-store"))
+	store.WatchConfigs(cmw)
+	policyControllerConfigStore := config.NewStore(logging.FromContext(ctx).Named("config-policy-controller"))
+	policyControllerConfigStore.WatchConfigs(cmw)
+
 	return validation.NewAdmissionController(
 		ctx,
 		*validatingWebhookName,
 		"/validating",
 		types,
 		func(ctx context.Context) context.Context {
+			ctx = policyControllerConfigStore.ToContext(ctx)
 			return ctx
 		},
 		true,
