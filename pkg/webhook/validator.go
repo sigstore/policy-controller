@@ -186,7 +186,47 @@ func (v *Validator) validatePodSpec(ctx context.Context, namespace, kind, apiVer
 					return
 				}
 
-				containerErrors := v.validateContainer(ctx, c, namespace, field, i, kind, apiVersion, labels, ociremote.WithRemoteOptions(
+				containerErrors := v.validateContainer(ctx, c.Image, namespace, field, i, kind, apiVersion, labels, ociremote.WithRemoteOptions(
+					remote.WithContext(ctx),
+					remote.WithAuthFromKeychain(kc),
+				))
+				results <- containerCheckResult{index: i, containerCheckResult: containerErrors}
+			}()
+		}
+		for i := 0; i < len(cs); i++ {
+			select {
+			case <-ctx.Done():
+				errs = errs.Also(apis.ErrGeneric("context was canceled before validation completed"))
+			case result, ok := <-results:
+				if !ok {
+					errs = errs.Also(apis.ErrGeneric("results channel failed to produce a result"))
+				} else {
+					errs = errs.Also(result.containerCheckResult)
+				}
+			}
+		}
+		wg.Wait()
+	}
+
+	checkEphemeralContainers := func(cs []corev1.EphemeralContainer, field string) {
+		results := make(chan containerCheckResult, len(cs))
+		wg := new(sync.WaitGroup)
+		for i, c := range cs {
+			i := i
+			c := c
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+
+				// Require digests, otherwise the validation is meaningless
+				// since the tag can move.
+				_, fe := refOrFieldError(c.Image, field, i)
+				if fe != nil {
+					results <- containerCheckResult{index: i, containerCheckResult: fe}
+					return
+				}
+
+				containerErrors := v.validateContainer(ctx, c.Image, namespace, field, i, kind, apiVersion, labels, ociremote.WithRemoteOptions(
 					remote.WithContext(ctx),
 					remote.WithAuthFromKeychain(kc),
 				))
@@ -210,6 +250,7 @@ func (v *Validator) validatePodSpec(ctx context.Context, namespace, kind, apiVer
 
 	checkContainers(ps.InitContainers, "initContainers")
 	checkContainers(ps.Containers, "containers")
+	checkEphemeralContainers(ps.EphemeralContainers, "ephemeralContainers")
 
 	return errs
 }
@@ -813,8 +854,33 @@ func (v *Validator) resolvePodSpec(ctx context.Context, ps *corev1.PodSpec, opt 
 		}
 	}
 
+	resolveEphemeralContainers := func(cs []corev1.EphemeralContainer) {
+		for i, c := range cs {
+			ref, err := name.ParseReference(c.Image)
+			if err != nil {
+				logging.FromContext(ctx).Debugf("Unable to parse reference: %v", err)
+				continue
+			}
+
+			// If we are in the context of a mutating webhook, then resolve the tag to a digest.
+			switch {
+			case apis.IsInCreate(ctx), apis.IsInUpdate(ctx):
+				digest, err := remoteResolveDigest(ref, ociremote.WithRemoteOptions(
+					remote.WithContext(ctx),
+					remote.WithAuthFromKeychain(kc),
+				))
+				if err != nil {
+					logging.FromContext(ctx).Debugf("Unable to resolve digest %q: %v", ref.String(), err)
+					continue
+				}
+				cs[i].Image = digest.String()
+			}
+		}
+	}
+
 	resolveContainers(ps.InitContainers)
 	resolveContainers(ps.Containers)
+	resolveEphemeralContainers(ps.EphemeralContainers)
 }
 
 // getNamespace tries to extract the namespace from the HTTPRequest
@@ -846,8 +912,8 @@ func getNamespace(ctx context.Context, namespace string) string {
 // All the matched policies were validated, or
 // no matching policies were found, but the PolicyControllerConfig has been
 // configured to allow images not matching any policies.
-func (v *Validator) validateContainer(ctx context.Context, c corev1.Container, namespace, field string, index int, kind, apiVersion string, labels map[string]string, ociRemoteOpts ...ociremote.Option) *apis.FieldError {
-	ref, err := name.ParseReference(c.Image)
+func (v *Validator) validateContainer(ctx context.Context, containerImage string, namespace, field string, index int, kind, apiVersion string, labels map[string]string, ociRemoteOpts ...ociremote.Option) *apis.FieldError {
+	ref, err := name.ParseReference(containerImage)
 	if err != nil {
 		return apis.ErrGeneric(err.Error(), "image").ViaFieldIndex(field, index)
 	}
@@ -857,7 +923,7 @@ func (v *Validator) validateContainer(ctx context.Context, c corev1.Container, n
 		policies, err := config.ImagePolicyConfig.GetMatchingPolicies(ref.Name(), kind, apiVersion, labels)
 		if err != nil {
 			errorField := apis.ErrGeneric(err.Error(), "image").ViaFieldIndex(field, index)
-			errorField.Details = c.Image
+			errorField.Details = containerImage
 			return errorField
 		}
 
@@ -868,13 +934,13 @@ func (v *Validator) validateContainer(ctx context.Context, c corev1.Container, n
 			if len(signatures) != len(policies) {
 				logging.FromContext(ctx).Warnf("Failed to validate at least one policy for %s wanted %d policies, only validated %d", ref.Name(), len(policies), len(signatures))
 			} else {
-				logging.FromContext(ctx).Infof("Validated %d policies for image %s", len(signatures), c.Image)
+				logging.FromContext(ctx).Infof("Validated %d policies for image %s", len(signatures), containerImage)
 			}
-			return errorsToFieldErrors(c.Image, field, index, fieldErrors)
+			return errorsToFieldErrors(containerImage, field, index, fieldErrors)
 		}
 		// Container matched no policies, so return based on the configured
 		// NoMatchPolicy.
-		return setNoMatchingPoliciesError(ctx, c.Image, field, index)
+		return setNoMatchingPoliciesError(ctx, containerImage, field, index)
 	}
 	return nil
 }

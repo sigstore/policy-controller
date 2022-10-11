@@ -103,15 +103,26 @@ func main() {
 var (
 	_ resourcesemantics.SubResourceLimited = (*crdNoStatusUpdatesOrDeletes)(nil)
 	_ resourcesemantics.VerbLimited        = (*crdNoStatusUpdatesOrDeletes)(nil)
+
+	_ resourcesemantics.SubResourceLimited = (*crdEphemeralContainersUpdatesOrDeletes)(nil)
+	_ resourcesemantics.VerbLimited        = (*crdEphemeralContainersUpdatesOrDeletes)(nil)
 )
 
 type crdNoStatusUpdatesOrDeletes struct {
 	resourcesemantics.GenericCRD
 }
 
+type crdEphemeralContainersUpdatesOrDeletes struct {
+	resourcesemantics.GenericCRD
+}
+
 func (c *crdNoStatusUpdatesOrDeletes) SupportedSubResources() []string {
 	// We do not want any updates that are for status, scale, or anything else.
 	return []string{""}
+}
+
+func (c *crdEphemeralContainersUpdatesOrDeletes) SupportedSubResources() []string {
+	return []string{"/ephemeralcontainers", ""}
 }
 
 func (c *crdNoStatusUpdatesOrDeletes) SupportedVerbs() []admissionregistrationv1.OperationType {
@@ -121,8 +132,15 @@ func (c *crdNoStatusUpdatesOrDeletes) SupportedVerbs() []admissionregistrationv1
 	}
 }
 
+func (c *crdEphemeralContainersUpdatesOrDeletes) SupportedVerbs() []admissionregistrationv1.OperationType {
+	return []admissionregistrationv1.OperationType{
+		admissionregistrationv1.Create,
+		admissionregistrationv1.Update,
+	}
+}
+
 var types = map[schema.GroupVersionKind]resourcesemantics.GenericCRD{
-	corev1.SchemeGroupVersion.WithKind("Pod"): &crdNoStatusUpdatesOrDeletes{GenericCRD: &duckv1.Pod{}},
+	corev1.SchemeGroupVersion.WithKind("Pod"): &crdEphemeralContainersUpdatesOrDeletes{GenericCRD: &duckv1.Pod{}},
 
 	appsv1.SchemeGroupVersion.WithKind("ReplicaSet"):  &crdNoStatusUpdatesOrDeletes{GenericCRD: &policyduckv1beta1.PodScalable{}},
 	appsv1.SchemeGroupVersion.WithKind("Deployment"):  &crdNoStatusUpdatesOrDeletes{GenericCRD: &policyduckv1beta1.PodScalable{}},
