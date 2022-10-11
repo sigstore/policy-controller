@@ -55,7 +55,7 @@ func (c *ClusterImagePolicy) Validate(ctx context.Context) *apis.FieldError {
 
 func (spec *ClusterImagePolicySpec) Validate(ctx context.Context) (errors *apis.FieldError) {
 	// Check what the configuration is and act accordingly.
-	pcConfig := policycontrollerconfig.FromContext(ctx)
+	pcConfig := policycontrollerconfig.FromContextOrDefaults(ctx)
 
 	if len(spec.Images) == 0 {
 		errors = errors.Also(apis.ErrMissingField("images"))
