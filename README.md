@@ -44,6 +44,7 @@ An example of a denied admission would be:
 1. The image is not admitted
 
 In addition to that, the policy controller offers a configurable behavior defining whether to allow, deny or warn whenever an image does not match a policy. This behavior can be configured using the `config-policy-controller` ConfigMap created under the release namespace, and by adding an entry with the property `no-match-policy` and its value `warn|allow|deny`.
+By default, any image that does not match a policy is rejected whenever `no-match-policy` is not configured in the ConfigMap.
 
 ### Configuring policy-controller ClusterImagePolicy
 
