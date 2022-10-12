@@ -43,7 +43,8 @@ An example of a denied admission would be:
 1. No valid signature or attestation was obtained for `policy2` with at least one of the `policy2` authorities
 1. The image is not admitted
 
-**If an image does not match a policy, it will be admitted**
+In addition to that, the policy controller offers a configurable behavior defining whether to allow, deny or warn whenever an image does not match a policy. This behavior can be configured using the `config-policy-controller` ConfigMap created under the release namespace, and by adding an entry with the property `no-match-policy` and its value `warn|allow|deny`.
+By default, any image that does not match a policy is rejected whenever `no-match-policy` is not configured in the ConfigMap.
 
 ### Configuring policy-controller ClusterImagePolicy
 
@@ -401,7 +402,7 @@ This policy-controller's versions are able to run in the following versions of K
 | Kubernetes 1.22 | ✓ |
 | Kubernetes 1.23 | ✓ |
 | Kubernetes 1.24 | ✓ |
-| Kubernetes 1.25 | (✓) * |
+| Kubernetes 1.25 | ✓ |
 
 note: not fully tested yet, but can be installed
 
