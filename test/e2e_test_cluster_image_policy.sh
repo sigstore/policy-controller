@@ -603,12 +603,21 @@ else
 fi
 echo '::endgroup::'
 
+echo '::group:: Set no-match policy to deny'
+kubectl patch configmap/config-policy-controller \
+  --namespace cosign-system \
+  --type merge \
+  --patch '{"data":{"no-match-policy":"deny"}}'
+# allow for propagation
+sleep 10
+echo '::endgroup::'
+
 ephemeralContainerImage="busybox@sha256:9810966b5f712084ea05bf28fc8ba2c8fb110baa2531a10e2da52c1efc504698"
 
 echo '::group:: test rejection of ephemeral container that does not have any signature'
 # We want to validate that ephemeral containers are validated, and rejected for this example
 if kubectl debug poddemo -n ${NS} --image=${ephemeralContainerImage} ; then
-  echo Failed to create EphemeralContainer for Pod in namespace with no matching signature!
+  echo Failed to block EphemeralContainer for Pod in namespace with no matching signature!
   exit 1
 else
   echo Succcessfully created EphemeralContainer for Pod without any valid signed image
