@@ -544,3 +544,57 @@ echo '::group::' Cleanup
 kubectl delete cip --all
 kubectl delete ns demo-key-sha512
 echo '::endgroup::'
+
+podEphemeralImage="cgr.dev/chainguard/nginx"
+cat > cip-ephemeral-containers.yaml <<EOF
+apiVersion: policy.sigstore.dev/v1alpha1
+kind: ClusterImagePolicy
+metadata:
+  name: demo
+spec:
+  images:
+    - glob: "**"
+  authorities:
+  - keyless:
+      url: https://fulcio.sigstore.dev
+EOF      
+
+# Create a CIP to validate ephemeral containers.
+echo '::group:: Create CIP used to verify ephemeral containers'
+kubectl apply -f ./cip-ephemeral-containers.yaml
+# allow things to propagate
+sleep 5
+echo '::endgroup::'
+
+echo '::group:: Create test namespace and label for verification'
+export NS=demo-ephemeral-verification
+kubectl create namespace ${NS}
+kubectl label namespace ${NS} policy.sigstore.dev/include=true
+echo '::endgroup::'
+
+echo '::group:: test pod success'
+# We signed this above, this should work
+if ! kubectl run -n ${NS} poddemo --image=${podEphemeralImage} ; then
+  echo Failed to create Pod in namespace with matching signature!
+  exit 1
+else
+  echo Succcessfully created Pod with signed image
+fi
+echo '::endgroup::'
+
+ephemeralContainerImage="busybox@sha256:9810966b5f712084ea05bf28fc8ba2c8fb110baa2531a10e2da52c1efc504698"
+
+echo '::group:: test rejection of ephemeral container that does not have any signature'
+# We want to validate that ephemeral containers are validated, and rejected for this example
+if kubectl debug -it poddemo -n ${NS} --image=${ephemeralContainerImage} ; then
+  echo Failed to create EphemeralContainer for Pod in namespace with no matching signature!
+  exit 1
+else
+  echo Succcessfully created EphemeralContainer for Pod without any valid signed image
+fi
+echo '::endgroup::'
+
+echo '::group::' Cleanup
+kubectl delete cip --all
+kubectl delete ns ${NS}
+echo '::endgroup::'
