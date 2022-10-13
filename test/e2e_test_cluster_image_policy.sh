@@ -545,25 +545,46 @@ kubectl delete cip --all
 kubectl delete ns demo-key-sha512
 echo '::endgroup::'
 
-podEphemeralImage="cgr.dev/chainguard/nginx"
-cat > cip-ephemeral-containers.yaml <<EOF
-apiVersion: policy.sigstore.dev/v1alpha1
-kind: ClusterImagePolicy
-metadata:
-  name: demo
-spec:
-  images:
-    - glob: "**"
-  authorities:
-  - keyless:
-      url: https://fulcio.sigstore.dev
-EOF      
+# Publish the first test image
+echo '::group:: publish test image demoEphemeralImage'
+pushd $(mktemp -d)
+go mod init example.com/demo
+cat <<EOF > main.go
+package main
+import (
+  "fmt"
+  "time"
+)
+func main() {
+  // Calling Sleep method
+  time.Sleep(8 * time.Minute)
 
-# Create a CIP to validate ephemeral containers.
-echo '::group:: Create CIP used to verify ephemeral containers'
-kubectl apply -f ./cip-ephemeral-containers.yaml
-# allow things to propagate
-sleep 5
+  fmt.Println("Sleep Over.....")
+}
+EOF
+
+sed -i'' -e "s@TIMESTAMP@${TIMESTAMP}@g" main.go
+cat main.go
+export demoEphemeralImage=`ko publish -B example.com/demo`
+echo Created image $demoEphemeralImage
+popd
+echo '::endgroup::'
+
+echo '::group:: Deploy ClusterImagePolicy with keyless signing'
+kubectl apply -f ./test/testdata/policy-controller/e2e/cip-keyless.yaml
+echo '::endgroup::'
+
+echo '::group:: Sign demo image'
+if ! cosign sign --rekor-url ${REKOR_URL} --fulcio-url ${FULCIO_URL} --force --allow-insecure-registry ${demoEphemeralImage} --identity-token ${OIDC_TOKEN} ; then
+  echo "failed to sign with keyless"
+  exit 1
+fi
+echo '::endgroup::'
+
+echo '::group:: Verify demo image'
+if ! cosign verify --rekor-url ${REKOR_URL} --allow-insecure-registry ${demoEphemeralImage} ; then
+  echo "failed to verify with keyless"
+fi
 echo '::endgroup::'
 
 echo '::group:: Create test namespace and label for verification'
@@ -574,7 +595,7 @@ echo '::endgroup::'
 
 echo '::group:: test pod success'
 # We signed this above, this should work
-if ! kubectl run -n ${NS} poddemo --image=${podEphemeralImage} ; then
+if ! kubectl run -n ${NS} poddemo --image=${demoEphemeralImage} ; then
   echo Failed to create Pod in namespace with matching signature!
   exit 1
 else
@@ -586,7 +607,7 @@ ephemeralContainerImage="busybox@sha256:9810966b5f712084ea05bf28fc8ba2c8fb110baa
 
 echo '::group:: test rejection of ephemeral container that does not have any signature'
 # We want to validate that ephemeral containers are validated, and rejected for this example
-if kubectl debug -it poddemo -n ${NS} --image=${ephemeralContainerImage} ; then
+if kubectl debug poddemo -n ${NS} --image=${ephemeralContainerImage} ; then
   echo Failed to create EphemeralContainer for Pod in namespace with no matching signature!
   exit 1
 else
