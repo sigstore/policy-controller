@@ -624,6 +624,15 @@ else
 fi
 echo '::endgroup::'
 
+echo '::group:: Create Ephemeral Container with valid signature for the image'
+if ! kubectl debug poddemo -n ${NS} --image=${demoEphemeralImage}; then
+  echo Failed to create Ephemeral Container with a valid signature
+  exit 1
+else
+  echo Succcessfully created Ephemeral Container with a valid signature
+fi
+echo '::endgroup::'
+
 echo '::group::' Cleanup
 kubectl delete cip --all
 kubectl delete ns ${NS}

@@ -186,7 +186,7 @@ func (v *Validator) validatePodSpec(ctx context.Context, namespace, kind, apiVer
 					return
 				}
 
-				containerErrors := v.validateContainer(ctx, c.Image, namespace, field, i, kind, apiVersion, labels, ociremote.WithRemoteOptions(
+				containerErrors := v.validateContainerImage(ctx, c.Image, namespace, field, i, kind, apiVersion, labels, ociremote.WithRemoteOptions(
 					remote.WithContext(ctx),
 					remote.WithAuthFromKeychain(kc),
 				))
@@ -226,7 +226,7 @@ func (v *Validator) validatePodSpec(ctx context.Context, namespace, kind, apiVer
 					return
 				}
 
-				containerErrors := v.validateContainer(ctx, c.Image, namespace, field, i, kind, apiVersion, labels, ociremote.WithRemoteOptions(
+				containerErrors := v.validateContainerImage(ctx, c.Image, namespace, field, i, kind, apiVersion, labels, ociremote.WithRemoteOptions(
 					remote.WithContext(ctx),
 					remote.WithAuthFromKeychain(kc),
 				))
@@ -912,7 +912,7 @@ func getNamespace(ctx context.Context, namespace string) string {
 // All the matched policies were validated, or
 // no matching policies were found, but the PolicyControllerConfig has been
 // configured to allow images not matching any policies.
-func (v *Validator) validateContainer(ctx context.Context, containerImage string, namespace, field string, index int, kind, apiVersion string, labels map[string]string, ociRemoteOpts ...ociremote.Option) *apis.FieldError {
+func (v *Validator) validateContainerImage(ctx context.Context, containerImage string, namespace, field string, index int, kind, apiVersion string, labels map[string]string, ociRemoteOpts ...ociremote.Option) *apis.FieldError {
 	ref, err := name.ParseReference(containerImage)
 	if err != nil {
 		return apis.ErrGeneric(err.Error(), "image").ViaFieldIndex(field, index)
