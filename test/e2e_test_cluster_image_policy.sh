@@ -624,10 +624,17 @@ else
 fi
 echo '::endgroup::'
 
+kubernetesVersion=$(kubectl version -o json | jq -rj '.serverVersion|.major,".",.minor')
+
 echo '::group:: Create Ephemeral Container with valid signature for the image'
 if ! kubectl debug poddemo -n ${NS} --image=${demoEphemeralImage}; then
-  echo Failed to create Ephemeral Container with a valid signature
-  exit 1
+  # Check if the kubernetes version is v1.22 then ignore the error as ephemeral containers are not supported
+  if [ "$(echo -e "1.22\n${kubernetesVersion}" | sort -V | head -1)" == "1.22" ]; then
+    echo "Ignore error: Ephemeral containers are not supported in Kubernetes v1.22"
+  else
+   echo Failed to create Ephemeral Container with a valid signature ${kubernetesVersion}
+   exit 1
+  fi
 else
   echo Succcessfully created Ephemeral Container with a valid signature
 fi
