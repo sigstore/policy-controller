@@ -59,7 +59,7 @@ GHCR_PREFIX ?= ghcr.io/sigstore/policy-controller
 POLICY_CONTROLLER_YAML ?= policy-controller-$(GIT_TAG).yaml
 LATEST_TAG ?=
 
-.PHONY: all lint test clean policy-controller cross
+.PHONY: all lint test clean policy-controller cross docs
 all: policy-controller
 
 log-%:
@@ -186,3 +186,15 @@ help: # Display help
 
 include release/release.mk
 include test/ci.mk
+
+.PHONY: docs
+docs: docs/generate-api
+
+.PHONY: docs/generate-api
+docs/generate-api:
+	mkdir -p docs/api-types; \
+	  go run -ldflags "$(GO_LDFLAGS)" ./cmd/api-docs/main.go \
+	    "v1beta1" \
+	    `find ./pkg/apis/policy/v1beta1/ -iname '*types.go' |  sort -r | tr '\n' ' '` \
+	    > docs/api-types/index.md;
+
