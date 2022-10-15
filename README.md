@@ -46,6 +46,8 @@ An example of a denied admission would be:
 In addition to that, the policy controller offers a configurable behavior defining whether to allow, deny or warn whenever an image does not match a policy. This behavior can be configured using the `config-policy-controller` ConfigMap created under the release namespace, and by adding an entry with the property `no-match-policy` and its value `warn|allow|deny`.
 By default, any image that does not match a policy is rejected whenever `no-match-policy` is not configured in the ConfigMap.
 
+A table with the `ClusterImagePolicy` available fields can be found [here](./docs/api-types/index.md).
+
 ### Configuring policy-controller ClusterImagePolicy
 
 `policy-controller` supports validation against multiple `ClusterImagePolicy` kubernetes resources.
