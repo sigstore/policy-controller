@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM ghcr.io/distroless/alpine-base
+FROM ghcr.io/chainguard-images/alpine-base
 
 # blah blah
 
@@ -21,4 +21,4 @@ FROM ubuntu
 
 # blah blah
 
-FROM ghcr.io/distroless/static
+FROM ghcr.io/chainguard-images/static
