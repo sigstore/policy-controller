@@ -12,4 +12,4 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from ghcr.io/distroless/alpine-base
+from ghcr.io/chainguard-images/alpine-base

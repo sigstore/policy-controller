@@ -39,7 +39,7 @@ spec:
   restartPolicy: Never
   containers:
   - name: sample
-    image: ghcr.io/distroless/alpine-base:latest
+    image: ghcr.io/chainguard-images/alpine-base:latest
     command: [/bin/sh, -c]
     args:
     - |
