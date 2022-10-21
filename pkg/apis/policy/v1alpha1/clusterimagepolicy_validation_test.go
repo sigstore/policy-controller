@@ -636,6 +636,35 @@ func TestAuthoritiesValidation(t *testing.T) {
 			},
 		},
 		{
+			name:        "Should fail with invalid OCI value",
+			errorString: "invalid value: registry.example.com/repo/*: spec.authorities[0].source[0].oci\ncan only contain the characters `abcdefghijklmnopqrstuvwxyz0123456789_-./`",
+			policy: ClusterImagePolicy{
+				Spec: ClusterImagePolicySpec{
+					Images: []ImagePattern{{Glob: "gcr.io/*"}},
+					Authorities: []Authority{
+						{
+							Key:     &KeyRef{KMS: "kms://key/path"},
+							Sources: []Source{{OCI: "registry.example.com/repo/*"}},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "Should pass with valid OCI repository name",
+			policy: ClusterImagePolicy{
+				Spec: ClusterImagePolicySpec{
+					Images: []ImagePattern{{Glob: "gcr.io/*"}},
+					Authorities: []Authority{
+						{
+							Key:     &KeyRef{KMS: "kms://key/path"},
+							Sources: []Source{{OCI: "registry.example.com/repository"}},
+						},
+					},
+				},
+			},
+		},
+		{
 			name:        "Should fail with invalid AWS KMS for Keyless",
 			errorString: "invalid value: awskms://localhost:8888/arn:butnotvalid: spec.authorities[0].keyless.ca-cert.kms\nfailed to parse either key or alias arn: arn: not enough sections",
 			warnString:  "missing field(s): spec.authorities[0].keyless.identities",
