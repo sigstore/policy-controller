@@ -1,0 +1,50 @@
+{
+  "sa": {
+    "db": {
+      "dbConnectFile": "test/secrets/sa_dburl",
+      "maxOpenConns": 100
+    },
+    "readOnlyDB": {
+      "dbConnectFile": "test/secrets/sa_ro_dburl",
+      "maxOpenConns": 100
+    },
+    "ParallelismPerRPC": 20,
+    "debugAddr": ":8003",
+    "tls": {
+      "caCertFile": "test/grpc-creds/minica.pem",
+      "certFile": "test/grpc-creds/sa.service.consul/cert.pem",
+      "keyFile": "test/grpc-creds/sa.service.consul/key.pem"
+    },
+    "grpc": {
+      "maxConnectionAge": "30s",
+      "address": ":9095",
+      "clientNames": [
+        "admin-revoker.service.consul",
+        "ca.service.consul",
+        "crl-updater.service.consul",
+        "expiration-mailer.service.consul",
+        "health-checker.service.consul",
+        "orphan-finder.service.consul",
+        "ra.service.consul",
+        "sa.service.consul",
+        "wfe.service.consul"
+      ]
+    },
+    "features": {
+      "FasterNewOrdersRateLimit": true,
+      "StoreRevokerInfo": true,
+      "GetAuthzReadOnly": true,
+      "GetAuthzUseIndex": true
+    }
+  },
+
+  "syslog": {
+    "stdoutlevel": 6,
+    "sysloglevel": 6
+  },
+  "beeline": {
+      "mute": true,
+      "serviceName": "Test",
+      "writeKey": {"passwordFile": "test/secrets/honeycomb_fake_password"}
+  }
+}
