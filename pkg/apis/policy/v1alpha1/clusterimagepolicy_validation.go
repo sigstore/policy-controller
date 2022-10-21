@@ -18,12 +18,12 @@ import (
 	"context"
 	"fmt"
 	"net"
-	"net/url"
 	"path/filepath"
 	"regexp"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws/arn"
+	registryfuncs "github.com/google/go-containerregistry/pkg/name"
 	"github.com/sigstore/policy-controller/pkg/apis/glob"
 	"github.com/sigstore/policy-controller/pkg/apis/signaturealgo"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
@@ -34,9 +34,8 @@ import (
 )
 
 const (
-	awsKMSPrefix       = "awskms://"
-	ociRepoDelimiter   = "/"
-	ociRepositoryChars = "abcdefghijklmnopqrstuvwxyz0123456789_-./"
+	awsKMSPrefix     = "awskms://"
+	ociRepoDelimiter = "/"
 )
 
 var (
@@ -224,34 +223,18 @@ func (source *Source) Validate(ctx context.Context) *apis.FieldError {
 	if source.OCI == "" {
 		errs = errs.Also(apis.ErrMissingField("oci"))
 	} else {
-		var registry string
-		repo := source.OCI
+		// We want to validate both registry uris only or registry with valid repository names
 		parts := strings.SplitN(source.OCI, ociRepoDelimiter, 2)
 		if len(parts) == 2 && (strings.ContainsRune(parts[0], '.') || strings.ContainsRune(parts[0], ':')) {
-			// The first part of the repository is treated as the registry domain
-			// if it contains a '.' or ':' character, otherwise it is all repository
-			registry = parts[0]
-			repo = parts[1]
-		}
-
-		// stripRunesFn returns a function which returns -1 (i.e. a value which
-		// signals deletion in strings.Map) for runes in 'runes', and the rune otherwise.
-		stripRunesFn := func(runes string) func(rune) rune {
-			return func(r rune) rune {
-				if strings.ContainsRune(runes, r) {
-					return -1
-				}
-				return r
+			_, err := registryfuncs.NewRepository(source.OCI, registryfuncs.StrictValidation)
+			if err != nil {
+				errs = errs.Also(apis.ErrInvalidValue(source.OCI, "oci", err.Error()))
 			}
-		}
-
-		// Check a given repository matches character restrictions if provided
-		if len(parts) > 1 && len(strings.Map(stripRunesFn(ociRepositoryChars), repo)) != 0 {
-			errs = errs.Also(apis.ErrInvalidValue(source.OCI, "oci", fmt.Sprintf("can only contain the characters `%s`", ociRepositoryChars)))
-		}
-		// Check a given registry is a valid RFC 3986 URI
-		if url, err := url.Parse("//" + registry); err != nil || url.Host != registry {
-			errs = errs.Also(apis.ErrInvalidValue(source.OCI, "oci", fmt.Sprintf("registries must be valid RFC 3986 URI authorities: %s", source.OCI)))
+		} else {
+			_, err := registryfuncs.NewRegistry(source.OCI, registryfuncs.StrictValidation)
+			if err != nil {
+				errs = errs.Also(apis.ErrInvalidValue(source.OCI, "oci", err.Error()))
+			}
 		}
 	}
 

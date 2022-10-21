@@ -636,8 +636,23 @@ func TestAuthoritiesValidation(t *testing.T) {
 			},
 		},
 		{
+			name:        "Should fail with invalid AWS KMS for Keyful",
+			errorString: "invalid value: awskms://localhost:8888/arn:butnotvalid: spec.authorities[0].key.kms\nfailed to parse either key or alias arn: arn: not enough sections",
+			policy: ClusterImagePolicy{
+				Spec: ClusterImagePolicySpec{
+					Images: []ImagePattern{{Glob: "gcr.io/*"}},
+					Authorities: []Authority{
+						{
+							Key:     &KeyRef{KMS: "awskms://localhost:8888/arn:butnotvalid"},
+							Sources: []Source{{OCI: "registry.example.com"}},
+						},
+					},
+				},
+			},
+		},
+		{
 			name:        "Should fail with invalid OCI value",
-			errorString: "invalid value: registry.example.com/repo/*: spec.authorities[0].source[0].oci\ncan only contain the characters `abcdefghijklmnopqrstuvwxyz0123456789_-./`",
+			errorString: "invalid value: registry.example.com/repo/*: spec.authorities[0].source[0].oci\nrepository can only contain the characters `abcdefghijklmnopqrstuvwxyz0123456789_-./`: repo/*",
 			policy: ClusterImagePolicy{
 				Spec: ClusterImagePolicySpec{
 					Images: []ImagePattern{{Glob: "gcr.io/*"}},
@@ -645,6 +660,35 @@ func TestAuthoritiesValidation(t *testing.T) {
 						{
 							Key:     &KeyRef{KMS: "kms://key/path"},
 							Sources: []Source{{OCI: "registry.example.com/repo/*"}},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:        "Should fail with invalid OCI value usign wrong characters",
+			errorString: "invalid value: re@gistry/reponame: spec.authorities[0].source[0].oci\nregistries must be valid RFC 3986 URI authorities: re@gistry/reponame",
+			policy: ClusterImagePolicy{
+				Spec: ClusterImagePolicySpec{
+					Images: []ImagePattern{{Glob: "gcr.io/*"}},
+					Authorities: []Authority{
+						{
+							Key:     &KeyRef{KMS: "kms://key/path"},
+							Sources: []Source{{OCI: "re@gistry/reponame"}},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "Should pass with valid OCI repository name",
+			policy: ClusterImagePolicy{
+				Spec: ClusterImagePolicySpec{
+					Images: []ImagePattern{{Glob: "gcr.io/*"}},
+					Authorities: []Authority{
+						{
+							Key:     &KeyRef{KMS: "kms://key/path"},
+							Sources: []Source{{OCI: "gcr.io/google.com/project/hello-world"}},
 						},
 					},
 				},
