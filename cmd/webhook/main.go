@@ -29,6 +29,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
+	kubeclient "knative.dev/pkg/client/injection/kube/client"
 	"knative.dev/pkg/configmap"
 	"knative.dev/pkg/controller"
 	"knative.dev/pkg/injection/sharedmain"
@@ -158,6 +159,8 @@ func NewValidatingAdmissionController(ctx context.Context, cmw configmap.Watcher
 	store.WatchConfigs(cmw)
 	policyControllerConfigStore := policycontrollerconfig.NewStore(logging.FromContext(ctx).Named("config-policy-controller"))
 	policyControllerConfigStore.WatchConfigs(cmw)
+
+	kc := kubeclient.Get(ctx)
 	validator := cwebhook.NewValidator(ctx)
 
 	return validation.NewAdmissionController(ctx,
@@ -172,6 +175,7 @@ func NewValidatingAdmissionController(ctx context.Context, cmw configmap.Watcher
 
 		// A function that infuses the context passed to Validate/SetDefaults with custom metadata.
 		func(ctx context.Context) context.Context {
+			ctx = context.WithValue(ctx, kubeclient.Key{}, kc)
 			ctx = store.ToContext(ctx)
 			ctx = policyControllerConfigStore.ToContext(ctx)
 			ctx = policyduckv1beta1.WithPodScalableValidator(ctx, validator.ValidatePodScalable)
@@ -191,6 +195,7 @@ func NewValidatingAdmissionController(ctx context.Context, cmw configmap.Watcher
 }
 
 func NewMutatingAdmissionController(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
+	kc := kubeclient.Get(ctx)
 	validator := cwebhook.NewValidator(ctx)
 
 	return defaulting.NewAdmissionController(ctx,
@@ -205,6 +210,7 @@ func NewMutatingAdmissionController(ctx context.Context, cmw configmap.Watcher) 
 
 		// A function that infuses the context passed to Validate/SetDefaults with custom metadata.
 		func(ctx context.Context) context.Context {
+			ctx = context.WithValue(ctx, kubeclient.Key{}, kc)
 			ctx = policyduckv1beta1.WithPodScalableDefaulter(ctx, validator.ResolvePodScalable)
 			ctx = duckv1.WithPodDefaulter(ctx, validator.ResolvePod)
 			ctx = duckv1.WithPodSpecDefaulter(ctx, validator.ResolvePodSpecable)

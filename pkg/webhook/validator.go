@@ -41,7 +41,6 @@ import (
 	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	"k8s.io/client-go/kubernetes"
 	"knative.dev/pkg/apis"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
 
@@ -49,14 +48,10 @@ import (
 	"knative.dev/pkg/logging"
 )
 
-type Validator struct {
-	client kubernetes.Interface
-}
+type Validator struct{}
 
 func NewValidator(ctx context.Context) *Validator {
-	return &Validator{
-		client: kubeclient.Get(ctx),
-	}
+	return &Validator{}
 }
 
 // isDeletedOrStatusUpdate returns true if the resource in question is being
@@ -158,7 +153,7 @@ func (v *Validator) ValidateCronJob(ctx context.Context, c *duckv1.CronJob) *api
 }
 
 func (v *Validator) validatePodSpec(ctx context.Context, namespace, kind, apiVersion string, labels map[string]string, ps *corev1.PodSpec, opt k8schain.Options) (errs *apis.FieldError) {
-	kc, err := k8schain.New(ctx, v.client, opt)
+	kc, err := k8schain.New(ctx, kubeclient.Get(ctx), opt)
 	if err != nil {
 		logging.FromContext(ctx).Warnf("Unable to build k8schain: %v", err)
 		return apis.ErrGeneric(err.Error(), apis.CurrentField)
@@ -824,7 +819,7 @@ func (v *Validator) ResolveCronJob(ctx context.Context, c *duckv1.CronJob) {
 var remoteResolveDigest = ociremote.ResolveDigest
 
 func (v *Validator) resolvePodSpec(ctx context.Context, ps *corev1.PodSpec, opt k8schain.Options) {
-	kc, err := k8schain.New(ctx, v.client, opt)
+	kc, err := k8schain.New(ctx, kubeclient.Get(ctx), opt)
 	if err != nil {
 		logging.FromContext(ctx).Warnf("Unable to build k8schain: %v", err)
 		return

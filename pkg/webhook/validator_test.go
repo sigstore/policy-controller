@@ -55,6 +55,7 @@ import (
 	"k8s.io/apimachinery/pkg/types"
 	"knative.dev/pkg/apis"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
+	kubeclient "knative.dev/pkg/client/injection/kube/client"
 	fakekube "knative.dev/pkg/client/injection/kube/client/fake"
 	"knative.dev/pkg/ptr"
 	rtesting "knative.dev/pkg/reconciler/testing"
@@ -662,6 +663,8 @@ func TestValidatePodSpec(t *testing.T) {
 					config.ToContext(testContext, cfg)
 				}
 
+				testContext = context.WithValue(testContext, kubeclient.Key{}, kc)
+
 				// Check the core mechanics
 				got := v.validatePodSpec(testContext, system.Namespace(), "Pod", "v1", map[string]string{}, test.ps, k8schain.Options{})
 				if (got != nil) != (test.want != nil) {
@@ -927,8 +930,10 @@ func TestValidateCronJob(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			cosignVerifySignatures = test.cvs
 
+			testContext := context.WithValue(context.Background(), kubeclient.Key{}, kc)
+
 			// Check the core mechanics
-			got := v.ValidateCronJob(context.Background(), test.c)
+			got := v.ValidateCronJob(testContext, test.c)
 			if (got != nil) != (test.want != nil) {
 				t.Errorf("validateCronJob() = %v, wanted %v", got, test.want)
 			} else if got != nil && got.Error() != test.want.Error() {
@@ -936,7 +941,7 @@ func TestValidateCronJob(t *testing.T) {
 			}
 			// Check that we don't block things being deleted.
 			cronJob := test.c.DeepCopy()
-			if got := v.ValidateCronJob(apis.WithinDelete(context.Background()), cronJob); got != nil {
+			if got := v.ValidateCronJob(apis.WithinDelete(testContext), cronJob); got != nil {
 				t.Errorf("ValidateCronJob() = %v, wanted nil", got)
 			}
 			// Check that we don't block things already deleted.
@@ -1069,6 +1074,8 @@ func TestResolvePodSpec(t *testing.T) {
 			if test.wc != nil {
 				ctx = test.wc(context.Background())
 			}
+
+			ctx = context.WithValue(ctx, kubeclient.Key{}, kc)
 
 			// Check the core mechanics.
 			got := test.ps.DeepCopy()
@@ -1433,6 +1440,8 @@ func TestResolveCronJob(t *testing.T) {
 			if test.wc != nil {
 				ctx = test.wc(context.Background())
 			}
+
+			ctx = context.WithValue(ctx, kubeclient.Key{}, kc)
 
 			var want runtime.Object
 
@@ -2390,6 +2399,8 @@ func TestValidatePodSpecNonDefaultNamespace(t *testing.T) {
 				}
 
 				testContext = attachHTTPRequestToContext(testContext)
+				testContext = context.WithValue(testContext, kubeclient.Key{}, kc)
+
 				// Check the core mechanics
 				got := v.validatePodSpec(testContext, "my-secure-ns", "Pod", "v1", map[string]string{"test": "test"}, test.ps, k8schain.Options{})
 				if (got != nil) != (test.want != nil) {
