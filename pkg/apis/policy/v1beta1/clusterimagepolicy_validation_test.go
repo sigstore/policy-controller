@@ -178,6 +178,64 @@ func TestKeyValidation(t *testing.T) {
 			},
 		},
 		{
+			name:        "Should fail with invalid OCI value",
+			errorString: "invalid value: registry.example.com/repo/*: spec.authorities[0].source[0].oci\nrepository can only contain the characters `abcdefghijklmnopqrstuvwxyz0123456789_-./`: repo/*",
+			policy: ClusterImagePolicy{
+				Spec: ClusterImagePolicySpec{
+					Images: []ImagePattern{{Glob: "gcr.io/*"}},
+					Authorities: []Authority{
+						{
+							Key:     &KeyRef{KMS: "kms://key/path"},
+							Sources: []Source{{OCI: "registry.example.com/repo/*"}},
+						},
+					},
+				},
+			},
+		},
+		{
+			name:        "Should fail with invalid OCI value usign wrong characters",
+			errorString: "invalid value: re@gistry/reponame: spec.authorities[0].source[0].oci\nregistries must be valid RFC 3986 URI authorities: re@gistry/reponame",
+			policy: ClusterImagePolicy{
+				Spec: ClusterImagePolicySpec{
+					Images: []ImagePattern{{Glob: "gcr.io/*"}},
+					Authorities: []Authority{
+						{
+							Key:     &KeyRef{KMS: "kms://key/path"},
+							Sources: []Source{{OCI: "re@gistry/reponame"}},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "Should pass with valid OCI repository name",
+			policy: ClusterImagePolicy{
+				Spec: ClusterImagePolicySpec{
+					Images: []ImagePattern{{Glob: "gcr.io/*"}},
+					Authorities: []Authority{
+						{
+							Key:     &KeyRef{KMS: "kms://key/path"},
+							Sources: []Source{{OCI: "gcr.io/google.com/project/hello-world"}},
+						},
+					},
+				},
+			},
+		},
+		{
+			name: "Should pass with valid OCI repository name",
+			policy: ClusterImagePolicy{
+				Spec: ClusterImagePolicySpec{
+					Images: []ImagePattern{{Glob: "gcr.io/*"}},
+					Authorities: []Authority{
+						{
+							Key:     &KeyRef{KMS: "kms://key/path"},
+							Sources: []Source{{OCI: "registry.example.com/repository"}},
+						},
+					},
+				},
+			},
+		},
+		{
 			name: "Should pass when key has only one property: %v",
 			policy: ClusterImagePolicy{
 				Spec: ClusterImagePolicySpec{

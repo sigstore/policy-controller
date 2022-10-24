@@ -23,6 +23,7 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws/arn"
+	registryfuncs "github.com/google/go-containerregistry/pkg/name"
 	"github.com/sigstore/policy-controller/pkg/apis/glob"
 	"github.com/sigstore/policy-controller/pkg/apis/signaturealgo"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
@@ -32,7 +33,10 @@ import (
 	policycontrollerconfig "github.com/sigstore/policy-controller/pkg/config"
 )
 
-const awsKMSPrefix = "awskms://"
+const (
+	awsKMSPrefix     = "awskms://"
+	ociRepoDelimiter = "/"
+)
 
 var (
 	// TODO: create constants in to cosign?
@@ -218,6 +222,20 @@ func (source *Source) Validate(ctx context.Context) *apis.FieldError {
 	var errs *apis.FieldError
 	if source.OCI == "" {
 		errs = errs.Also(apis.ErrMissingField("oci"))
+	} else {
+		// We want to validate both registry uris only or registry with valid repository names
+		parts := strings.SplitN(source.OCI, ociRepoDelimiter, 2)
+		if len(parts) == 2 && (strings.ContainsRune(parts[0], '.') || strings.ContainsRune(parts[0], ':')) {
+			_, err := registryfuncs.NewRepository(source.OCI, registryfuncs.StrictValidation)
+			if err != nil {
+				errs = errs.Also(apis.ErrInvalidValue(source.OCI, "oci", err.Error()))
+			}
+		} else {
+			_, err := registryfuncs.NewRegistry(source.OCI, registryfuncs.StrictValidation)
+			if err != nil {
+				errs = errs.Also(apis.ErrInvalidValue(source.OCI, "oci", err.Error()))
+			}
+		}
 	}
 
 	if len(source.SignaturePullSecrets) > 0 {
