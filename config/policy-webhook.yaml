@@ -72,7 +72,7 @@ spec:
           runAsNonRoot: true
           capabilities:
             drop:
-            - all
+            - ALL
 
         volumeMounts:
         # Failing to provide a writable $HOME can cause TUF client initialization to panic
