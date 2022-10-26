@@ -49,7 +49,7 @@ type ResultCache interface {
 	// a particular point in time. image, uid & resourceVersion will give a
 	// unique point in time, so we can make sure we're not caching things that
 	// are out of date.
-	Set(ctx context.Context, image, uid, resourceVersion string, cacheResult *CacheResult)
+	Set(ctx context.Context, image, name, uid, resourceVersion string, cacheResult *CacheResult)
 
 	// Get returns a cached result for a given image or nil if there are none.
 	Get(ctx context.Context, image, uid, resourceVersion string) *CacheResult
