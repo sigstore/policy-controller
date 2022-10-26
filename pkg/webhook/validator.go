@@ -260,18 +260,43 @@ func setNoMatchingPoliciesError(ctx context.Context, image, field string, index 
 	noMatchingPolicyError := apis.ErrGeneric("no matching policies", "image").ViaFieldIndex(field, index)
 	noMatchingPolicyError.Details = image
 	if pcConfig == nil {
+		// Cache the no matching policy behavior with an error
+		FromContext(ctx).Set(ctx, image, "", "", "", true, &CacheResult{
+			PolicyResult: nil,
+			Errors:       []error{fmt.Errorf(noMatchingPolicyError.Error())},
+		})
 		// This should not happen, but handle it as fail close
 		return noMatchingPolicyError
 	}
 	switch pcConfig.NoMatchPolicy {
 	case policycontrollerconfig.AllowAll:
+		// Cache the no matching policy behavior with an error
+		FromContext(ctx).Set(ctx, image, "", "", "", true, &CacheResult{
+			PolicyResult: nil,
+			Errors:       []error{},
+		})
 		// Allow it through, nothing to do.
 		return nil
 	case policycontrollerconfig.DenyAll:
+		// Cache the no matching policy behavior with an error
+		FromContext(ctx).Set(ctx, image, "", "", "", true, &CacheResult{
+			PolicyResult: nil,
+			Errors:       []error{fmt.Errorf(noMatchingPolicyError.Error())},
+		})
 		return noMatchingPolicyError
 	case policycontrollerconfig.WarnAll:
+		// Cache the no matching policy behavior with a warning
+		FromContext(ctx).Set(ctx, image, "", "", "", true, &CacheResult{
+			PolicyResult: nil,
+			Errors:       []error{fmt.Errorf(noMatchingPolicyError.At(apis.WarningLevel).Error())},
+		})
 		return noMatchingPolicyError.At(apis.WarningLevel)
 	default:
+		// Cache the no matching policy behavior with an error
+		FromContext(ctx).Set(ctx, image, "", "", "", true, &CacheResult{
+			PolicyResult: nil,
+			Errors:       []error{fmt.Errorf(noMatchingPolicyError.Error())},
+		})
 		// Fail closed.
 		return noMatchingPolicyError
 	}
@@ -315,7 +340,7 @@ func validatePolicies(ctx context.Context, namespace string, ref name.Reference,
 
 			result.policyResult, result.errors = ValidatePolicy(ctx, namespace, ref, cip, remoteOpts...)
 			// Cache the result.
-			FromContext(ctx).Set(ctx, ref.Name(), cipName, string(cip.UID), cip.ResourceVersion, &CacheResult{
+			FromContext(ctx).Set(ctx, ref.Name(), cipName, string(cip.UID), cip.ResourceVersion, false, &CacheResult{
 				PolicyResult: result.policyResult,
 				Errors:       result.errors,
 			})

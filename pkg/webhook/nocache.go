@@ -27,5 +27,5 @@ func (nc *NoCache) Get(ctx context.Context, image, uid, resourceVersion string) 
 	return nil
 }
 
-func (nc *NoCache) Set(ctx context.Context, image, name, uid, resourceVersion string, cacheResult *CacheResult) {
+func (nc *NoCache) Set(ctx context.Context, image, name, uid, resourceVersion string, noMatchingPolicy bool, cacheResult *CacheResult) {
 }

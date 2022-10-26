@@ -46,10 +46,11 @@ func ToContext(ctx context.Context, cache ResultCache) context.Context {
 
 type ResultCache interface {
 	// Set caches a PolicyResult for a given CIP evaluated for a given image at
-	// a particular point in time. image, uid & resourceVersion will give a
+	// a particular point in time. image, uid, name & resourceVersion will give a
 	// unique point in time, so we can make sure we're not caching things that
-	// are out of date.
-	Set(ctx context.Context, image, name, uid, resourceVersion string, cacheResult *CacheResult)
+	// are out of date. We need to cache any image that does not match any policy,
+	// thereby this function has a parameter noMatchingPolicy to specify it.
+	Set(ctx context.Context, image, name, uid, resourceVersion string, noMatchingPolicy bool, cacheResult *CacheResult)
 
 	// Get returns a cached result for a given image or nil if there are none.
 	Get(ctx context.Context, image, uid, resourceVersion string) *CacheResult
