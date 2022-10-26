@@ -315,7 +315,7 @@ func validatePolicies(ctx context.Context, namespace string, ref name.Reference,
 
 			result.policyResult, result.errors = ValidatePolicy(ctx, namespace, ref, cip, remoteOpts...)
 			// Cache the result.
-			FromContext(ctx).Set(ctx, ref.Name(), string(cip.UID), cip.ResourceVersion, &CacheResult{
+			FromContext(ctx).Set(ctx, ref.Name(), cipName, string(cip.UID), cip.ResourceVersion, &CacheResult{
 				PolicyResult: result.policyResult,
 				Errors:       result.errors,
 			})
