@@ -17,9 +17,11 @@ package main
 
 import (
 	"context"
+	"embed"
 	"flag"
 	"log"
 	"os"
+	"path"
 
 	policyduckv1beta1 "github.com/sigstore/policy-controller/pkg/apis/duck/v1beta1"
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
@@ -63,6 +65,9 @@ var webhookName = flag.String("webhook-name", "policy.sigstore.dev", "The name o
 var tufMirror = flag.String("tuf-mirror", tuf.DefaultRemoteRoot, "Alternate TUF mirror. If left blank, public sigstore one is used")
 var tufRoot = flag.String("tuf-root", "", "Alternate TUF root.json. If left blank, public sigstore one is used")
 
+//go:embed tuf/root.json
+var content embed.FS
+
 func main() {
 	opts := webhook.Options{
 		ServiceName: "webhook",
@@ -83,6 +88,12 @@ func main() {
 		tufRootBytes, err = os.ReadFile(*tufRoot)
 		if err != nil {
 			logging.FromContext(ctx).Panicf("Failed to read alternate TUF root file %s : %v", *tufRoot, err)
+		}
+	} else {
+		// Use embedded and trusted root reducing the amount of call to update it.
+		tufRootBytes, err = content.ReadFile(path.Join("tuf", "root.json"))
+		if err != nil {
+			logging.FromContext(ctx).Panicf("Failed to read embedded TUF root file %s : %v", path.Join("tuf", "root.json"), err)
 		}
 	}
 	logging.FromContext(ctx).Infof("Initializing TUF root from %s => %s", *tufRoot, *tufMirror)
