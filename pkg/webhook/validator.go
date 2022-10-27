@@ -506,11 +506,18 @@ func ociSignatureToPolicySignature(ctx context.Context, sigs []oci.Signature) []
 	for _, ociSig := range sigs {
 		logging.FromContext(ctx).Debugf("Converting signature %+v", ociSig)
 
+		id, err := ociSig.Digest()
+		if err != nil {
+			logging.FromContext(ctx).Debugf("Error fetching signature digest %+v", err)
+			continue
+		}
+
 		if cert, err := ociSig.Cert(); err == nil && cert != nil {
 			ce := cosign.CertExtensions{
 				Cert: cert,
 			}
 			ret = append(ret, PolicySignature{
+				ID:      id.Hex,
 				Subject: csigs.CertSubject(cert),
 				Issuer:  ce.GetIssuer(),
 				GithubExtensions: GithubExtensions{
@@ -523,6 +530,7 @@ func ociSignatureToPolicySignature(ctx context.Context, sigs []oci.Signature) []
 			})
 		} else {
 			ret = append(ret, PolicySignature{
+				ID: id.Hex,
 				// TODO(mattmoor): Is there anything we should encode for key-based?
 			})
 		}
@@ -546,12 +554,19 @@ func attestationToPolicyAttestations(ctx context.Context, atts []attestation) []
 	for _, att := range atts {
 		logging.FromContext(ctx).Debugf("Converting attestation %+v", att)
 
+		id, err := att.Digest()
+		if err != nil {
+			logging.FromContext(ctx).Debugf("Error fetching attestation digest %+v", err)
+			continue
+		}
+
 		if cert, err := att.Cert(); err == nil && cert != nil {
 			ce := cosign.CertExtensions{
 				Cert: cert,
 			}
 			ret = append(ret, PolicyAttestation{
 				PolicySignature: PolicySignature{
+					ID:      id.Hex,
 					Subject: csigs.CertSubject(cert),
 					Issuer:  ce.GetIssuer(),
 					GithubExtensions: GithubExtensions{
@@ -568,6 +583,7 @@ func attestationToPolicyAttestations(ctx context.Context, atts []attestation) []
 		} else {
 			ret = append(ret, PolicyAttestation{
 				PolicySignature: PolicySignature{
+					ID: id.Hex,
 					// TODO(mattmoor): Is there anything we should encode for key-based?
 				},
 				PredicateType: att.PredicateType,

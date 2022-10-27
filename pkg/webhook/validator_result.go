@@ -55,6 +55,10 @@ type AuthorityMatch struct {
 // signature could be a signature on the Image (.sig) or on an Attestation
 // (.att).
 type PolicySignature struct {
+	// A unique identifier describing this signature.
+	// This is typically the hash of this signature's OCI layer for images.
+	ID string `json:"id,omitempty"`
+
 	// Subject that was found to match on the Cert.
 	Subject string `json:"subject,omitempty"`
 	// Issure that was found to match on the Cert.
