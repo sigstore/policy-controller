@@ -1611,6 +1611,7 @@ func TestValidatePolicy(t *testing.T) {
 			AuthorityMatches: map[string]AuthorityMatch{
 				"authority-0": {
 					Signatures: []PolicySignature{{
+						ID: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
 						// TODO(mattmoor): Is there anything we should encode for key-based?
 					}},
 				}},
@@ -1637,6 +1638,7 @@ func TestValidatePolicy(t *testing.T) {
 			AuthorityMatches: map[string]AuthorityMatch{
 				"authority-0": {
 					Signatures: []PolicySignature{{
+						ID: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
 						// TODO(mattmoor): Is there anything we should encode for key-based?
 					}},
 				}},
@@ -1687,6 +1689,7 @@ func TestValidatePolicy(t *testing.T) {
 			AuthorityMatches: map[string]AuthorityMatch{
 				"authority-0": {
 					Signatures: []PolicySignature{{
+						ID: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
 						// TODO(mattmoor): Is there anything we should encode for key-based?
 					}},
 				}},
@@ -1713,6 +1716,7 @@ func TestValidatePolicy(t *testing.T) {
 					Attestations: map[string][]PolicyAttestation{
 						"test-att": {{
 							PolicySignature: PolicySignature{
+								ID:      "2b65cbf0e7901ba31d55b12d319bca39420af4388d3e5714d16f2019d74e3ab7",
 								Subject: "https://github.com/distroless/static/.github/workflows/release.yaml@refs/heads/main",
 								Issuer:  "https://token.actions.githubusercontent.com",
 								GithubExtensions: GithubExtensions{
