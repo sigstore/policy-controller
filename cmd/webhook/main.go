@@ -63,6 +63,10 @@ var webhookName = flag.String("webhook-name", "policy.sigstore.dev", "The name o
 var tufMirror = flag.String("tuf-mirror", tuf.DefaultRemoteRoot, "Alternate TUF mirror. If left blank, public sigstore one is used")
 var tufRoot = flag.String("tuf-root", "", "Alternate TUF root.json. If left blank, public sigstore one is used")
 
+// Do not initialize TUF at all.
+// https://github.com/sigstore/policy-controller/issues/354
+var disableTUF = flag.Bool("disable-tuf", false, "Disable TUF support.")
+
 func main() {
 	opts := webhook.Options{
 		ServiceName: "webhook",
@@ -76,18 +80,21 @@ func main() {
 
 	flag.Parse()
 
-	// If they provided an alternate TUF root file to use, read it here.
-	var tufRootBytes []byte
-	var err error
-	if *tufRoot != "" {
-		tufRootBytes, err = os.ReadFile(*tufRoot)
-		if err != nil {
-			logging.FromContext(ctx).Panicf("Failed to read alternate TUF root file %s : %v", *tufRoot, err)
+	// If TUF has been disabled do not try to set it up.
+	if !*disableTUF {
+		// If they provided an alternate TUF root file to use, read it here.
+		var tufRootBytes []byte
+		var err error
+		if *tufRoot != "" {
+			tufRootBytes, err = os.ReadFile(*tufRoot)
+			if err != nil {
+				logging.FromContext(ctx).Panicf("Failed to read alternate TUF root file %s : %v", *tufRoot, err)
+			}
 		}
-	}
-	logging.FromContext(ctx).Infof("Initializing TUF root from %s => %s", *tufRoot, *tufMirror)
-	if err := tuf.Initialize(ctx, *tufMirror, tufRootBytes); err != nil {
-		logging.FromContext(ctx).Panicf("Failed to initialize TUF client from %s : %v", *tufRoot, err)
+		logging.FromContext(ctx).Infof("Initializing TUF root from %s => %s", *tufRoot, *tufMirror)
+		if err := tuf.Initialize(ctx, *tufMirror, tufRootBytes); err != nil {
+			logging.FromContext(ctx).Panicf("Failed to initialize TUF client from %s : %v", *tufRoot, err)
+		}
 	}
 
 	v := version.GetVersionInfo()
