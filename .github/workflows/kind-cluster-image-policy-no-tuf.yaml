@@ -26,7 +26,7 @@ permissions: read-all
 
 jobs:
   cip-test:
-    name: ClusterImagePolicy e2e tests
+    name: ClusterImagePolicy e2e tests TUF disabled
     runs-on: ubuntu-latest
 
     strategy:
@@ -36,12 +36,6 @@ jobs:
         - v1.23.x
         - v1.24.x
         - v1.25.x
-
-        script:
-        - cluster_image_policy
-        - cluster_image_policy_with_attestations
-        - cluster_with_scalable
-        - cluster_image_policy_with_warn
 
     env:
       KO_DOCKER_REPO: "registry.local:5000/policy-controller"
@@ -79,18 +73,12 @@ jobs:
         k8s-version: ${{ matrix.k8s-version}}
         version: ${{ env.SCAFFOLDING_RELEASE_VERSION }}
 
-    - name: Copy TUF root to policy-controller namespace
-      run: |
-        kubectl create ns cosign-system
-        kubectl -n tuf-system get secrets tuf-root -oyaml | sed 's/namespace: .*/namespace: cosign-system/' | kubectl create -f -
-        echo "TUF_ROOT_FILE=./root.json" >> $GITHUB_ENV
-
     - name: Install policy-controller
       env:
         GIT_HASH: ${{ github.sha }}
         GIT_VERSION: ci
         LDFLAGS: ""
-        POLICY_CONTROLLER_YAML: test/kustomize/policy-controller-e2e.yaml
+        POLICY_CONTROLLER_YAML: test/kustomize-no-tuf/policy-controller-e2e.yaml
         KO_PREFIX: registry.local:5000/policy-controller
         POLICY_CONTROLLER_ARCHS: linux/amd64
       run: |
