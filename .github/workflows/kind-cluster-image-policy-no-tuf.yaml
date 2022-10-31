@@ -1,0 +1,110 @@
+# Copyright 2022 The Sigstore Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: Test policy-controller with ClusterImagePolicy TUF disabled
+
+on:
+  pull_request:
+    branches: [ 'main', 'release-*' ]
+
+defaults:
+  run:
+    shell: bash
+
+permissions: read-all
+
+jobs:
+  cip-test:
+    name: ClusterImagePolicy e2e tests
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        k8s-version:
+        - v1.22.x
+        - v1.23.x
+        - v1.24.x
+        - v1.25.x
+
+        script:
+        - cluster_image_policy
+        - cluster_image_policy_with_attestations
+        - cluster_with_scalable
+        - cluster_image_policy_with_warn
+
+    env:
+      KO_DOCKER_REPO: "registry.local:5000/policy-controller"
+      SCAFFOLDING_RELEASE_VERSION: "v0.4.8"
+      GO111MODULE: on
+      GOFLAGS: -ldflags=-s -ldflags=-w
+      KOCACHE: ~/ko
+      COSIGN_EXPERIMENTAL: true
+
+    steps:
+    - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v2.4.0
+    - uses: actions/setup-go@c4a742cab115ed795e34d4513e2cf7d472deb55f # v2.2.0
+      with:
+        go-version: '1.18'
+        check-latest: true
+
+    # will use the latest release available for ko
+    - uses: imjasonh/setup-ko@ace48d793556083a76f1e3e6068850c1f4a369aa # v0.6
+
+    - uses: imranismail/setup-kustomize@a76db1c6419124d51470b1e388c4b29476f495f1 # v1.6.1
+
+    - name: Install yq
+      uses: mikefarah/yq@1f0881fb5faf371694bfa108753cda0b824f5037 # v4.27.3
+
+    - name: Setup mirror
+      uses: chainguard-dev/actions/setup-mirror@main
+      with:
+        mirror: mirror.gcr.io
+
+    - uses: sigstore/cosign-installer@9becc617647dfa20ae7b1151972e9b3a2c338a2b # v2.3.0
+
+    - name: Install cluster + sigstore
+      uses: sigstore/scaffolding/actions/setup@main
+      with:
+        k8s-version: ${{ matrix.k8s-version}}
+        version: ${{ env.SCAFFOLDING_RELEASE_VERSION }}
+
+    - name: Copy TUF root to policy-controller namespace
+      run: |
+        kubectl create ns cosign-system
+        kubectl -n tuf-system get secrets tuf-root -oyaml | sed 's/namespace: .*/namespace: cosign-system/' | kubectl create -f -
+        echo "TUF_ROOT_FILE=./root.json" >> $GITHUB_ENV
+
+    - name: Install policy-controller
+      env:
+        GIT_HASH: ${{ github.sha }}
+        GIT_VERSION: ci
+        LDFLAGS: ""
+        POLICY_CONTROLLER_YAML: test/kustomize/policy-controller-e2e.yaml
+        KO_PREFIX: registry.local:5000/policy-controller
+        POLICY_CONTROLLER_ARCHS: linux/amd64
+      run: |
+        make ko-policy-controller
+        kustomize build test/kustomize-no-tuf | kubectl apply -f -
+
+        # Wait for the webhook to come up and become Ready
+        kubectl rollout status --timeout 5m --namespace cosign-system deployments/webhook
+
+    - name: Run Cluster Image Policy Tests that only tests keys, no keyless
+      timeout-minutes: 15
+      run: |
+        ./test/e2e_test_no_tuf.sh
+
+    - name: Collect diagnostics
+      if: ${{ failure() }}
+      uses: chainguard-dev/actions/kind-diag@84c993eaf02da1c325854fb272a4df9184bd80fc # main
