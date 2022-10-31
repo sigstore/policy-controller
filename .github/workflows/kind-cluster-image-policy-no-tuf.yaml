@@ -91,7 +91,7 @@ jobs:
     - name: Run Cluster Image Policy Tests that only tests keys, no keyless
       timeout-minutes: 15
       run: |
-        ./test/e2e_test_no_tuf.sh
+        ./test/e2e_test_cluster_image_policy_no_tuf.sh
 
     - name: Collect diagnostics
       if: ${{ failure() }}

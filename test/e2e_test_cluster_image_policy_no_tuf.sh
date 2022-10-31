@@ -137,6 +137,7 @@ COSIGN_EXPERIMENTAL=1 COSIGN_PASSWORD="" cosign attest --predicate ./predicate-f
 COSIGN_EXPERIMENTAL=1 cosign verify-attestation --key ./cosign.pub --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage}
 echo '::endgroup::'
 
+export KUBECTL_SUCCESS_FILE="/tmp/kubectl.success.out"
 echo '::group:: test job success with key signature and key attestation'
 # We signed this with key and it has a key attestation, so should pass.
 if ! kubectl create -n ${NS} job demo2 --image=${demoimage} 2> ${KUBECTL_SUCCESS_FILE} ; then
