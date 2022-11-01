@@ -903,7 +903,7 @@ func getNamespace(ctx context.Context, namespace string) string {
 		if r != nil && r.Body != nil {
 			var review admissionv1.AdmissionReview
 			if err := json.NewDecoder(r.Body).Decode(&review); err != nil {
-				logging.FromContext(ctx).Errorf("could not decode body:", err)
+				logging.FromContext(ctx).Errorf("could not decode body: %v", err)
 				return ""
 			}
 			return review.Request.Namespace
