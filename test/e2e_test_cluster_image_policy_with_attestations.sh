@@ -268,6 +268,6 @@ echo '::endgroup::'
 
 echo '::group::' Cleanup
 kubectl delete cip --all
-kubectl delete ns demo-attestations
+kubectl delete ns ${NS}
 rm cosign.key cosign.pub
 echo '::endgroup::'
