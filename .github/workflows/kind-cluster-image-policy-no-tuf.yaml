@@ -25,7 +25,7 @@ defaults:
 permissions: read-all
 
 jobs:
-  cip-test:
+  cip-test-no-tuf:
     name: ClusterImagePolicy e2e tests TUF disabled
     runs-on: ubuntu-latest
 
