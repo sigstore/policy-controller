@@ -90,7 +90,7 @@ echo '::endgroup::'
 
 # Create CIP that requires a signature with a key.
 echo '::group:: Create CIP that requires a keyful signature'
-yq '. | .spec.authorities[0].key.data |= load_str("cosign.pub")' ./test/testdata/policy-controller/e2e/cip-key.yaml | kubectl apply -f -
+yq '. | .spec.authorities[0].key.data |= load_str("cosign.pub")' ./test/testdata/policy-controller/e2e/cip-key-no-rekor.yaml | kubectl apply -f -
 
 # Give the policy controller a moment to update the configmap
 # and pick up the change in the admission controller.
@@ -115,7 +115,7 @@ echo '::endgroup::'
 
 # Then let's test attestations work too with key.
 echo '::group:: Create CIP that requires a keyful attestation'
-yq '. | .spec.authorities[0].key.data |= load_str("cosign.pub")' ./test/testdata/policy-controller/e2e/cip-key-with-attestations.yaml | kubectl apply -f -
+yq '. | .spec.authorities[0].key.data |= load_str("cosign.pub")' ./test/testdata/policy-controller/e2e/cip-key-with-attestations-no-rekor.yaml | kubectl apply -f -
 
 # Give the policy controller a moment to update the configmap
 # and pick up the change in the admission controller.
