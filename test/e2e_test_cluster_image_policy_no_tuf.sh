@@ -106,11 +106,11 @@ echo '::endgroup::'
 
 # Sign it with key
 echo '::group:: Sign demoimage with key, and add to rekor'
-COSIGN_EXPERIMENTAL=1 COSIGN_PASSWORD="" cosign sign --key cosign.key --force --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage}
+COSIGN_PASSWORD="" cosign sign --no-tlog-upload --key cosign.key --force --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage}
 echo '::endgroup::'
 
 echo '::group:: Verify demoimage with cosign key'
-COSIGN_EXPERIMENTAL=1 cosign verify --key cosign.pub --rekor-url ${REKOR_URL} --allow-insecure-registry ${demoimage}
+cosign verify --key cosign.pub --rekor-url ${REKOR_URL} --allow-insecure-registry ${demoimage}
 echo '::endgroup::'
 
 # Then let's test attestations work too with key.
@@ -132,9 +132,9 @@ echo '::endgroup::'
 # Fine, so create an attestation for it.
 echo '::group:: create keyful attestation, add add to rekor'
 echo -n 'foobar key e2e test' > ./predicate-file-key-custom
-COSIGN_EXPERIMENTAL=1 COSIGN_PASSWORD="" cosign attest --predicate ./predicate-file-key-custom --rekor-url ${REKOR_URL} --key ./cosign.key --allow-insecure-registry --force ${demoimage}
+COSIGN_PASSWORD="" cosign attest --predicate ./predicate-file-key-custom --rekor-url ${REKOR_URL} --key ./cosign.key --allow-insecure-registry --no-tlog-upload ${demoimage}
 
-COSIGN_EXPERIMENTAL=1 cosign verify-attestation --key ./cosign.pub --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage}
+cosign verify-attestation --key ./cosign.pub --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage}
 echo '::endgroup::'
 
 export KUBECTL_SUCCESS_FILE="/tmp/kubectl.success.out"
