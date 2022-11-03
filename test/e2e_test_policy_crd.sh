@@ -113,3 +113,35 @@ do
 done
 
 echo '::endgroup:: Valid policy test:'
+
+echo '::group:: Set fail-on-empty-authorities to false'
+kubectl patch configmap/config-policy-controller \
+  --namespace cosign-system \
+  --type merge \
+  --patch '{"data":{"no-match-policy":"deny", "fail-on-empty-authorities":"false"}}'
+# allow for propagation
+sleep 10
+echo '::endgroup::'
+
+echo '::group:: Empty authorities policies:'
+for i in `ls ./test/testdata/policy-controller/empty-authorities/`
+do
+  if kubectl create -f ./test/testdata/policy-controller/empty-authorities/$i ; then
+    echo "${i} created as expected"
+  else
+    echo "${i} failed when it should not have"
+    exit 1
+  fi
+
+  kubectl delete -f ./test/testdata/policy-controller/empty-authorities/$i --ignore-not-found=true
+done
+echo '::endgroup::'
+
+echo '::group:: Set fail-on-empty-authorities to true'
+kubectl patch configmap/config-policy-controller \
+  --namespace cosign-system \
+  --type merge \
+  --patch '{"data":{"no-match-policy":"deny", "fail-on-empty-authorities":"true"}}'
+# allow for propagation
+sleep 10
+echo '::endgroup::'
