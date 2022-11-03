@@ -55,6 +55,7 @@ type ClusterImagePolicySpec struct {
 	// Images defines the patterns of image names that should be subject to this policy.
 	Images []ImagePattern `json:"images"`
 	// Authorities defines the rules for discovering and validating signatures.
+	// +optional
 	Authorities []Authority `json:"authorities,omitempty"`
 	// Policy is an optional policy that can be applied against all the
 	// successfully validated Authorities. If no authorities pass, this does
