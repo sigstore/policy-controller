@@ -43,6 +43,8 @@ const (
 	NoMatchPolicyKey = "no-match-policy"
 
 	FailOnEmptyAuthorities = "fail-on-empty-authorities"
+
+	ReplaceDigestInPodOnly = "replace-digest-in-pod-only"
 )
 
 // PolicyControllerConfig controls the behaviour of policy-controller that needs
@@ -56,10 +58,13 @@ type PolicyControllerConfig struct {
 	NoMatchPolicy string `json:"no-match-policy"`
 	// FailOnEmptyAuthorities configures the validating webhook to allow creating CIP without a list authorities
 	FailOnEmptyAuthorities bool `json:"fail-on-empty-authorities"`
+	// ReplaceDigestInPodOnly configures whether images should be replaced to digest for all types like
+	// Deployment, StatefulSet, Job, CronJob or only for Pods
+	ReplaceDigestInPodOnly bool `json:"replace-digest-in-pod-only"`
 }
 
 func NewPolicyControllerConfigFromMap(data map[string]string) (*PolicyControllerConfig, error) {
-	ret := &PolicyControllerConfig{NoMatchPolicy: "deny", FailOnEmptyAuthorities: true}
+	ret := &PolicyControllerConfig{NoMatchPolicy: "deny", FailOnEmptyAuthorities: true, ReplaceDigestInPodOnly: false}
 	switch data[NoMatchPolicyKey] {
 	case DenyAll:
 		ret.NoMatchPolicy = DenyAll
@@ -73,9 +78,17 @@ func NewPolicyControllerConfigFromMap(data map[string]string) (*PolicyController
 	if val, ok := data[FailOnEmptyAuthorities]; ok {
 		var err error
 		ret.FailOnEmptyAuthorities, err = strconv.ParseBool(val)
-		return ret, err
+		if err != nil {
+			return ret, err
+		}
 	}
-	ret.FailOnEmptyAuthorities = true
+	if val, ok := data[ReplaceDigestInPodOnly]; ok {
+		var err error
+		ret.ReplaceDigestInPodOnly, err = strconv.ParseBool(val)
+		if err != nil {
+			return ret, err
+		}
+	}
 	return ret, nil
 }
 
@@ -102,6 +115,7 @@ func FromContextOrDefaults(ctx context.Context) *PolicyControllerConfig {
 	return &PolicyControllerConfig{
 		NoMatchPolicy:          DenyAll,
 		FailOnEmptyAuthorities: true,
+		ReplaceDigestInPodOnly: false,
 	}
 }
 

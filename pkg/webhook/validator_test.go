@@ -666,7 +666,7 @@ func TestValidatePodSpec(t *testing.T) {
 				testContext = context.WithValue(testContext, kubeclient.Key{}, kc)
 
 				// Check the core mechanics
-				got := v.validatePodSpec(testContext, system.Namespace(), "Pod", "v1", map[string]string{}, test.ps, k8schain.Options{})
+				got := v.validatePodSpec(testContext, system.Namespace(), "Pod", "v1", map[string]string{}, test.ps, k8schain.Options{}, true)
 				if (got != nil) != (test.want != nil) {
 					t.Errorf("validatePodSpec() = %v, wanted %v", got, test.want)
 				} else if got != nil && got.Error() != test.want.Error() {
@@ -1079,7 +1079,7 @@ func TestResolvePodSpec(t *testing.T) {
 
 			// Check the core mechanics.
 			got := test.ps.DeepCopy()
-			v.resolvePodSpec(ctx, got, k8schain.Options{})
+			v.resolvePodSpec(ctx, got, k8schain.Options{}, true)
 			if !cmp.Equal(got, test.want) {
 				t.Errorf("resolvePodSpec = %s", cmp.Diff(got, test.want))
 			}
@@ -2406,7 +2406,7 @@ func TestValidatePodSpecNonDefaultNamespace(t *testing.T) {
 				testContext = context.WithValue(testContext, kubeclient.Key{}, kc)
 
 				// Check the core mechanics
-				got := v.validatePodSpec(testContext, "my-secure-ns", "Pod", "v1", map[string]string{"test": "test"}, test.ps, k8schain.Options{})
+				got := v.validatePodSpec(testContext, "my-secure-ns", "Pod", "v1", map[string]string{"test": "test"}, test.ps, k8schain.Options{}, true)
 				if (got != nil) != (test.want != nil) {
 					t.Errorf("validatePodSpec() = %v, wanted %v", got, test.want)
 				} else if got != nil && got.Error() != test.want.Error() {
@@ -2593,7 +2593,7 @@ func TestValidatePodSpecCancelled(t *testing.T) {
 	cancelledContext, cancelFunc := context.WithCancel(ctx)
 	wantErr := "context was canceled before validation completed"
 	cancelFunc()
-	gotErrs := v.validatePodSpec(cancelledContext, "default", "pod", "v1", map[string]string{}, ps, k8schain.Options{})
+	gotErrs := v.validatePodSpec(cancelledContext, "default", "pod", "v1", map[string]string{}, ps, k8schain.Options{}, true)
 	if gotErrs == nil {
 		t.Errorf("Did not get an error on canceled context")
 	} else if !strings.Contains(gotErrs.Error(), wantErr) {
@@ -2737,7 +2737,7 @@ func TestPolicyControllerConfigNoMatchPolicy(t *testing.T) {
 	for _, tc := range tests {
 		testCtx := policycontrollerconfig.ToContext(ctx, &policycontrollerconfig.PolicyControllerConfig{NoMatchPolicy: tc.noMatchPolicy, FailOnEmptyAuthorities: true})
 
-		got := v.validatePodSpec(testCtx, system.Namespace(), "pod", "v1", map[string]string{}, testPodSpec, k8schain.Options{})
+		got := v.validatePodSpec(testCtx, system.Namespace(), "pod", "v1", map[string]string{}, testPodSpec, k8schain.Options{}, true)
 		if (got != nil) != (tc.want != nil) {
 			t.Errorf("ValidatePodSpecable() = %v, wanted %v", got, tc.want)
 		} else if got != nil && got.Error() != tc.want.Error() {
