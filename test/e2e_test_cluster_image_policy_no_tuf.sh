@@ -105,10 +105,12 @@ assert_error ${expected_error}
 echo '::endgroup::'
 
 # Sign it with key
-echo '::group:: Sign demoimage with key, and add to rekor'
+echo '::group:: Sign demoimage with key, do not add to rekor'
 COSIGN_PASSWORD="" cosign sign --no-tlog-upload --key cosign.key  --allow-insecure-registry ${demoimage}
 echo '::endgroup::'
 
+# TODO(vaikas): This fails because it doesn't have a Rekor entry. Which it obvs
+# does not because of --no-tlog-upload above.
 #echo '::group:: Verify demoimage with cosign key'
 #cosign verify --key cosign.pub --allow-insecure-registry ${demoimage}
 #echo '::endgroup::'
@@ -134,6 +136,7 @@ echo '::group:: create keyful attestation, do not add to rekor'
 echo -n 'foobar key e2e test' > ./predicate-file-key-custom
 COSIGN_PASSWORD="" cosign attest --predicate ./predicate-file-key-custom --key ./cosign.key --allow-insecure-registry --no-tlog-upload ${demoimage}
 
+# TODO(vaikas): This again fails though it really shouldn't.
 #cosign verify-attestation --key ./cosign.pub --allow-insecure-registry ${demoimage}
 echo '::endgroup::'
 
