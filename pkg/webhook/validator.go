@@ -154,7 +154,6 @@ func (v *Validator) ValidateCronJob(ctx context.Context, c *duckv1.CronJob) *api
 
 func (v *Validator) validatePodSpec(ctx context.Context, namespace, kind, apiVersion string, labels map[string]string, ps *corev1.PodSpec, opt k8schain.Options, isPod bool) (errs *apis.FieldError) {
 	pcConfig := policycontrollerconfig.FromContextOrDefaults(ctx)
-	logging.FromContext(ctx).Warnf("TEST00 - validate - %v", pcConfig.ReplaceDigestInPodOnly)
 
 	kc, err := k8schain.New(ctx, kubeclient.Get(ctx), opt)
 	if err != nil {
@@ -177,7 +176,8 @@ func (v *Validator) validatePodSpec(ctx context.Context, namespace, kind, apiVer
 				defer wg.Done()
 
 				// validate either if images should always be digests or this is PodSpec
-				if isPod || !pcConfig.ReplaceDigestInPodOnly {
+				// validate if image is digest based on configuration setting
+				if shouldUpdateImageDigest(pcConfig, isPod) {
 					// Require digests, otherwise the validation is meaningless
 					// since the tag can move.
 					_, fe := refOrFieldError(c.Image, field, i)
@@ -869,8 +869,8 @@ func (v *Validator) resolvePodSpec(ctx context.Context, ps *corev1.PodSpec, opt 
 					continue
 				}
 
-				// update to digest either if images should always be digests or this is PodSpec
-				if isPod || !pcConfig.ReplaceDigestInPodOnly {
+				// update to digest based on configuration setting
+				if shouldUpdateImageDigest(pcConfig, isPod) {
 					cs[i].Image = digest.String()
 				}
 			}
@@ -1023,4 +1023,21 @@ func refOrFieldError(image, field string, index int) (name.Reference, *apis.Fiel
 		).ViaFieldIndex(field, index)
 	}
 	return ref, nil
+}
+
+func shouldUpdateImageDigest(pcConfig *policycontrollerconfig.PolicyControllerConfig, isPod bool) bool {
+	switch pcConfig.UpdateImageToDigest {
+	case policycontrollerconfig.Always:
+		// Always update image to digest
+		return true
+	case policycontrollerconfig.Pod:
+		// Pod objects get image updated to digest, other objects not unmodified
+		return isPod
+	case policycontrollerconfig.Never:
+		// Never modify image to digests
+		return false
+	default:
+		// Assume Always if not specified
+		return true
+	}
 }

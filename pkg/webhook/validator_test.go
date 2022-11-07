@@ -2754,3 +2754,67 @@ func TestPolicyControllerConfigNoMatchPolicy(t *testing.T) {
 		}
 	}
 }
+
+func TestShouldUpdateImageDigest(t *testing.T) {
+	tests := []struct {
+		name                string
+		updateImageToDigest string
+		isPod               bool
+		expected            bool
+	}{
+		{
+			name:                "always for non-pod",
+			updateImageToDigest: policycontrollerconfig.Always,
+			isPod:               false,
+			expected:            true,
+		},
+		{
+			name:                "always for pod",
+			updateImageToDigest: policycontrollerconfig.Always,
+			isPod:               true,
+			expected:            true,
+		},
+		{
+			name:                "pod for pod",
+			updateImageToDigest: policycontrollerconfig.Pod,
+			isPod:               true,
+			expected:            true,
+		},
+		{
+			name:                "pod for non-pod",
+			updateImageToDigest: policycontrollerconfig.Pod,
+			isPod:               false,
+			expected:            false,
+		},
+		{
+			name:                "never for pod",
+			updateImageToDigest: policycontrollerconfig.Never,
+			isPod:               true,
+			expected:            false,
+		},
+		{
+			name:                "never for non-pod",
+			updateImageToDigest: policycontrollerconfig.Never,
+			isPod:               false,
+			expected:            false,
+		},
+		{
+			name:     "unknown value for pod",
+			isPod:    true,
+			expected: true,
+		},
+		{
+			name:     "unknown value for non-pod",
+			isPod:    false,
+			expected: true,
+		},
+	}
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			pcConfig := &policycontrollerconfig.PolicyControllerConfig{UpdateImageToDigest: test.updateImageToDigest}
+			if want, got := test.expected, shouldUpdateImageDigest(pcConfig, test.isPod); want != got {
+				t.Errorf("invalid result; want: %v; got: %v", want, got)
+			}
+		})
+	}
+}

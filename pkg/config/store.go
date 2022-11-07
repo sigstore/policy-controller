@@ -44,7 +44,11 @@ const (
 
 	FailOnEmptyAuthorities = "fail-on-empty-authorities"
 
-	ReplaceDigestInPodOnly = "replace-digest-in-pod-only"
+	UpdateImageToDigest = "update-image-to-digest"
+
+	Always = "always"
+	Pod    = "pod"
+	Never  = "never"
 )
 
 // PolicyControllerConfig controls the behaviour of policy-controller that needs
@@ -58,13 +62,20 @@ type PolicyControllerConfig struct {
 	NoMatchPolicy string `json:"no-match-policy"`
 	// FailOnEmptyAuthorities configures the validating webhook to allow creating CIP without a list authorities
 	FailOnEmptyAuthorities bool `json:"fail-on-empty-authorities"`
-	// ReplaceDigestInPodOnly configures whether images should be replaced to digest for all types like
-	// Deployment, StatefulSet, Job, CronJob or only for Pods
-	ReplaceDigestInPodOnly bool `json:"replace-digest-in-pod-only"`
+	// UpdateImageToDigest configures whether images should be replaced to digest:
+	// always - all supported types of Kubernetes objects such as Deployment, StatefulSet, Job, CronJob
+	// pod - only for pods
+	// never - never
+	// defaults to "always"
+	UpdateImageToDigest string `json:"update-image-to-digest"`
 }
 
 func NewPolicyControllerConfigFromMap(data map[string]string) (*PolicyControllerConfig, error) {
-	ret := &PolicyControllerConfig{NoMatchPolicy: "deny", FailOnEmptyAuthorities: true, ReplaceDigestInPodOnly: false}
+	ret := &PolicyControllerConfig{
+		NoMatchPolicy:          DenyAll,
+		FailOnEmptyAuthorities: true,
+		UpdateImageToDigest:    Always,
+	}
 	switch data[NoMatchPolicyKey] {
 	case DenyAll:
 		ret.NoMatchPolicy = DenyAll
@@ -82,12 +93,8 @@ func NewPolicyControllerConfigFromMap(data map[string]string) (*PolicyController
 			return ret, err
 		}
 	}
-	if val, ok := data[ReplaceDigestInPodOnly]; ok {
-		var err error
-		ret.ReplaceDigestInPodOnly, err = strconv.ParseBool(val)
-		if err != nil {
-			return ret, err
-		}
+	if val, ok := data[UpdateImageToDigest]; ok {
+		ret.UpdateImageToDigest = val
 	}
 	return ret, nil
 }
@@ -115,7 +122,7 @@ func FromContextOrDefaults(ctx context.Context) *PolicyControllerConfig {
 	return &PolicyControllerConfig{
 		NoMatchPolicy:          DenyAll,
 		FailOnEmptyAuthorities: true,
-		ReplaceDigestInPodOnly: false,
+		UpdateImageToDigest:    Always,
 	}
 }
 
