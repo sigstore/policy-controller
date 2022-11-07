@@ -109,9 +109,9 @@ echo '::group:: Sign demoimage with key, and add to rekor'
 COSIGN_PASSWORD="" cosign sign --no-tlog-upload --key cosign.key  --allow-insecure-registry ${demoimage}
 echo '::endgroup::'
 
-echo '::group:: Verify demoimage with cosign key'
-cosign verify --key cosign.pub --allow-insecure-registry ${demoimage}
-echo '::endgroup::'
+#echo '::group:: Verify demoimage with cosign key'
+#cosign verify --key cosign.pub --allow-insecure-registry ${demoimage}
+#echo '::endgroup::'
 
 # Then let's test attestations work too with key.
 echo '::group:: Create CIP that requires a keyful attestation'
@@ -130,11 +130,11 @@ assert_error ${expected_error}
 echo '::endgroup::'
 
 # Fine, so create an attestation for it.
-echo '::group:: create keyful attestation, add add to rekor'
+echo '::group:: create keyful attestation, do not add to rekor'
 echo -n 'foobar key e2e test' > ./predicate-file-key-custom
 COSIGN_PASSWORD="" cosign attest --predicate ./predicate-file-key-custom --key ./cosign.key --allow-insecure-registry --no-tlog-upload ${demoimage}
 
-cosign verify-attestation --key ./cosign.pub --allow-insecure-registry ${demoimage}
+#cosign verify-attestation --key ./cosign.pub --allow-insecure-registry ${demoimage}
 echo '::endgroup::'
 
 export KUBECTL_SUCCESS_FILE="/tmp/kubectl.success.out"
