@@ -198,5 +198,5 @@ echo '::endgroup::'
 
 echo '::group::' Cleanup
 kubectl delete cip --all
-kubectl delete ns demo-keyless-signing
+kubectl delete ns ${NS}
 echo '::endgroup::'

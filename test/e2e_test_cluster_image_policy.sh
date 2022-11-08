@@ -545,6 +545,10 @@ kubectl delete cip --all
 kubectl delete ns demo-key-sha512
 echo '::endgroup::'
 
+# These tests have been running for awhile now, so grab a new OIDC_TOKEN since
+# we've seen them expire in the middle of the tests.
+export OIDC_TOKEN=`curl -s ${ISSUER_URL}`
+
 # Publish the first test image
 echo '::group:: publish test image demoEphemeralImage'
 pushd $(mktemp -d)

@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: Test policy-controller with ClusterImagePolicy
+name: Test policy-controller with ClusterImagePolicy TUF disabled
 
 on:
   pull_request:
@@ -25,8 +25,8 @@ defaults:
 permissions: read-all
 
 jobs:
-  cip-test:
-    name: ClusterImagePolicy e2e tests
+  cip-test-no-tuf:
+    name: ClusterImagePolicy e2e tests TUF disabled
     runs-on: ubuntu-latest
 
     strategy:
@@ -36,12 +36,6 @@ jobs:
         - v1.23.x
         - v1.24.x
         - v1.25.x
-
-        script:
-        - cluster_image_policy
-        - cluster_image_policy_with_attestations
-        - cluster_with_scalable
-        - cluster_image_policy_with_warn
 
     env:
       KO_DOCKER_REPO: "registry.local:5000/policy-controller"
@@ -64,7 +58,7 @@ jobs:
     - uses: imranismail/setup-kustomize@a76db1c6419124d51470b1e388c4b29476f495f1 # v1.6.1
 
     - name: Install yq
-      uses: mikefarah/yq@5e490527de24715db37869037083f7f391dde5a6 # v4.27.3
+      uses: mikefarah/yq@1f0881fb5faf371694bfa108753cda0b824f5037 # v4.27.3
 
     - name: Setup mirror
       uses: chainguard-dev/actions/setup-mirror@main
@@ -81,38 +75,25 @@ jobs:
         k8s-version: ${{ matrix.k8s-version}}
         version: ${{ env.SCAFFOLDING_RELEASE_VERSION }}
 
-    - name: Copy TUF root to policy-controller namespace
-      run: |
-        kubectl create ns cosign-system
-        kubectl -n tuf-system get secrets tuf-root -oyaml | sed 's/namespace: .*/namespace: cosign-system/' | kubectl create -f -
-        echo "TUF_ROOT_FILE=./root.json" >> $GITHUB_ENV
-
     - name: Install policy-controller
       env:
         GIT_HASH: ${{ github.sha }}
         GIT_VERSION: ci
         LDFLAGS: ""
-        POLICY_CONTROLLER_YAML: test/kustomize/policy-controller-e2e.yaml
+        POLICY_CONTROLLER_YAML: test/kustomize-no-tuf/policy-controller-e2e.yaml
         KO_PREFIX: registry.local:5000/policy-controller
         POLICY_CONTROLLER_ARCHS: linux/amd64
       run: |
         make ko-policy-controller
-        kustomize build test/kustomize | kubectl apply -f -
+        kustomize build test/kustomize-no-tuf | kubectl apply -f -
 
         # Wait for the webhook to come up and become Ready
         kubectl rollout status --timeout 5m --namespace cosign-system deployments/webhook
 
-    - name: Run Cluster Image Policy Tests
+    - name: Run Cluster Image Policy Tests that only tests keys, no keyless
       timeout-minutes: 15
       run: |
-        ./test/e2e_test_${{ matrix.script }}.sh
-
-    - name: Make sure validatingwebookconfiguration contains no status subresources
-      run: |
-        if kubectl get validatingwebhookconfigurations -oyaml policy.sigstore.dev | grep -q status; then
-          echo Found status resources in the webhook configuration
-          exit 1
-        fi
+        ./test/e2e_test_cluster_image_policy_no_tuf.sh
 
     - name: Collect diagnostics
       if: ${{ failure() }}
