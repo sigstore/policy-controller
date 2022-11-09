@@ -48,7 +48,7 @@ jobs:
       - uses: chainguard-dev/actions/goimports@dacf41f3472c33979cfd49bca5b503236be57de0 # main
 
       - name: Set up Cloud SDK
-        uses: google-github-actions/auth@ef5d53e30bbcd8d0836f4288f5e50ff3e086997d # v0.8.1
+        uses: google-github-actions/auth@ef5d53e30bbcd8d0836f4288f5e50ff3e086997d # v1.0.0
         with:
           workload_identity_provider: 'projects/498091336538/locations/global/workloadIdentityPools/githubactions/providers/sigstore-policy-controller'
           service_account: 'gha-policy-controller@projectsigstore.iam.gserviceaccount.com'
