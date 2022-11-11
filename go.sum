@@ -1972,8 +1972,8 @@ k8s.io/legacy-cloud-providers v0.21.0/go.mod h1:bNxo7gDg+PGkBmT/MFZswLTWdSWK9kAl
 k8s.io/utils v0.0.0-20201110183641-67b214c5f920/go.mod h1:jPW/WVKK9YHAvNhRxK0md/EJ228hCsBRufyofKtW8HA=
 k8s.io/utils v0.0.0-20221012122500-cfd413dd9e85 h1:cTdVh7LYu82xeClmfzGtgyspNh6UxpwLWGi8R4sspNo=
 k8s.io/utils v0.0.0-20221012122500-cfd413dd9e85/go.mod h1:OLgZIPagt7ERELqWJFomSt595RzquPNLL48iOWgYOg0=
-knative.dev/hack v0.0.0-20221024013916-9d2ae47c16b2 h1:DvWcy2c6wvjDo+rPRWe9Rn5QEH8fiq/j4QWOka0wMvQ=
-knative.dev/hack v0.0.0-20221024013916-9d2ae47c16b2/go.mod h1:yk2OjGDsbEnQjfxdm0/HJKS2WqTLEFg/N6nUs6Rqx3Q=
+knative.dev/hack v0.0.0-20221104013908-8f3c7050408b h1:EqqlOqjCy/hVexdmPpUjcplO2eZc12+jTdTpodfLaI4=
+knative.dev/hack v0.0.0-20221104013908-8f3c7050408b/go.mod h1:yk2OjGDsbEnQjfxdm0/HJKS2WqTLEFg/N6nUs6Rqx3Q=
 knative.dev/hack/schema v0.0.0-20221024013916-9d2ae47c16b2 h1:X3EYiEmuqxiVSOPG1CsuRO+QUA956BvUw79A6oXrrs0=
 knative.dev/hack/schema v0.0.0-20221024013916-9d2ae47c16b2/go.mod h1:GeIb+PLd5mllawcpHEGF5J5fYTQrvgEO5liao8lUKUs=
 knative.dev/pkg v0.0.0-20221027143007-728dfd8e2862 h1:nN2KChHl+Cs3tGSLtmkNy21STwb0NRiWomdBw4jMSSU=
