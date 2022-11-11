@@ -10,7 +10,7 @@ require (
 	github.com/golang/protobuf v1.5.2
 	github.com/golang/snappy v0.0.4
 	github.com/google/go-cmp v0.5.9
-	github.com/google/go-containerregistry v0.12.0
+	github.com/google/go-containerregistry v0.12.1
 	github.com/google/go-containerregistry/pkg/authn/k8schain v0.0.0-20211102215614-dd49079bb93d
 	github.com/hashicorp/errwrap v1.1.0
 	github.com/hashicorp/go-cleanhttp v0.5.2
