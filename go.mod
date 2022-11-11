@@ -17,7 +17,7 @@ require (
 	github.com/hashicorp/go-hclog v1.3.1
 	github.com/hashicorp/go-immutable-radix v1.3.1
 	github.com/hashicorp/go-multierror v1.1.1
-	github.com/hashicorp/go-plugin v1.4.5
+	github.com/hashicorp/go-plugin v1.4.6
 	github.com/hashicorp/go-retryablehttp v0.7.1
 	github.com/hashicorp/go-rootcerts v1.0.2
 	github.com/hashicorp/go-secure-stdlib/mlock v0.1.2
@@ -59,7 +59,7 @@ require (
 	k8s.io/client-go v0.25.3
 	k8s.io/code-generator v0.25.3
 	k8s.io/kube-openapi v0.0.0-20221012153701-172d655c2280
-	knative.dev/hack v0.0.0-20221024013916-9d2ae47c16b2
+	knative.dev/hack v0.0.0-20221104013908-8f3c7050408b
 	knative.dev/hack/schema v0.0.0-20221024013916-9d2ae47c16b2
 	knative.dev/pkg v0.0.0-20221027143007-728dfd8e2862
 	sigs.k8s.io/release-utils v0.7.3
