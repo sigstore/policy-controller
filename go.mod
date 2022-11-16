@@ -10,8 +10,9 @@ require (
 	github.com/golang/protobuf v1.5.2
 	github.com/golang/snappy v0.0.4
 	github.com/google/go-cmp v0.5.9
-	github.com/google/go-containerregistry v0.12.1
-	github.com/google/go-containerregistry/pkg/authn/k8schain v0.0.0-20211102215614-dd49079bb93d
+	github.com/google/go-containerregistry v0.12.2-0.20221114162634-781782aa2757
+	github.com/google/go-containerregistry/pkg/authn/k8schain v0.0.0-20221114162634-781782aa2757
+	github.com/google/go-containerregistry/pkg/authn/kubernetes v0.0.0-20221114162634-781782aa2757
 	github.com/hashicorp/errwrap v1.1.0
 	github.com/hashicorp/go-cleanhttp v0.5.2
 	github.com/hashicorp/go-hclog v1.3.1
@@ -232,7 +233,6 @@ require (
 	github.com/tjfoc/gmsm v1.4.1 // indirect
 	github.com/transparency-dev/merkle v0.0.1 // indirect
 	github.com/vbatts/tar-split v0.11.2 // indirect
-	github.com/vdemeester/k8s-pkg-credentialprovider v1.21.0-1 // indirect
 	github.com/xanzy/go-gitlab v0.73.1 // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
@@ -256,11 +256,8 @@ require (
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	k8s.io/apiextensions-apiserver v0.25.3 // indirect
-	k8s.io/cloud-provider v0.21.0 // indirect
-	k8s.io/component-base v0.25.3 // indirect
 	k8s.io/gengo v0.0.0-20220613173612-397b4ae3bce7 // indirect
 	k8s.io/klog/v2 v2.80.1 // indirect
-	k8s.io/legacy-cloud-providers v0.21.0 // indirect
 	k8s.io/utils v0.0.0-20221012122500-cfd413dd9e85 // indirect
 	sigs.k8s.io/json v0.0.0-20220713155537-f223a00ba0e2 // indirect
 	sigs.k8s.io/structured-merge-diff/v4 v4.2.3 // indirect
