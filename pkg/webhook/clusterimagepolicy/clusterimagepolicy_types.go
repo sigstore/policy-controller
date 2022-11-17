@@ -17,6 +17,7 @@ package clusterimagepolicy
 import (
 	"context"
 	"crypto"
+	"crypto/x509"
 	"encoding/json"
 	"fmt"
 
@@ -75,12 +76,23 @@ type Authority struct {
 	Sources []v1alpha1.Source `json:"source,omitempty"`
 	// +optional
 	CTLog *v1alpha1.TLog `json:"ctlog,omitempty"`
+	// +optional
+	RFC3161Timestamp *RFC3161Timestamp `json:"rfc3161timestamp,omitempty"`
 	// RemoteOpts are not marshalled because they are an unsupported type
 	// RemoteOpts will be populated by the Authority UnmarshalJSON override
 	// +optional
 	RemoteOpts []ociremote.Option `json:"-"`
 	// +optional
 	Attestations []AttestationPolicy `json:"attestations,omitempty"`
+}
+
+// RFC3161Timestamp specifies the URL to a RFC3161 time-stamping server that holds
+// the time-stamped verification for the signature
+type RFC3161Timestamp struct {
+	// TODO: Rename this to leaf certificate only...
+	// CertChain sets a reference to certificate chain used for verification
+	// +optional
+	CertChain *KeyRef `json:"cert-chain,omitempty"`
 }
 
 // This references a public verification key stored in
@@ -152,7 +164,14 @@ func (k *KeyRef) UnmarshalJSON(data []byte) error {
 	if ret["data"] != "" {
 		publicKey, err := cryptoutils.UnmarshalPEMToPublicKey([]byte(ret["data"]))
 		if err != nil {
-			return fmt.Errorf("failed to unmarshal PEM public key %w", err)
+			// FIXME: change this implementation temporary
+			tsaCertPool := x509.NewCertPool()
+			ok := tsaCertPool.AppendCertsFromPEM([]byte(ret["data"]))
+			if !ok {
+				return fmt.Errorf("failed to failed appending certs from PEM %w", err)
+			}
+			k.PublicKeys = publicKeys
+			return nil
 		}
 		publicKeys = append(publicKeys, publicKey)
 	}
@@ -254,15 +273,29 @@ func convertAuthorityV1Alpha1ToWebhook(in v1alpha1.Authority) *Authority {
 	keylessRef := convertKeylessRefV1Alpha1ToWebhook(in.Keyless)
 	staticRef := convertStaticRefV1Alpha1ToWebhook(in.Static)
 	attestations := convertAttestationsV1Alpha1ToWebhook(in.Attestations)
+	rfc3161Timestamp := convertRFC3161TimestampV1Alpha1ToWebhook(in.RFC3161Timestamp)
 
 	return &Authority{
-		Name:         in.Name,
-		Key:          keyRef,
-		Keyless:      keylessRef,
-		Static:       staticRef,
-		Sources:      in.Sources,
-		CTLog:        in.CTLog,
-		Attestations: attestations,
+		Name:             in.Name,
+		Key:              keyRef,
+		Keyless:          keylessRef,
+		Static:           staticRef,
+		Sources:          in.Sources,
+		CTLog:            in.CTLog,
+		RFC3161Timestamp: rfc3161Timestamp,
+		Attestations:     attestations,
+	}
+}
+
+func convertRFC3161TimestampV1Alpha1ToWebhook(in *v1alpha1.RFC3161Timestamp) *RFC3161Timestamp {
+	if in == nil {
+		return nil
+	}
+
+	certKeyRef := convertKeyRefV1Alpha1ToWebhook(in.CertChain)
+
+	return &RFC3161Timestamp{
+		CertChain: certKeyRef,
 	}
 }
 

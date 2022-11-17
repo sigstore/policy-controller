@@ -63,6 +63,13 @@ data:
       - glob: rando3
       authorities:
       - name: attestation-0
+        rfc3161timestamp:
+          cert-chain:
+            data: |-
+              -----BEGIN PUBLIC KEY-----
+              MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAExB6+H6054/W1SJgs5JR6AJr6J35J
+              RCTfQ5s1kD+hGMSE1rH7s46hmXEeyhnlRnaGF8eMU/SBJE/2NKPnxE7WzQ==
+              -----END PUBLIC KEY-----
         keyless:
           ca-cert:
             data: |-

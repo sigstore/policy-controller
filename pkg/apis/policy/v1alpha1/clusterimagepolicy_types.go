@@ -111,6 +111,11 @@ type Authority struct {
 	// CTLog sets the configuration to verify the authority against a Rekor instance.
 	// +optional
 	CTLog *TLog `json:"ctlog,omitempty"`
+
+	// RFC3161Timestamp sets the configuration to verify the signature timestamp against a RFC3161 time-stamping instance.
+	// +optional
+	RFC3161Timestamp *RFC3161Timestamp `json:"rfc3161timestamp,omitempty"`
+
 	// Attestations is a list of individual attestations for this authority,
 	// once the signature for this authority has been verified.
 	// +optional
@@ -161,6 +166,15 @@ type TLog struct {
 	// URL sets the url to the rekor instance (by default the public rekor.sigstore.dev)
 	// +optional
 	URL *apis.URL `json:"url,omitempty"`
+}
+
+// RFC3161Timestamp specifies the URL to a RFC3161 time-stamping server that holds
+// the time-stamped verification for the signature
+type RFC3161Timestamp struct {
+	// TODO: Rename this to intermediate certificate only...
+	// CertChain sets a reference to certificate chain used for verification
+	// +optional
+	CertChain *KeyRef `json:"cert-chain,omitempty"`
 }
 
 // KeylessRef contains location of the validating certificate and the identities

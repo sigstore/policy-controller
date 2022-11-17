@@ -95,6 +95,10 @@ func TestGetAuthorities(t *testing.T) {
 	if got := getAuthority(t, c, matchedPolicy).Keyless.Identities[0].Subject; got != want {
 		t.Errorf("Did not get what I wanted %q, got %+v", want, got)
 	}
+	want = inlineKeyData
+	if got := getAuthority(t, c, matchedPolicy).RFC3161Timestamp.CertChain.Data; got != want {
+		t.Errorf("Did not get what I wanted %q, got %+v", want, got)
+	}
 	// Make sure UID and ResourceVersion are unserialized properly
 	checkUIDAndResourceVersion(t, matchedPolicy, c[matchedPolicy])
 

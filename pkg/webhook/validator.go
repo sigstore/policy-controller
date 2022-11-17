@@ -17,6 +17,7 @@ package webhook
 
 import (
 	"context"
+	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -44,6 +45,8 @@ import (
 	"knative.dev/pkg/apis"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
 
+	tsaclient "github.com/sigstore/timestamp-authority/pkg/client"
+	timestampauthority "github.com/sigstore/timestamp-authority/pkg/generated/client"
 	kubeclient "knative.dev/pkg/client/injection/kube/client"
 	"knative.dev/pkg/logging"
 )
@@ -600,6 +603,7 @@ func ValidatePolicySignaturesForAuthority(ctx context.Context, ref name.Referenc
 	name := authority.Name
 
 	var rekorClient *client.Rekor
+	var tsaClient *timestampauthority.TimestampAuthority
 	var err error
 	if authority.CTLog != nil && authority.CTLog.URL != nil {
 		logging.FromContext(ctx).Debugf("Using CTLog %s for %s", authority.CTLog.URL, ref.Name())
@@ -607,6 +611,20 @@ func ValidatePolicySignaturesForAuthority(ctx context.Context, ref name.Referenc
 		if err != nil {
 			logging.FromContext(ctx).Errorf("failed creating rekor client: +v", err)
 			return nil, fmt.Errorf("creating Rekor client: %w", err)
+		}
+	}
+	var tsaCertPool *x509.CertPool
+	if authority.RFC3161Timestamp != nil && authority.RFC3161Timestamp.URL != nil {
+		logging.FromContext(ctx).Debugf("Using RFC3161Timestamp %s for %s", authority.RFC3161Timestamp.URL, ref.Name())
+		tsaClient, err = tsaclient.GetTimestampClient(authority.RFC3161Timestamp.URL.String())
+		if err != nil {
+			logging.FromContext(ctx).Errorf("failed creating tsa client: +v", err)
+			return nil, fmt.Errorf("creating TSA client: %w", err)
+		}
+		tsaCertPool = x509.NewCertPool()
+		ok := tsaCertPool.AppendCertsFromPEM([]byte(authority.RFC3161Timestamp.CertChain.Data))
+		if !ok {
+			return nil, fmt.Errorf("error parsing response into Timestamp while appending certs from PEM")
 		}
 	}
 
@@ -619,7 +637,7 @@ func ValidatePolicySignaturesForAuthority(ctx context.Context, ref name.Referenc
 		// Is it even allowed? 'valid' returns success if any key
 		// matches.
 		// https://github.com/sigstore/policy-controller/issues/1652
-		sps, err := valid(ctx, ref, rekorClient, authority.Key.PublicKeys, authority.Key.HashAlgorithmCode, remoteOpts...)
+		sps, err := valid(ctx, ref, tsaClient, tsaCertPool, rekorClient, authority.Key.PublicKeys, authority.Key.HashAlgorithmCode, remoteOpts...)
 		if err != nil {
 			return nil, fmt.Errorf("signature key validation failed for authority %s for %s: %w", name, ref.Name(), err)
 		}
@@ -634,7 +652,7 @@ func ValidatePolicySignaturesForAuthority(ctx context.Context, ref name.Referenc
 			if err != nil {
 				return nil, fmt.Errorf("fetching FulcioRoot: %w", err)
 			}
-			sps, err := validSignaturesWithFulcio(ctx, ref, fulcioRoots, rekorClient, authority.Keyless.Identities, remoteOpts...)
+			sps, err := validSignaturesWithFulcio(ctx, ref, fulcioRoots, tsaClient, tsaCertPool, rekorClient, authority.Keyless.Identities, remoteOpts...)
 			if err != nil {
 				logging.FromContext(ctx).Errorf("failed validSignatures for authority %s with fulcio for %s: %v", name, ref.Name(), err)
 				return nil, fmt.Errorf("signature keyless validation failed for authority %s for %s: %w", name, ref.Name(), err)
@@ -655,6 +673,7 @@ func ValidatePolicySignaturesForAuthority(ctx context.Context, ref name.Referenc
 func ValidatePolicyAttestationsForAuthority(ctx context.Context, ref name.Reference, authority webhookcip.Authority, remoteOpts ...ociremote.Option) (map[string][]PolicyAttestation, error) {
 	name := authority.Name
 	var rekorClient *client.Rekor
+	var tsaClient *timestampauthority.TimestampAuthority
 	var err error
 	if authority.CTLog != nil && authority.CTLog.URL != nil {
 		logging.FromContext(ctx).Debugf("Using CTLog %s for %s", authority.CTLog.URL, ref.Name())
@@ -662,6 +681,20 @@ func ValidatePolicyAttestationsForAuthority(ctx context.Context, ref name.Refere
 		if err != nil {
 			logging.FromContext(ctx).Errorf("failed creating rekor client: +v", err)
 			return nil, fmt.Errorf("creating Rekor client: %w", err)
+		}
+	}
+	var tsaCertPool *x509.CertPool
+	if authority.RFC3161Timestamp != nil && authority.RFC3161Timestamp.URL != nil {
+		logging.FromContext(ctx).Debugf("Using RFC3161Timestamp %s for %s", authority.RFC3161Timestamp.URL, ref.Name())
+		tsaClient, err = tsaclient.GetTimestampClient(authority.RFC3161Timestamp.URL.String())
+		if err != nil {
+			logging.FromContext(ctx).Errorf("failed creating tsa client: +v", err)
+			return nil, fmt.Errorf("creating TSA client: %w", err)
+		}
+		tsaCertPool = x509.NewCertPool()
+		ok := tsaCertPool.AppendCertsFromPEM([]byte(authority.RFC3161Timestamp.CertChain.Data))
+		if !ok {
+			return nil, fmt.Errorf("error parsing response into Timestamp while appending certs from PEM")
 		}
 	}
 
@@ -674,7 +707,7 @@ func ValidatePolicyAttestationsForAuthority(ctx context.Context, ref name.Refere
 				logging.FromContext(ctx).Errorf("error creating verifier: %v", err)
 				return nil, fmt.Errorf("creating verifier: %w", err)
 			}
-			va, err := validAttestations(ctx, ref, verifier, rekorClient, remoteOpts...)
+			va, err := validAttestations(ctx, ref, verifier, tsaClient, tsaCertPool, rekorClient, remoteOpts...)
 			if err != nil {
 				logging.FromContext(ctx).Errorf("error validating attestations: %v", err)
 				return nil, fmt.Errorf("attestation key validation failed for authority %s for %s: %w", name, ref.Name(), err)
@@ -690,7 +723,7 @@ func ValidatePolicyAttestationsForAuthority(ctx context.Context, ref name.Refere
 			if err != nil {
 				return nil, fmt.Errorf("fetching FulcioRoot: %w", err)
 			}
-			va, err := validAttestationsWithFulcio(ctx, ref, fulcioRoots, rekorClient, authority.Keyless.Identities, remoteOpts...)
+			va, err := validAttestationsWithFulcio(ctx, ref, fulcioRoots, tsaClient, tsaCertPool, rekorClient, authority.Keyless.Identities, remoteOpts...)
 			if err != nil {
 				logging.FromContext(ctx).Errorf("failed validAttestationsWithFulcio for authority %s with fulcio for %s: %v", name, ref.Name(), err)
 				return nil, fmt.Errorf("attestation keyless validation failed for authority %s for %s: %w", name, ref.Name(), err)

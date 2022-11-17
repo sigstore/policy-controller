@@ -31,16 +31,17 @@ import (
 	"github.com/sigstore/rekor/pkg/generated/client"
 	"github.com/sigstore/sigstore/pkg/fulcioroots"
 	"github.com/sigstore/sigstore/pkg/signature"
+	timestampauthority "github.com/sigstore/timestamp-authority/pkg/generated/client"
 )
 
-func valid(ctx context.Context, ref name.Reference, rekorClient *client.Rekor, keys []crypto.PublicKey, hashAlgo crypto.Hash, opts ...ociremote.Option) ([]oci.Signature, error) {
+func valid(ctx context.Context, ref name.Reference, tsaClient *timestampauthority.TimestampAuthority, tsaCertPool *x509.CertPool, rekorClient *client.Rekor, keys []crypto.PublicKey, hashAlgo crypto.Hash, opts ...ociremote.Option) ([]oci.Signature, error) {
 	if len(keys) == 0 {
 		// If there are no keys, then verify against the fulcio root.
 		fulcioRoots, err := fulcioroots.Get()
 		if err != nil {
 			return nil, err
 		}
-		return validSignaturesWithFulcio(ctx, ref, fulcioRoots, nil /* rekor */, nil /* no identities */, opts...)
+		return validSignaturesWithFulcio(ctx, ref, fulcioRoots, nil, nil, nil /* rekor */, nil /* no identities */, opts...)
 	}
 	// We return nil if ANY key matches
 	var lastErr error
@@ -52,7 +53,7 @@ func valid(ctx context.Context, ref name.Reference, rekorClient *client.Rekor, k
 			continue
 		}
 
-		sps, err := validSignatures(ctx, ref, verifier, rekorClient, opts...)
+		sps, err := validSignatures(ctx, ref, verifier, tsaClient, tsaCertPool, rekorClient, opts...)
 		if err != nil {
 			logging.FromContext(ctx).Errorf("error validating signatures: %v", err)
 			lastErr = err
@@ -68,11 +69,13 @@ func valid(ctx context.Context, ref name.Reference, rekorClient *client.Rekor, k
 var cosignVerifySignatures = cosign.VerifyImageSignatures
 var cosignVerifyAttestations = cosign.VerifyImageAttestations
 
-func validSignatures(ctx context.Context, ref name.Reference, verifier signature.Verifier, rekorClient *client.Rekor, opts ...ociremote.Option) ([]oci.Signature, error) {
+func validSignatures(ctx context.Context, ref name.Reference, verifier signature.Verifier, tsaClient *timestampauthority.TimestampAuthority, tsaCertPool *x509.CertPool, rekorClient *client.Rekor, opts ...ociremote.Option) ([]oci.Signature, error) {
 	sigs, _, err := cosignVerifySignatures(ctx, ref, &cosign.CheckOpts{
 		RegistryClientOpts: opts,
 		SigVerifier:        verifier,
 		RekorClient:        rekorClient,
+		TSAClient:          tsaClient,
+		TSACerts:           tsaCertPool, // Path isn't valid to be reusable
 		ClaimVerifier:      cosign.SimpleClaimVerifier,
 	})
 	return sigs, err
@@ -80,7 +83,7 @@ func validSignatures(ctx context.Context, ref name.Reference, verifier signature
 
 // validSignaturesWithFulcio expects a Fulcio Cert to verify against. An
 // optional rekorClient can also be given, if nil passed, default is assumed.
-func validSignaturesWithFulcio(ctx context.Context, ref name.Reference, fulcioRoots *x509.CertPool, rekorClient *client.Rekor, identities []v1alpha1.Identity, opts ...ociremote.Option) ([]oci.Signature, error) {
+func validSignaturesWithFulcio(ctx context.Context, ref name.Reference, fulcioRoots *x509.CertPool, tsaClient *timestampauthority.TimestampAuthority, tsaCertPool *x509.CertPool, rekorClient *client.Rekor, identities []v1alpha1.Identity, opts ...ociremote.Option) ([]oci.Signature, error) {
 	ids := make([]cosign.Identity, len(identities))
 	for i, id := range identities {
 		ids[i] = cosign.Identity{Issuer: id.Issuer, Subject: id.Subject, IssuerRegExp: id.IssuerRegExp, SubjectRegExp: id.SubjectRegExp}
@@ -89,17 +92,21 @@ func validSignaturesWithFulcio(ctx context.Context, ref name.Reference, fulcioRo
 		RegistryClientOpts: opts,
 		RootCerts:          fulcioRoots,
 		RekorClient:        rekorClient,
+		TSAClient:          tsaClient,
+		TSACerts:           tsaCertPool,
 		ClaimVerifier:      cosign.SimpleClaimVerifier,
 		Identities:         ids,
 	})
 	return sigs, err
 }
 
-func validAttestations(ctx context.Context, ref name.Reference, verifier signature.Verifier, rekorClient *client.Rekor, opts ...ociremote.Option) ([]oci.Signature, error) {
+func validAttestations(ctx context.Context, ref name.Reference, verifier signature.Verifier, tsaClient *timestampauthority.TimestampAuthority, tsaCertPool *x509.CertPool, rekorClient *client.Rekor, opts ...ociremote.Option) ([]oci.Signature, error) {
 	attestations, _, err := cosignVerifyAttestations(ctx, ref, &cosign.CheckOpts{
 		RegistryClientOpts: opts,
 		SigVerifier:        verifier,
 		RekorClient:        rekorClient,
+		TSAClient:          tsaClient,
+		TSACerts:           tsaCertPool,
 		ClaimVerifier:      cosign.IntotoSubjectClaimVerifier,
 	})
 	return attestations, err
@@ -107,7 +114,7 @@ func validAttestations(ctx context.Context, ref name.Reference, verifier signatu
 
 // validAttestationsWithFulcio expects a Fulcio Cert to verify against. An
 // optional rekorClient can also be given, if nil passed, default is assumed.
-func validAttestationsWithFulcio(ctx context.Context, ref name.Reference, fulcioRoots *x509.CertPool, rekorClient *client.Rekor, identities []v1alpha1.Identity, opts ...ociremote.Option) ([]oci.Signature, error) {
+func validAttestationsWithFulcio(ctx context.Context, ref name.Reference, fulcioRoots *x509.CertPool, tsaClient *timestampauthority.TimestampAuthority, tsaCertPool *x509.CertPool, rekorClient *client.Rekor, identities []v1alpha1.Identity, opts ...ociremote.Option) ([]oci.Signature, error) {
 	ids := make([]cosign.Identity, len(identities))
 	for i, id := range identities {
 		ids[i] = cosign.Identity{Issuer: id.Issuer, Subject: id.Subject, IssuerRegExp: id.IssuerRegExp, SubjectRegExp: id.SubjectRegExp}
@@ -117,6 +124,8 @@ func validAttestationsWithFulcio(ctx context.Context, ref name.Reference, fulcio
 		RegistryClientOpts: opts,
 		RootCerts:          fulcioRoots,
 		RekorClient:        rekorClient,
+		TSAClient:          tsaClient,
+		TSACerts:           tsaCertPool,
 		ClaimVerifier:      cosign.IntotoSubjectClaimVerifier,
 		Identities:         ids,
 	})

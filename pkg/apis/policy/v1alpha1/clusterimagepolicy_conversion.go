@@ -85,6 +85,11 @@ func (authority *Authority) ConvertTo(ctx context.Context, sink *v1beta1.Authori
 	if authority.CTLog != nil && authority.CTLog.URL != nil {
 		sink.CTLog = &v1beta1.TLog{URL: authority.CTLog.URL.DeepCopy()}
 	}
+	if authority.RFC3161Timestamp != nil && authority.RFC3161Timestamp.CertChain != nil {
+		sink.RFC3161Timestamp = &v1beta1.RFC3161Timestamp{}
+		sink.RFC3161Timestamp.CertChain = &v1beta1.KeyRef{}
+		authority.RFC3161Timestamp.CertChain.ConvertTo(ctx, sink.RFC3161Timestamp.CertChain)
+	}
 	for _, source := range authority.Sources {
 		v1beta1Source := v1beta1.Source{}
 		v1beta1Source.OCI = source.OCI
@@ -171,6 +176,11 @@ func (authority *Authority) ConvertFrom(ctx context.Context, source *v1beta1.Aut
 	authority.Name = source.Name
 	if source.CTLog != nil && source.CTLog.URL != nil {
 		authority.CTLog = &TLog{URL: source.CTLog.URL.DeepCopy()}
+	}
+	if source.RFC3161Timestamp != nil && source.RFC3161Timestamp.CertChain != nil {
+		authority.RFC3161Timestamp = &RFC3161Timestamp{}
+		authority.RFC3161Timestamp.CertChain = &KeyRef{}
+		authority.RFC3161Timestamp.CertChain.ConvertFrom(ctx, source.RFC3161Timestamp.CertChain)
 	}
 	for _, s := range source.Sources {
 		src := Source{}
