@@ -332,6 +332,11 @@ func (in *Policy) DeepCopyInto(out *Policy) {
 		*out = new(ConfigMapReference)
 		**out = **in
 	}
+	if in.FetchConfigFile != nil {
+		in, out := &in.FetchConfigFile, &out.FetchConfigFile
+		*out = new(bool)
+		**out = **in
+	}
 	return
 }
 

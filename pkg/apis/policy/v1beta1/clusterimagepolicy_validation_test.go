@@ -24,6 +24,7 @@ import (
 	v1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"knative.dev/pkg/apis"
+	"knative.dev/pkg/ptr"
 
 	policycontrollerconfig "github.com/sigstore/policy-controller/pkg/config"
 )
@@ -454,6 +455,28 @@ func TestStaticValidation(t *testing.T) {
 			},
 		},
 		{
+			name: "Works with pass, and Spec.Policy.FetchConfigFile",
+			policy: ClusterImagePolicy{
+				Spec: ClusterImagePolicySpec{
+					Images: []ImagePattern{
+						{
+							Glob: "globbityglob",
+						},
+					},
+					Authorities: []Authority{
+						{
+							Static: &StaticRef{Action: "pass"},
+						},
+					},
+					Policy: &Policy{
+						Type:            "cue",
+						Data:            `predicateType: "cosign.sigstore.dev/attestation/vuln/v1"`,
+						FetchConfigFile: ptr.Bool(true),
+					},
+				},
+			},
+		},
+		{
 			name: "Works with fail",
 			policy: ClusterImagePolicy{
 				Spec: ClusterImagePolicySpec{
@@ -753,6 +776,29 @@ func TestAuthoritiesValidation(t *testing.T) {
 					},
 				},
 			},
+		},
+		{
+			name: "Should fail with attestations policy specifying fetchConfigFile",
+			policy: ClusterImagePolicy{
+				Spec: ClusterImagePolicySpec{
+					Images: []ImagePattern{{Glob: "gcr.io/*"}},
+					Authorities: []Authority{
+						{
+							Key: &KeyRef{KMS: "kms://key/path"},
+							Attestations: []Attestation{
+								{Name: "first", PredicateType: "vuln"},
+								{Name: "second", PredicateType: "custom", Policy: &Policy{
+									Type:            "cue",
+									Data:            `predicateType: "cosign.sigstore.dev/attestation/vuln/v1"`,
+									FetchConfigFile: ptr.Bool(true),
+								},
+								},
+							},
+						},
+					},
+				},
+			},
+			errorString: "must not set the field(s): spec.authorities[0].attestations.policy.fetchConfigFile",
 		},
 		{
 			name:        "Should fail with signaturePullSecret name empty",

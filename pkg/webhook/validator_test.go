@@ -1726,7 +1726,11 @@ func TestValidatePolicy(t *testing.T) {
 			if test.customContext != nil {
 				testContext = test.customContext
 			}
-			got, gotErrs := ValidatePolicy(testContext, system.Namespace(), digest, test.policy)
+			kc, err := k8schain.NewNoClient(testContext)
+			if err != nil {
+				t.Fatalf("Failed to construct no client k8schain for testing")
+			}
+			got, gotErrs := ValidatePolicy(testContext, system.Namespace(), digest, test.policy, kc)
 			validateErrors(t, test.wantErrs, gotErrs)
 			if !reflect.DeepEqual(test.want, got) {
 				t.Errorf("unexpected PolicyResult, want: %+v got: %+v", test.want, got)
@@ -2592,9 +2596,14 @@ func TestValidatePolicyCancelled(t *testing.T) {
 			},
 		}},
 	}
+	kc, err := k8schain.NewNoClient(testContext)
+	if err != nil {
+		t.Fatalf("Failed to construct no client k8schain for testing")
+	}
+
 	wantErrs := []string{"context canceled before validation completed"}
 	cancelFunc()
-	_, gotErrs := ValidatePolicy(testContext, system.Namespace(), digest, cip)
+	_, gotErrs := ValidatePolicy(testContext, system.Namespace(), digest, cip, kc)
 	validateErrors(t, wantErrs, gotErrs)
 }
 
@@ -2621,9 +2630,13 @@ func TestValidatePoliciesCancelled(t *testing.T) {
 			},
 		}},
 	}
+	kc, err := k8schain.NewNoClient(testContext)
+	if err != nil {
+		t.Fatalf("Failed to construct no client k8schain for testing")
+	}
 	wantErrs := []string{"context was canceled before validation completed"}
 	cancelFunc()
-	_, gotErrs := validatePolicies(testContext, system.Namespace(), digest, map[string]webhookcip.ClusterImagePolicy{"testcip": cip})
+	_, gotErrs := validatePolicies(testContext, system.Namespace(), digest, map[string]webhookcip.ClusterImagePolicy{"testcip": cip}, kc)
 	validateErrors(t, wantErrs, gotErrs["internalerror"])
 }
 

@@ -15,6 +15,10 @@
 
 package webhook
 
+import (
+	v1 "github.com/google/go-containerregistry/pkg/v1"
+)
+
 // PolicyResult is the result of a successful ValidatePolicy call.
 // These are meant to be consumed by a higher level Policy engine that
 // can reason about validated results. The 'first' level pass will verify
@@ -33,6 +37,18 @@ type PolicyResult struct {
 	// AuthorityMatches will have an entry for each successful Authority check
 	// on it. Key in the map is the Attestation.Name
 	AuthorityMatches map[string]AuthorityMatch `json:"authorityMatches,omitempty"`
+
+	// Config contains the Config for each of the normalized os/architectures
+	// where key to the map is the {OS}/{Architecture}[/{Variant}]
+	//
+	// Some examples are:
+	// linux/arm64
+	// linux/arm/v7
+	// linux/arm/v6
+	//
+	// This field is only available for evaluation if
+	// CIP.Spec.Policy.FetchConfigFile is set to true.
+	Config map[string]*v1.ConfigFile `json:"config,omitempty"`
 }
 
 // AuthorityMatch returns either Signatures (if there are no Attestations

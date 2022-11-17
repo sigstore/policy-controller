@@ -159,7 +159,7 @@ func main() {
 		log.Fatalf("Image does not match any of the provided globs")
 	}
 
-	result, errs := webhook.ValidatePolicy(ctx, ns, ref, *cip, remoteOpts...)
+	result, errs := webhook.ValidatePolicy(ctx, ns, ref, *cip, authn.DefaultKeychain, remoteOpts...)
 	errStrings := []string{}
 	warningStrings := []string{}
 	for _, err := range errs {

@@ -30,6 +30,7 @@ jobs:
     runs-on: ubuntu-latest
 
     strategy:
+      fail-fast: false # Keep running if one leg fails.
       matrix:
         k8s-version:
         - v1.23.x
@@ -42,6 +43,7 @@ jobs:
         - cluster_with_scalable
         - cluster_image_policy_with_warn
         - cluster_image_policy_with_source
+        - cluster_image_policy_with_config_file
 
     env:
       KO_DOCKER_REPO: "registry.local:5000/policy-controller"

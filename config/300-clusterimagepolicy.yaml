@@ -79,6 +79,9 @@ spec:
                                 data:
                                   description: Data contains the policy definition.
                                   type: string
+                                fetchConfigFile:
+                                  description: 'FetchConfigFile controls whether ConfigFile will be fetched and made available for CIP level policy evaluation. Note that this only gets evaluated (and hence fetched) iff at least one authority matches. The ConfigFile will then be available in this format: https://github.com/opencontainers/image-spec/blob/main/config.md'
+                                  type: boolean
                                 type:
                                   description: Which kind of policy this is, currently only rego or cue are supported. Furthermore, only cue is tested :)
                                   type: string
@@ -259,6 +262,9 @@ spec:
                     data:
                       description: Data contains the policy definition.
                       type: string
+                    fetchConfigFile:
+                      description: 'FetchConfigFile controls whether ConfigFile will be fetched and made available for CIP level policy evaluation. Note that this only gets evaluated (and hence fetched) iff at least one authority matches. The ConfigFile will then be available in this format: https://github.com/opencontainers/image-spec/blob/main/config.md'
+                      type: boolean
                     type:
                       description: Which kind of policy this is, currently only rego or cue are supported. Furthermore, only cue is tested :)
                       type: string
@@ -308,6 +314,9 @@ spec:
                                   type: string
                                 url:
                                   type: string
+                                fetchConfigFile:
+                                  description: 'FetchConfigFile controls whether ConfigFile will be fetched and made available for CIP level policy evaluation. Note that this only gets evaluated (and hence fetched) iff at least one authority matches. The ConfigFile will then be available in this format: https://github.com/opencontainers/image-spec/blob/main/config.md'
+                                  type: boolean
                             predicateType:
                               description: Which predicate type to verify. Matches cosign verify-attestation options.
                               type: string
@@ -464,6 +473,9 @@ spec:
                           type: string
                     data:
                       type: string
+                    fetchConfigFile:
+                      description: 'FetchConfigFile controls whether ConfigFile will be fetched and made available for CIP level policy evaluation. Note that this only gets evaluated (and hence fetched) iff at least one authority matches. The ConfigFile will then be available in this format: https://github.com/opencontainers/image-spec/blob/main/config.md'
+                      type: boolean
                     type:
                       description: Which kind of policy this is, currently only rego or cue are supported. Furthermore, only cue is tested :)
                       type: string
