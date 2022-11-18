@@ -33,6 +33,18 @@ const (
 MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAExB6+H6054/W1SJgs5JR6AJr6J35J
 RCTfQ5s1kD+hGMSE1rH7s46hmXEeyhnlRnaGF8eMU/SBJE/2NKPnxE7WzQ==
 -----END PUBLIC KEY-----`
+
+	inlineCertChainData = `-----BEGIN CERTIFICATE-----
+MIIBlDCCATqgAwIBAgIUVBUQbKk4hXkJLymOto2zvNevxFcwCgYIKoZIzj0EAwIw
+KDEOMAwGA1UEChMFbG9jYWwxFjAUBgNVBAMTDVRlc3QgVFNBIFJvb3QwHhcNMjIx
+MTE1MDk0MjA1WhcNMzIxMTE1MDk0NzA1WjAoMQ4wDAYDVQQKEwVsb2NhbDEWMBQG
+A1UEAxMNVGVzdCBUU0EgUm9vdDBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABJ5r
+WF3Ekm8JIlkK7eP4yyRNwg0l7dY7t1d1LqOFcVTWM5SFKd05adRs1AsQjlTJdbc/
+ng3RsOqUlLFO2y1uFg+jQjBAMA4GA1UdDwEB/wQEAwIBBjAPBgNVHRMBAf8EBTAD
+AQH/MB0GA1UdDgQWBBTSaZv+u66BhFP1v7xLHHOR/Pp3ijAKBggqhkjOPQQDAgNI
+ADBFAiBssoexiq0ZklYXJ9sgzSHxs8rHT/tR8KqCW4/NWeS4TwIhAJUDEvDpN6GD
+V93FwIsiH5h/YoYv8dJhN9SRNhuP8k6A
+-----END CERTIFICATE-----`
 )
 
 func TestDefaultsConfigurationFromFile(t *testing.T) {
@@ -95,7 +107,7 @@ func TestGetAuthorities(t *testing.T) {
 	if got := getAuthority(t, c, matchedPolicy).Keyless.Identities[0].Subject; got != want {
 		t.Errorf("Did not get what I wanted %q, got %+v", want, got)
 	}
-	want = inlineKeyData
+	want = inlineCertChainData
 	if got := getAuthority(t, c, matchedPolicy).RFC3161Timestamp.CertChain.Data; got != want {
 		t.Errorf("Did not get what I wanted %q, got %+v", want, got)
 	}

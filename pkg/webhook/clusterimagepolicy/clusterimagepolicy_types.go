@@ -92,7 +92,7 @@ type RFC3161Timestamp struct {
 	// TODO: Rename this to leaf certificate only...
 	// CertChain sets a reference to certificate chain used for verification
 	// +optional
-	CertChain *KeyRef `json:"cert-chain,omitempty"`
+	CertChain *CertChainRef `json:"cert-chain,omitempty"`
 }
 
 // This references a public verification key stored in
@@ -112,6 +112,21 @@ type KeyRef struct {
 	// errors for *big.Int
 	// +optional
 	PublicKeys []crypto.PublicKey `json:"-"`
+}
+
+// This references a certificate chain verification stored in
+// a secret in the cosign-system namespace.
+type CertChainRef struct {
+	// Data contains the inline public key
+	// +optional
+	Data string `json:"data,omitempty"`
+	// HashAlgorithm always defaults to sha256 if the algorithm hasn't been explicitly set
+	// +optional
+	HashAlgorithm string `json:"hashAlgorithm,omitempty"`
+	// HashAlgorithmCode sets the crypto.Hash code based on the value of HashAlgorithm.
+	// HashAlgorithmCode is not marshalled, but we use the calculated crypto.Hash in the validations
+	// +optional
+	HashAlgorithmCode crypto.Hash `json:"-"`
 }
 
 type KeylessRef struct {
@@ -139,6 +154,38 @@ type AttestationPolicy struct {
 	Data string `json:"data,omitempty"`
 }
 
+// UnmarshalJSON populates the certificate chain using Data because
+// JSON unmashalling errors for *big.Int
+func (k *CertChainRef) UnmarshalJSON(data []byte) error {
+	var err error
+
+	ret := make(map[string]string)
+	if err = json.Unmarshal(data, &ret); err != nil {
+		return err
+	}
+
+	k.Data = ret["data"]
+	k.HashAlgorithmCode = crypto.SHA256
+	k.HashAlgorithm = signaturealgo.DefaultSignatureAlgorithm
+	if ret["hashAlgorithm"] != "" {
+		k.HashAlgorithm = ret["hashAlgorithm"]
+		k.HashAlgorithmCode, err = signaturealgo.HashAlgorithm(ret["hashAlgorithm"])
+		if err != nil {
+			return err
+		}
+	}
+
+	if ret["data"] != "" {
+		tsaCertPool := x509.NewCertPool()
+		ok := tsaCertPool.AppendCertsFromPEM([]byte(ret["data"]))
+		if !ok {
+			return fmt.Errorf("failed appending the certificate chain from PEM %w: XXX %v", err, ret["data"])
+		}
+	}
+
+	return nil
+}
+
 // UnmarshalJSON populates the PublicKeys using Data because
 // JSON unmashalling errors for *big.Int
 func (k *KeyRef) UnmarshalJSON(data []byte) error {
@@ -164,14 +211,7 @@ func (k *KeyRef) UnmarshalJSON(data []byte) error {
 	if ret["data"] != "" {
 		publicKey, err := cryptoutils.UnmarshalPEMToPublicKey([]byte(ret["data"]))
 		if err != nil {
-			// FIXME: change this implementation temporary
-			tsaCertPool := x509.NewCertPool()
-			ok := tsaCertPool.AppendCertsFromPEM([]byte(ret["data"]))
-			if !ok {
-				return fmt.Errorf("failed to failed appending certs from PEM %w", err)
-			}
-			k.PublicKeys = publicKeys
-			return nil
+			return fmt.Errorf("failed to unmarshal the key from PEM %w", err)
 		}
 		publicKeys = append(publicKeys, publicKey)
 	}
@@ -292,7 +332,7 @@ func convertRFC3161TimestampV1Alpha1ToWebhook(in *v1alpha1.RFC3161Timestamp) *RF
 		return nil
 	}
 
-	certKeyRef := convertKeyRefV1Alpha1ToWebhook(in.CertChain)
+	certKeyRef := convertCertChainRefV1Alpha1ToWebhook(in.CertChain)
 
 	return &RFC3161Timestamp{
 		CertChain: certKeyRef,
@@ -313,6 +353,26 @@ func convertAttestationsV1Alpha1ToWebhook(in []v1alpha1.Attestation) []Attestati
 		ret = append(ret, outAtt)
 	}
 	return ret
+}
+
+func convertCertChainRefV1Alpha1ToWebhook(in *v1alpha1.KeyRef) *CertChainRef {
+	if in == nil {
+		return nil
+	}
+	// Convert the hash algorithm name to the code and reuse it everywhere else
+	algorithmCode := crypto.SHA256
+	algorithm := signaturealgo.DefaultSignatureAlgorithm
+	if in.HashAlgorithm != "" {
+		algorithm = in.HashAlgorithm
+		// Ignore the error. It was already validated by the validation webhook
+		algorithmCode, _ = signaturealgo.HashAlgorithm(in.HashAlgorithm) // nolint: staticcheck
+	}
+
+	return &CertChainRef{
+		Data:              in.Data,
+		HashAlgorithm:     algorithm,
+		HashAlgorithmCode: algorithmCode,
+	}
 }
 
 func convertKeyRefV1Alpha1ToWebhook(in *v1alpha1.KeyRef) *KeyRef {

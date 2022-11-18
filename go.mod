@@ -39,15 +39,14 @@ require (
 	github.com/oklog/run v1.1.0
 	github.com/pierrec/lz4 v2.6.1+incompatible
 	github.com/ryanuber/go-glob v1.0.0
-	github.com/sigstore/cosign v1.13.2-0.20221117002426-6b309df06f60
+	github.com/sigstore/cosign v1.13.2-0.20221118112137-54bcfc6094c5
 	github.com/sigstore/rekor v1.0.1
 	github.com/sigstore/sigstore v1.4.5
-	github.com/sigstore/timestamp-authority v0.1.3-0.20221114113831-cf271cea5d83
 	github.com/stretchr/testify v1.8.1
 	github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399
 	go.uber.org/atomic v1.10.0
 	go.uber.org/zap v1.23.0
-	golang.org/x/crypto v0.2.0
+	golang.org/x/crypto v0.3.0
 	golang.org/x/net v0.2.0
 	golang.org/x/sys v0.2.0
 	golang.org/x/time v0.2.0
@@ -219,6 +218,7 @@ require (
 	github.com/sassoftware/relic v0.0.0-20210427151427-dfb082b79b74 // indirect
 	github.com/secure-systems-lab/go-securesystemslib v0.4.0 // indirect
 	github.com/shibumi/go-pathspec v1.3.0 // indirect
+	github.com/sigstore/timestamp-authority v0.1.3-0.20221114113831-cf271cea5d83 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/spf13/afero v1.9.2 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
@@ -272,5 +272,3 @@ require (
 // TODO: this dependency causes issues on webhook startup due
 // to conflicting "log_dir" flags between this and klog (knative)
 replace github.com/golang/glog => github.com/jdolitsky/glog v0.0.0-20220729172235-78744e90d087
-
-replace github.com/sigstore/cosign => github.com/hectorj2f/cosign v0.6.1-0.20221117123237-2797e6b33140
