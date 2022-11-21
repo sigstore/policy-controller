@@ -95,7 +95,6 @@ spec:
   policy:
     type: cue
     data: |
-      package sigstore
       import "struct"
       import "list"
       authorityMatches: {

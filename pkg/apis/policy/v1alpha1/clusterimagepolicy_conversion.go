@@ -67,6 +67,12 @@ func (spec *ClusterImagePolicySpec) ConvertTo(ctx context.Context, sink *v1beta1
 		}
 		sink.Match = append(sink.Match, v1beta1Match)
 	}
+	if spec.Policy != nil {
+		sink.Policy = &v1beta1.Policy{
+			Type: spec.Policy.Type,
+			Data: spec.Policy.Data,
+		}
+	}
 	sink.Mode = spec.Mode
 	return nil
 }
@@ -164,6 +170,12 @@ func (spec *ClusterImagePolicySpec) ConvertFrom(ctx context.Context, source *v1b
 		spec.Match = append(spec.Match, matchResource)
 	}
 	spec.Mode = source.Mode
+	if source.Policy != nil {
+		spec.Policy = &Policy{
+			Type: source.Policy.Type,
+			Data: source.Policy.Data,
+		}
+	}
 	return nil
 }
 

@@ -164,6 +164,28 @@ func TestConversionRoundTripV1beta1(t *testing.T) {
 				},
 			},
 		},
+	}, {name: "key, keyless, and static, regexp, policy",
+		in: &v1beta1.ClusterImagePolicy{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "test-cip",
+			},
+			Spec: v1beta1.ClusterImagePolicySpec{
+				Images: []v1beta1.ImagePattern{{Glob: "*"}},
+				Authorities: []v1beta1.Authority{
+					{Key: &v1beta1.KeyRef{
+						SecretRef: &v1.SecretReference{Name: "mysecret"}}},
+					{Keyless: &v1beta1.KeylessRef{
+						Identities: []v1beta1.Identity{{SubjectRegExp: "subjectregexp", IssuerRegExp: "issuerregexp"}},
+						CACert:     &v1beta1.KeyRef{KMS: "kms", Data: "data", SecretRef: &v1.SecretReference{Name: "secret"}},
+					}},
+					{Static: &v1beta1.StaticRef{Action: "pass"}},
+				},
+				Policy: &v1beta1.Policy{
+					Type: "cue",
+					Data: "cue language goes here",
+				},
+			},
+		},
 	}}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
