@@ -67,7 +67,7 @@ sleep 5
 echo '::endgroup::'
 
 echo '::group:: test job success'
-# We signed this above, this should work
+# This one should pass since the User is what we specified in the CIP policy.
 if ! kubectl create -n ${NS} job demo --image=${demoimage} ; then
   echo Failed to create Job in namespace with valid CIP policy!
   exit 1
