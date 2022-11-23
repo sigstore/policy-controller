@@ -48,8 +48,22 @@ kubectl label namespace demo-config-file policy.sigstore.dev/include=true
 export NS=demo-config-file
 echo '::endgroup::'
 
+# Note that we put this in a for loop to make sure the webhook is actually
+# up and running before proceeding with the tests.
 echo '::group:: Deploy ClusterImagePolicy with config file that should fail'
-kubectl apply -f ./test/testdata/policy-controller/e2e/cip-config-file-policy-fails.yaml
+for i in {1..10}
+do
+  if kubectl apply -f ./test/testdata/policy-controller/e2e/cip-config-file-policy-fails.yaml ; then
+    echo successfully applied failing CIP
+    break
+  fi
+  if [ "$i" == 10 ]; then
+    echo failed to apply failing CIP
+    exit 1
+  fi
+  echo failed to apply failing CIP. Attempt numer "$i", retrying
+  sleep 2
+done
 # allow things to propagate
 sleep 5
 echo '::endgroup::'
