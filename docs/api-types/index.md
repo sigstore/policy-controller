@@ -78,7 +78,7 @@ ClusterImagePolicySpec defines a list of images that should be verified
 | Field | Description | Scheme | Required |
 | ----- | ----------- | ------ | -------- |
 | images | Images defines the patterns of image names that should be subject to this policy. | [][ImagePattern](#imagepattern) | true |
-| authorities | Authorities defines the rules for discovering and validating signatures. | [][Authority](#authority) | true |
+| authorities | Authorities defines the rules for discovering and validating signatures. | [][Authority](#authority) | false |
 | policy | Policy is an optional policy that can be applied against all the successfully validated Authorities. If no authorities pass, this does not even get evaluated, as the Policy is considered failed. | [Policy](#policy) | false |
 | mode | Mode controls whether a failing policy will be rejected (not admitted), or if errors are converted to Warnings. enforce - Reject (default) warn - allow but warn | string | false |
 | match | Match allows selecting resources based on their properties. | [][MatchResource](#matchresource) | false |

@@ -21,6 +21,7 @@ import (
 	"fmt"
 
 	"github.com/google/go-containerregistry/pkg/authn/k8schain"
+	"github.com/google/go-containerregistry/pkg/authn/kubernetes"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	ociremote "github.com/sigstore/cosign/pkg/oci/remote"
@@ -200,9 +201,11 @@ func (a *Authority) SourceSignaturePullSecretsOpts(ctx context.Context, namespac
 				signaturePullSecrets = append(signaturePullSecrets, s.Name)
 			}
 
+			// Use NoServiceAccount when setting a signaturePullSecrets to avoid unnecessary API calls.
 			opt := k8schain.Options{
-				Namespace:        namespace,
-				ImagePullSecrets: signaturePullSecrets,
+				Namespace:          namespace,
+				ServiceAccountName: kubernetes.NoServiceAccount,
+				ImagePullSecrets:   signaturePullSecrets,
 			}
 
 			kc, err := k8schain.New(ctx, kubeclient.Get(ctx), opt)

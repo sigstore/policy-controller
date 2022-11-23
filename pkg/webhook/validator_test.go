@@ -533,7 +533,7 @@ func TestValidatePodSpec(t *testing.T) {
 		}(),
 		cvs: fail,
 	}, {
-		name: "simple, error, authority source signaturePullSecrets, non existing secret",
+		name: "simple, no error, authority source signaturePullSecrets, non existing secret",
 		ps: &corev1.PodSpec{
 			InitContainers: []corev1.Container{{
 				Name:  "setup-stuff",
@@ -573,19 +573,7 @@ func TestValidatePodSpec(t *testing.T) {
 				},
 			},
 		),
-		want: func() *apis.FieldError {
-			var errs *apis.FieldError
-			fe := apis.ErrGeneric("failed policy: cluster-image-policy", "image").ViaFieldIndex("initContainers", 0)
-			fe.Details = fmt.Sprintf("%s secrets \"non-existing-secret\" not found", digest.String())
-			errs = errs.Also(fe)
-
-			fe2 := apis.ErrGeneric("failed policy: cluster-image-policy", "image").ViaFieldIndex("containers", 0)
-			fe2.Details = fmt.Sprintf("%s secrets \"non-existing-secret\" not found", digest.String())
-			errs = errs.Also(fe2)
-
-			return errs
-		}(),
-		cvs: fail,
+		cvs: pass,
 	}, {
 		name: "simple, no error, authority source signaturePullSecrets, valid secret",
 		ps: &corev1.PodSpec{
@@ -823,7 +811,7 @@ func TestValidateCronJob(t *testing.T) {
 		want *apis.FieldError
 		cvs  func(context.Context, name.Reference, *cosign.CheckOpts) ([]oci.Signature, bool, error)
 	}{{
-		name: "k8schain error (bad service account)",
+		name: "k8schain ignore (bad service account)",
 		c: &duckv1.CronJob{
 			Spec: batchv1.CronJobSpec{
 				JobTemplate: batchv1.JobTemplateSpec{
@@ -845,12 +833,8 @@ func TestValidateCronJob(t *testing.T) {
 				},
 			},
 		},
-		want: &apis.FieldError{
-			Message: `serviceaccounts "not-found" not found`,
-			Paths:   []string{"spec.jobTemplate.spec.template.spec"},
-		},
 	}, {
-		name: "k8schain error (bad pull secret)",
+		name: "k8schain ignore (bad pull secret)",
 		c: &duckv1.CronJob{
 			Spec: batchv1.CronJobSpec{
 				JobTemplate: batchv1.JobTemplateSpec{
@@ -873,10 +857,6 @@ func TestValidateCronJob(t *testing.T) {
 					},
 				},
 			},
-		},
-		want: &apis.FieldError{
-			Message: `secrets "not-found" not found`,
-			Paths:   []string{"spec.jobTemplate.spec.template.spec"},
 		},
 	}, {
 		name: "bad reference",
@@ -2239,19 +2219,7 @@ func TestValidatePodSpecNonDefaultNamespace(t *testing.T) {
 				},
 			},
 		),
-		want: func() *apis.FieldError {
-			var errs *apis.FieldError
-			fe := apis.ErrGeneric("failed policy: cluster-image-policy", "image").ViaFieldIndex("initContainers", 0)
-			fe.Details = fmt.Sprintf("%s secrets \"non-existing-secret\" not found", digest.String())
-			errs = errs.Also(fe)
-
-			fe2 := apis.ErrGeneric("failed policy: cluster-image-policy", "image").ViaFieldIndex("containers", 0)
-			fe2.Details = fmt.Sprintf("%s secrets \"non-existing-secret\" not found", digest.String())
-			errs = errs.Also(fe2)
-
-			return errs
-		}(),
-		cvs: fail,
+		cvs: pass,
 	}, {
 		name: "simple, no error, authority source signaturePullSecrets, valid secret",
 		ps: &corev1.PodSpec{
