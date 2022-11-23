@@ -55,10 +55,17 @@ rules:
     resources: ["customresourcedefinitions"]
     verbs: ["get", "update"]
     resourceNames: ["clusterimagepolicies.policy.sigstore.dev"]
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources: ["customresourcedefinitions"]
+    verbs: ["get", "update"]
+    resourceNames: ["trustroots.policy.sigstore.dev"]
 
-  # Allow reconciliation of the ClusterImagePolic CRDs.
+  # Allow reconciliation of the ClusterImagePolicy and TrustRoot CRDs.
   - apiGroups: ["policy.sigstore.dev"]
     resources: ["clusterimagepolicies"]
+    verbs: ["get", "list", "update", "watch", "patch"]
+  - apiGroups: ["policy.sigstore.dev"]
+    resources: ["trustroots"]
     verbs: ["get", "list", "update", "watch", "patch"]
 
   # This is needed by k8schain to support fetching pull secrets attached to pod specs

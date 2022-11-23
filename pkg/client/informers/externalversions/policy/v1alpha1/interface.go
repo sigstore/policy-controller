@@ -24,6 +24,8 @@ import (
 type Interface interface {
 	// ClusterImagePolicies returns a ClusterImagePolicyInformer.
 	ClusterImagePolicies() ClusterImagePolicyInformer
+	// TrustRoots returns a TrustRootInformer.
+	TrustRoots() TrustRootInformer
 }
 
 type version struct {
@@ -40,4 +42,9 @@ func New(f internalinterfaces.SharedInformerFactory, namespace string, tweakList
 // ClusterImagePolicies returns a ClusterImagePolicyInformer.
 func (v *version) ClusterImagePolicies() ClusterImagePolicyInformer {
 	return &clusterImagePolicyInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
+}
+
+// TrustRoots returns a TrustRootInformer.
+func (v *version) TrustRoots() TrustRootInformer {
+	return &trustRootInformer{factory: v.factory, tweakListOptions: v.tweakListOptions}
 }

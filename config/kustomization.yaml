@@ -23,6 +23,7 @@ resources:
   - 201-rolebinding.yaml
   - 201-clusterrolebinding.yaml
   - 300-clusterimagepolicy.yaml
+  - 300-trustroot.yaml
   - 400-webhook-service.yaml
   - 500-webhook-configuration.yaml
   - 501-policy-webhook-configurations.yaml
@@ -30,4 +31,5 @@ resources:
   - config-logging.yaml
   - config-leader-election.yaml
   - config-image-policies.yaml
+  - config-sigstore-keys.yaml
   - config-policy-controller.yaml

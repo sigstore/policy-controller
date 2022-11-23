@@ -238,6 +238,133 @@ func (w *wrapPolicyV1alpha1ClusterImagePolicyImpl) Watch(ctx context.Context, op
 	return nil, errors.New("NYI: Watch")
 }
 
+func (w *wrapPolicyV1alpha1) TrustRoots() typedpolicyv1alpha1.TrustRootInterface {
+	return &wrapPolicyV1alpha1TrustRootImpl{
+		dyn: w.dyn.Resource(schema.GroupVersionResource{
+			Group:    "policy.sigstore.dev",
+			Version:  "v1alpha1",
+			Resource: "trustroots",
+		}),
+	}
+}
+
+type wrapPolicyV1alpha1TrustRootImpl struct {
+	dyn dynamic.NamespaceableResourceInterface
+}
+
+var _ typedpolicyv1alpha1.TrustRootInterface = (*wrapPolicyV1alpha1TrustRootImpl)(nil)
+
+func (w *wrapPolicyV1alpha1TrustRootImpl) Create(ctx context.Context, in *v1alpha1.TrustRoot, opts v1.CreateOptions) (*v1alpha1.TrustRoot, error) {
+	in.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "policy.sigstore.dev",
+		Version: "v1alpha1",
+		Kind:    "TrustRoot",
+	})
+	uo := &unstructured.Unstructured{}
+	if err := convert(in, uo); err != nil {
+		return nil, err
+	}
+	uo, err := w.dyn.Create(ctx, uo, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.TrustRoot{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapPolicyV1alpha1TrustRootImpl) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
+	return w.dyn.Delete(ctx, name, opts)
+}
+
+func (w *wrapPolicyV1alpha1TrustRootImpl) DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error {
+	return w.dyn.DeleteCollection(ctx, opts, listOpts)
+}
+
+func (w *wrapPolicyV1alpha1TrustRootImpl) Get(ctx context.Context, name string, opts v1.GetOptions) (*v1alpha1.TrustRoot, error) {
+	uo, err := w.dyn.Get(ctx, name, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.TrustRoot{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapPolicyV1alpha1TrustRootImpl) List(ctx context.Context, opts v1.ListOptions) (*v1alpha1.TrustRootList, error) {
+	uo, err := w.dyn.List(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.TrustRootList{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapPolicyV1alpha1TrustRootImpl) Patch(ctx context.Context, name string, pt types.PatchType, data []byte, opts v1.PatchOptions, subresources ...string) (result *v1alpha1.TrustRoot, err error) {
+	uo, err := w.dyn.Patch(ctx, name, pt, data, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.TrustRoot{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapPolicyV1alpha1TrustRootImpl) Update(ctx context.Context, in *v1alpha1.TrustRoot, opts v1.UpdateOptions) (*v1alpha1.TrustRoot, error) {
+	in.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "policy.sigstore.dev",
+		Version: "v1alpha1",
+		Kind:    "TrustRoot",
+	})
+	uo := &unstructured.Unstructured{}
+	if err := convert(in, uo); err != nil {
+		return nil, err
+	}
+	uo, err := w.dyn.Update(ctx, uo, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.TrustRoot{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapPolicyV1alpha1TrustRootImpl) UpdateStatus(ctx context.Context, in *v1alpha1.TrustRoot, opts v1.UpdateOptions) (*v1alpha1.TrustRoot, error) {
+	in.SetGroupVersionKind(schema.GroupVersionKind{
+		Group:   "policy.sigstore.dev",
+		Version: "v1alpha1",
+		Kind:    "TrustRoot",
+	})
+	uo := &unstructured.Unstructured{}
+	if err := convert(in, uo); err != nil {
+		return nil, err
+	}
+	uo, err := w.dyn.UpdateStatus(ctx, uo, opts)
+	if err != nil {
+		return nil, err
+	}
+	out := &v1alpha1.TrustRoot{}
+	if err := convert(uo, out); err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (w *wrapPolicyV1alpha1TrustRootImpl) Watch(ctx context.Context, opts v1.ListOptions) (watch.Interface, error) {
+	return nil, errors.New("NYI: Watch")
+}
+
 // PolicyV1beta1 retrieves the PolicyV1beta1Client
 func (w *wrapClient) PolicyV1beta1() typedpolicyv1beta1.PolicyV1beta1Interface {
 	return &wrapPolicyV1beta1{

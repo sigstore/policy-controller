@@ -1,0 +1,144 @@
+# Copyright 2022 The Sigstore Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     https://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+apiVersion: apiextensions.k8s.io/v1
+kind: CustomResourceDefinition
+metadata:
+  name: trustroots.policy.sigstore.dev
+spec:
+  conversion:
+    strategy: None
+  group: policy.sigstore.dev
+  names:
+    kind: TrustRoot
+    plural: trustroots
+    singular: trustroot
+    categories:
+      - all
+      - sigstore
+  scope: Cluster
+  versions:
+    - name: v1alpha1
+      served: true
+      storage: true
+      schema:
+        openAPIV3Schema:
+          type: object
+          properties:
+            spec:
+              description: Spec is the definition for a trust root. This is either a TUF root and remote or local repository. You can also bring your own keys/certs here.
+              type: object
+              properties:
+                remote:
+                  description: Remote specifies initial root of trust & remote mirror.
+                  type: object
+                  properties:
+                    mirror:
+                      description: 'Mirror is the remote mirror, for example: https://sigstore-tuf-root.storage.googleapis.com'
+                      type: string
+                    root:
+                      description: Root is the json encoded trusted initial root.
+                      type: string
+                repository:
+                  description: Repository contains the serialized TUF remote repository.
+                  type: object
+                  properties:
+                    mirrorFS:
+                      description: MirrorFS is the base64 tarred, gzipped, and base64 encoded remote repository that can be used for example in air-gap environments. Will not make outbound network connections, and must then be kept up to date in some other manner. The repository must contain metadata as well as targets.
+                      type: string
+                    root:
+                      description: Root is the json encoded trusted initial root.
+                      type: string
+                    targets:
+                      description: Targets is where the targets live off of the root of the Repository above. If not specified 'targets' is defaulted.
+                      type: string
+                sigstoreKeys:
+                  description: SigstoreKeys contains the serialized keys.
+                  type: object
+                  properties:
+                    certificateAuthority:
+                      description: Trusted certificate authorities (e.g Fulcio).
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          certChain:
+                            description: The certificate chain for this CA in PEM format. Last entry in this chain is the Root certificate.
+                            type: string
+                          subject:
+                            description: The root certificate MUST be self-signed, and so the subject and issuer are the same.
+                            type: object
+                            properties:
+                              commonName:
+                                type: string
+                              organization:
+                                type: string
+                          uri:
+                            description: The URI at which the CA can be accessed.
+                            type: string
+                    ctLog:
+                      description: Certificate Transparency Log
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          baseURL:
+                            description: The base URL which can be used for URLs for clients.
+                            type: string
+                          hashAlgorithm:
+                            description: / The hash algorithm used for the Merkle Tree
+                            type: string
+                          logID:
+                            description: The unique identifier for this transparency log.
+                            type: string
+                          publicKey:
+                            description: PEM encoded public key
+                            type: string
+                    tLog:
+                      description: Rekor log specifications
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          baseURL:
+                            description: The base URL which can be used for URLs for clients.
+                            type: string
+                          hashAlgorithm:
+                            description: / The hash algorithm used for the Merkle Tree
+                            type: string
+                          logID:
+                            description: The unique identifier for this transparency log.
+                            type: string
+                          publicKey:
+                            description: PEM encoded public key
+                            type: string
+                    timestampAuthorities:
+                      description: Trusted timestamping authorities
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          certChain:
+                            description: The certificate chain for this CA in PEM format. Last entry in this chain is the Root certificate.
+                            type: string
+                          subject:
+                            description: The root certificate MUST be self-signed, and so the subject and issuer are the same.
+                            type: object
+                            properties:
+                              commonName:
+                                type: string
+                              organization:
+                                type: string
+                          uri:
+                            description: The URI at which the CA can be accessed.
+                            type: string

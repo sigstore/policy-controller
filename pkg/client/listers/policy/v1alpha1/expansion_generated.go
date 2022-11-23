@@ -19,3 +19,7 @@ package v1alpha1
 // ClusterImagePolicyListerExpansion allows custom methods to be added to
 // ClusterImagePolicyLister.
 type ClusterImagePolicyListerExpansion interface{}
+
+// TrustRootListerExpansion allows custom methods to be added to
+// TrustRootLister.
+type TrustRootListerExpansion interface{}

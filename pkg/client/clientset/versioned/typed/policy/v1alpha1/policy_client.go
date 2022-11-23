@@ -27,6 +27,7 @@ import (
 type PolicyV1alpha1Interface interface {
 	RESTClient() rest.Interface
 	ClusterImagePoliciesGetter
+	TrustRootsGetter
 }
 
 // PolicyV1alpha1Client is used to interact with features provided by the policy.sigstore.dev group.
@@ -36,6 +37,10 @@ type PolicyV1alpha1Client struct {
 
 func (c *PolicyV1alpha1Client) ClusterImagePolicies() ClusterImagePolicyInterface {
 	return newClusterImagePolicies(c)
+}
+
+func (c *PolicyV1alpha1Client) TrustRoots() TrustRootInterface {
+	return newTrustRoots(c)
 }
 
 // NewForConfig creates a new PolicyV1alpha1Client for the given config.

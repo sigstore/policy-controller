@@ -30,6 +30,10 @@ func (c *FakePolicyV1alpha1) ClusterImagePolicies() v1alpha1.ClusterImagePolicyI
 	return &FakeClusterImagePolicies{c}
 }
 
+func (c *FakePolicyV1alpha1) TrustRoots() v1alpha1.TrustRootInterface {
+	return &FakeTrustRoots{c}
+}
+
 // RESTClient returns a RESTClient that is used to communicate
 // with API server by this client implementation.
 func (c *FakePolicyV1alpha1) RESTClient() rest.Interface {

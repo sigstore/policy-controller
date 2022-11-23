@@ -40,6 +40,7 @@ import (
 	"github.com/sigstore/policy-controller/pkg/apis/policy/v1beta1"
 	"github.com/sigstore/policy-controller/pkg/config"
 	"github.com/sigstore/policy-controller/pkg/reconciler/clusterimagepolicy"
+	"github.com/sigstore/policy-controller/pkg/reconciler/trustroot"
 
 	// Register the provider-specific plugins
 	_ "github.com/sigstore/sigstore/pkg/signature/kms/aws"
@@ -74,6 +75,7 @@ var (
 var types = map[schema.GroupVersionKind]resourcesemantics.GenericCRD{
 	// v1alpha1
 	v1alpha1.SchemeGroupVersion.WithKind("ClusterImagePolicy"): &v1alpha1.ClusterImagePolicy{},
+	v1alpha1.SchemeGroupVersion.WithKind("TrustRoot"):          &v1alpha1.TrustRoot{},
 	// v1beta1
 	v1beta1.SchemeGroupVersion.WithKind("ClusterImagePolicy"): &v1beta1.ClusterImagePolicy{},
 }
@@ -103,6 +105,7 @@ func main() {
 	// This calls flag.Parse()
 	sharedmain.MainWithContext(ctx, "clusterimagepolicy",
 		certificates.NewController,
+		trustroot.NewController,
 		clusterimagepolicy.NewController,
 		NewPolicyValidatingAdmissionController,
 		NewPolicyMutatingAdmissionController,
