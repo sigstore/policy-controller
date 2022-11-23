@@ -156,7 +156,7 @@ MatchResource allows selecting resources based on its version, group and resourc
 
 ## Policy
 
-Policy specifies a policy to use for Attestation validation. Exactly one of Data, URL, or ConfigMapReference must be specified.
+Policy specifies a policy to use for Attestation or the CIP validation (iff at least one authority matches). Exactly one of Data, URL, or ConfigMapReference must be specified.
 
 | Field | Description | Scheme | Required |
 | ----- | ----------- | ------ | -------- |
@@ -164,6 +164,7 @@ Policy specifies a policy to use for Attestation validation. Exactly one of Data
 | data | Data contains the policy definition. | string | false |
 | url | URL to the policy data. | apis.URL | false |
 | configMapRef | ConfigMapRef defines the reference to a configMap with the policy definition. | [ConfigMapReference](#configmapreference) | false |
+| fetchConfigFile | FetchConfigFile controls whether ConfigFile will be fetched and made available for CIP level policy evaluation. Note that this only gets evaluated (and hence fetched) iff at least one authority matches. The ConfigFile will then be available in this format: https://github.com/opencontainers/image-spec/blob/main/config.md | bool | false |
 
 [Back to TOC](#table-of-contents)
 

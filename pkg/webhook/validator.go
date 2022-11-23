@@ -22,7 +22,11 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/authn/k8schain"
+	v1 "github.com/google/go-containerregistry/pkg/v1"
+	"github.com/google/go-containerregistry/pkg/v1/types"
+
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/sigstore/cosign/pkg/cosign"
@@ -181,7 +185,7 @@ func (v *Validator) validatePodSpec(ctx context.Context, namespace, kind, apiVer
 					return
 				}
 
-				containerErrors := v.validateContainerImage(ctx, c.Image, namespace, field, i, kind, apiVersion, labels, ociremote.WithRemoteOptions(
+				containerErrors := v.validateContainerImage(ctx, c.Image, namespace, field, i, kind, apiVersion, labels, kc, ociremote.WithRemoteOptions(
 					remote.WithContext(ctx),
 					remote.WithAuthFromKeychain(kc),
 				))
@@ -221,7 +225,7 @@ func (v *Validator) validatePodSpec(ctx context.Context, namespace, kind, apiVer
 					return
 				}
 
-				containerErrors := v.validateContainerImage(ctx, c.Image, namespace, field, i, kind, apiVersion, labels, ociremote.WithRemoteOptions(
+				containerErrors := v.validateContainerImage(ctx, c.Image, namespace, field, i, kind, apiVersion, labels, kc, ociremote.WithRemoteOptions(
 					remote.WithContext(ctx),
 					remote.WithAuthFromKeychain(kc),
 				))
@@ -255,7 +259,7 @@ func (v *Validator) validatePodSpec(ctx context.Context, namespace, kind, apiVer
 // or error based on the NoMatchPolicy.
 func setNoMatchingPoliciesError(ctx context.Context, image, field string, index int) *apis.FieldError {
 	// Check what the configuration is and act accordingly.
-	pcConfig := policycontrollerconfig.FromContext(ctx)
+	pcConfig := policycontrollerconfig.FromContextOrDefaults(ctx)
 
 	noMatchingPolicyError := apis.ErrGeneric("no matching policies", "image").ViaFieldIndex(field, index)
 	noMatchingPolicyError.Details = image
@@ -286,7 +290,7 @@ func setNoMatchingPoliciesError(ctx context.Context, image, field string, index 
 // Note that if an image does not match any policies, it's perfectly
 // reasonable that the return value is 0, nil since there were no errors, but
 // the image was not validated against any matching policy and hence authority.
-func validatePolicies(ctx context.Context, namespace string, ref name.Reference, policies map[string]webhookcip.ClusterImagePolicy, remoteOpts ...ociremote.Option) (map[string]*PolicyResult, map[string][]error) {
+func validatePolicies(ctx context.Context, namespace string, ref name.Reference, policies map[string]webhookcip.ClusterImagePolicy, kc authn.Keychain, remoteOpts ...ociremote.Option) (map[string]*PolicyResult, map[string][]error) {
 	type retChannelType struct {
 		name         string
 		policyResult *PolicyResult
@@ -313,7 +317,7 @@ func validatePolicies(ctx context.Context, namespace string, ref name.Reference,
 			defer wg.Done()
 			result := retChannelType{name: cipName}
 
-			result.policyResult, result.errors = ValidatePolicy(ctx, namespace, ref, cip, remoteOpts...)
+			result.policyResult, result.errors = ValidatePolicy(ctx, namespace, ref, cip, kc, remoteOpts...)
 			// Cache the result.
 			FromContext(ctx).Set(ctx, ref.Name(), cipName, string(cip.UID), cip.ResourceVersion, &CacheResult{
 				PolicyResult: result.policyResult,
@@ -370,7 +374,9 @@ func asFieldError(warn bool, err error) *apis.FieldError {
 // Returns PolicyResult if one or more authorities matched, otherwise nil.
 // In any case returns all errors encountered if none of the authorities
 // passed.
-func ValidatePolicy(ctx context.Context, namespace string, ref name.Reference, cip webhookcip.ClusterImagePolicy, remoteOpts ...ociremote.Option) (*PolicyResult, []error) {
+// kc is the Keychain to use for fetching ConfigFile that's independent of the
+// signatures / attestations.
+func ValidatePolicy(ctx context.Context, namespace string, ref name.Reference, cip webhookcip.ClusterImagePolicy, kc authn.Keychain, remoteOpts ...ociremote.Option) (*PolicyResult, []error) {
 	// Check the cache and return if hit, otherwise, check the policy
 	cacheResult := FromContext(ctx).Get(ctx, ref.String(), string(cip.UID), cip.ResourceVersion)
 	if cacheResult != nil {
@@ -487,6 +493,26 @@ func ValidatePolicy(ctx context.Context, namespace string, ref name.Reference, c
 	// Ok, there's at least one valid authority that matched. If there's a CIP
 	// level policy, validate it here before returning.
 	if cip.Policy != nil {
+		if cip.Policy.FetchConfigFile != nil && *cip.Policy.FetchConfigFile {
+			logging.FromContext(ctx).Debug("Fetching ConfigFiles")
+			// It's unfortunate that we have to keep having the kc here. It
+			// would be nice if we could just unwrap/generate the ggcr remote
+			// options from the oci remote options, but for now this is how
+			// we're rolling.
+			rOpts := []remote.Option{
+				remote.WithContext(ctx),
+				remote.WithAuthFromKeychain(kc),
+			}
+			configFiles, errs := getConfigs(ctx, ref, rOpts...)
+			if len(errs) > 0 {
+				for _, e := range errs {
+					authorityErrors = append(authorityErrors, asFieldError(cip.Mode == "warn", e))
+				}
+				return nil, authorityErrors
+			}
+			policyResult.Config = configFiles
+		}
+
 		logging.FromContext(ctx).Info("Validating CIP level policy")
 		policyJSON, err := json.Marshal(policyResult)
 		if err != nil {
@@ -923,7 +949,7 @@ func getNamespace(ctx context.Context, namespace string) string {
 // All the matched policies were validated, or
 // no matching policies were found, but the PolicyControllerConfig has been
 // configured to allow images not matching any policies.
-func (v *Validator) validateContainerImage(ctx context.Context, containerImage string, namespace, field string, index int, kind, apiVersion string, labels map[string]string, ociRemoteOpts ...ociremote.Option) *apis.FieldError {
+func (v *Validator) validateContainerImage(ctx context.Context, containerImage string, namespace, field string, index int, kind, apiVersion string, labels map[string]string, kc authn.Keychain, ociRemoteOpts ...ociremote.Option) *apis.FieldError {
 	ref, err := name.ParseReference(containerImage)
 	if err != nil {
 		return apis.ErrGeneric(err.Error(), "image").ViaFieldIndex(field, index)
@@ -941,7 +967,7 @@ func (v *Validator) validateContainerImage(ctx context.Context, containerImage s
 		// If there is at least one policy that matches, that means it
 		// has to be satisfied.
 		if len(policies) > 0 {
-			signatures, fieldErrors := validatePolicies(ctx, namespace, ref, policies, ociRemoteOpts...)
+			signatures, fieldErrors := validatePolicies(ctx, namespace, ref, policies, kc, ociRemoteOpts...)
 			if len(signatures) != len(policies) {
 				logging.FromContext(ctx).Warnf("Failed to validate at least one policy for %s wanted %d policies, only validated %d", ref.Name(), len(policies), len(signatures))
 			} else {
@@ -1011,4 +1037,106 @@ func refOrFieldError(image, field string, index int) (name.Reference, *apis.Fiel
 		).ViaFieldIndex(field, index)
 	}
 	return ref, nil
+}
+
+// configFileResult is used to communicate results from gofuncs that fetch
+// ConfigFiles for a given image.
+// Because this can be recursive (say, multi-arch image), returns a map where
+// key is the architecture of the container image.
+type configFileResult struct {
+	ret  map[string]*v1.ConfigFile
+	errs []error
+}
+
+// getConfigs will fetch ConfigFile(s) for a given image. In case the image
+// is an index, we'll fetch the arch images recursively.
+func getConfigs(ctx context.Context, ref name.Reference, options ...remote.Option) (map[string]*v1.ConfigFile, []error) {
+	descriptor, err := remote.Get(ref, options...)
+	if err != nil {
+		return nil, []error{fmt.Errorf("failed to get ref %s : %w", ref.String(), err)}
+	}
+	switch descriptor.MediaType {
+	case types.OCIImageIndex, types.DockerManifestList:
+		ii, err := descriptor.ImageIndex()
+		if err != nil {
+			return nil, []error{fmt.Errorf("getting ImageIndex for %s : %w", ref.String(), err)}
+		}
+		im, err := ii.IndexManifest()
+		if err != nil {
+			return nil, []error{fmt.Errorf("getting IndexManifest for %s : %w", ref.String(), err)}
+		}
+		wg := new(sync.WaitGroup)
+
+		results := make(chan configFileResult, len(im.Manifests))
+		for _, manifest := range im.Manifests {
+			manifest := manifest
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+				newRefString := ref.Context().Digest(manifest.Digest.String()).String()
+				newRef, err := name.ParseReference(newRefString)
+				if err != nil {
+					results <- configFileResult{ret: nil, errs: []error{fmt.Errorf("failed to ParseReference for: %s: %w", newRefString, err)}}
+					return
+				}
+
+				newRefConfigs, errs := getConfigs(ctx, newRef)
+				results <- configFileResult{ret: newRefConfigs, errs: errs}
+			}()
+		}
+		errs := []error{}
+		ret := make(map[string]*v1.ConfigFile, len(im.Manifests))
+		for i := 0; i < len(im.Manifests); i++ {
+			select {
+			case <-ctx.Done():
+				errs = append(errs, errors.New("context canceled"))
+			case result, ok := <-results:
+				if !ok {
+					errs = append(errs, errors.New("channel closed before all results were gathered"))
+				} else {
+					if result.errs != nil {
+						errs = append(errs, fmt.Errorf("failed to get a ConfigFile: %w", err))
+					} else {
+						for k, v := range result.ret {
+							ret[k] = v
+						}
+					}
+				}
+			}
+		}
+		wg.Wait()
+		if len(errs) > 0 {
+			return nil, errs
+		}
+		return ret, nil
+	case types.OCIManifestSchema1, types.DockerManifestSchema2:
+		// This is an Image, so just return it.
+		image, err := descriptor.Image()
+		if err != nil {
+			return nil, []error{fmt.Errorf("getting Image for %s: %w", ref.String(), err)}
+		}
+		cf, err := image.ConfigFile()
+		if err != nil {
+			return nil, []error{fmt.Errorf("getting ConfigFile for %s: %w", ref.String(), err)}
+		}
+		return map[string]*v1.ConfigFile{normalizeArchitecture(cf): cf}, nil
+	default:
+		return nil, []error{fmt.Errorf("unknown mime type for %s: %v", ref.String(), descriptor.MediaType)}
+	}
+}
+
+// normalizeArchitecture normalizes the os/architecture/variant to:
+// {OS}/{Architecture}[/{Variant}]
+//
+// Some examples are:
+// linux/arm64
+// linux/arm/v7
+// linux/arm/v6
+func normalizeArchitecture(cf *v1.ConfigFile) string {
+	return v1.Platform{
+		Architecture: cf.Architecture,
+		OS:           cf.OS,
+		OSVersion:    cf.OSVersion,
+		Variant:      cf.Variant,
+	}.String()
 }

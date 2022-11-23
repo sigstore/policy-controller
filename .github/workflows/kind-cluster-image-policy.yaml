@@ -30,6 +30,7 @@ jobs:
     runs-on: ubuntu-latest
 
     strategy:
+      fail-fast: false # Keep running if one leg fails.
       matrix:
         k8s-version:
         - v1.23.x
@@ -42,6 +43,7 @@ jobs:
         - cluster_with_scalable
         - cluster_image_policy_with_warn
         - cluster_image_policy_with_source
+        - cluster_image_policy_with_fetch_config_file
 
     env:
       KO_DOCKER_REPO: "registry.local:5000/policy-controller"
@@ -101,6 +103,11 @@ jobs:
 
         # Wait for the webhook to come up and become Ready
         kubectl rollout status --timeout 5m --namespace cosign-system deployments/webhook
+        kubectl rollout status --timeout 5m --namespace cosign-system deployments/policy-webhook
+
+        # And make sure everything is up.
+        kubectl wait deployment -n cosign-system --for condition=Available=True --timeout=90s --all
+        sleep 10
 
     - name: Run Cluster Image Policy Tests
       timeout-minutes: 15

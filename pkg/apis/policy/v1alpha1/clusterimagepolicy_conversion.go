@@ -21,6 +21,7 @@ import (
 	"github.com/sigstore/policy-controller/pkg/apis/policy/v1beta1"
 	v1 "k8s.io/api/core/v1"
 	"knative.dev/pkg/apis"
+	"knative.dev/pkg/ptr"
 )
 
 var _ apis.Convertible = (*ClusterImagePolicy)(nil)
@@ -68,10 +69,8 @@ func (spec *ClusterImagePolicySpec) ConvertTo(ctx context.Context, sink *v1beta1
 		sink.Match = append(sink.Match, v1beta1Match)
 	}
 	if spec.Policy != nil {
-		sink.Policy = &v1beta1.Policy{
-			Type: spec.Policy.Type,
-			Data: spec.Policy.Data,
-		}
+		sink.Policy = &v1beta1.Policy{}
+		spec.Policy.ConvertTo(ctx, sink.Policy)
 	}
 	sink.Mode = spec.Mode
 	return nil
@@ -104,17 +103,8 @@ func (authority *Authority) ConvertTo(ctx context.Context, sink *v1beta1.Authori
 		v1beta1Att.Name = att.Name
 		v1beta1Att.PredicateType = att.PredicateType
 		if att.Policy != nil {
-			v1beta1Att.Policy = &v1beta1.Policy{
-				Type: att.Policy.Type,
-				Data: att.Policy.Data,
-			}
-			v1beta1Att.Policy.URL = att.Policy.URL.DeepCopy()
-			if att.Policy.ConfigMapRef != nil {
-				v1beta1Att.Policy.ConfigMapRef = &v1beta1.ConfigMapReference{
-					Name:      att.Policy.ConfigMapRef.Name,
-					Namespace: att.Policy.ConfigMapRef.Namespace,
-				}
-			}
+			v1beta1Att.Policy = &v1beta1.Policy{}
+			att.Policy.ConvertTo(ctx, v1beta1Att.Policy)
 		}
 		sink.Attestations = append(sink.Attestations, v1beta1Att)
 	}
@@ -140,6 +130,40 @@ func (authority *Authority) ConvertTo(ctx context.Context, sink *v1beta1.Authori
 		}
 	}
 	return nil
+}
+
+func (p *Policy) ConvertTo(ctx context.Context, sink *v1beta1.Policy) {
+	sink.Type = p.Type
+	sink.Data = p.Data
+	if p.URL != nil {
+		sink.URL = p.URL.DeepCopy()
+	}
+	if p.ConfigMapRef != nil {
+		sink.ConfigMapRef = &v1beta1.ConfigMapReference{
+			Name:      p.ConfigMapRef.Name,
+			Namespace: p.ConfigMapRef.Namespace,
+		}
+	}
+	if p.FetchConfigFile != nil {
+		sink.FetchConfigFile = ptr.Bool(*p.FetchConfigFile)
+	}
+}
+
+func (p *Policy) ConvertFrom(ctx context.Context, source *v1beta1.Policy) {
+	p.Type = source.Type
+	p.Data = source.Data
+	if source.URL != nil {
+		p.URL = source.URL.DeepCopy()
+	}
+	if source.ConfigMapRef != nil {
+		p.ConfigMapRef = &ConfigMapReference{
+			Name:      source.ConfigMapRef.Name,
+			Namespace: source.ConfigMapRef.Namespace,
+		}
+	}
+	if source.FetchConfigFile != nil {
+		p.FetchConfigFile = ptr.Bool(*source.FetchConfigFile)
+	}
 }
 
 func (key *KeyRef) ConvertTo(ctx context.Context, sink *v1beta1.KeyRef) {
@@ -171,10 +195,8 @@ func (spec *ClusterImagePolicySpec) ConvertFrom(ctx context.Context, source *v1b
 	}
 	spec.Mode = source.Mode
 	if source.Policy != nil {
-		spec.Policy = &Policy{
-			Type: source.Policy.Type,
-			Data: source.Policy.Data,
-		}
+		spec.Policy = &Policy{}
+		spec.Policy.ConvertFrom(ctx, source.Policy)
 	}
 	return nil
 }
@@ -197,17 +219,8 @@ func (authority *Authority) ConvertFrom(ctx context.Context, source *v1beta1.Aut
 		attestation.Name = att.Name
 		attestation.PredicateType = att.PredicateType
 		if att.Policy != nil {
-			attestation.Policy = &Policy{
-				Type: att.Policy.Type,
-				Data: att.Policy.Data,
-			}
-			attestation.Policy.URL = att.Policy.URL.DeepCopy()
-			if att.Policy.ConfigMapRef != nil {
-				attestation.Policy.ConfigMapRef = &ConfigMapReference{
-					Name:      att.Policy.ConfigMapRef.Name,
-					Namespace: att.Policy.ConfigMapRef.Namespace,
-				}
-			}
+			attestation.Policy = &Policy{}
+			attestation.Policy.ConvertFrom(ctx, att.Policy)
 		}
 		authority.Attestations = append(authority.Attestations, attestation)
 	}

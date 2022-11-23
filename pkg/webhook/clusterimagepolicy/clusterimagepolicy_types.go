@@ -32,6 +32,7 @@ import (
 	"knative.dev/pkg/apis"
 	kubeclient "knative.dev/pkg/client/injection/kube/client"
 	"knative.dev/pkg/logging"
+	"knative.dev/pkg/ptr"
 )
 
 // ClusterImagePolicy defines the images that go through verification
@@ -126,6 +127,12 @@ type AttestationPolicy struct {
 	// Data is the inlined version of the Policy used to evaluate the
 	// Attestation.
 	Data string `json:"data,omitempty"`
+	// FetchConfigFile controls whether ConfigFile will be fetched and made
+	// available for CIP level policy evaluation. Note that this only gets
+	// evaluated (and hence fetched) iff at least one authority matches.
+	// The ConfigFile will then be available in this format:
+	// https://github.com/opencontainers/image-spec/blob/main/config.md
+	FetchConfigFile *bool `json:"fetchConfigFile,omitempty"`
 }
 
 // UnmarshalJSON populates the PublicKeys using Data because
@@ -240,6 +247,9 @@ func ConvertClusterImagePolicyV1alpha1ToWebhook(in *v1alpha1.ClusterImagePolicy)
 			Type: in.Spec.Policy.Type,
 			Data: in.Spec.Policy.Data,
 		}
+		if in.Spec.Policy.FetchConfigFile != nil {
+			cipAttestationPolicy.FetchConfigFile = ptr.Bool(*in.Spec.Policy.FetchConfigFile)
+		}
 	}
 	return &ClusterImagePolicy{
 		UID:             copyIn.UID,
@@ -279,6 +289,9 @@ func convertAttestationsV1Alpha1ToWebhook(in []v1alpha1.Attestation) []Attestati
 		if inAtt.Policy != nil {
 			outAtt.Type = inAtt.Policy.Type
 			outAtt.Data = inAtt.Policy.Data
+			if inAtt.Policy.FetchConfigFile != nil {
+				outAtt.FetchConfigFile = ptr.Bool(*inAtt.Policy.FetchConfigFile)
+			}
 		}
 		ret = append(ret, outAtt)
 	}

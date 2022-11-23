@@ -203,7 +203,8 @@ type MatchResource struct {
 	ResourceSelector *metav1.LabelSelector `json:"selector,omitempty"`
 }
 
-// Policy specifies a policy to use for Attestation validation.
+// Policy specifies a policy to use for Attestation or the CIP validation (iff
+// at least one authority matches).
 // Exactly one of Data, URL, or ConfigMapReference must be specified.
 type Policy struct {
 	// Which kind of policy this is, currently only rego or cue are supported.
@@ -218,6 +219,13 @@ type Policy struct {
 	// ConfigMapRef defines the reference to a configMap with the policy definition.
 	// +optional
 	ConfigMapRef *ConfigMapReference `json:"configMapRef,omitempty"`
+	// FetchConfigFile controls whether ConfigFile will be fetched and made
+	// available for CIP level policy evaluation. Note that this only gets
+	// evaluated (and hence fetched) iff at least one authority matches.
+	// The ConfigFile will then be available in this format:
+	// https://github.com/opencontainers/image-spec/blob/main/config.md
+	// +optional
+	FetchConfigFile *bool `json:"fetchConfigFile,omitempty"`
 }
 
 // ConfigMapReference is cut&paste from SecretReference, but for the life of me

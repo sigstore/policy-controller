@@ -79,7 +79,9 @@ func (spec *ClusterImagePolicySpec) Validate(ctx context.Context) (errors *apis.
 	for i, m := range spec.Match {
 		errors = errors.Also(m.Validate(ctx).ViaFieldIndex("match", i))
 	}
-	errors = errors.Also(spec.Policy.Validate(ctx))
+	// Note that we're within Spec here so that we can validate that the policy
+	// FetchConfigFile is only set within Spec.Policy.
+	errors = errors.Also(spec.Policy.Validate(apis.WithinSpec(ctx)))
 	return
 }
 
@@ -260,6 +262,9 @@ func (p *Policy) Validate(ctx context.Context) *apis.FieldError {
 	}
 	if p.Data == "" {
 		errs = errs.Also(apis.ErrMissingField("data"))
+	}
+	if !apis.IsInSpec(ctx) && p.FetchConfigFile != nil {
+		errs = errs.Also(apis.ErrDisallowedFields("fetchConfigFile"))
 	}
 	// TODO(vaikas): How to validate the cue / rego bytes here (data).
 	return errs
