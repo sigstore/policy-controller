@@ -73,6 +73,26 @@ func main() {
 }
 EOF
 
+# To simplify testing failures, use this function to execute a kubectl to create
+# our job and verify that the failure is expected.
+assert_error() {
+  local KUBECTL_OUT_FILE="/tmp/kubectl.failure.out"
+  match="$@"
+  echo looking for ${match}
+  kubectl delete job demo -n demo-keyless-source --ignore-not-found=true
+  if kubectl create -n demo-keyless-source job demo --image=${demoimage} 2> ${KUBECTL_OUT_FILE} ; then
+    echo Failed to block expected Job failure!
+    exit 1
+  else
+    echo Successfully blocked Job creation with expected error: "${match}"
+    if ! grep -q "${match}" ${KUBECTL_OUT_FILE} ; then
+      echo Did not get expected failure message, wanted "${match}", got
+      cat ${KUBECTL_OUT_FILE}
+      exit 1
+    fi
+  fi
+}
+
 sed -i'' -e "s@TIMESTAMP@${TIMESTAMP}@g" main.go
 cat main.go
 export demoimage=`ko publish -B example.com/demo`
@@ -115,16 +135,10 @@ kubectl patch cip image-policy-keyless-source --type "json" \
 sleep 5
 echo '::endgroup::'
 
-echo '::group:: test job success as source.oci points to the right repository'
-# We signed this above, this should work
-if kubectl create -n demo-keyless-source job demo2 --image=${demoimage} ; then
-  echo Failed to block Job creation with wrong OCI source!
-  exit 1
-else
-  echo Successfully blocked Job creation with wrong OCI source
-fi
+echo '::group:: test job rejection using an OCI source to a wrong repository without signatures'
+expected_error='no matching signatures'
+assert_error ${expected_error}
 echo '::endgroup::'
-
 
 echo '::group::' Cleanup
 kubectl delete cip --all
