@@ -93,6 +93,8 @@ RCTfQ5s1kD+hGMSE1rH7s46hmXEeyhnlRnaGF8eMU/SBJE/2NKPnxE7WzQ==
 
 	replaceCIPKeySourcePatch = `[{"op":"replace","path":"/data/test-cip","value":"{\"uid\":\"test-uid\",\"resourceVersion\":\"0123456789\",\"images\":[{\"glob\":\"ghcr.io/example/*\"}],\"authorities\":[{\"name\":\"authority-0\",\"key\":{\"data\":\"-----BEGIN PUBLIC KEY-----\\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAExB6+H6054/W1SJgs5JR6AJr6J35J\\nRCTfQ5s1kD+hGMSE1rH7s46hmXEeyhnlRnaGF8eMU/SBJE/2NKPnxE7WzQ==\\n-----END PUBLIC KEY-----\",\"hashAlgorithm\":\"sha256\"},\"source\":[{\"oci\":\"example.com/alternative/signature\",\"signaturePullSecrets\":[{\"name\":\"signaturePullSecretName\"}]}]}],\"mode\":\"enforce\"}"}]`
 
+	replaceCIPKeySourceWithoutOCIPatch = `[{"op":"replace","path":"/data/test-cip","value":"{\"uid\":\"test-uid\",\"resourceVersion\":\"0123456789\",\"images\":[{\"glob\":\"ghcr.io/example/*\"}],\"authorities\":[{\"name\":\"authority-0\",\"key\":{\"data\":\"-----BEGIN PUBLIC KEY-----\\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAExB6+H6054/W1SJgs5JR6AJr6J35J\\nRCTfQ5s1kD+hGMSE1rH7s46hmXEeyhnlRnaGF8eMU/SBJE/2NKPnxE7WzQ==\\n-----END PUBLIC KEY-----\",\"hashAlgorithm\":\"sha256\"},\"source\":[{\"signaturePullSecrets\":[{\"name\":\"signaturePullSecretName\"}]}]}],\"mode\":\"enforce\"}"}]`
+
 	resourceVersion = "0123456789"
 	uid             = "test-uid"
 )
@@ -604,6 +606,35 @@ func TestReconcile(t *testing.T) {
 			},
 			WantPatches: []clientgotesting.PatchActionImpl{
 				makePatch(replaceCIPKeySourcePatch),
+			},
+		}, {
+			Name: "Key with data, source, no oci but signature pull secrets",
+			Key:  testKey,
+
+			SkipNamespaceValidation: true, // Cluster scoped
+			Objects: []runtime.Object{
+				NewClusterImagePolicy(cipName,
+					WithUID(uid),
+					WithResourceVersion(resourceVersion),
+					WithFinalizer,
+					WithImagePattern(v1alpha1.ImagePattern{
+						Glob: glob,
+					}),
+					WithAuthority(v1alpha1.Authority{
+						Key: &v1alpha1.KeyRef{
+							Data: validPublicKeyData,
+						},
+						Sources: []v1alpha1.Source{{
+							SignaturePullSecrets: []corev1.LocalObjectReference{
+								{Name: "signaturePullSecretName"},
+							},
+						}},
+					}),
+				),
+				makeConfigMap(),
+			},
+			WantPatches: []clientgotesting.PatchActionImpl{
+				makePatch(replaceCIPKeySourceWithoutOCIPatch),
 			},
 		}, {
 			Name: "ClusterImagePolicy with glob and KMS key, for unsupported KMS provider",

@@ -705,20 +705,6 @@ func TestAuthoritiesValidation(t *testing.T) {
 			},
 		},
 	}, {
-		name:        "Should fail when source oci is empty",
-		errorString: "missing field(s): spec.authorities[0].source[0].oci",
-		policy: ClusterImagePolicy{
-			Spec: ClusterImagePolicySpec{
-				Images: []ImagePattern{{Glob: "*"}},
-				Authorities: []Authority{
-					{
-						Key:     &KeyRef{KMS: "kms://key/path"},
-						Sources: []Source{{OCI: ""}},
-					},
-				},
-			},
-		},
-	}, {
 		name: "Should pass with multiple source oci is present",
 		policy: ClusterImagePolicy{
 			Spec: ClusterImagePolicySpec{
@@ -938,6 +924,19 @@ func TestAuthoritiesValidation(t *testing.T) {
 								},
 							},
 						},
+					},
+				},
+			},
+		},
+	}, {
+		name: "Should pass when source oci is empty",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{{Glob: "*"}},
+				Authorities: []Authority{
+					{
+						Key:     &KeyRef{KMS: "kms://key/path"},
+						Sources: []Source{{OCI: ""}},
 					},
 				},
 			},

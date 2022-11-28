@@ -222,10 +222,10 @@ func (keyless *KeylessRef) Validate(ctx context.Context) *apis.FieldError {
 
 func (source *Source) Validate(ctx context.Context) *apis.FieldError {
 	var errs *apis.FieldError
-	if source.OCI == "" {
-		errs = errs.Also(apis.ErrMissingField("oci"))
-	} else if err := common.ValidateOCI(source.OCI); err != nil {
-		errs = errs.Also(apis.ErrInvalidValue(source.OCI, "oci", err.Error()))
+	if source.OCI != "" {
+		if err := common.ValidateOCI(source.OCI); err != nil {
+			errs = errs.Also(apis.ErrInvalidValue(source.OCI, "oci", err.Error()))
+		}
 	}
 
 	if len(source.SignaturePullSecrets) > 0 {
