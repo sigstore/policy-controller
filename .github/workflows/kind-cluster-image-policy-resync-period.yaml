@@ -1,0 +1,125 @@
+# Copyright 2022 The Sigstore Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: Test policy-controller with ClusterImagePolicy resync period
+
+on:
+  pull_request:
+    branches: [ 'main', 'release-*' ]
+
+defaults:
+  run:
+    shell: bash
+
+permissions: read-all
+
+jobs:
+  cip-test-policy-resync-period:
+    name: ClusterImagePolicy e2e tests policy resync period
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false # Keep running if one leg fails.
+      matrix:
+        k8s-version:
+        - v1.23.x
+        - v1.24.x
+        - v1.25.x
+
+    env:
+      KO_DOCKER_REPO: "registry.local:5000/policy-controller"
+      SCAFFOLDING_RELEASE_VERSION: "v0.4.13"
+      GO111MODULE: on
+      GOFLAGS: -ldflags=-s -ldflags=-w
+      KOCACHE: ~/ko
+      COSIGN_EXPERIMENTAL: true
+
+    steps:
+    - uses: actions/checkout@93ea575cb5d8a053eaa0ac8fa3b40d7e05a33cc8 # v2.4.0
+    - uses: actions/setup-go@c4a742cab115ed795e34d4513e2cf7d472deb55f # v2.2.0
+      with:
+        go-version: '1.18'
+        check-latest: true
+
+    # will use the latest release available for ko
+    - uses: imjasonh/setup-ko@ace48d793556083a76f1e3e6068850c1f4a369aa # v0.6
+
+    - uses: imranismail/setup-kustomize@a76db1c6419124d51470b1e388c4b29476f495f1 # v1.6.1
+
+    - name: Install yq
+      uses: mikefarah/yq@ce9701ca3a1ac2779ff5f3857d04ee003acda066 # v4.27.3
+
+    - name: Setup mirror
+      uses: chainguard-dev/actions/setup-mirror@main
+      with:
+        mirror: mirror.gcr.io
+
+    - uses: sigstore/cosign-installer@main
+      with:
+        cosign-release: 'v1.13.1'
+
+    - name: Install cluster + sigstore
+      uses: sigstore/scaffolding/actions/setup@main
+      with:
+        k8s-version: ${{ matrix.k8s-version}}
+        version: ${{ env.SCAFFOLDING_RELEASE_VERSION }}
+
+    - name: Copy TUF root to policy-controller namespace
+      run: |
+        kubectl create ns cosign-system
+        kubectl -n tuf-system get secrets tuf-root -oyaml | sed 's/namespace: .*/namespace: cosign-system/' | kubectl create -f -
+        echo "TUF_ROOT_FILE=./root.json" >> $GITHUB_ENV
+
+    - name: Install policy-controller with invalid policy-resync-period
+      env:
+        GIT_HASH: ${{ github.sha }}
+        GIT_VERSION: ci
+        LDFLAGS: ""
+        POLICY_CONTROLLER_YAML: test/kustomize-invalid-policy-resync-period/policy-controller-e2e.yaml
+        KO_PREFIX: registry.local:5000/policy-controller
+        POLICY_CONTROLLER_ARCHS: linux/amd64
+      run: |
+        make ko-policy-controller
+        kustomize build test/kustomize-invalid-policy-resync-period | kubectl apply -f -
+
+        # Wait for the webhook to come up and become Ready
+        kubectl rollout status --timeout 5m --namespace cosign-system deployments/webhook
+
+        sleep 30
+
+        # And make sure a panic occurred
+        kubectl -n cosign-system logs deployment/policy-webhook | grep "panic: Failed to parse --policy-resync-period '1d' : time: unknown unit \"d\" in duration \"1d\""
+
+        sleep 10
+
+    - name: Install policy-controller with valid policy-resync-period
+      env:
+        GIT_HASH: ${{ github.sha }}
+        GIT_VERSION: ci
+        LDFLAGS: ""
+        POLICY_CONTROLLER_YAML: test/kustomize-policy-resync-period/policy-controller-e2e.yaml
+        KO_PREFIX: registry.local:5000/policy-controller
+        POLICY_CONTROLLER_ARCHS: linux/amd64
+      run: |
+        make ko-policy-controller
+        kustomize build test/kustomize-policy-resync-period | kubectl apply -f -
+
+        # Wait for the webhook to come up and become Ready
+        kubectl rollout status --timeout 5m --namespace cosign-system deployments/webhook
+        kubectl rollout status --timeout 5m --namespace cosign-system deployments/policy-webhook
+        sleep 10
+
+    - name: Collect diagnostics
+      if: ${{ failure() }}
+      uses: chainguard-dev/actions/kind-diag@84c993eaf02da1c325854fb272a4df9184bd80fc # main

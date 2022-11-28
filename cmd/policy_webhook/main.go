@@ -19,6 +19,7 @@ import (
 	"context"
 	"flag"
 	"log"
+	"time"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"knative.dev/pkg/configmap"
@@ -64,6 +65,10 @@ var (
 	//    ./config/501-policy-webhook-configurations.yaml
 	//    https://github.com/sigstore/helm-charts/blob/main/charts/policy-controller/templates/policy-webhook/policy_webhook_configurations.yaml
 	validatingWebhookName = flag.String("validating-webhook-name", "validating.clusterimagepolicy.sigstore.dev", "The name of the validating webhook configuration as well as the webhook name that is automatically configured, if exists, with different rules and client settings setting how the admission requests to be dispatched to policy-webhook.")
+
+	// policyResyncPeriod holds the interval which ClusterImagePolicies will resync
+	// This is essential for triggering a reconcile update for potentially stale KMS authorities.
+	policyResyncPeriod = flag.String("policy-resync-period", "10h", "The resync period for ClusterImagePolicies. The default is 10h.")
 )
 
 var types = map[schema.GroupVersionKind]resourcesemantics.GenericCRD{
@@ -83,6 +88,14 @@ func main() {
 
 	// Allow folks to configure the port the webhook serves on.
 	flag.IntVar(&opts.Port, "secure-port", opts.Port, "The port on which to serve HTTPS.")
+
+	flag.Parse()
+
+	if duration, err := time.ParseDuration(*policyResyncPeriod); err != nil {
+		logging.FromContext(ctx).Panicf("Failed to parse --policy-resync-period '%s' : %v", *policyResyncPeriod, err)
+	} else {
+		ctx = clusterimagepolicy.ToContext(ctx, duration)
+	}
 
 	v := version.GetVersionInfo()
 	vJSON, _ := v.JSONString()
