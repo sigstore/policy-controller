@@ -66,7 +66,7 @@ jobs:
     - uses: imranismail/setup-kustomize@a76db1c6419124d51470b1e388c4b29476f495f1 # v1.6.1
 
     - name: Install yq
-      uses: mikefarah/yq@ce9701ca3a1ac2779ff5f3857d04ee003acda066 # v4.27.3
+      uses: mikefarah/yq@42e7c3cdf08ccd664875d7ac685c7414b61962be # v4.27.3
 
     - name: Setup mirror
       uses: chainguard-dev/actions/setup-mirror@main
