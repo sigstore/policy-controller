@@ -65,8 +65,6 @@ spec:
                             policy:
                               description: Policy defines all of the matching signatures, and all of the matching attestations (whose attestations are verified).
                               type: object
-                              required:
-                                - includeSpec
                               properties:
                                 configMapRef:
                                   description: ConfigMapRef defines the reference to a configMap with the policy definition.
@@ -253,8 +251,6 @@ spec:
                 policy:
                   description: Policy is an optional policy that can be applied against all the successfully validated Authorities. If no authorities pass, this does not even get evaluated, as the Policy is considered failed.
                   type: object
-                  required:
-                    - includeSpec
                   properties:
                     configMapRef:
                       description: ConfigMapRef defines the reference to a configMap with the policy definition.

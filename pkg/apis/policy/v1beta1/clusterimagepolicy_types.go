@@ -223,6 +223,7 @@ type Policy struct {
 	// on the resource being evaluatied (see MatchResource for filtering)
 	// you might want to configure these to match the policy file to ensure
 	// the shape of the Spec is what you expect when evaling the policy.
+	// +optional
 	IncludeSpec *bool `json:"includeSpec,omitempty"`
 }
 
