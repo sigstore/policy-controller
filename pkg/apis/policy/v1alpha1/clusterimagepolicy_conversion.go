@@ -147,6 +147,9 @@ func (p *Policy) ConvertTo(ctx context.Context, sink *v1beta1.Policy) {
 	if p.FetchConfigFile != nil {
 		sink.FetchConfigFile = ptr.Bool(*p.FetchConfigFile)
 	}
+	if p.IncludeSpec != nil {
+		sink.IncludeSpec = ptr.Bool(*p.IncludeSpec)
+	}
 }
 
 func (p *Policy) ConvertFrom(ctx context.Context, source *v1beta1.Policy) {
@@ -163,6 +166,9 @@ func (p *Policy) ConvertFrom(ctx context.Context, source *v1beta1.Policy) {
 	}
 	if source.FetchConfigFile != nil {
 		p.FetchConfigFile = ptr.Bool(*source.FetchConfigFile)
+	}
+	if source.IncludeSpec != nil {
+		p.IncludeSpec = ptr.Bool(*source.IncludeSpec)
 	}
 }
 

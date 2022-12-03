@@ -133,6 +133,10 @@ type AttestationPolicy struct {
 	// The ConfigFile will then be available in this format:
 	// https://github.com/opencontainers/image-spec/blob/main/config.md
 	FetchConfigFile *bool `json:"fetchConfigFile,omitempty"`
+	// IncludeSpec controls whether resource `Spec` will be included and
+	// made available for CIP level policy evaluation. Note that this only gets
+	// evaluated iff at least one authority matches.
+	IncludeSpec *bool `json:"includeSpec,omitempty"`
 }
 
 // UnmarshalJSON populates the PublicKeys using Data because
@@ -250,6 +254,9 @@ func ConvertClusterImagePolicyV1alpha1ToWebhook(in *v1alpha1.ClusterImagePolicy)
 		if in.Spec.Policy.FetchConfigFile != nil {
 			cipAttestationPolicy.FetchConfigFile = ptr.Bool(*in.Spec.Policy.FetchConfigFile)
 		}
+		if in.Spec.Policy.IncludeSpec != nil {
+			cipAttestationPolicy.IncludeSpec = ptr.Bool(*in.Spec.Policy.IncludeSpec)
+		}
 	}
 	return &ClusterImagePolicy{
 		UID:             copyIn.UID,
@@ -291,6 +298,9 @@ func convertAttestationsV1Alpha1ToWebhook(in []v1alpha1.Attestation) []Attestati
 			outAtt.Data = inAtt.Policy.Data
 			if inAtt.Policy.FetchConfigFile != nil {
 				outAtt.FetchConfigFile = ptr.Bool(*inAtt.Policy.FetchConfigFile)
+			}
+			if inAtt.Policy.IncludeSpec != nil {
+				outAtt.IncludeSpec = ptr.Bool(*inAtt.Policy.IncludeSpec)
 			}
 		}
 		ret = append(ret, outAtt)
