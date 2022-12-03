@@ -559,7 +559,6 @@ func ValidatePolicy(ctx context.Context, namespace string, ref name.Reference, c
 		if err != nil {
 			return nil, append(authorityErrors, err)
 		}
-		logging.FromContext(ctx).Info("CIP level policy:\n%s", string(policyJSON))
 		err = policy.EvaluatePolicyAgainstJSON(ctx, "ClusterImagePolicy", cip.Policy.Type, cip.Policy.Data, policyJSON)
 		if err != nil {
 			logging.FromContext(ctx).Warnf("Failed to validate CIP level policy against %s", string(policyJSON))
