@@ -41,51 +41,47 @@ func TestImagePatternValidation(t *testing.T) {
 		name        string
 		errorString string
 		policy      ClusterImagePolicy
-	}{
-		{
-			name:        "Should fail when glob is not present",
-			errorString: "missing field(s): spec.authorities, spec.images[0].glob",
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{
-					Images: []ImagePattern{
-						{},
+	}{{
+		name:        "Should fail when glob is not present",
+		errorString: "missing field(s): spec.authorities, spec.images[0].glob",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{
+					{},
+				},
+			},
+		},
+	}, {
+		name:        "Glob should fail with invalid glob",
+		errorString: "invalid value: [: spec.images[0].glob\nglob is invalid: syntax error in pattern\nmissing field(s): spec.authorities",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{
+					{
+						Glob: "[",
 					},
 				},
 			},
 		},
-		{
-			name:        "Glob should fail with invalid glob",
-			errorString: "invalid value: [: spec.images[0].glob\nglob is invalid: syntax error in pattern\nmissing field(s): spec.authorities",
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{
-					Images: []ImagePattern{
-						{
-							Glob: "[",
-						},
+	}, {
+		name:        "Glob should fail with invalid regexp",
+		errorString: "invalid value: $FOO*: spec.images[0].glob\nglob is invalid: invalid glob \"$FOO*\"\nmissing field(s): spec.authorities",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{
+					{
+						Glob: "$FOO*",
 					},
 				},
 			},
 		},
-		{
-			name:        "Glob should fail with invalid regexp",
-			errorString: "invalid value: $FOO*: spec.images[0].glob\nglob is invalid: invalid glob \"$FOO*\"\nmissing field(s): spec.authorities",
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{
-					Images: []ImagePattern{
-						{
-							Glob: "$FOO*",
-						},
-					},
-				},
-			},
+	}, {
+		name:        "missing image and authorities in the spec",
+		errorString: "missing field(s): spec.authorities, spec.images",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{},
 		},
-		{
-			name:        "missing image and authorities in the spec",
-			errorString: "missing field(s): spec.authorities, spec.images",
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{},
-			},
-		},
+	},
 	}
 
 	for _, test := range tests {
@@ -103,177 +99,167 @@ func TestKeyValidation(t *testing.T) {
 		name        string
 		errorString string
 		policy      ClusterImagePolicy
-	}{
-		{
-			name:        "Should fail when key has multiple properties",
-			errorString: "expected exactly one, got both: spec.authorities[0].key.data, spec.authorities[0].key.kms, spec.authorities[0].key.secretref",
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{
-					Images: []ImagePattern{
-						{
-							Glob: "myglob",
-						},
+	}{{
+		name:        "Should fail when key has multiple properties",
+		errorString: "expected exactly one, got both: spec.authorities[0].key.data, spec.authorities[0].key.kms, spec.authorities[0].key.secretref",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{
+					{
+						Glob: "myglob",
 					},
-					Authorities: []Authority{
-						{
-							Key: &KeyRef{
-								Data: "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEaEOVJCFtduYr3xqTxeRWSW32CY/s\nTBNZj4oIUPl8JvhVPJ1TKDPlNcuT4YphSt6t3yOmMvkdQbCj8broX6vijw==\n-----END PUBLIC KEY-----",
-								KMS:  "kms://key/path",
-							},
+				},
+				Authorities: []Authority{
+					{
+						Key: &KeyRef{
+							Data: "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEaEOVJCFtduYr3xqTxeRWSW32CY/s\nTBNZj4oIUPl8JvhVPJ1TKDPlNcuT4YphSt6t3yOmMvkdQbCj8broX6vijw==\n-----END PUBLIC KEY-----",
+							KMS:  "kms://key/path",
 						},
 					},
 				},
 			},
 		},
-		{
-			name:        "Should fail when key has malformed pubkey data",
-			errorString: "invalid value: ---some key data----: spec.authorities[0].key.data",
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{
-					Images: []ImagePattern{
-						{
-							Glob: "myglob",
-						},
+	}, {
+		name:        "Should fail when key has malformed pubkey data",
+		errorString: "invalid value: ---some key data----: spec.authorities[0].key.data",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{
+					{
+						Glob: "myglob",
 					},
-					Authorities: []Authority{
-						{
-							Key: &KeyRef{
-								Data: "---some key data----",
-							},
+				},
+				Authorities: []Authority{
+					{
+						Key: &KeyRef{
+							Data: "---some key data----",
 						},
 					},
 				},
 			},
 		},
-		{
-			name:        "Should fail when key is empty",
-			errorString: "expected exactly one, got neither: spec.authorities[0].key.data, spec.authorities[0].key.kms, spec.authorities[0].key.secretref",
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{
-					Images: []ImagePattern{
-						{
-							Glob: "myglob*",
-						},
+	}, {
+		name:        "Should fail when key is empty",
+		errorString: "expected exactly one, got neither: spec.authorities[0].key.data, spec.authorities[0].key.kms, spec.authorities[0].key.secretref",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{
+					{
+						Glob: "myglob*",
 					},
-					Authorities: []Authority{
-						{
-							Key: &KeyRef{},
+				},
+				Authorities: []Authority{
+					{
+						Key: &KeyRef{},
+					},
+				},
+			},
+		},
+	}, {
+		name:        "Should fail with invalid AWS KMS for Keyful",
+		errorString: "invalid value: awskms://localhost:8888/arn:butnotvalid: spec.authorities[0].key.kms\nfailed to parse either key or alias arn: arn: not enough sections",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{{Glob: "gcr.io/*"}},
+				Authorities: []Authority{
+					{
+						Key:     &KeyRef{KMS: "awskms://localhost:8888/arn:butnotvalid"},
+						Sources: []Source{{OCI: "registry.example.com"}},
+					},
+				},
+			},
+		},
+	}, {
+		name:        "Should fail with invalid OCI value",
+		errorString: "invalid value: registry.example.com/repo/*: spec.authorities[0].source[0].oci\nrepository can only contain the characters `abcdefghijklmnopqrstuvwxyz0123456789_-./`: repo/*",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{{Glob: "gcr.io/*"}},
+				Authorities: []Authority{
+					{
+						Key:     &KeyRef{KMS: "kms://key/path"},
+						Sources: []Source{{OCI: "registry.example.com/repo/*"}},
+					},
+				},
+			},
+		},
+	}, {
+		name:        "Should fail with invalid OCI value usign wrong characters",
+		errorString: "invalid value: re@gistry/reponame: spec.authorities[0].source[0].oci\nregistries must be valid RFC 3986 URI authorities: re@gistry/reponame",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{{Glob: "gcr.io/*"}},
+				Authorities: []Authority{
+					{
+						Key:     &KeyRef{KMS: "kms://key/path"},
+						Sources: []Source{{OCI: "re@gistry/reponame"}},
+					},
+				},
+			},
+		},
+	}, {
+		name: "Should pass with valid OCI repository name",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{{Glob: "gcr.io/*"}},
+				Authorities: []Authority{
+					{
+						Key:     &KeyRef{KMS: "kms://key/path"},
+						Sources: []Source{{OCI: "gcr.io/google.com/project/hello-world"}},
+					},
+				},
+			},
+		},
+	}, {
+		name: "Should pass with valid OCI repository name",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{{Glob: "gcr.io/*"}},
+				Authorities: []Authority{
+					{
+						Key:     &KeyRef{KMS: "kms://key/path"},
+						Sources: []Source{{OCI: "registry.example.com/repository"}},
+					},
+				},
+			},
+		},
+	}, {
+		name: "Should pass when key has only one property: %v",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{
+					{
+						Glob: "yepanotherglob",
+					},
+				},
+				Authorities: []Authority{
+					{
+						Key: &KeyRef{
+							KMS: "kms://key/path",
 						},
 					},
 				},
 			},
 		},
-		{
-			name:        "Should fail with invalid AWS KMS for Keyful",
-			errorString: "invalid value: awskms://localhost:8888/arn:butnotvalid: spec.authorities[0].key.kms\nfailed to parse either key or alias arn: arn: not enough sections",
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{
-					Images: []ImagePattern{{Glob: "gcr.io/*"}},
-					Authorities: []Authority{
-						{
-							Key:     &KeyRef{KMS: "awskms://localhost:8888/arn:butnotvalid"},
-							Sources: []Source{{OCI: "registry.example.com"}},
+	}, {
+		name: "Glob should pass with exact digest image",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{
+					{
+						Glob: "ghcr.io/foo@sha256:5504f2a95018e3d8a52d80d9e1a128c6ea337581808ff9fe96f5628ce2336350",
+					},
+				},
+				Authorities: []Authority{
+					{
+						Key: &KeyRef{
+							KMS: "kms://key/path",
 						},
 					},
 				},
 			},
 		},
-		{
-			name:        "Should fail with invalid OCI value",
-			errorString: "invalid value: registry.example.com/repo/*: spec.authorities[0].source[0].oci\nrepository can only contain the characters `abcdefghijklmnopqrstuvwxyz0123456789_-./`: repo/*",
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{
-					Images: []ImagePattern{{Glob: "gcr.io/*"}},
-					Authorities: []Authority{
-						{
-							Key:     &KeyRef{KMS: "kms://key/path"},
-							Sources: []Source{{OCI: "registry.example.com/repo/*"}},
-						},
-					},
-				},
-			},
-		},
-		{
-			name:        "Should fail with invalid OCI value usign wrong characters",
-			errorString: "invalid value: re@gistry/reponame: spec.authorities[0].source[0].oci\nregistries must be valid RFC 3986 URI authorities: re@gistry/reponame",
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{
-					Images: []ImagePattern{{Glob: "gcr.io/*"}},
-					Authorities: []Authority{
-						{
-							Key:     &KeyRef{KMS: "kms://key/path"},
-							Sources: []Source{{OCI: "re@gistry/reponame"}},
-						},
-					},
-				},
-			},
-		},
-		{
-			name: "Should pass with valid OCI repository name",
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{
-					Images: []ImagePattern{{Glob: "gcr.io/*"}},
-					Authorities: []Authority{
-						{
-							Key:     &KeyRef{KMS: "kms://key/path"},
-							Sources: []Source{{OCI: "gcr.io/google.com/project/hello-world"}},
-						},
-					},
-				},
-			},
-		},
-		{
-			name: "Should pass with valid OCI repository name",
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{
-					Images: []ImagePattern{{Glob: "gcr.io/*"}},
-					Authorities: []Authority{
-						{
-							Key:     &KeyRef{KMS: "kms://key/path"},
-							Sources: []Source{{OCI: "registry.example.com/repository"}},
-						},
-					},
-				},
-			},
-		},
-		{
-			name: "Should pass when key has only one property: %v",
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{
-					Images: []ImagePattern{
-						{
-							Glob: "yepanotherglob",
-						},
-					},
-					Authorities: []Authority{
-						{
-							Key: &KeyRef{
-								KMS: "kms://key/path",
-							},
-						},
-					},
-				},
-			},
-		},
-		{
-			name: "Glob should pass with exact digest image",
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{
-					Images: []ImagePattern{
-						{
-							Glob: "ghcr.io/foo@sha256:5504f2a95018e3d8a52d80d9e1a128c6ea337581808ff9fe96f5628ce2336350",
-						},
-					},
-					Authorities: []Authority{
-						{
-							Key: &KeyRef{
-								KMS: "kms://key/path",
-							},
-						},
-					},
-				},
-			},
-		},
+	},
 	}
 
 	for _, test := range tests {
@@ -290,45 +276,89 @@ func TestKeylessValidation(t *testing.T) {
 		errorString string
 		warnString  string
 		policy      ClusterImagePolicy
-	}{
-		{
-			name:        "Should fail when keyless is empty",
-			errorString: "expected exactly one, got neither: spec.authorities[0].keyless.ca-cert, spec.authorities[0].keyless.url",
-			warnString:  "missing field(s): spec.authorities[0].keyless.identities",
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{
-					Images: []ImagePattern{
-						{
-							Glob: "globbityglob",
-						},
+	}{{
+		name:        "Should fail when keyless is empty",
+		errorString: "expected exactly one, got neither: spec.authorities[0].keyless.ca-cert, spec.authorities[0].keyless.url",
+		warnString:  "missing field(s): spec.authorities[0].keyless.identities",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{
+					{
+						Glob: "globbityglob",
 					},
-					Authorities: []Authority{
-						{
-							Keyless: &KeylessRef{},
+				},
+				Authorities: []Authority{
+					{
+						Keyless: &KeylessRef{},
+					},
+				},
+			},
+		},
+	}, {
+		name:        "Should fail when keyless has multiple properties",
+		errorString: "expected exactly one, got both: spec.authorities[0].keyless.ca-cert, spec.authorities[0].keyless.url",
+		warnString:  "missing field(s): spec.authorities[0].keyless.identities",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{
+					{
+						Glob: "globbityglob",
+					},
+				},
+				Authorities: []Authority{
+					{
+						Keyless: &KeylessRef{
+							URL: &apis.URL{
+								Host: "myhost",
+							},
+							CACert: &KeyRef{
+								Data: validPublicKey,
+							},
 						},
 					},
 				},
 			},
 		},
-		{
-			name:        "Should fail when keyless has multiple properties",
-			errorString: "expected exactly one, got both: spec.authorities[0].keyless.ca-cert, spec.authorities[0].keyless.url",
-			warnString:  "missing field(s): spec.authorities[0].keyless.identities",
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{
-					Images: []ImagePattern{
-						{
-							Glob: "globbityglob",
+	}, {
+		name:       "Should warn when valid keyless ref is specified, but no identities given",
+		warnString: "missing field(s): spec.authorities[0].keyless.identities",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{
+					{
+						Glob: "globbityglob",
+					},
+				},
+				Authorities: []Authority{
+					{
+						Keyless: &KeylessRef{
+							URL: &apis.URL{
+								Host: "myhost",
+							},
 						},
 					},
-					Authorities: []Authority{
-						{
-							Keyless: &KeylessRef{
-								URL: &apis.URL{
-									Host: "myhost",
-								},
-								CACert: &KeyRef{
-									Data: validPublicKey,
+				},
+			},
+		},
+	}, {
+		name: "Should pass when valid keyless ref is specified",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{
+					{
+						Glob: "globbityglob",
+					},
+				},
+				Authorities: []Authority{
+					{
+						Keyless: &KeylessRef{
+							URL: &apis.URL{
+								Host: "myhost",
+							},
+							Identities: []Identity{
+								{
+									Subject: "somesubject",
+									Issuer:  "someissuer",
 								},
 							},
 						},
@@ -336,55 +366,7 @@ func TestKeylessValidation(t *testing.T) {
 				},
 			},
 		},
-		{
-			name:       "Should warn when valid keyless ref is specified, but no identities given",
-			warnString: "missing field(s): spec.authorities[0].keyless.identities",
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{
-					Images: []ImagePattern{
-						{
-							Glob: "globbityglob",
-						},
-					},
-					Authorities: []Authority{
-						{
-							Keyless: &KeylessRef{
-								URL: &apis.URL{
-									Host: "myhost",
-								},
-							},
-						},
-					},
-				},
-			},
-		},
-		{
-			name: "Should pass when valid keyless ref is specified",
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{
-					Images: []ImagePattern{
-						{
-							Glob: "globbityglob",
-						},
-					},
-					Authorities: []Authority{
-						{
-							Keyless: &KeylessRef{
-								URL: &apis.URL{
-									Host: "myhost",
-								},
-								Identities: []Identity{
-									{
-										Subject: "somesubject",
-										Issuer:  "someissuer",
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		},
+	},
 	}
 
 	for _, test := range tests {
@@ -400,99 +382,115 @@ func TestStaticValidation(t *testing.T) {
 		name        string
 		errorString string
 		policy      ClusterImagePolicy
-	}{
-		{
-			name:        "Should fail when static is empty",
-			errorString: "missing field(s): spec.authorities[0].static.action",
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{
-					Images: []ImagePattern{
-						{
-							Glob: "globbityglob",
-						},
+	}{{
+		name:        "Should fail when static is empty",
+		errorString: "missing field(s): spec.authorities[0].static.action",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{
+					{
+						Glob: "globbityglob",
 					},
-					Authorities: []Authority{
-						{
-							Static: &StaticRef{},
-						},
+				},
+				Authorities: []Authority{
+					{
+						Static: &StaticRef{},
 					},
 				},
 			},
 		},
-		{
-			name:        "Should fail when action is invalid",
-			errorString: "invalid value: garbage: spec.authorities[0].static.action\nunsupported action",
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{
-					Images: []ImagePattern{
-						{
-							Glob: "globbityglob",
-						},
+	}, {
+		name:        "Should fail when action is invalid",
+		errorString: "invalid value: garbage: spec.authorities[0].static.action\nunsupported action",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{
+					{
+						Glob: "globbityglob",
 					},
-					Authorities: []Authority{
-						{
-							Static: &StaticRef{Action: "garbage"},
-						},
+				},
+				Authorities: []Authority{
+					{
+						Static: &StaticRef{Action: "garbage"},
 					},
 				},
 			},
 		},
-		{
-			name: "Works with pass",
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{
-					Images: []ImagePattern{
-						{
-							Glob: "globbityglob",
-						},
+	}, {
+		name: "Works with pass",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{
+					{
+						Glob: "globbityglob",
 					},
-					Authorities: []Authority{
-						{
-							Static: &StaticRef{Action: "pass"},
-						},
+				},
+				Authorities: []Authority{
+					{
+						Static: &StaticRef{Action: "pass"},
 					},
 				},
 			},
 		},
-		{
-			name: "Works with pass, and Spec.Policy.FetchConfigFile",
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{
-					Images: []ImagePattern{
-						{
-							Glob: "globbityglob",
-						},
+	}, {
+		name: "Works with pass, and Spec.Policy.FetchConfigFile",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{
+					{
+						Glob: "globbityglob",
 					},
-					Authorities: []Authority{
-						{
-							Static: &StaticRef{Action: "pass"},
-						},
+				},
+				Authorities: []Authority{
+					{
+						Static: &StaticRef{Action: "pass"},
 					},
-					Policy: &Policy{
-						Type:            "cue",
-						Data:            `predicateType: "cosign.sigstore.dev/attestation/vuln/v1"`,
-						FetchConfigFile: ptr.Bool(true),
+				},
+				Policy: &Policy{
+					Type:            "cue",
+					Data:            `predicateType: "cosign.sigstore.dev/attestation/vuln/v1"`,
+					FetchConfigFile: ptr.Bool(true),
+				},
+			},
+		},
+	}, {
+		name: "Works with pass, and Spec.Policy.IncludeSpec",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{
+					{
+						Glob: "globbityglob",
+					},
+				},
+				Authorities: []Authority{
+					{
+						Static: &StaticRef{Action: "pass"},
+					},
+				},
+				Policy: &Policy{
+					Type:        "cue",
+					Data:        `predicateType: "cosign.sigstore.dev/attestation/vuln/v1"`,
+					IncludeSpec: ptr.Bool(true),
+				},
+			},
+		},
+	}, {
+		name: "Works with fail",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{
+					{
+						Glob: "globbityglob",
+					},
+				},
+				Authorities: []Authority{
+					{
+						Static: &StaticRef{Action: "fail"},
 					},
 				},
 			},
 		},
-		{
-			name: "Works with fail",
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{
-					Images: []ImagePattern{
-						{
-							Glob: "globbityglob",
-						},
-					},
-					Authorities: []Authority{
-						{
-							Static: &StaticRef{Action: "fail"},
-						},
-					},
-				},
-			},
-		},
+	},
 	}
 
 	for _, test := range tests {
@@ -544,298 +542,283 @@ func TestAuthoritiesValidation(t *testing.T) {
 		errorString string
 		warnString  string
 		policy      ClusterImagePolicy
-	}{
-		{
-			name:        "Should fail when authority is empty",
-			errorString: "expected exactly one, got neither: spec.authorities[0].key, spec.authorities[0].keyless, spec.authorities[0].static",
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{
-					Images: []ImagePattern{
-						{
-							Glob: "globbityglob",
-						},
+	}{{
+		name:        "Should fail when authority is empty",
+		errorString: "expected exactly one, got neither: spec.authorities[0].key, spec.authorities[0].keyless, spec.authorities[0].static",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{
+					{
+						Glob: "globbityglob",
 					},
-					Authorities: []Authority{
-						{},
+				},
+				Authorities: []Authority{
+					{},
+				},
+			},
+		},
+	}, {
+		name:        "Should fail when key/keyless specified",
+		errorString: "expected exactly one, got both: spec.authorities[0].key, spec.authorities[0].keyless, spec.authorities[0].static",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{
+					{
+						Glob: "globbityglob",
+					},
+				},
+				Authorities: []Authority{
+					{
+						Key:     &KeyRef{Data: validPublicKey},
+						Keyless: &KeylessRef{URL: apis.HTTPS("fulcio.sigstore.dev")},
 					},
 				},
 			},
 		},
-		{
-			name:        "Should fail when key/keyless specified",
-			errorString: "expected exactly one, got both: spec.authorities[0].key, spec.authorities[0].keyless, spec.authorities[0].static",
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{
-					Images: []ImagePattern{
-						{
-							Glob: "globbityglob",
-						},
+	}, {
+		name:        "Should fail when key/static specified",
+		errorString: "expected exactly one, got both: spec.authorities[0].key, spec.authorities[0].keyless, spec.authorities[0].static",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{
+					{
+						Glob: "globbityglob",
 					},
-					Authorities: []Authority{
-						{
-							Key:     &KeyRef{Data: validPublicKey},
-							Keyless: &KeylessRef{URL: apis.HTTPS("fulcio.sigstore.dev")},
-						},
+				},
+				Authorities: []Authority{
+					{
+						Key:    &KeyRef{Data: validPublicKey},
+						Static: &StaticRef{Action: "pass"},
 					},
 				},
 			},
 		},
-		{
-			name:        "Should fail when key/static specified",
-			errorString: "expected exactly one, got both: spec.authorities[0].key, spec.authorities[0].keyless, spec.authorities[0].static",
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{
-					Images: []ImagePattern{
-						{
-							Glob: "globbityglob",
-						},
+	}, {
+		name:        "Should fail when keyless/static specified",
+		errorString: "expected exactly one, got both: spec.authorities[0].key, spec.authorities[0].keyless, spec.authorities[0].static",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{
+					{
+						Glob: "globbityglob",
 					},
-					Authorities: []Authority{
-						{
-							Key:    &KeyRef{Data: validPublicKey},
-							Static: &StaticRef{Action: "pass"},
-						},
+				},
+				Authorities: []Authority{
+					{
+						Static:  &StaticRef{Action: "fail"},
+						Keyless: &KeylessRef{URL: apis.HTTPS("fulcio.sigstore.dev")},
 					},
 				},
 			},
 		},
-		{
-			name:        "Should fail when keyless/static specified",
-			errorString: "expected exactly one, got both: spec.authorities[0].key, spec.authorities[0].keyless, spec.authorities[0].static",
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{
-					Images: []ImagePattern{
-						{
-							Glob: "globbityglob",
-						},
+	}, {
+		name:        "Should fail when key/keyless/static specified",
+		errorString: "expected exactly one, got both: spec.authorities[0].key, spec.authorities[0].keyless, spec.authorities[0].static",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{
+					{
+						Glob: "globbityglob",
 					},
-					Authorities: []Authority{
-						{
-							Static:  &StaticRef{Action: "fail"},
-							Keyless: &KeylessRef{URL: apis.HTTPS("fulcio.sigstore.dev")},
-						},
+				},
+				Authorities: []Authority{
+					{
+						Key:     &KeyRef{Data: validPublicKey},
+						Keyless: &KeylessRef{URL: apis.HTTPS("fulcio.sigstore.dev")},
+						Static:  &StaticRef{Action: "fail"},
 					},
 				},
 			},
 		},
-		{
-			name:        "Should fail when key/keyless/static specified",
-			errorString: "expected exactly one, got both: spec.authorities[0].key, spec.authorities[0].keyless, spec.authorities[0].static",
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{
-					Images: []ImagePattern{
-						{
-							Glob: "globbityglob",
-						},
-					},
-					Authorities: []Authority{
-						{
-							Key:     &KeyRef{Data: validPublicKey},
-							Keyless: &KeylessRef{URL: apis.HTTPS("fulcio.sigstore.dev")},
-							Static:  &StaticRef{Action: "fail"},
-						},
+	}, {
+		name:        "Should fail when static and sources,attestations, and ctlog is specified",
+		errorString: "expected exactly one, got both: spec.authorities[0].attestations, spec.authorities[0].ctlog, spec.authorities[0].source, spec.authorities[0].static",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{
+					{
+						Glob: "globbityglob",
 					},
 				},
-			},
-		},
-		{
-			name:        "Should fail when static and sources,attestations, and ctlog is specified",
-			errorString: "expected exactly one, got both: spec.authorities[0].attestations, spec.authorities[0].ctlog, spec.authorities[0].source, spec.authorities[0].static",
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{
-					Images: []ImagePattern{
-						{
-							Glob: "globbityglob",
-						},
-					},
-					Authorities: []Authority{
-						{
-							Static:       &StaticRef{Action: "fail"},
-							Attestations: []Attestation{{Name: "first", PredicateType: "vuln"}},
-							Sources: []Source{
-								{
-									OCI: "registry1",
-									SignaturePullSecrets: []v1.LocalObjectReference{
-										{Name: "placeholder"},
-									},
+				Authorities: []Authority{
+					{
+						Static:       &StaticRef{Action: "fail"},
+						Attestations: []Attestation{{Name: "first", PredicateType: "vuln"}},
+						Sources: []Source{
+							{
+								OCI: "registry1",
+								SignaturePullSecrets: []v1.LocalObjectReference{
+									{Name: "placeholder"},
 								},
 							},
-							CTLog: &TLog{},
+						},
+						CTLog: &TLog{},
+					},
+				},
+			},
+		},
+	}, {
+		name:        "Should fail when authorities is empty",
+		errorString: "missing field(s): spec.authorities",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{
+					{
+						Glob: "globbityglob",
+					},
+				},
+				Authorities: []Authority{},
+			},
+		},
+	}, {
+		name: "Should pass when source oci is present",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{{Glob: "*"}},
+				Authorities: []Authority{
+					{
+						Key:     &KeyRef{KMS: "kms://key/path"},
+						Sources: []Source{{OCI: "registry.example.com"}},
+					},
+				},
+			},
+		},
+	}, {
+		name:        "Should fail when source oci is empty",
+		errorString: "missing field(s): spec.authorities[0].source[0].oci",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{{Glob: "*"}},
+				Authorities: []Authority{
+					{
+						Key:     &KeyRef{KMS: "kms://key/path"},
+						Sources: []Source{{OCI: ""}},
+					},
+				},
+			},
+		},
+	}, {
+		name: "Should pass with multiple source oci is present",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{{Glob: "*"}},
+				Authorities: []Authority{
+					{
+						Key: &KeyRef{KMS: "kms://key/path"},
+						Sources: []Source{
+							{OCI: "registry1"},
+							{OCI: "registry2"},
 						},
 					},
 				},
 			},
 		},
-		{
-			name:        "Should fail when authorities is empty",
-			errorString: "missing field(s): spec.authorities",
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{
-					Images: []ImagePattern{
-						{
-							Glob: "globbityglob",
-						},
-					},
-					Authorities: []Authority{},
-				},
-			},
-		},
-		{
-			name: "Should pass when source oci is present",
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{
-					Images: []ImagePattern{{Glob: "*"}},
-					Authorities: []Authority{
-						{
-							Key:     &KeyRef{KMS: "kms://key/path"},
-							Sources: []Source{{OCI: "registry.example.com"}},
-						},
+	}, {
+		name:        "Should fail with invalid AWS KMS for Keyful",
+		errorString: "invalid value: awskms://localhost:8888/arn:butnotvalid: spec.authorities[0].key.kms\nfailed to parse either key or alias arn: arn: not enough sections",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{{Glob: "gcr.io/*"}},
+				Authorities: []Authority{
+					{
+						Key:     &KeyRef{KMS: "awskms://localhost:8888/arn:butnotvalid"},
+						Sources: []Source{{OCI: "registry.example.com"}},
 					},
 				},
 			},
 		},
-		{
-			name:        "Should fail when source oci is empty",
-			errorString: "missing field(s): spec.authorities[0].source[0].oci",
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{
-					Images: []ImagePattern{{Glob: "*"}},
-					Authorities: []Authority{
-						{
-							Key:     &KeyRef{KMS: "kms://key/path"},
-							Sources: []Source{{OCI: ""}},
-						},
+	}, {
+		name:        "Should fail with invalid AWS KMS for Keyless",
+		errorString: "invalid value: awskms://localhost:8888/arn:butnotvalid: spec.authorities[0].keyless.ca-cert.kms\nfailed to parse either key or alias arn: arn: not enough sections",
+		warnString:  "missing field(s): spec.authorities[0].keyless.identities",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{{Glob: "gcr.io/*"}},
+				Authorities: []Authority{
+					{
+						Keyless: &KeylessRef{CACert: &KeyRef{KMS: "awskms://localhost:8888/arn:butnotvalid"}},
 					},
 				},
 			},
 		},
-		{
-			name: "Should pass with multiple source oci is present",
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{
-					Images: []ImagePattern{{Glob: "*"}},
-					Authorities: []Authority{
-						{
-							Key: &KeyRef{KMS: "kms://key/path"},
-							Sources: []Source{
-								{OCI: "registry1"},
-								{OCI: "registry2"},
+	}, {
+		name: "Should pass with attestations present",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{{Glob: "*"}},
+				Authorities: []Authority{
+					{
+						Key: &KeyRef{KMS: "kms://key/path"},
+						Attestations: []Attestation{
+							{Name: "first", PredicateType: "vuln"},
+							{Name: "second", PredicateType: "custom", Policy: &Policy{
+								Type: "cue",
+								Data: `predicateType: "cosign.sigstore.dev/attestation/vuln/v1"`,
 							},
-						},
-					},
-				},
-			},
-		},
-		{
-			name:        "Should fail with invalid AWS KMS for Keyful",
-			errorString: "invalid value: awskms://localhost:8888/arn:butnotvalid: spec.authorities[0].key.kms\nfailed to parse either key or alias arn: arn: not enough sections",
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{
-					Images: []ImagePattern{{Glob: "gcr.io/*"}},
-					Authorities: []Authority{
-						{
-							Key:     &KeyRef{KMS: "awskms://localhost:8888/arn:butnotvalid"},
-							Sources: []Source{{OCI: "registry.example.com"}},
-						},
-					},
-				},
-			},
-		},
-		{
-			name:        "Should fail with invalid AWS KMS for Keyless",
-			errorString: "invalid value: awskms://localhost:8888/arn:butnotvalid: spec.authorities[0].keyless.ca-cert.kms\nfailed to parse either key or alias arn: arn: not enough sections",
-			warnString:  "missing field(s): spec.authorities[0].keyless.identities",
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{
-					Images: []ImagePattern{{Glob: "gcr.io/*"}},
-					Authorities: []Authority{
-						{
-							Keyless: &KeylessRef{CACert: &KeyRef{KMS: "awskms://localhost:8888/arn:butnotvalid"}},
-						},
-					},
-				},
-			},
-		},
-		{
-			name: "Should pass with attestations present",
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{
-					Images: []ImagePattern{{Glob: "*"}},
-					Authorities: []Authority{
-						{
-							Key: &KeyRef{KMS: "kms://key/path"},
-							Attestations: []Attestation{
-								{Name: "first", PredicateType: "vuln"},
-								{Name: "second", PredicateType: "custom", Policy: &Policy{
-									Type: "cue",
-									Data: `predicateType: "cosign.sigstore.dev/attestation/vuln/v1"`,
-								},
-								},
 							},
 						},
 					},
 				},
 			},
 		},
-		{
-			name: "Should fail with attestations policy specifying fetchConfigFile",
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{
-					Images: []ImagePattern{{Glob: "gcr.io/*"}},
-					Authorities: []Authority{
-						{
-							Key: &KeyRef{KMS: "kms://key/path"},
-							Attestations: []Attestation{
-								{Name: "first", PredicateType: "vuln"},
-								{Name: "second", PredicateType: "custom", Policy: &Policy{
-									Type:            "cue",
-									Data:            `predicateType: "cosign.sigstore.dev/attestation/vuln/v1"`,
-									FetchConfigFile: ptr.Bool(true),
-								},
-								},
+	}, {
+		name: "Should fail with attestations policy specifying fetchConfigFile",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{{Glob: "gcr.io/*"}},
+				Authorities: []Authority{
+					{
+						Key: &KeyRef{KMS: "kms://key/path"},
+						Attestations: []Attestation{
+							{Name: "first", PredicateType: "vuln"},
+							{Name: "second", PredicateType: "custom", Policy: &Policy{
+								Type:            "cue",
+								Data:            `predicateType: "cosign.sigstore.dev/attestation/vuln/v1"`,
+								FetchConfigFile: ptr.Bool(true),
 							},
-						},
-					},
-				},
-			},
-			errorString: "must not set the field(s): spec.authorities[0].attestations.policy.fetchConfigFile",
-		},
-		{
-			name:        "Should fail with signaturePullSecret name empty",
-			errorString: "missing field(s): spec.authorities[0].source[0].signaturePullSecrets[0].name",
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{
-					Images: []ImagePattern{{Glob: "*"}},
-					Authorities: []Authority{
-						{
-							Key: &KeyRef{KMS: "kms://key/path"},
-							Sources: []Source{
-								{
-									OCI: "registry1",
-									SignaturePullSecrets: []v1.LocalObjectReference{
-										{Name: ""},
-									},
-								},
 							},
 						},
 					},
 				},
 			},
 		},
-		{
-			name: "Should pass with signaturePullSecret name filled",
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{
-					Images: []ImagePattern{{Glob: "*"}},
-					Authorities: []Authority{
-						{
-							Key: &KeyRef{KMS: "kms://key/path"},
-							Sources: []Source{
-								{
-									OCI: "registry1",
-									SignaturePullSecrets: []v1.LocalObjectReference{
-										{Name: "testPullSecrets"},
-									},
+		errorString: "must not set the field(s): spec.authorities[0].attestations.policy.fetchConfigFile",
+	}, {
+		name: "Should fail with attestations policy specifying includeSpec",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{{Glob: "gcr.io/*"}},
+				Authorities: []Authority{
+					{
+						Key: &KeyRef{KMS: "kms://key/path"},
+						Attestations: []Attestation{
+							{Name: "first", PredicateType: "vuln"},
+							{Name: "second", PredicateType: "custom", Policy: &Policy{
+								Type:        "cue",
+								Data:        `predicateType: "cosign.sigstore.dev/attestation/vuln/v1"`,
+								IncludeSpec: ptr.Bool(true),
+							},
+							},
+						},
+					},
+				},
+			},
+		},
+		errorString: "must not set the field(s): spec.authorities[0].attestations.policy.includeSpec",
+	}, {
+		name:        "Should fail with signaturePullSecret name empty",
+		errorString: "missing field(s): spec.authorities[0].source[0].signaturePullSecrets[0].name",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{{Glob: "*"}},
+				Authorities: []Authority{
+					{
+						Key: &KeyRef{KMS: "kms://key/path"},
+						Sources: []Source{
+							{
+								OCI: "registry1",
+								SignaturePullSecrets: []v1.LocalObjectReference{
+									{Name: ""},
 								},
 							},
 						},
@@ -843,34 +826,19 @@ func TestAuthoritiesValidation(t *testing.T) {
 				},
 			},
 		},
-		{
-			name:        "Should fail with invalid signature hash algorithm",
-			errorString: "invalid value: " + signatureSHAInvalidHashAlgorithm + ": spec.authorities[0].key.hashAlgorithm",
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{
-					Images: []ImagePattern{{Glob: "*"}},
-					Authorities: []Authority{
-						{
-							Key: &KeyRef{KMS: "kms://key/path", HashAlgorithm: signatureSHAInvalidHashAlgorithm},
-						},
-					},
-				},
-			},
-		},
-		{
-			name: "Should pass with sha256 signature hash algorithm",
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{
-					Images: []ImagePattern{{Glob: "*"}},
-					Authorities: []Authority{
-						{
-							Key: &KeyRef{KMS: "kms://key/path", HashAlgorithm: signaturealgo.DefaultSignatureAlgorithm},
-							Sources: []Source{
-								{
-									OCI: "registry1",
-									SignaturePullSecrets: []v1.LocalObjectReference{
-										{Name: "testPullSecrets"},
-									},
+	}, {
+		name: "Should pass with signaturePullSecret name filled",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{{Glob: "*"}},
+				Authorities: []Authority{
+					{
+						Key: &KeyRef{KMS: "kms://key/path"},
+						Sources: []Source{
+							{
+								OCI: "registry1",
+								SignaturePullSecrets: []v1.LocalObjectReference{
+									{Name: "testPullSecrets"},
 								},
 							},
 						},
@@ -878,20 +846,32 @@ func TestAuthoritiesValidation(t *testing.T) {
 				},
 			},
 		},
-		{
-			name: "Should pass with sha512 signature hash algorithm",
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{
-					Images: []ImagePattern{{Glob: "*"}},
-					Authorities: []Authority{
-						{
-							Key: &KeyRef{KMS: "kms://key/path", HashAlgorithm: signatureSHA512HashAlgorithm},
-							Sources: []Source{
-								{
-									OCI: "registry1",
-									SignaturePullSecrets: []v1.LocalObjectReference{
-										{Name: "testPullSecrets"},
-									},
+	}, {
+		name:        "Should fail with invalid signature hash algorithm",
+		errorString: "invalid value: " + signatureSHAInvalidHashAlgorithm + ": spec.authorities[0].key.hashAlgorithm",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{{Glob: "*"}},
+				Authorities: []Authority{
+					{
+						Key: &KeyRef{KMS: "kms://key/path", HashAlgorithm: signatureSHAInvalidHashAlgorithm},
+					},
+				},
+			},
+		},
+	}, {
+		name: "Should pass with sha256 signature hash algorithm",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{{Glob: "*"}},
+				Authorities: []Authority{
+					{
+						Key: &KeyRef{KMS: "kms://key/path", HashAlgorithm: signaturealgo.DefaultSignatureAlgorithm},
+						Sources: []Source{
+							{
+								OCI: "registry1",
+								SignaturePullSecrets: []v1.LocalObjectReference{
+									{Name: "testPullSecrets"},
 								},
 							},
 						},
@@ -899,6 +879,27 @@ func TestAuthoritiesValidation(t *testing.T) {
 				},
 			},
 		},
+	}, {
+		name: "Should pass with sha512 signature hash algorithm",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{{Glob: "*"}},
+				Authorities: []Authority{
+					{
+						Key: &KeyRef{KMS: "kms://key/path", HashAlgorithm: signatureSHA512HashAlgorithm},
+						Sources: []Source{
+							{
+								OCI: "registry1",
+								SignaturePullSecrets: []v1.LocalObjectReference{
+									{Name: "testPullSecrets"},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	},
 	}
 
 	for _, test := range tests {
@@ -917,16 +918,15 @@ func TestEmptyAuthoritiesValidation(t *testing.T) {
 		errorString string
 		warnString  string
 		policy      ClusterImagePolicy
-	}{
-		{
-			name: "Should pass when Authorities is empty",
-			policy: ClusterImagePolicy{
-				Spec: ClusterImagePolicySpec{
-					Images:      []ImagePattern{{Glob: "*"}},
-					Authorities: []Authority{},
-				},
+	}{{
+		name: "Should pass when Authorities is empty",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images:      []ImagePattern{{Glob: "*"}},
+				Authorities: []Authority{},
 			},
 		},
+	},
 	}
 
 	for _, test := range tests {
@@ -1251,43 +1251,35 @@ func TestAWSKMSValidation(t *testing.T) {
 		name        string
 		errorString string
 		kms         string
-	}{
-		{
-			name:        "malformed, only 2 slashes ",
-			errorString: "invalid value: awskms://1234abcd-12ab-34cd-56ef-1234567890ab: KMSORCACERT\nmalformed AWS KMS format, should be: 'awskms://$ENDPOINT/$KEYID'",
-			kms:         "awskms://1234abcd-12ab-34cd-56ef-1234567890ab",
-		},
-		{
-			name:        "fails with invalid host",
-			errorString: "invalid value: awskms://localhost:::4566/alias/exampleAlias: KMSORCACERT\nmalformed endpoint: address localhost:::4566: too many colons in address",
-			kms:         "awskms://localhost:::4566/alias/exampleAlias",
-		},
-		{
-			name:        "fails with non-arn alias",
-			errorString: "invalid value: awskms://localhost:4566/alias/exampleAlias: KMSORCACERT\nfailed to parse either key or alias arn: arn: invalid prefix",
-			kms:         "awskms://localhost:4566/alias/exampleAlias",
-		},
-		{
-			name:        "Should fail when arn is invalid",
-			errorString: "invalid value: awskms://localhost:4566/arn:sonotvalid: KMSORCACERT\nfailed to parse either key or alias arn: arn: not enough sections",
-			kms:         "awskms://localhost:4566/arn:sonotvalid",
-		},
-		{
-			name: "works with valid arn key and endpoint",
-			kms:  "awskms://localhost:4566/arn:aws:kms:us-east-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab",
-		},
-		{
-			name: "works with valid arn key and no endpoint",
-			kms:  "awskms:///arn:aws:kms:us-east-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab",
-		},
-		{
-			name: "works with valid arn alias and endpoint",
-			kms:  "awskms://localhost:4566/arn:aws:kms:us-east-2:111122223333:alias/ExampleAlias",
-		},
-		{
-			name: "works with valid arn alias and no endpoint",
-			kms:  "awskms:///arn:aws:kms:us-east-2:111122223333:alias/ExampleAlias",
-		},
+	}{{
+		name:        "malformed, only 2 slashes ",
+		errorString: "invalid value: awskms://1234abcd-12ab-34cd-56ef-1234567890ab: KMSORCACERT\nmalformed AWS KMS format, should be: 'awskms://$ENDPOINT/$KEYID'",
+		kms:         "awskms://1234abcd-12ab-34cd-56ef-1234567890ab",
+	}, {
+		name:        "fails with invalid host",
+		errorString: "invalid value: awskms://localhost:::4566/alias/exampleAlias: KMSORCACERT\nmalformed endpoint: address localhost:::4566: too many colons in address",
+		kms:         "awskms://localhost:::4566/alias/exampleAlias",
+	}, {
+		name:        "fails with non-arn alias",
+		errorString: "invalid value: awskms://localhost:4566/alias/exampleAlias: KMSORCACERT\nfailed to parse either key or alias arn: arn: invalid prefix",
+		kms:         "awskms://localhost:4566/alias/exampleAlias",
+	}, {
+		name:        "Should fail when arn is invalid",
+		errorString: "invalid value: awskms://localhost:4566/arn:sonotvalid: KMSORCACERT\nfailed to parse either key or alias arn: arn: not enough sections",
+		kms:         "awskms://localhost:4566/arn:sonotvalid",
+	}, {
+		name: "works with valid arn key and endpoint",
+		kms:  "awskms://localhost:4566/arn:aws:kms:us-east-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab",
+	}, {
+		name: "works with valid arn key and no endpoint",
+		kms:  "awskms:///arn:aws:kms:us-east-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab",
+	}, {
+		name: "works with valid arn alias and endpoint",
+		kms:  "awskms://localhost:4566/arn:aws:kms:us-east-2:111122223333:alias/ExampleAlias",
+	}, {
+		name: "works with valid arn alias and no endpoint",
+		kms:  "awskms:///arn:aws:kms:us-east-2:111122223333:alias/ExampleAlias",
+	},
 	}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {

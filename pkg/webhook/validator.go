@@ -65,6 +65,28 @@ func isDeletedOrStatusUpdate(ctx context.Context, deletionTimestamp *metav1.Time
 	return apis.IsInDelete(ctx) || deletionTimestamp != nil || apis.IsInStatusUpdate(ctx)
 }
 
+// This is attached to contexts passed to webhook methods so that if the
+// user wants to get the Spec for the PolicyResult we can attach it.
+type includeSpecKey struct{}
+
+// includeSpec adds the spec to context so it's later available for
+// inclusion in PolicyResult. This is safe to call multiple times, first
+// one "wins". This is on purpose so that since we call down the various
+// levels and we want the highest resource level to be available, otherwise
+// everything boils down to PodSpec and it's lossy then.
+func includeSpec(ctx context.Context, spec interface{}) context.Context {
+	if getIncludeSpec(ctx) == nil {
+		return context.WithValue(ctx, includeSpecKey{}, spec)
+	}
+	return ctx
+}
+
+// getIncludeSpec returns the highest level spec for a resource possible.
+// For example, for Deployment it would return Deployment.Spec
+func getIncludeSpec(ctx context.Context) interface{} {
+	return ctx.Value(includeSpecKey{})
+}
+
 // ValidatePodScalable implements policyduckv1beta1.PodScalableValidator
 // It is very similar to ValidatePodSpecable, but allows for spec.replicas
 // to be decremented. This allows for scaling down pods with non-compliant
@@ -80,6 +102,10 @@ func (v *Validator) ValidatePodScalable(ctx context.Context, ps *policyduckv1bet
 		logging.FromContext(ctx).Debugf("Skipping validations due to scale down request %s/%s", &ps.ObjectMeta.Name, &ps.ObjectMeta.Namespace)
 		return nil
 	}
+
+	// Attach the spec for down the line to be attached if it's required by
+	// policy to be included in the PolicyResult.
+	ctx = includeSpec(ctx, ps.Spec)
 
 	imagePullSecrets := make([]string, 0, len(ps.Spec.Template.Spec.ImagePullSecrets))
 	for _, s := range ps.Spec.Template.Spec.ImagePullSecrets {
@@ -102,6 +128,10 @@ func (v *Validator) ValidatePodSpecable(ctx context.Context, wp *duckv1.WithPod)
 		return nil
 	}
 
+	// Attach the spec for down the line to be attached if it's required by
+	// policy to be included in the PolicyResult.
+	ctx = includeSpec(ctx, wp.Spec)
+
 	imagePullSecrets := make([]string, 0, len(wp.Spec.Template.Spec.ImagePullSecrets))
 	for _, s := range wp.Spec.Template.Spec.ImagePullSecrets {
 		imagePullSecrets = append(imagePullSecrets, s.Name)
@@ -122,6 +152,10 @@ func (v *Validator) ValidatePod(ctx context.Context, p *duckv1.Pod) *apis.FieldE
 		return nil
 	}
 
+	// Attach the spec for down the line to be attached if it's required by
+	// policy to be included in the PolicyResult.
+	ctx = includeSpec(ctx, p.Spec)
+
 	imagePullSecrets := make([]string, 0, len(p.Spec.ImagePullSecrets))
 	for _, s := range p.Spec.ImagePullSecrets {
 		imagePullSecrets = append(imagePullSecrets, s.Name)
@@ -141,6 +175,10 @@ func (v *Validator) ValidateCronJob(ctx context.Context, c *duckv1.CronJob) *api
 	if isDeletedOrStatusUpdate(ctx, c.DeletionTimestamp) {
 		return nil
 	}
+
+	// Attach the spec for down the line to be attached if it's required by
+	// policy to be included in the PolicyResult.
+	ctx = includeSpec(ctx, c.Spec)
 
 	imagePullSecrets := make([]string, 0, len(c.Spec.JobTemplate.Spec.Template.Spec.ImagePullSecrets))
 	for _, s := range c.Spec.JobTemplate.Spec.Template.Spec.ImagePullSecrets {
@@ -511,6 +549,9 @@ func ValidatePolicy(ctx context.Context, namespace string, ref name.Reference, c
 				return nil, authorityErrors
 			}
 			policyResult.Config = configFiles
+		}
+		if cip.Policy.IncludeSpec != nil && *cip.Policy.IncludeSpec {
+			policyResult.Spec = getIncludeSpec(ctx)
 		}
 
 		logging.FromContext(ctx).Info("Validating CIP level policy")

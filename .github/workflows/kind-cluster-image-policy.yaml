@@ -44,6 +44,7 @@ jobs:
         - cluster_image_policy_with_warn
         - cluster_image_policy_with_source
         - cluster_image_policy_with_fetch_config_file
+        - cluster_image_policy_with_include_spec
 
     env:
       KO_DOCKER_REPO: "registry.local:5000/policy-controller"

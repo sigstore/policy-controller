@@ -49,6 +49,14 @@ type PolicyResult struct {
 	// This field is only available for evaluation if
 	// CIP.Spec.Policy.FetchConfigFile is set to true.
 	Config map[string]*v1.ConfigFile `json:"config,omitempty"`
+
+	// Spec contains the Spec for the resource that was evaluated. Note
+	// that because this is resource specific, so you can use MatchResource
+	// to filter to only specific resource to get only the Specs you want.
+	//
+	// This field is only available for evaluation if
+	// CIP.Spec.Policy.IncludeSpec is set to true.
+	Spec interface{} `json:"spec,omitempty"`
 }
 
 // AuthorityMatch returns either Signatures (if there are no Attestations

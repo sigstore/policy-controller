@@ -216,6 +216,15 @@ type Policy struct {
 	// https://github.com/opencontainers/image-spec/blob/main/config.md
 	// +optional
 	FetchConfigFile *bool `json:"fetchConfigFile,omitempty"`
+	// IncludeSpec controls whether resource `Spec` will be included and
+	// made available for CIP level policy evaluation. Note that this only gets
+	// evaluated iff at least one authority matches.
+	// Also note that because Spec may be of a different shape depending
+	// on the resource being evaluatied (see MatchResource for filtering)
+	// you might want to configure these to match the policy file to ensure
+	// the shape of the Spec is what you expect when evaling the policy.
+	// +optional
+	IncludeSpec *bool `json:"includeSpec,omitempty"`
 }
 
 // MatchResource allows selecting resources based on its version, group and resource.
