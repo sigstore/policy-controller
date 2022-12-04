@@ -87,6 +87,28 @@ func getIncludeSpec(ctx context.Context) interface{} {
 	return ctx.Value(includeSpecKey{})
 }
 
+// This is attached to contexts passed to webhook methods so that if the
+// user wants to get the ObjectMeta for the PolicyResult we can attach it.
+type includeObjectMetaKey struct{}
+
+// includeObjectMeta adds the ObjectMeta to context so it's later available for
+// inclusion in PolicyResult. This is safe to call multiple times, first
+// one "wins". This is on purpose so that since we call down the various
+// levels and we want the highest resource level to be available, otherwise
+// everything boils down to PodSpec and it's lossy then.
+func includeObjectMeta(ctx context.Context, spec interface{}) context.Context {
+	if getIncludeObjectMeta(ctx) == nil {
+		return context.WithValue(ctx, includeObjectMetaKey{}, spec)
+	}
+	return ctx
+}
+
+// getIncludeObjectMeta returns the highest level spec for a resource possible.
+// For example, for Deployment it would return Deployment.Spec
+func getIncludeObjectMeta(ctx context.Context) interface{} {
+	return ctx.Value(includeObjectMetaKey{})
+}
+
 // ValidatePodScalable implements policyduckv1beta1.PodScalableValidator
 // It is very similar to ValidatePodSpecable, but allows for spec.replicas
 // to be decremented. This allows for scaling down pods with non-compliant
@@ -106,6 +128,7 @@ func (v *Validator) ValidatePodScalable(ctx context.Context, ps *policyduckv1bet
 	// Attach the spec for down the line to be attached if it's required by
 	// policy to be included in the PolicyResult.
 	ctx = includeSpec(ctx, ps.Spec)
+	ctx = includeObjectMeta(ctx, ps.ObjectMeta)
 
 	imagePullSecrets := make([]string, 0, len(ps.Spec.Template.Spec.ImagePullSecrets))
 	for _, s := range ps.Spec.Template.Spec.ImagePullSecrets {
@@ -131,6 +154,7 @@ func (v *Validator) ValidatePodSpecable(ctx context.Context, wp *duckv1.WithPod)
 	// Attach the spec for down the line to be attached if it's required by
 	// policy to be included in the PolicyResult.
 	ctx = includeSpec(ctx, wp.Spec)
+	ctx = includeObjectMeta(ctx, wp.ObjectMeta)
 
 	imagePullSecrets := make([]string, 0, len(wp.Spec.Template.Spec.ImagePullSecrets))
 	for _, s := range wp.Spec.Template.Spec.ImagePullSecrets {
@@ -155,6 +179,7 @@ func (v *Validator) ValidatePod(ctx context.Context, p *duckv1.Pod) *apis.FieldE
 	// Attach the spec for down the line to be attached if it's required by
 	// policy to be included in the PolicyResult.
 	ctx = includeSpec(ctx, p.Spec)
+	ctx = includeObjectMeta(ctx, p.ObjectMeta)
 
 	imagePullSecrets := make([]string, 0, len(p.Spec.ImagePullSecrets))
 	for _, s := range p.Spec.ImagePullSecrets {
@@ -179,6 +204,7 @@ func (v *Validator) ValidateCronJob(ctx context.Context, c *duckv1.CronJob) *api
 	// Attach the spec for down the line to be attached if it's required by
 	// policy to be included in the PolicyResult.
 	ctx = includeSpec(ctx, c.Spec)
+	ctx = includeObjectMeta(ctx, c.ObjectMeta)
 
 	imagePullSecrets := make([]string, 0, len(c.Spec.JobTemplate.Spec.Template.Spec.ImagePullSecrets))
 	for _, s := range c.Spec.JobTemplate.Spec.Template.Spec.ImagePullSecrets {
@@ -553,12 +579,16 @@ func ValidatePolicy(ctx context.Context, namespace string, ref name.Reference, c
 		if cip.Policy.IncludeSpec != nil && *cip.Policy.IncludeSpec {
 			policyResult.Spec = getIncludeSpec(ctx)
 		}
+		if cip.Policy.IncludeObjectMeta != nil && *cip.Policy.IncludeObjectMeta {
+			policyResult.ObjectMeta = getIncludeObjectMeta(ctx)
+		}
 
 		logging.FromContext(ctx).Info("Validating CIP level policy")
 		policyJSON, err := json.Marshal(policyResult)
 		if err != nil {
 			return nil, append(authorityErrors, err)
 		}
+		logging.FromContext(ctx).Info("CIP level policy: %s", string(policyJSON))
 		err = policy.EvaluatePolicyAgainstJSON(ctx, "ClusterImagePolicy", cip.Policy.Type, cip.Policy.Data, policyJSON)
 		if err != nil {
 			logging.FromContext(ctx).Warnf("Failed to validate CIP level policy against %s", string(policyJSON))

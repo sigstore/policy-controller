@@ -475,6 +475,27 @@ func TestStaticValidation(t *testing.T) {
 			},
 		},
 	}, {
+		name: "Works with pass, and Spec.Policy.IncludeObjectMeta",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{
+					{
+						Glob: "globbityglob",
+					},
+				},
+				Authorities: []Authority{
+					{
+						Static: &StaticRef{Action: "pass"},
+					},
+				},
+				Policy: &Policy{
+					Type:              "cue",
+					Data:              `predicateType: "cosign.sigstore.dev/attestation/vuln/v1"`,
+					IncludeObjectMeta: ptr.Bool(true),
+				},
+			},
+		},
+	}, {
 		name: "Works with fail",
 		policy: ClusterImagePolicy{
 			Spec: ClusterImagePolicySpec{
@@ -805,6 +826,28 @@ func TestAuthoritiesValidation(t *testing.T) {
 			},
 		},
 		errorString: "must not set the field(s): spec.authorities[0].attestations.policy.includeSpec",
+	}, {
+		name: "Should fail with attestations policy specifying includeObjectMeta",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{{Glob: "gcr.io/*"}},
+				Authorities: []Authority{
+					{
+						Key: &KeyRef{KMS: "kms://key/path"},
+						Attestations: []Attestation{
+							{Name: "first", PredicateType: "vuln"},
+							{Name: "second", PredicateType: "custom", Policy: &Policy{
+								Type:              "cue",
+								Data:              `predicateType: "cosign.sigstore.dev/attestation/vuln/v1"`,
+								IncludeObjectMeta: ptr.Bool(true),
+							},
+							},
+						},
+					},
+				},
+			},
+		},
+		errorString: "must not set the field(s): spec.authorities[0].attestations.policy.includeObjectMeta",
 	}, {
 		name:        "Should fail with signaturePullSecret name empty",
 		errorString: "missing field(s): spec.authorities[0].source[0].signaturePullSecrets[0].name",

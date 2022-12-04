@@ -82,6 +82,9 @@ spec:
                                 fetchConfigFile:
                                   description: 'FetchConfigFile controls whether ConfigFile will be fetched and made available for CIP level policy evaluation. Note that this only gets evaluated (and hence fetched) iff at least one authority matches. The ConfigFile will then be available in this format: https://github.com/opencontainers/image-spec/blob/main/config.md'
                                   type: boolean
+                                includeObjectMeta:
+                                  description: IncludeObjectMeta controls whether the ObjectMeta will be included and made available for CIP level policy evalutation. Note that this only gets evaluated iff at least one authority matches.
+                                  type: boolean
                                 includeSpec:
                                   description: IncludeSpec controls whether resource `Spec` will be included and made available for CIP level policy evaluation. Note that this only gets evaluated iff at least one authority matches. Also note that because Spec may be of a different shape depending on the resource being evaluatied (see MatchResource for filtering) you might want to configure these to match the policy file to ensure the shape of the Spec is what you expect when evaling the policy.
                                   type: boolean
@@ -268,6 +271,9 @@ spec:
                     fetchConfigFile:
                       description: 'FetchConfigFile controls whether ConfigFile will be fetched and made available for CIP level policy evaluation. Note that this only gets evaluated (and hence fetched) iff at least one authority matches. The ConfigFile will then be available in this format: https://github.com/opencontainers/image-spec/blob/main/config.md'
                       type: boolean
+                    includeObjectMeta:
+                      description: IncludeObjectMeta controls whether the ObjectMeta will be included and made available for CIP level policy evalutation. Note that this only gets evaluated iff at least one authority matches.
+                      type: boolean
                     includeSpec:
                       description: IncludeSpec controls whether resource `Spec` will be included and made available for CIP level policy evaluation. Note that this only gets evaluated iff at least one authority matches. Also note that because Spec may be of a different shape depending on the resource being evaluatied (see MatchResource for filtering) you might want to configure these to match the policy file to ensure the shape of the Spec is what you expect when evaling the policy.
                       type: boolean
@@ -322,6 +328,12 @@ spec:
                                   type: string
                                 fetchConfigFile:
                                   description: 'FetchConfigFile controls whether ConfigFile will be fetched and made available for CIP level policy evaluation. Note that this only gets evaluated (and hence fetched) iff at least one authority matches. The ConfigFile will then be available in this format: https://github.com/opencontainers/image-spec/blob/main/config.md'
+                                  type: boolean
+                                includeObjectMeta:
+                                  description: IncludeObjectMeta controls whether the ObjectMeta will be included and made available for CIP level policy evalutation. Note that this only gets evaluated iff at least one authority matches.
+                                  type: boolean
+                                includeSpec:
+                                  description: IncludeSpec controls whether resource `Spec` will be included and made available for CIP level policy evaluation. Note that this only gets evaluated iff at least one authority matches. Also note that because Spec may be of a different shape depending on the resource being evaluatied (see MatchResource for filtering) you might want to configure these to match the policy file to ensure the shape of the Spec is what you expect when evaling the policy.
                                   type: boolean
                             predicateType:
                               description: Which predicate type to verify. Matches cosign verify-attestation options.
@@ -481,6 +493,12 @@ spec:
                       type: string
                     fetchConfigFile:
                       description: 'FetchConfigFile controls whether ConfigFile will be fetched and made available for CIP level policy evaluation. Note that this only gets evaluated (and hence fetched) iff at least one authority matches. The ConfigFile will then be available in this format: https://github.com/opencontainers/image-spec/blob/main/config.md'
+                      type: boolean
+                    includeObjectMeta:
+                      description: IncludeObjectMeta controls whether the ObjectMeta will be included and made available for CIP level policy evalutation. Note that this only gets evaluated iff at least one authority matches.
+                      type: boolean
+                    includeSpec:
+                      description: IncludeSpec controls whether resource `Spec` will be included and made available for CIP level policy evaluation. Note that this only gets evaluated iff at least one authority matches. Also note that because Spec may be of a different shape depending on the resource being evaluatied (see MatchResource for filtering) you might want to configure these to match the policy file to ensure the shape of the Spec is what you expect when evaling the policy.
                       type: boolean
                     type:
                       description: Which kind of policy this is, currently only rego or cue are supported. Furthermore, only cue is tested :)
