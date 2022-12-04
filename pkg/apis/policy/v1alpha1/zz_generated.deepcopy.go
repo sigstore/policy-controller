@@ -342,6 +342,11 @@ func (in *Policy) DeepCopyInto(out *Policy) {
 		*out = new(bool)
 		**out = **in
 	}
+	if in.IncludeObjectMeta != nil {
+		in, out := &in.IncludeObjectMeta, &out.IncludeObjectMeta
+		*out = new(bool)
+		**out = **in
+	}
 	return
 }
 

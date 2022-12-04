@@ -166,6 +166,7 @@ Policy specifies a policy to use for Attestation or the CIP validation (iff at l
 | configMapRef | ConfigMapRef defines the reference to a configMap with the policy definition. | [ConfigMapReference](#configmapreference) | false |
 | fetchConfigFile | FetchConfigFile controls whether ConfigFile will be fetched and made available for CIP level policy evaluation. Note that this only gets evaluated (and hence fetched) iff at least one authority matches. The ConfigFile will then be available in this format: https://github.com/opencontainers/image-spec/blob/main/config.md | bool | false |
 | includeSpec | IncludeSpec controls whether resource `Spec` will be included and made available for CIP level policy evaluation. Note that this only gets evaluated iff at least one authority matches. Also note that because Spec may be of a different shape depending on the resource being evaluatied (see MatchResource for filtering) you might want to configure these to match the policy file to ensure the shape of the Spec is what you expect when evaling the policy. | bool | false |
+| includeObjectMeta | IncludeObjectMeta controls whether the ObjectMeta will be included and made available for CIP level policy evalutation. Note that this only gets evaluated iff at least one authority matches. | bool | false |
 
 [Back to TOC](#table-of-contents)
 
