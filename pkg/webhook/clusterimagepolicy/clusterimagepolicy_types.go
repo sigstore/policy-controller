@@ -193,10 +193,12 @@ func (a *Authority) UnmarshalJSON(data []byte) error {
 	// Determine additional RemoteOpts
 	if len(rawAuthority.Sources) > 0 {
 		for _, source := range rawAuthority.Sources {
-			if targetRepoOverride, err := name.NewRepository(source.OCI); err != nil {
-				return fmt.Errorf("failed to determine source: %w", err)
-			} else if (targetRepoOverride != name.Repository{}) {
-				rawAuthority.RemoteOpts = append(rawAuthority.RemoteOpts, ociremote.WithTargetRepository(targetRepoOverride))
+			if source.OCI != "" {
+				if targetRepoOverride, err := name.NewRepository(source.OCI); err != nil {
+					return fmt.Errorf("failed to determine source: %w", err)
+				} else if (targetRepoOverride != name.Repository{}) {
+					rawAuthority.RemoteOpts = append(rawAuthority.RemoteOpts, ociremote.WithTargetRepository(targetRepoOverride))
+				}
 			}
 		}
 	}
