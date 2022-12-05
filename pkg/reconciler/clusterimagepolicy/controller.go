@@ -16,6 +16,7 @@ package clusterimagepolicy
 
 import (
 	"context"
+	"time"
 
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/client-go/tools/cache"
@@ -41,6 +42,8 @@ import (
 // This is what the default finalizer name is, but make it explicit so we can
 // use it in tests as well.
 const finalizerName = "clusterimagepolicies.policy.sigstore.dev"
+
+type policyResyncPeriodKey struct{}
 
 // NewController creates a Reconciler and returns the result of NewImpl.
 func NewController(
@@ -80,18 +83,34 @@ func NewController(
 	// ConfigMap but there are no changes to the ClusterImagePolicy, it needs
 	// to be synced.
 	grCb := func(obj interface{}) {
-		logging.FromContext(ctx).Info("Doing a global resync on ClusterImagePolicies due to ConfigMap changing.")
+		logging.FromContext(ctx).Info("Doing a global resync on ClusterImagePolicies due to ConfigMap changing or resync period.")
 		impl.GlobalResync(clusterimagepolicyInformer.Informer())
 	}
-	// Resync on only ConfigMap changes that pertain to the one I care about.
+	// Resync on only ConfigMap changes that pertain to the one I care about
+	// or after a resync period.
 	// We could also fetch/construct the store and use CM watcher for it, but
 	// since we need a lister for it anyways in the reconciler, just set up
 	// the watch here.
-	configMapInformer.Informer().AddEventHandler(cache.FilteringResourceEventHandler{
+	configMapInformer.Informer().AddEventHandlerWithResyncPeriod(cache.FilteringResourceEventHandler{
 		FilterFunc: pkgreconciler.ChainFilterFuncs(
 			pkgreconciler.NamespaceFilterFunc(system.Namespace()),
 			pkgreconciler.NameFilterFunc(config.ImagePoliciesConfigName)),
 		Handler: controller.HandleAll(grCb),
-	})
+	}, FromContextOrDefaults(ctx))
+
 	return impl
+}
+
+func ToContext(ctx context.Context, duration time.Duration) context.Context {
+	return context.WithValue(ctx, policyResyncPeriodKey{}, duration)
+}
+
+// FromContextOrDefaults returns a stored policyResyncPeriod if attached.
+// If not found, it returns a default duration
+func FromContextOrDefaults(ctx context.Context) time.Duration {
+	x, ok := ctx.Value(policyResyncPeriodKey{}).(time.Duration)
+	if ok {
+		return x
+	}
+	return controller.DefaultResyncPeriod
 }
