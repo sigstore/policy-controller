@@ -1009,7 +1009,7 @@ func TestAttestationsValidation(t *testing.T) {
 				Data: `predicateType: "cosign.sigstore.dev/attestation/vuln/v1"`,
 			},
 		},
-		errorString: "invalid value: not-cue: policy.type\nonly cue is supported at the moment",
+		errorString: "invalid value: not-cue: policy.type\nonly [cue,rego] are supported at the moment",
 	}, {
 		name: "custom with missing policy data",
 		attestation: Attestation{Name: "second", PredicateType: "custom",

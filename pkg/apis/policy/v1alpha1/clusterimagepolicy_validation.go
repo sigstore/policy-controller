@@ -256,8 +256,8 @@ func (p *Policy) Validate(ctx context.Context) *apis.FieldError {
 		return nil
 	}
 	var errs *apis.FieldError
-	if p.Type != "cue" {
-		errs = errs.Also(apis.ErrInvalidValue(p.Type, "type", "only cue is supported at the moment"))
+	if p.Type != "cue" && p.Type != "rego" {
+		errs = errs.Also(apis.ErrInvalidValue(p.Type, "type", "only [cue,rego] are supported at the moment"))
 	}
 	if p.Data == "" {
 		errs = errs.Also(apis.ErrMissingField("data"))
