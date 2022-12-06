@@ -143,13 +143,13 @@ COSIGN_EXPERIMENTAL=1 cosign verify-attestation --type=custom --rekor-url ${REKO
 echo '::endgroup::'
 
 # This image has been signed, and has attestation, but data is not right
-echo '::group:: test job rejection'
+echo '::group:: test job rejection because the data does not match wanted policy'
 expected_error='failed evaluating rego policy for type custom-match-predicate: policy is not compliant for query'
 assert_error ${expected_error}
 echo '::endgroup::'
 
 # Update data to match what we attested to.
-echo '::group:: Create CIP that requires keyless custom attestation with policy that should match required data'
+echo '::group:: Update CIP so that it requires keyless custom attestation with policy that should match required data'
 kubectl apply -f ./test/testdata/policy-controller/e2e/cip-keyless-with-attestations-rego.yaml
 # allow things to propagate
 sleep 5
