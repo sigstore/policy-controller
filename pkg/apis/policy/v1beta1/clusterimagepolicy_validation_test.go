@@ -854,7 +854,7 @@ func TestAuthoritiesValidation(t *testing.T) {
 				},
 			},
 		},
-		errorString: "must not set the field(s): spec.authorities[0].attestations.policy.includeTypeMeta",
+		errorString: "must not set the field(s): spec.authorities[0].attestations.policy.includeObjectMeta",
 	}, {
 		name: "Should fail with attestations policy specifying includeTypeMeta",
 		policy: ClusterImagePolicy{
