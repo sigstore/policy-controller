@@ -91,6 +91,10 @@ func getIncludeSpec(ctx context.Context) interface{} {
 // user wants to get the ObjectMeta for the PolicyResult we can attach it.
 type includeObjectMetaKey struct{}
 
+// This is attached to contexts passed to webhook methods so that if the
+// user wants to get the TypeMeta for the PolicyResult we can attach it.
+type includeTypeMetaKey struct{}
+
 // IncludeObjectMeta adds the ObjectMeta to context so it's later available for
 // inclusion in PolicyResult. This is safe to call multiple times, first
 // one "wins". This is on purpose so that since we call down the various
@@ -103,10 +107,30 @@ func IncludeObjectMeta(ctx context.Context, meta interface{}) context.Context {
 	return ctx
 }
 
-// getIncludeObjectMeta returns the highest level spec for a resource possible.
-// For example, for Deployment it would return Deployment.Spec
+// getIncludeObjectMeta returns the highest level ObjectMeta for a resource
+// possible. For example, for Deployment it would return Deployment.Spec
 func getIncludeObjectMeta(ctx context.Context) interface{} {
 	return ctx.Value(includeObjectMetaKey{})
+}
+
+// IncludeTypeMeta adds the TypeMeta to context so it's later available for
+// inclusion in PolicyResult. This is safe to call multiple times, first
+// one "wins". This is on purpose so that since we call down the various
+// levels and we want the highest resource level to be available, otherwise
+// everything boils down to PodSpec and it's lossy then.
+func IncludeTypeMeta(ctx context.Context, meta interface{}) context.Context {
+	if getIncludeTypeMeta(ctx) == nil {
+		return context.WithValue(ctx, includeTypeMetaKey{}, meta)
+	}
+	return ctx
+}
+
+// getIncludeTypeMeta returns the highest level TypeMeta for a resource
+// possible. For example, for Deployment it would return:
+// apiVersion: apps/v1
+// kind: Deployment
+func getIncludeTypeMeta(ctx context.Context) interface{} {
+	return ctx.Value(includeTypeMetaKey{})
 }
 
 // ValidatePodScalable implements policyduckv1beta1.PodScalableValidator
@@ -129,6 +153,7 @@ func (v *Validator) ValidatePodScalable(ctx context.Context, ps *policyduckv1bet
 	// policy to be included in the PolicyResult.
 	ctx = IncludeSpec(ctx, ps.Spec)
 	ctx = IncludeObjectMeta(ctx, ps.ObjectMeta)
+	ctx = IncludeTypeMeta(ctx, ps.TypeMeta)
 
 	imagePullSecrets := make([]string, 0, len(ps.Spec.Template.Spec.ImagePullSecrets))
 	for _, s := range ps.Spec.Template.Spec.ImagePullSecrets {
@@ -155,6 +180,7 @@ func (v *Validator) ValidatePodSpecable(ctx context.Context, wp *duckv1.WithPod)
 	// required by policy to be included in the PolicyResult.
 	ctx = IncludeSpec(ctx, wp.Spec)
 	ctx = IncludeObjectMeta(ctx, wp.ObjectMeta)
+	ctx = IncludeTypeMeta(ctx, wp.TypeMeta)
 
 	imagePullSecrets := make([]string, 0, len(wp.Spec.Template.Spec.ImagePullSecrets))
 	for _, s := range wp.Spec.Template.Spec.ImagePullSecrets {
@@ -205,6 +231,7 @@ func (v *Validator) ValidateCronJob(ctx context.Context, c *duckv1.CronJob) *api
 	// required by policy to be included in the PolicyResult.
 	ctx = IncludeSpec(ctx, c.Spec)
 	ctx = IncludeObjectMeta(ctx, c.ObjectMeta)
+	ctx = IncludeTypeMeta(ctx, c.TypeMeta)
 
 	imagePullSecrets := make([]string, 0, len(c.Spec.JobTemplate.Spec.Template.Spec.ImagePullSecrets))
 	for _, s := range c.Spec.JobTemplate.Spec.Template.Spec.ImagePullSecrets {
@@ -581,6 +608,9 @@ func ValidatePolicy(ctx context.Context, namespace string, ref name.Reference, c
 		}
 		if cip.Policy.IncludeObjectMeta != nil && *cip.Policy.IncludeObjectMeta {
 			policyResult.ObjectMeta = getIncludeObjectMeta(ctx)
+		}
+		if cip.Policy.IncludeTypeMeta != nil && *cip.Policy.IncludeTypeMeta {
+			policyResult.TypeMeta = getIncludeTypeMeta(ctx)
 		}
 
 		logging.FromContext(ctx).Info("Validating CIP level policy")

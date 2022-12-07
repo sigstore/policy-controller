@@ -64,8 +64,13 @@ ${KNATIVE_CODEGEN_PKG}/hack/generate-knative.sh "injection" \
 
 group "Update CRD Schema"
 
+# Note that we run this twice, once for each version of the api, hence the
+# index of [0,1] so that we get both API descriptions updated.
 go run $(dirname $0)/../cmd/schema/ dump ClusterImagePolicy \
   | yq eval-all --inplace 'select(fileIndex == 0).spec.versions[0].schema.openAPIV3Schema = select(fileIndex == 1) | select(fileIndex == 0)' \
+  $(dirname $0)/../config/300-clusterimagepolicy.yaml -
+go run $(dirname $0)/../cmd/schema/ dump ClusterImagePolicy \
+  | yq eval-all --inplace 'select(fileIndex == 0).spec.versions[1].schema.openAPIV3Schema = select(fileIndex == 1) | select(fileIndex == 0)' \
   $(dirname $0)/../config/300-clusterimagepolicy.yaml -
 
 group "Update deps post-codegen"

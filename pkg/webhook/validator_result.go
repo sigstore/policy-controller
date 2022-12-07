@@ -63,6 +63,12 @@ type PolicyResult struct {
 	// This field is only available for evaluation if
 	// CIP.Spec.Policy.IncludeObjectMeta is set to true.
 	ObjectMeta interface{} `json:"metadata,omitempty"`
+
+	// TypeMeta contains the TypeMeta for the resource that was evaluated.
+	//
+	// This field is only available for evaluation if
+	// CIP.Spec.Policy.IncludeTypeMeta is set to true.
+	TypeMeta interface{} `json:"typemeta,omitempty"`
 }
 
 // AuthorityMatch returns either Signatures (if there are no Attestations

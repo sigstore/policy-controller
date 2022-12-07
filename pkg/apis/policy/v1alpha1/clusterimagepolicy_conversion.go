@@ -153,6 +153,9 @@ func (p *Policy) ConvertTo(ctx context.Context, sink *v1beta1.Policy) {
 	if p.IncludeObjectMeta != nil {
 		sink.IncludeObjectMeta = ptr.Bool(*p.IncludeObjectMeta)
 	}
+	if p.IncludeTypeMeta != nil {
+		sink.IncludeTypeMeta = ptr.Bool(*p.IncludeTypeMeta)
+	}
 }
 
 func (p *Policy) ConvertFrom(ctx context.Context, source *v1beta1.Policy) {
@@ -175,6 +178,9 @@ func (p *Policy) ConvertFrom(ctx context.Context, source *v1beta1.Policy) {
 	}
 	if source.IncludeObjectMeta != nil {
 		p.IncludeObjectMeta = ptr.Bool(*source.IncludeObjectMeta)
+	}
+	if source.IncludeTypeMeta != nil {
+		p.IncludeTypeMeta = ptr.Bool(*source.IncludeTypeMeta)
 	}
 }
 
