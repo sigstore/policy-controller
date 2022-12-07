@@ -151,7 +151,7 @@ func (v *Validator) ValidatePodSpecable(ctx context.Context, wp *duckv1.WithPod)
 		return nil
 	}
 
-	// Attach the spec/objectMeta for down the line to be attached if it's
+	// Attach the spec/metadata for down the line to be attached if it's
 	// required by policy to be included in the PolicyResult.
 	ctx = includeSpec(ctx, wp.Spec)
 	ctx = includeObjectMeta(ctx, wp.ObjectMeta)
@@ -176,7 +176,7 @@ func (v *Validator) ValidatePod(ctx context.Context, p *duckv1.Pod) *apis.FieldE
 		return nil
 	}
 
-	// Attach the spec/objectMeta for down the line to be attached if it's
+	// Attach the spec/metadata for down the line to be attached if it's
 	// required by policy to be included in the PolicyResult.
 	ctx = includeSpec(ctx, p.Spec)
 	ctx = includeObjectMeta(ctx, p.ObjectMeta)
@@ -201,7 +201,7 @@ func (v *Validator) ValidateCronJob(ctx context.Context, c *duckv1.CronJob) *api
 		return nil
 	}
 
-	// Attach the spec/objectMeta for down the line to be attached if it's
+	// Attach the spec/metadata for down the line to be attached if it's
 	// required by policy to be included in the PolicyResult.
 	ctx = includeSpec(ctx, c.Spec)
 	ctx = includeObjectMeta(ctx, c.ObjectMeta)

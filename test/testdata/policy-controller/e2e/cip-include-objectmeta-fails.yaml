@@ -26,4 +26,6 @@ spec:
     includeObjectMeta: true
     type: "cue"
     data: |
-      objectMeta: "labels": "foo": "non-bar"
+      metadata:
+        labels:
+          foo: "non-bar"

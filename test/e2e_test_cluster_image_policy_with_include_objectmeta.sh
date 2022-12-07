@@ -70,7 +70,7 @@ sleep 5
 echo '::endgroup::'
 
 echo '::group:: validate failure '
-expected_error='failed evaluating cue policy for ClusterImagePolicy: failed to evaluate the policy with error: objectMeta.labels.foo: conflicting values "bar" and "non-bar"'
+expected_error='failed evaluating cue policy for ClusterImagePolicy: failed to evaluate the policy with error: metadata.labels.foo: conflicting values "bar" and "non-bar"'
 assert_error ${expected_error}
 echo '::endgroup::'
 
