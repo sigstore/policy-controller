@@ -62,7 +62,7 @@ type PolicyResult struct {
 	//
 	// This field is only available for evaluation if
 	// CIP.Spec.Policy.IncludeObjectMeta is set to true.
-	ObjectMeta interface{} `json:"objectMeta,omitempty"`
+	ObjectMeta interface{} `json:"metadata,omitempty"`
 }
 
 // AuthorityMatch returns either Signatures (if there are no Attestations
