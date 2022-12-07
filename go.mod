@@ -15,7 +15,7 @@ require (
 	github.com/google/go-containerregistry/pkg/authn/kubernetes v0.0.0-20221114162634-781782aa2757
 	github.com/hashicorp/errwrap v1.1.0
 	github.com/hashicorp/go-cleanhttp v0.5.2
-	github.com/hashicorp/go-hclog v1.3.1
+	github.com/hashicorp/go-hclog v1.4.0
 	github.com/hashicorp/go-immutable-radix v1.3.1
 	github.com/hashicorp/go-multierror v1.1.1
 	github.com/hashicorp/go-plugin v1.4.6
