@@ -32,6 +32,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	ociremote "github.com/sigstore/cosign/pkg/oci/remote"
 	"go.uber.org/zap"
+	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"knative.dev/pkg/apis"
 	"knative.dev/pkg/logging"
 	"sigs.k8s.io/release-utils/version"
@@ -68,6 +69,7 @@ func main() {
 	cipFilePath := flag.String("policy", "", "path to ClusterImagePolicy or URL to fetch from (http/https)")
 	versionFlag := flag.Bool("version", false, "return the policy-controller tester version")
 	image := flag.String("image", "", "image to compare against policy")
+	resourceFilePath := flag.String("resource", "", "path to a kubernetes resource to use with includeSpec, includeObjectMeta")
 	flag.Parse()
 
 	if *versionFlag {
@@ -116,6 +118,27 @@ func main() {
 	}
 
 	log.Printf("Using the following cip:\n%s", defaulted)
+
+	if *resourceFilePath != "" {
+		raw, err := os.ReadFile(*resourceFilePath)
+		if err != nil {
+			log.Fatal(err)
+		}
+		uo := &unstructured.Unstructured{}
+		if err := yaml.Unmarshal(raw, uo); err != nil {
+			log.Fatal(err)
+		}
+		m, ok := uo.Object["metadata"]
+		if !ok {
+			log.Fatal("kubernetes resource is missing metadata key")
+		}
+		ctx = webhook.IncludeObjectMeta(ctx, m)
+		spec, ok := uo.Object["spec"]
+		if !ok {
+			log.Fatal("kubernetes resource is missing spec key")
+		}
+		ctx = webhook.IncludeSpec(ctx, spec)
+	}
 
 	validateErrs := v1alpha1cip.Validate(ctx)
 	if validateErrs != nil {

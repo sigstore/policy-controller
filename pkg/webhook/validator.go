@@ -69,12 +69,12 @@ func isDeletedOrStatusUpdate(ctx context.Context, deletionTimestamp *metav1.Time
 // user wants to get the Spec for the PolicyResult we can attach it.
 type includeSpecKey struct{}
 
-// includeSpec adds the spec to context so it's later available for
+// IncludeSpec adds the spec to context so it's later available for
 // inclusion in PolicyResult. This is safe to call multiple times, first
 // one "wins". This is on purpose so that since we call down the various
 // levels and we want the highest resource level to be available, otherwise
 // everything boils down to PodSpec and it's lossy then.
-func includeSpec(ctx context.Context, spec interface{}) context.Context {
+func IncludeSpec(ctx context.Context, spec interface{}) context.Context {
 	if getIncludeSpec(ctx) == nil {
 		return context.WithValue(ctx, includeSpecKey{}, spec)
 	}
@@ -91,14 +91,14 @@ func getIncludeSpec(ctx context.Context) interface{} {
 // user wants to get the ObjectMeta for the PolicyResult we can attach it.
 type includeObjectMetaKey struct{}
 
-// includeObjectMeta adds the ObjectMeta to context so it's later available for
+// IncludeObjectMeta adds the ObjectMeta to context so it's later available for
 // inclusion in PolicyResult. This is safe to call multiple times, first
 // one "wins". This is on purpose so that since we call down the various
 // levels and we want the highest resource level to be available, otherwise
 // everything boils down to PodSpec and it's lossy then.
-func includeObjectMeta(ctx context.Context, spec interface{}) context.Context {
+func IncludeObjectMeta(ctx context.Context, meta interface{}) context.Context {
 	if getIncludeObjectMeta(ctx) == nil {
-		return context.WithValue(ctx, includeObjectMetaKey{}, spec)
+		return context.WithValue(ctx, includeObjectMetaKey{}, meta)
 	}
 	return ctx
 }
@@ -127,8 +127,8 @@ func (v *Validator) ValidatePodScalable(ctx context.Context, ps *policyduckv1bet
 
 	// Attach the spec for down the line to be attached if it's required by
 	// policy to be included in the PolicyResult.
-	ctx = includeSpec(ctx, ps.Spec)
-	ctx = includeObjectMeta(ctx, ps.ObjectMeta)
+	ctx = IncludeSpec(ctx, ps.Spec)
+	ctx = IncludeObjectMeta(ctx, ps.ObjectMeta)
 
 	imagePullSecrets := make([]string, 0, len(ps.Spec.Template.Spec.ImagePullSecrets))
 	for _, s := range ps.Spec.Template.Spec.ImagePullSecrets {
@@ -153,8 +153,8 @@ func (v *Validator) ValidatePodSpecable(ctx context.Context, wp *duckv1.WithPod)
 
 	// Attach the spec/objectMeta for down the line to be attached if it's
 	// required by policy to be included in the PolicyResult.
-	ctx = includeSpec(ctx, wp.Spec)
-	ctx = includeObjectMeta(ctx, wp.ObjectMeta)
+	ctx = IncludeSpec(ctx, wp.Spec)
+	ctx = IncludeObjectMeta(ctx, wp.ObjectMeta)
 
 	imagePullSecrets := make([]string, 0, len(wp.Spec.Template.Spec.ImagePullSecrets))
 	for _, s := range wp.Spec.Template.Spec.ImagePullSecrets {
@@ -178,8 +178,8 @@ func (v *Validator) ValidatePod(ctx context.Context, p *duckv1.Pod) *apis.FieldE
 
 	// Attach the spec/objectMeta for down the line to be attached if it's
 	// required by policy to be included in the PolicyResult.
-	ctx = includeSpec(ctx, p.Spec)
-	ctx = includeObjectMeta(ctx, p.ObjectMeta)
+	ctx = IncludeSpec(ctx, p.Spec)
+	ctx = IncludeObjectMeta(ctx, p.ObjectMeta)
 
 	imagePullSecrets := make([]string, 0, len(p.Spec.ImagePullSecrets))
 	for _, s := range p.Spec.ImagePullSecrets {
@@ -203,8 +203,8 @@ func (v *Validator) ValidateCronJob(ctx context.Context, c *duckv1.CronJob) *api
 
 	// Attach the spec/objectMeta for down the line to be attached if it's
 	// required by policy to be included in the PolicyResult.
-	ctx = includeSpec(ctx, c.Spec)
-	ctx = includeObjectMeta(ctx, c.ObjectMeta)
+	ctx = IncludeSpec(ctx, c.Spec)
+	ctx = IncludeObjectMeta(ctx, c.ObjectMeta)
 
 	imagePullSecrets := make([]string, 0, len(c.Spec.JobTemplate.Spec.Template.Spec.ImagePullSecrets))
 	for _, s := range c.Spec.JobTemplate.Spec.Template.Spec.ImagePullSecrets {
@@ -588,7 +588,7 @@ func ValidatePolicy(ctx context.Context, namespace string, ref name.Reference, c
 		if err != nil {
 			return nil, append(authorityErrors, err)
 		}
-		logging.FromContext(ctx).Info("CIP level policy: %s", string(policyJSON))
+		logging.FromContext(ctx).Infof("CIP level policy: %s", string(policyJSON))
 		err = policy.EvaluatePolicyAgainstJSON(ctx, "ClusterImagePolicy", cip.Policy.Type, cip.Policy.Data, policyJSON)
 		if err != nil {
 			logging.FromContext(ctx).Warnf("Failed to validate CIP level policy against %s", string(policyJSON))
