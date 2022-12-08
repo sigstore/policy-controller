@@ -122,8 +122,8 @@ echo '::group:: Sign demoimage with keyless'
 COSIGN_EXPERIMENTAL=1 cosign sign --rekor-url ${REKOR_URL} --fulcio-url ${FULCIO_URL} --force --allow-insecure-registry ${demoimage} --identity-token ${OIDC_TOKEN}
 echo '::endgroup::'
 
-echo '::group:: Create CIP that requires keyless custom attestation with policy that should fail (data does not match)'
-kubectl apply -f ./test/testdata/policy-controller/e2e/cip-keyless-with-attestations-rego-fails.yaml
+echo '::group:: Create CIP that requires keyless custom attestation with policy that requires data == "foobar e2e test"'
+kubectl apply -f ./test/testdata/policy-controller/e2e/cip-keyless-with-attestations-rego.yaml
 # allow things to propagate
 sleep 5
 echo '::endgroup::'
@@ -135,9 +135,9 @@ assert_error ${expected_error}
 echo '::endgroup::'
 
 # Ok, cool. So attest and it should still fail because the data does not match.
-echo '::group:: Create one keyless attestation and verify it'
-echo -n 'foobar e2e test' > ./predicate-file-custom
-COSIGN_EXPERIMENTAL=1 cosign attest --predicate ./predicate-file-custom --fulcio-url ${FULCIO_URL} --rekor-url ${REKOR_URL} --allow-insecure-registry --force ${demoimage} --identity-token ${OIDC_TOKEN}
+echo '::group:: Create one keyless attestation with incorrect data and verify it'
+echo -n 'barfoo e2e test' > ./predicate-file-custom-fails
+COSIGN_EXPERIMENTAL=1 cosign attest --predicate ./predicate-file-custom-fails --fulcio-url ${FULCIO_URL} --rekor-url ${REKOR_URL} --allow-insecure-registry --force ${demoimage} --identity-token ${OIDC_TOKEN}
 
 COSIGN_EXPERIMENTAL=1 cosign verify-attestation --type=custom --rekor-url ${REKOR_URL} --allow-insecure-registry ${demoimage}
 echo '::endgroup::'
@@ -148,11 +148,12 @@ expected_error='failed evaluating rego policy for type custom-match-predicate: p
 assert_error ${expected_error}
 echo '::endgroup::'
 
-# Update data to match what we attested to.
-echo '::group:: Update CIP so that it requires keyless custom attestation with policy that should match required data'
-kubectl apply -f ./test/testdata/policy-controller/e2e/cip-keyless-with-attestations-rego.yaml
-# allow things to propagate
-sleep 5
+# Create another attestation with the data to match what our policy wants.
+echo '::group:: Create another keyless attestation with correct data and verify it'
+echo -n 'foobar e2e test' > ./predicate-file-custom-works
+COSIGN_EXPERIMENTAL=1 cosign attest --predicate ./predicate-file-custom-works --fulcio-url ${FULCIO_URL} --rekor-url ${REKOR_URL} --allow-insecure-registry --force ${demoimage} --identity-token ${OIDC_TOKEN}
+
+COSIGN_EXPERIMENTAL=1 cosign verify-attestation --type=custom --rekor-url ${REKOR_URL} --allow-insecure-registry ${demoimage}
 echo '::endgroup::'
 
 echo '::group:: test job success'
