@@ -270,7 +270,7 @@ func (v *Validator) validatePodSpec(ctx context.Context, namespace, kind, apiVer
 
 				// Require digests, otherwise the validation is meaningless
 				// since the tag can move.
-				_, fe := refOrFieldError(c.Image, field, i)
+				fe := refOrFieldError(c.Image, field, i)
 				if fe != nil {
 					results <- containerCheckResult{index: i, containerCheckResult: fe}
 					return
@@ -310,7 +310,7 @@ func (v *Validator) validatePodSpec(ctx context.Context, namespace, kind, apiVer
 
 				// Require digests, otherwise the validation is meaningless
 				// since the tag can move.
-				_, fe := refOrFieldError(c.Image, field, i)
+				fe := refOrFieldError(c.Image, field, i)
 				if fe != nil {
 					results <- containerCheckResult{index: i, containerCheckResult: fe}
 					return
@@ -1148,18 +1148,18 @@ func errorsToFieldErrors(image, field string, index int, fieldErrors map[string]
 // refOrFieldError parses the given image into a name.Reference, or returns
 // a properly constructed FieldError for a given field/index in the resource
 // spec.
-func refOrFieldError(image, field string, index int) (name.Reference, *apis.FieldError) {
+func refOrFieldError(image, field string, index int) *apis.FieldError {
 	ref, err := name.ParseReference(image)
 	if err != nil {
-		return nil, apis.ErrGeneric(err.Error(), "image").ViaFieldIndex(field, index)
+		return apis.ErrGeneric(err.Error(), "image").ViaFieldIndex(field, index)
 	}
 	if _, ok := ref.(name.Digest); !ok {
-		return nil, apis.ErrInvalidValue(
+		return apis.ErrInvalidValue(
 			fmt.Sprintf("%s must be an image digest", image),
 			"image",
 		).ViaFieldIndex(field, index)
 	}
-	return ref, nil
+	return nil
 }
 
 // configFileResult is used to communicate results from gofuncs that fetch
