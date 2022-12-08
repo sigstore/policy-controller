@@ -142,6 +142,11 @@ type AttestationPolicy struct {
 	// evaluated iff at least one authority matches.
 	// +optional
 	IncludeObjectMeta *bool `json:"includeObjectMeta,omitempty"`
+	// IncludeTypeMeta controls whether the TypeMeta will be included and
+	// made available for CIP level policy evalutation. Note that this only gets
+	// evaluated iff at least one authority matches.
+	// +optional
+	IncludeTypeMeta *bool `json:"includeTypeMeta,omitempty"`
 }
 
 // UnmarshalJSON populates the PublicKeys using Data because
@@ -267,6 +272,9 @@ func ConvertClusterImagePolicyV1alpha1ToWebhook(in *v1alpha1.ClusterImagePolicy)
 		if in.Spec.Policy.IncludeObjectMeta != nil {
 			cipAttestationPolicy.IncludeObjectMeta = ptr.Bool(*in.Spec.Policy.IncludeObjectMeta)
 		}
+		if in.Spec.Policy.IncludeTypeMeta != nil {
+			cipAttestationPolicy.IncludeTypeMeta = ptr.Bool(*in.Spec.Policy.IncludeTypeMeta)
+		}
 	}
 	return &ClusterImagePolicy{
 		UID:             copyIn.UID,
@@ -314,6 +322,9 @@ func convertAttestationsV1Alpha1ToWebhook(in []v1alpha1.Attestation) []Attestati
 			}
 			if inAtt.Policy.IncludeObjectMeta != nil {
 				outAtt.IncludeObjectMeta = ptr.Bool(*inAtt.Policy.IncludeObjectMeta)
+			}
+			if inAtt.Policy.IncludeTypeMeta != nil {
+				outAtt.IncludeTypeMeta = ptr.Bool(*inAtt.Policy.IncludeTypeMeta)
 			}
 		}
 		ret = append(ret, outAtt)

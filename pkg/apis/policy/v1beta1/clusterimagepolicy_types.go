@@ -230,6 +230,11 @@ type Policy struct {
 	// evaluated iff at least one authority matches.
 	// +optional
 	IncludeObjectMeta *bool `json:"includeObjectMeta,omitempty"`
+	// IncludeTypeMeta controls whether the TypeMeta will be included and
+	// made available for CIP level policy evalutation. Note that this only gets
+	// evaluated iff at least one authority matches.
+	// +optional
+	IncludeTypeMeta *bool `json:"includeTypeMeta,omitempty"`
 }
 
 // MatchResource allows selecting resources based on its version, group and resource.
