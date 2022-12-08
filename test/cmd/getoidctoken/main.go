@@ -19,6 +19,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/kelseyhightower/envconfig"
 )
@@ -51,8 +52,13 @@ func main() {
 	if err := envconfig.Process("", &env); err != nil {
 		log.Fatalf("failed to process env var: %s", err)
 	}
+
 	http.HandleFunc("/", tokenWriter(env.FileName))
-	if err := http.ListenAndServe(":8080", nil); err != nil {
+	server := &http.Server{
+		Addr:              ":8080",
+		ReadHeaderTimeout: 5 * time.Second,
+	}
+	if err := server.ListenAndServe(); err != nil {
 		panic(err)
 	}
 }
