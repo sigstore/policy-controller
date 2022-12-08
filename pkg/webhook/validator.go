@@ -809,14 +809,25 @@ func ValidatePolicyAttestationsForAuthority(ctx context.Context, ref name.Refere
 	// TODO(vaikas): Pretty inefficient here, figure out a better way if
 	// possible.
 	ret := make(map[string][]PolicyAttestation, len(authority.Attestations))
+
 	for _, wantedAttestation := range authority.Attestations {
+		// Since there can be multiple verified attestations that matched, for
+		// example multiple 'custom' attestations. We keep the first error that
+		// we encounter here but do not exit on it, in case another attestation
+		// satisfies the policy.
+		var reterror error
 		// There's a particular type, so we need to go through all the verified
 		// attestations and make sure that our particular one is satisfied.
 		checkedAttestations := make([]attestation, 0, len(verifiedAttestations))
 		for _, va := range verifiedAttestations {
 			attBytes, err := policy.AttestationToPayloadJSON(ctx, wantedAttestation.PredicateType, va)
 			if err != nil {
-				return nil, fmt.Errorf("failed to convert attestation payload to json: %w", err)
+				if reterror == nil {
+					// Only stash the first error
+					reterror = err
+				}
+				logging.FromContext(ctx).Warnf("failed to convert attestation payload to json: %v", err)
+				continue
 			}
 			if attBytes == nil {
 				// This happens when we ask for a predicate type that this
@@ -825,7 +836,12 @@ func ValidatePolicyAttestationsForAuthority(ctx context.Context, ref name.Refere
 			}
 			if wantedAttestation.Type != "" {
 				if err := policy.EvaluatePolicyAgainstJSON(ctx, wantedAttestation.Name, wantedAttestation.Type, wantedAttestation.Data, attBytes); err != nil {
-					return nil, err
+					if reterror == nil {
+						// Only stash the first error
+						reterror = err
+					}
+					logging.FromContext(ctx).Warnf("failed policy validation for %s: %v", wantedAttestation.Name, err)
+					continue
 				}
 			}
 			// Ok, so this passed aok, jot it down to our result set as
@@ -837,6 +853,12 @@ func ValidatePolicyAttestationsForAuthority(ctx context.Context, ref name.Refere
 			})
 		}
 		if len(checkedAttestations) == 0 {
+			if reterror != nil {
+				// If there was a matching policy, but it failed to be validated
+				// then return that more specific error instead of the more
+				// generic 'no matching attestations'.
+				return nil, reterror
+			}
 			return nil, fmt.Errorf("%w with type %s", cosign.ErrNoMatchingAttestations, wantedAttestation.PredicateType)
 		}
 		ret[wantedAttestation.Name] = attestationToPolicyAttestations(ctx, checkedAttestations)
