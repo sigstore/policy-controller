@@ -92,7 +92,7 @@ jobs:
     - name: Example (verify CIP level typemeta policy failure)
       working-directory: ./src/github.com/${{ github.repository }}
       run: |
-        REF=""ghcr.io/sigstore/timestamp-server@sha256:dcf2f3a640bfb0a5d17aabafb34b407fe4403363c715718ab305a62b3606540d"
+        REF="ghcr.io/sigstore/timestamp-server@sha256:dcf2f3a640bfb0a5d17aabafb34b407fe4403363c715718ab305a62b3606540d"
 
         # Ensure the image does not satisfy the policy
         if ./policy-tester \
@@ -107,7 +107,7 @@ jobs:
     - name: Example (verify CIP level typemeta policy success)
       working-directory: ./src/github.com/${{ github.repository }}
       run: |
-        REF=""ghcr.io/sigstore/timestamp-server@sha256:dcf2f3a640bfb0a5d17aabafb34b407fe4403363c715718ab305a62b3606540d"
+        REF="ghcr.io/sigstore/timestamp-server@sha256:dcf2f3a640bfb0a5d17aabafb34b407fe4403363c715718ab305a62b3606540d"
 
         # Ensure the image satisfies the policy
         ./policy-tester \
