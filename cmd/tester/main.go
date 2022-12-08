@@ -138,6 +138,18 @@ func main() {
 			log.Fatal("kubernetes resource is missing spec key")
 		}
 		ctx = webhook.IncludeSpec(ctx, spec)
+		kind, ok := uo.Object["kind"]
+		if !ok {
+			log.Fatal("kubernetes resource is missing kind key")
+		}
+		apiVersion, ok := uo.Object["apiVersion"]
+		if !ok {
+			log.Fatal("kubernetes resource is missing apiVersion key")
+		}
+		typeMeta := make(map[string]interface{})
+		typeMeta["kind"] = kind
+		typeMeta["apiVersion"] = apiVersion
+		ctx = webhook.IncludeTypeMeta(ctx, typeMeta)
 	}
 
 	validateErrs := v1alpha1cip.Validate(ctx)

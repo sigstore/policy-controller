@@ -88,6 +88,33 @@ jobs:
           --policy policies/custom-key-attestation-sbom-spdxjson.yaml \
           --image "${REF}"
 
+    # Make sure we can't run Jobs, exercise metadata CIP matching.
+    - name: Example (verify CIP level typemeta policy failure)
+      working-directory: ./src/github.com/${{ github.repository }}
+      run: |
+        REF=""ghcr.io/sigstore/timestamp-server@sha256:dcf2f3a640bfb0a5d17aabafb34b407fe4403363c715718ab305a62b3606540d"
+
+        # Ensure the image does not satisfy the policy
+        if ./policy-tester \
+          --policy examples/policies/allow-only-pods.yaml \
+          --image "${REF}" \
+          --resource test/testdata/resources/job.yaml ; then
+            echo Failed to block Job from running
+            exit 1
+        fi
+
+    # Make sure we can't run Pods, exercise metadata CIP matching.
+    - name: Example (verify CIP level typemeta policy success)
+      working-directory: ./src/github.com/${{ github.repository }}
+      run: |
+        REF=""ghcr.io/sigstore/timestamp-server@sha256:dcf2f3a640bfb0a5d17aabafb34b407fe4403363c715718ab305a62b3606540d"
+
+        # Ensure the image satisfies the policy
+        ./policy-tester \
+          --policy examples/policies/allow-only-pods.yaml \
+          --image "${REF}" \
+          --resource test/testdata/resources/pod.yaml
+
     # This example requires public Fulcio, only run on push to main
     - if: ${{ github.event_name == 'push' }}
       name: Example (keyless-attestation-sbom-spdxjson)
