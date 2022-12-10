@@ -161,6 +161,9 @@ type TLog struct {
 	// URL sets the url to the rekor instance (by default the public rekor.sigstore.dev)
 	// +optional
 	URL *apis.URL `json:"url,omitempty"`
+	// Use the Public Key from the referred TrustRoot.TLog
+	// +optional
+	TrustRootRef string `json:"trustRootRef,omitempty"`
 }
 
 // KeylessRef contains location of the validating certificate and the identities
@@ -176,6 +179,9 @@ type KeylessRef struct {
 	// CACert sets a reference to CA certificate
 	// +optional
 	CACert *KeyRef `json:"ca-cert,omitempty"`
+	// Use the Certificate Chain from the referred TrustRoot.CertificateAuthorities and TrustRoot.CTLog
+	// +optional
+	TrustRootRef string `json:"trustRootRef,omitempty"`
 }
 
 // Attestation defines the type of attestation to validate and optionally

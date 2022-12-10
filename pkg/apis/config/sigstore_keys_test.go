@@ -66,7 +66,7 @@ const (
 
 func TestDefaultsSigstoreKeysConfigurationFromFile(t *testing.T) {
 	_, example := ConfigMapsFromTestFile(t, SigstoreKeysConfigName)
-	keys, err := NewSigstoreKeysFromConfigMap(example)
+	keysMap, err := NewSigstoreKeysFromConfigMap(example)
 	if err != nil {
 		t.Error("NewSigstoreKeysFromConfigMap(example) =", err)
 	}

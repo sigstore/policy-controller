@@ -37,8 +37,10 @@ func TestStoreLoadWithContext(t *testing.T) {
 	store := NewStore(logtesting.TestLogger(t))
 
 	_, imagePolicies := ConfigMapsFromTestFile(t, ImagePoliciesConfigName)
+	_, sigstoreKeysMap := ConfigMapsFromTestFile(t, SigstoreKeysConfigName)
 
 	store.OnConfigChanged(imagePolicies)
+	store.OnConfigChanged(sigstoreKeysMap)
 
 	config := FromContextOrDefaults(store.ToContext(context.Background()))
 
@@ -48,15 +50,28 @@ func TestStoreLoadWithContext(t *testing.T) {
 			t.Error("Unexpected defaults config (-want, +got):", diff)
 		}
 	})
+	t.Run("sigstore-keys", func(t *testing.T) {
+		expected, _ := NewSigstoreKeysFromConfigMap(sigstoreKeysMap)
+		if diff := cmp.Diff(expected, config.SigstoreKeysConfig, ignoreStuff...); diff != "" {
+			t.Error("Unexpected defaults config (-want, +got):", diff)
+		}
+	})
 }
 
 func TestStoreLoadWithContextOrDefaults(t *testing.T) {
 	imagePolicies := ConfigMapFromTestFile(t, ImagePoliciesConfigName)
+	sigstoreKeysMap := ConfigMapFromTestFile(t, SigstoreKeysConfigName)
 	config := FromContextOrDefaults(context.Background())
 
 	t.Run("image-policies", func(t *testing.T) {
 		expected, _ := NewImagePoliciesConfigFromConfigMap(imagePolicies)
 		if diff := cmp.Diff(expected, config.ImagePolicyConfig, ignoreStuff...); diff != "" {
+			t.Error("Unexpected defaults config (-want, +got):", diff)
+		}
+	})
+	t.Run("sigstore-keys", func(t *testing.T) {
+		expected, _ := NewSigstoreKeysFromConfigMap(sigstoreKeysMap)
+		if diff := cmp.Diff(expected, config.SigstoreKeysConfig, ignoreStuff...); diff != "" {
 			t.Error("Unexpected defaults config (-want, +got):", diff)
 		}
 	})

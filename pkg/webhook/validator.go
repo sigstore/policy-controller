@@ -17,6 +17,7 @@ package webhook
 
 import (
 	"context"
+	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -755,6 +756,35 @@ func ValidatePolicySignaturesForAuthority(ctx context.Context, ref name.Referenc
 
 	case authority.Keyless != nil:
 		if authority.Keyless.URL != nil {
+			checkOpts := cosign.CheckOpts{
+				RegistryClientOpts: remoteOpts,
+				ClaimVerifier:      cosign.SimpleClaimVerifier,
+				RekorClient:        rekorClient,
+			}
+			// Add in the identities for verification purposes.
+			for _, id := range authority.Keyless.Identities {
+				checkOpts.Identities = append(checkOpts.Identities,
+					cosign.Identity{
+						Issuer:        id.Issuer,
+						Subject:       id.Subject,
+						IssuerRegExp:  id.IssuerRegExp,
+						SubjectRegExp: id.SubjectRegExp})
+			}
+
+			if authority.CTLog.TrustRootRef != "" {
+				config := config.FromContext(ctx)
+				if config == nil {
+					// No config, can't fetch keys, bail.
+					return nil, fmt.Errorf("trustRootRef %s not found", authority.CTLog.TrustRootRef)
+				}
+				// Grab the key from the trust root for Rekor
+				sigstoreKeys := config.SigstoreKeysConfig
+				if sigstoreKeys == nil {
+					// No config, can't fetch keys, bail.
+					return nil, fmt.Errorf("trustRootRef %s not found", authority.CTLog.TrustRootRef)
+				}
+			}
+
 			// TODO: This will probably need to change for:
 			// https://github.com/sigstore/policy-controller/issues/138
 			fulcioRoots, err := fulcioroots.Get()
@@ -1262,4 +1292,31 @@ func normalizeArchitecture(cf *v1.ConfigFile) string {
 		OSVersion:    cf.OSVersion,
 		Variant:      cf.Variant,
 	}.String()
+}
+
+type KeylessKeys struct {
+	// Fulcio certs
+	RootCerts    *x509.CertPool
+	RekorPubKeys *cosign.TrustedRekorPubKeys
+}
+
+// getKeylessKeys gets the keys for a given TrustRoot that should be used for
+// validation.
+func getKeylessKeys(ctx context.Context, trustRoot string) (*KeylessKeys, error) {
+	config := config.FromContext(ctx)
+	if config == nil || config.SigstoreKeysConfig == nil {
+		// No config, can't fetch keys, bail.
+		return nil, fmt.Errorf("can not findtrustRootRef %s there are no TrustRoots", trustRoot)
+	}
+	sk := config.SigstoreKeysConfig.SigstoreKeys[trustRoot]
+	if len(sk.TLog) == 0 {
+		return nil, fmt.Errorf("no TLog configured for %s", trustRoot)
+	}
+	if len(sk.CertificateAuthority) == 0 {
+		return nil, fmt.Errorf("no CertificateAuthority configured for %s", trustRoot)
+	}
+	ret := &KeylessKeys{}
+
+	return ret, nil
+
 }

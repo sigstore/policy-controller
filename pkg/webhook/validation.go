@@ -71,25 +71,25 @@ var cosignVerifyAttestations = cosign.VerifyImageAttestations
 func validSignatures(ctx context.Context, ref name.Reference, verifier signature.Verifier, rekorClient *client.Rekor, opts ...ociremote.Option) ([]oci.Signature, error) {
 	sigs, _, err := cosignVerifySignatures(ctx, ref, &cosign.CheckOpts{
 		RegistryClientOpts: opts,
+		ClaimVerifier:      cosign.SimpleClaimVerifier,
 		SigVerifier:        verifier,
 		RekorClient:        rekorClient,
-		ClaimVerifier:      cosign.SimpleClaimVerifier,
 	})
 	return sigs, err
 }
 
 // validSignaturesWithFulcio expects a Fulcio Cert to verify against. An
 // optional rekorClient can also be given, if nil passed, default is assumed.
-func validSignaturesWithFulcio(ctx context.Context, ref name.Reference, fulcioRoots *x509.CertPool, rekorClient *client.Rekor, identities []v1alpha1.Identity, opts ...ociremote.Option) ([]oci.Signature, error) {
+func validSignaturesWithFulcio(ctx context.Context, ref name.Reference, fulcioRoots *x509.CertPool, rekorClient *client.Rekor, identities []v1alpha1.Identity, checkOpts *cosign.CheckOpts, opts ...ociremote.Option) ([]oci.Signature, error) {
 	ids := make([]cosign.Identity, len(identities))
 	for i, id := range identities {
 		ids[i] = cosign.Identity{Issuer: id.Issuer, Subject: id.Subject, IssuerRegExp: id.IssuerRegExp, SubjectRegExp: id.SubjectRegExp}
 	}
 	sigs, _, err := cosignVerifySignatures(ctx, ref, &cosign.CheckOpts{
 		RegistryClientOpts: opts,
+		ClaimVerifier:      cosign.SimpleClaimVerifier,
 		RootCerts:          fulcioRoots,
 		RekorClient:        rekorClient,
-		ClaimVerifier:      cosign.SimpleClaimVerifier,
 		Identities:         ids,
 	})
 	return sigs, err

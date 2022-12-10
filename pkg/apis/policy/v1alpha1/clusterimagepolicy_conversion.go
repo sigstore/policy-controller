@@ -88,7 +88,10 @@ func (matchResource *MatchResource) ConvertTo(ctx context.Context, sink *v1beta1
 func (authority *Authority) ConvertTo(ctx context.Context, sink *v1beta1.Authority) error {
 	sink.Name = authority.Name
 	if authority.CTLog != nil && authority.CTLog.URL != nil {
-		sink.CTLog = &v1beta1.TLog{URL: authority.CTLog.URL.DeepCopy()}
+		sink.CTLog = &v1beta1.TLog{
+			URL:          authority.CTLog.URL.DeepCopy(),
+			TrustRootRef: authority.CTLog.TrustRootRef,
+		}
 	}
 	for _, source := range authority.Sources {
 		v1beta1Source := v1beta1.Source{}
@@ -114,7 +117,8 @@ func (authority *Authority) ConvertTo(ctx context.Context, sink *v1beta1.Authori
 	}
 	if authority.Keyless != nil {
 		sink.Keyless = &v1beta1.KeylessRef{
-			URL: authority.Keyless.URL.DeepCopy(),
+			URL:          authority.Keyless.URL.DeepCopy(),
+			TrustRootRef: authority.Keyless.TrustRootRef,
 		}
 		for _, id := range authority.Keyless.Identities {
 			sink.Keyless.Identities = append(sink.Keyless.Identities, v1beta1.Identity{Issuer: id.Issuer, Subject: id.Subject, IssuerRegExp: id.IssuerRegExp, SubjectRegExp: id.SubjectRegExp})
@@ -222,7 +226,10 @@ func (spec *ClusterImagePolicySpec) ConvertFrom(ctx context.Context, source *v1b
 func (authority *Authority) ConvertFrom(ctx context.Context, source *v1beta1.Authority) error {
 	authority.Name = source.Name
 	if source.CTLog != nil && source.CTLog.URL != nil {
-		authority.CTLog = &TLog{URL: source.CTLog.URL.DeepCopy()}
+		authority.CTLog = &TLog{
+			URL:          source.CTLog.URL.DeepCopy(),
+			TrustRootRef: source.CTLog.TrustRootRef,
+		}
 	}
 	for _, s := range source.Sources {
 		src := Source{}
@@ -248,7 +255,8 @@ func (authority *Authority) ConvertFrom(ctx context.Context, source *v1beta1.Aut
 	}
 	if source.Keyless != nil {
 		authority.Keyless = &KeylessRef{
-			URL: source.Keyless.URL.DeepCopy(),
+			URL:          source.Keyless.URL.DeepCopy(),
+			TrustRootRef: source.Keyless.TrustRootRef,
 		}
 		for _, id := range source.Keyless.Identities {
 			authority.Keyless.Identities = append(authority.Keyless.Identities, Identity{Issuer: id.Issuer, Subject: id.Subject, IssuerRegExp: id.IssuerRegExp, SubjectRegExp: id.SubjectRegExp})
