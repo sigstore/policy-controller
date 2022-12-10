@@ -39,6 +39,11 @@ const (
 // that we can change things independend of breaking the API. Time will tell
 // if this is the right call, but we can always reunify them later if we so
 // want.
+// TODO(vaikas): See about replacing these with the protos here once they land
+// and see how easy it is to replace with protos instead of our custom defs
+// above.
+// https://github.com/sigstore/protobuf-specs/pull/5
+// And in particular: https://github.com/sigstore/protobuf-specs/pull/5/files#diff-b1f89b7fd3eb27b519380b092a2416f893a96fbba3f8c90cfa767e7687383ad4R70
 
 // TransparencyLogInstance describes the immutable parameters from a
 // transparency log.
@@ -87,11 +92,11 @@ type CertificateAuthority struct {
 // SigstoreKeys.
 type SigstoreKeys struct {
 	// Trusted certificate authorities (e.g Fulcio).
-	CertificateAuthority []CertificateAuthority `json:"certificateAuthority"`
+	CertificateAuthorities []CertificateAuthority `json:"certificateAuthorities"`
 	// Rekor log specifications
-	TLog []TransparencyLogInstance `json:"tLog"`
+	TLogs []TransparencyLogInstance `json:"tLogs,omitempty"`
 	// Certificate Transparency Log
-	CTLog []TransparencyLogInstance `json:"ctLog"`
+	CTLogs []TransparencyLogInstance `json:"ctLogs,omitempty"`
 	// Trusted timestamping authorities
 	TimeStampAuthorities []CertificateAuthority `json:"timestampAuthorities"`
 }
@@ -139,19 +144,19 @@ func parseSigstoreKeys(entry string, out interface{}) error {
 // ConvertFrom takes a source and converts into a SigstoreKeys suitable
 // for serialization into a ConfigMap entry.
 func (sk *SigstoreKeys) ConvertFrom(ctx context.Context, source *v1alpha1.SigstoreKeys) {
-	sk.CertificateAuthority = make([]CertificateAuthority, len(source.CertificateAuthority))
-	for i := range source.CertificateAuthority {
-		sk.CertificateAuthority[i] = ConvertCertificateAuthority(source.CertificateAuthority[i])
+	sk.CertificateAuthorities = make([]CertificateAuthority, len(source.CertificateAuthorities))
+	for i := range source.CertificateAuthorities {
+		sk.CertificateAuthorities[i] = ConvertCertificateAuthority(source.CertificateAuthorities[i])
 	}
 
-	sk.TLog = make([]TransparencyLogInstance, len(source.TLog))
-	for i := range source.TLog {
-		sk.TLog[i] = ConvertTransparencyLogInstance(source.TLog[i])
+	sk.TLogs = make([]TransparencyLogInstance, len(source.TLogs))
+	for i := range source.TLogs {
+		sk.TLogs[i] = ConvertTransparencyLogInstance(source.TLogs[i])
 	}
 
-	sk.CTLog = make([]TransparencyLogInstance, len(source.CTLog))
-	for i := range source.CTLog {
-		sk.CTLog[i] = ConvertTransparencyLogInstance(source.CTLog[i])
+	sk.CTLogs = make([]TransparencyLogInstance, len(source.CTLogs))
+	for i := range source.CTLogs {
+		sk.CTLogs[i] = ConvertTransparencyLogInstance(source.CTLogs[i])
 	}
 
 	sk.TimeStampAuthorities = make([]CertificateAuthority, len(source.TimeStampAuthorities))

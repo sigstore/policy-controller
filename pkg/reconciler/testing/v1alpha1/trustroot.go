@@ -71,7 +71,7 @@ func WithTrustRootFinalizer(tk *v1alpha1.TrustRoot) {
 func WithSigstoreKeys(sk map[string]string) TrustRootOption {
 	return func(tk *v1alpha1.TrustRoot) {
 		tk.Spec.SigstoreKeys = &v1alpha1.SigstoreKeys{
-			CertificateAuthority: []v1alpha1.CertificateAuthority{{
+			CertificateAuthorities: []v1alpha1.CertificateAuthority{{
 				Subject: v1alpha1.DistinguishedName{
 					Organization: "fulcio-organization",
 					CommonName:   "fulcio-common-name",
@@ -79,13 +79,13 @@ func WithSigstoreKeys(sk map[string]string) TrustRootOption {
 				URI:       *apis.HTTPS("fulcio.example.com"),
 				CertChain: []byte(sk["fulcio"]),
 			}},
-			TLog: []v1alpha1.TransparencyLogInstance{{
+			TLogs: []v1alpha1.TransparencyLogInstance{{
 				BaseURL:       *apis.HTTPS("rekor.example.com"),
 				HashAlgorithm: "sha-256",
 				PublicKey:     []byte(sk["rekor"]),
 				LogID:         "rekor-log-id",
 			}},
-			CTLog: []v1alpha1.TransparencyLogInstance{{
+			CTLogs: []v1alpha1.TransparencyLogInstance{{
 				BaseURL:       *apis.HTTPS("ctfe.example.com"),
 				HashAlgorithm: "sha-256",
 				PublicKey:     []byte(sk["ctfe"]),

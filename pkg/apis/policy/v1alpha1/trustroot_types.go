@@ -155,13 +155,16 @@ type CertificateAuthority struct {
 // SigstoreKeys.
 type SigstoreKeys struct {
 	// Trusted certificate authorities (e.g Fulcio).
-	CertificateAuthority []CertificateAuthority `json:"certificateAuthority"`
+	CertificateAuthorities []CertificateAuthority `json:"certificateAuthorities"`
 	// Rekor log specifications
-	TLog []TransparencyLogInstance `json:"tLog"`
+	// +optional
+	TLogs []TransparencyLogInstance `json:"tLogs,omitempty"`
 	// Certificate Transparency Log
-	CTLog []TransparencyLogInstance `json:"ctLog"`
+	// +optional
+	CTLogs []TransparencyLogInstance `json:"ctLogs,omitempty"`
 	// Trusted timestamping authorities
-	TimeStampAuthorities []CertificateAuthority `json:"timestampAuthorities"`
+	// +optional
+	TimeStampAuthorities []CertificateAuthority `json:"timestampAuthorities,omitempty"`
 }
 
 // TrustRootList is a list of TrustRoot resources

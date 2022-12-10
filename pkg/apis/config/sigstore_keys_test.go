@@ -71,7 +71,7 @@ func TestDefaultsSigstoreKeysConfigurationFromFile(t *testing.T) {
 		t.Error("NewSigstoreKeysFromConfigMap(example) =", err)
 	}
 	sigstoreKeys := keys["my-custom-sigstore-keys"]
-	got := sigstoreKeys.CertificateAuthority[0].Subject.Organization
+	got := sigstoreKeys.CertificateAuthorities[0].Subject.Organization
 	if got != "fulcio-organization" {
 		t.Errorf("Invalid organization, want foo got %s", got)
 	}
@@ -80,7 +80,7 @@ func TestDefaultsSigstoreKeysConfigurationFromFile(t *testing.T) {
 	// Note that even though sigstoreKeys.TLog[0].PublicKey is base64 encoded
 	// in the ConfigMap it gets decoded when we fetch it above, so we get the
 	// PEM format for it directly. Same for tsaCertChain
-	got = string(sigstoreKeys.TLog[0].PublicKey)
+	got = string(sigstoreKeys.TLogs[0].PublicKey)
 	if got != rekorPublicKey {
 		t.Errorf("Invalid public key, want %s got %s", rekorPublicKey, got)
 	}

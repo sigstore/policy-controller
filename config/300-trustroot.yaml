@@ -66,7 +66,7 @@ spec:
                   description: SigstoreKeys contains the serialized keys.
                   type: object
                   properties:
-                    certificateAuthority:
+                    certificateAuthorities:
                       description: Trusted certificate authorities (e.g Fulcio).
                       type: array
                       items:
@@ -86,7 +86,7 @@ spec:
                           uri:
                             description: The URI at which the CA can be accessed.
                             type: string
-                    ctLog:
+                    ctLogs:
                       description: Certificate Transparency Log
                       type: array
                       items:
@@ -104,7 +104,7 @@ spec:
                           publicKey:
                             description: PEM encoded public key
                             type: string
-                    tLog:
+                    tLogs:
                       description: Rekor log specifications
                       type: array
                       items:
