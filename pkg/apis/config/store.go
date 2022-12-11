@@ -26,7 +26,8 @@ type cfgKey struct{}
 // Config holds the collection of configurations that we attach to contexts.
 // +k8s:deepcopy-gen=false
 type Config struct {
-	ImagePolicyConfig *ImagePolicyConfig
+	ImagePolicyConfig  *ImagePolicyConfig
+	SigstoreKeysConfig *SigstoreKeysMap
 }
 
 // FromContext extracts a Config from the provided context.
@@ -70,6 +71,7 @@ func NewStore(logger configmap.Logger, onAfterStore ...func(name string, value i
 			logger,
 			configmap.Constructors{
 				ImagePoliciesConfigName: NewImagePoliciesConfigFromConfigMap,
+				SigstoreKeysConfigName:  NewSigstoreKeysFromConfigMap,
 			},
 			onAfterStore...,
 		),

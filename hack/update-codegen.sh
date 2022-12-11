@@ -73,6 +73,11 @@ go run $(dirname $0)/../cmd/schema/ dump ClusterImagePolicy \
   | yq eval-all --inplace 'select(fileIndex == 0).spec.versions[1].schema.openAPIV3Schema = select(fileIndex == 1) | select(fileIndex == 0)' \
   $(dirname $0)/../config/300-clusterimagepolicy.yaml -
 
+# Create file for TrustRoot as well
+go run $(dirname $0)/../cmd/schema/ dump TrustRoot \
+  | yq eval-all --inplace 'select(fileIndex == 0).spec.versions[0].schema.openAPIV3Schema = select(fileIndex == 1) | select(fileIndex == 0)' \
+  $(dirname $0)/../config/300-trustroot.yaml -
+
 group "Update deps post-codegen"
 
 # Make sure our dependencies are up-to-date

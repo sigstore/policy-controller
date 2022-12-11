@@ -27,6 +27,7 @@ import (
 // schema is a tool to dump the schema for policy-controller resources.
 func main() {
 	registry.Register(&v1alpha1.ClusterImagePolicy{})
+	registry.Register(&v1alpha1.TrustRoot{})
 	registry.Register(&v1beta1.ClusterImagePolicy{})
 
 	if err := commands.New("github.com/sigstore/policy-controller").Execute(); err != nil {

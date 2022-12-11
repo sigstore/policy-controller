@@ -17,7 +17,7 @@ package testing
 import (
 	"github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
 	fakecosignclientset "github.com/sigstore/policy-controller/pkg/client/clientset/versioned/fake"
-	cosignlisters "github.com/sigstore/policy-controller/pkg/client/listers/policy/v1alpha1"
+	policylisters "github.com/sigstore/policy-controller/pkg/client/listers/policy/v1alpha1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	fakekubeclientset "k8s.io/client-go/kubernetes/fake"
@@ -82,8 +82,12 @@ func (l *Listers) GetAllObjects() []runtime.Object {
 	return all
 }
 
-func (l *Listers) GetClusterImagePolicyLister() cosignlisters.ClusterImagePolicyLister {
-	return cosignlisters.NewClusterImagePolicyLister(l.indexerFor(&v1alpha1.ClusterImagePolicy{}))
+func (l *Listers) GetClusterImagePolicyLister() policylisters.ClusterImagePolicyLister {
+	return policylisters.NewClusterImagePolicyLister(l.indexerFor(&v1alpha1.ClusterImagePolicy{}))
+}
+
+func (l *Listers) GetTrustRootLister() policylisters.TrustRootLister {
+	return policylisters.NewTrustRootLister(l.indexerFor(&v1alpha1.TrustRoot{}))
 }
 
 func (l *Listers) GetSecretLister() corev1listers.SecretLister {

@@ -54,6 +54,8 @@ func (f *sharedInformerFactory) ForResource(resource schema.GroupVersionResource
 	// Group=policy.sigstore.dev, Version=v1alpha1
 	case v1alpha1.SchemeGroupVersion.WithResource("clusterimagepolicies"):
 		return &genericInformer{resource: resource.GroupResource(), informer: f.Policy().V1alpha1().ClusterImagePolicies().Informer()}, nil
+	case v1alpha1.SchemeGroupVersion.WithResource("trustroots"):
+		return &genericInformer{resource: resource.GroupResource(), informer: f.Policy().V1alpha1().TrustRoots().Informer()}, nil
 
 		// Group=policy.sigstore.dev, Version=v1beta1
 	case v1beta1.SchemeGroupVersion.WithResource("clusterimagepolicies"):
