@@ -439,7 +439,7 @@ func TestConvertFrom(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to construct from map entry: %v", err)
 	}
-	sk := skMap["test-entry"]
+	sk := skMap.SigstoreKeys["test-entry"]
 	if len(sk.TLogs) != 2 {
 		t.Errorf("Not enough TLog entries, want 2 got %d", len(sk.TLogs))
 	}

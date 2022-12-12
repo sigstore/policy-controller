@@ -70,7 +70,7 @@ func TestDefaultsSigstoreKeysConfigurationFromFile(t *testing.T) {
 	if err != nil {
 		t.Error("NewSigstoreKeysFromConfigMap(example) =", err)
 	}
-	sigstoreKeys := keys["my-custom-sigstore-keys"]
+	sigstoreKeys := keysMap.SigstoreKeys["my-custom-sigstore-keys"]
 	got := sigstoreKeys.CertificateAuthorities[0].Subject.Organization
 	if got != "fulcio-organization" {
 		t.Errorf("Invalid organization, want foo got %s", got)
