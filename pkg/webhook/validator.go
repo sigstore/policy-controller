@@ -1282,6 +1282,16 @@ func checkOptsFromAuthority(ctx context.Context, authority webhookcip.Authority,
 	}
 	ret.RekorClient = rekorClient
 	ret.RekorPubKeys = rekorPubKeys
+	// Skip the TLog verification if we have no client or keys to validate
+	// against.
+	if ret.RekorClient == nil {
+		if ret.RekorPubKeys == nil {
+			ret.SkipTlogVerify = true
+		} else {
+			// If there's keys however, use offline for verification.
+			ret.Offline = true
+		}
+	}
 
 	fulcioRoots, fulcioIntermediates, err := fulcioCertsFromAuthority(ctx, authority)
 	if err != nil {
