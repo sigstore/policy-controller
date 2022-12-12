@@ -38,3 +38,5 @@ spec:
         # Matches a specific github workflow on main branch. Here we use the
         # sigstore policy controller example testing workflow as an example.
         subject: "https://github.com/sigstore/policy-controller/.github/workflows/release.yaml@refs/tags/v0.3.0"
+    ctlog:
+      url: https://rekor.sigstore.dev
