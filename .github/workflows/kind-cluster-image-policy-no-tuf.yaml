@@ -30,6 +30,7 @@ jobs:
     runs-on: ubuntu-latest
 
     strategy:
+      fail-fast: false # Keep running if one leg fails.
       matrix:
         k8s-version:
         - v1.23.x
