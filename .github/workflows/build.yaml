@@ -37,7 +37,7 @@ jobs:
 
       - uses: sigstore/cosign-installer@9becc617647dfa20ae7b1151972e9b3a2c338a2b # v2.3.0
 
-      - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # v2.2.0
+      - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # v3.5.0
         with:
           go-version: '1.19'
           check-latest: true
