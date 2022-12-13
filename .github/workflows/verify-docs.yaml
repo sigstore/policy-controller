@@ -42,7 +42,6 @@ jobs:
         path: ./src/github.com/${{ github.repository }}
         fetch-depth: 0
 
-
     - shell: bash
       working-directory: ./src/github.com/${{ github.repository }}
       run: |
