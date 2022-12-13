@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: Test policy-controller with ClusterImagePolicy TUF disabled
+name: Test policy-controller with TrustRoot - Bring your own keys
 
 on:
   pull_request:
@@ -25,8 +25,8 @@ defaults:
 permissions: read-all
 
 jobs:
-  cip-test-no-tuf:
-    name: ClusterImagePolicy e2e tests TUF disabled
+  cip-test-trustroot-bring-your-own-keys:
+    name: ClusterImagePolicy e2e tests with TrustRoot - Bring Your Own Keys
     runs-on: ubuntu-latest
 
     strategy:
