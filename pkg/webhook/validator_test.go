@@ -47,6 +47,8 @@ import (
 	"github.com/sigstore/policy-controller/pkg/apis/signaturealgo"
 	policycontrollerconfig "github.com/sigstore/policy-controller/pkg/config"
 	webhookcip "github.com/sigstore/policy-controller/pkg/webhook/clusterimagepolicy"
+	"github.com/sigstore/sigstore/pkg/cryptoutils"
+	"github.com/sigstore/sigstore/pkg/fulcioroots"
 	admissionv1 "k8s.io/api/admission/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -71,6 +73,43 @@ const (
 MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAENAyijLvRu5QpCPp2uOj8C79ZW1VJ
 SID/4H61ZiRzN4nqONzp+ZF22qQTk3MFO3D0/ZKmWHAosIf2pf2GHH7myA==
 -----END PUBLIC KEY-----`
+
+	certChain = `-----BEGIN CERTIFICATE-----
+MIIBzDCCAXKgAwIBAgIUfyGKDoFa7y6s/W1p1CiTmBRs1eAwCgYIKoZIzj0EAwIw
+MDEOMAwGA1UEChMFbG9jYWwxHjAcBgNVBAMTFVRlc3QgVFNBIEludGVybWVkaWF0
+ZTAeFw0yMjExMDkyMDMxMzRaFw0zMTExMDkyMDM0MzRaMDAxDjAMBgNVBAoTBWxv
+Y2FsMR4wHAYDVQQDExVUZXN0IFRTQSBUaW1lc3RhbXBpbmcwWTATBgcqhkjOPQIB
+BggqhkjOPQMBBwNCAAR3KcDy9jwARX0rDvyr+MGGkG3n1OA0MU5+ZiDmgusFyk6U
+6bovKWVMfD8J8NTcJZE0RaYJr8/dE9kgcIIXlhMwo2owaDAOBgNVHQ8BAf8EBAMC
+B4AwHQYDVR0OBBYEFHNn5R3b3MtUdSNrFO49Q6XDVSnkMB8GA1UdIwQYMBaAFNLS
+6gno7Om++Qt5zIa+H9o0HiT2MBYGA1UdJQEB/wQMMAoGCCsGAQUFBwMIMAoGCCqG
+SM49BAMCA0gAMEUCIQCF0olohnvdUq6T7/wPk19Z5aQP/yxRTjCWYuhn/TCyHgIg
+azV3air4GRZbN9bdYtcQ7JUAKq89GOhtFfl6kcoVUvU=
+-----END CERTIFICATE-----
+-----BEGIN CERTIFICATE-----
+MIIB0jCCAXigAwIBAgIUXpBmYJFFaGW3cC8p6b/DHr1i8IowCgYIKoZIzj0EAwIw
+KDEOMAwGA1UEChMFbG9jYWwxFjAUBgNVBAMTDVRlc3QgVFNBIFJvb3QwHhcNMjIx
+MTA5MjAyOTM0WhcNMzIxMTA5MjAzNDM0WjAwMQ4wDAYDVQQKEwVsb2NhbDEeMBwG
+A1UEAxMVVGVzdCBUU0EgSW50ZXJtZWRpYXRlMFkwEwYHKoZIzj0CAQYIKoZIzj0D
+AQcDQgAEKDPDRIwDS1ZCymub6yanCG5ma0qDjLpNonDvooSkRHEgU0TNibeJn6M+
+5W608hCw8nwuucMbXQ41kNeuBeevyqN4MHYwDgYDVR0PAQH/BAQDAgEGMBMGA1Ud
+JQQMMAoGCCsGAQUFBwMIMA8GA1UdEwEB/wQFMAMBAf8wHQYDVR0OBBYEFNLS6gno
+7Om++Qt5zIa+H9o0HiT2MB8GA1UdIwQYMBaAFB1nvXpNK7AuQlbJ+ya6nPSqWi+T
+MAoGCCqGSM49BAMCA0gAMEUCIGiwqCI29w7C4V8TltCsi728s5DtklCPySDASUSu
+a5y5AiEA40Ifdlwf7Uj8q8NSD6Z4g/0js0tGNdLSUJ1do/WoN0s=
+-----END CERTIFICATE-----
+-----BEGIN CERTIFICATE-----
+MIIBlDCCATqgAwIBAgIUYZx9sS14En7SuHDOJJP4IPopMjUwCgYIKoZIzj0EAwIw
+KDEOMAwGA1UEChMFbG9jYWwxFjAUBgNVBAMTDVRlc3QgVFNBIFJvb3QwHhcNMjIx
+MTA5MjAyOTM0WhcNMzIxMTA5MjAzNDM0WjAoMQ4wDAYDVQQKEwVsb2NhbDEWMBQG
+A1UEAxMNVGVzdCBUU0EgUm9vdDBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABAbB
+B0SU8G75hVIUphChA4nfOwNWP347TjScIdsEPrKVn+/Y1HmmLHJDjSfn+xhEFoEk
+7jqgrqon48i4xbo7xAujQjBAMA4GA1UdDwEB/wQEAwIBBjAPBgNVHRMBAf8EBTAD
+AQH/MB0GA1UdDgQWBBQdZ716TSuwLkJWyfsmupz0qlovkzAKBggqhkjOPQQDAgNI
+ADBFAiBe5P56foqmFcZAVpEeAOFZrAlEiq05CCpMNYh5EjLvmAIhAKNF6xIV5uFd
+pSTJsAwzjW78CKQm7qol0uPmPPu6mNaw
+-----END CERTIFICATE-----
+`
 )
 
 func TestValidatePodSpec(t *testing.T) {
@@ -2733,5 +2772,106 @@ func TestPolicyControllerConfigNoMatchPolicy(t *testing.T) {
 				t.Errorf("ValidatePod() Wrong Level = %v, wanted %v", got.Level, tc.want.Level)
 			}
 		}
+	}
+}
+
+func TestFulcioCertsFromAuthority(t *testing.T) {
+	certs, err := cryptoutils.UnmarshalCertificatesFromPEM([]byte(certChain))
+	if err != nil {
+		t.Fatalf("Failed to unmarshal certs for testing: %v", err)
+	}
+
+	roots := x509.NewCertPool()
+	// last cert is the root
+	roots.AddCert(certs[2])
+	intermediates := x509.NewCertPool()
+	intermediates.AddCert(certs[0])
+	intermediates.AddCert(certs[1])
+
+	embeddedRoots, err := fulcioroots.Get()
+	if err != nil {
+		t.Fatalf("Failed to get embedded fulcioroots for testing")
+	}
+	embeddedIntermediates, err := fulcioroots.GetIntermediates()
+	if err != nil {
+		t.Fatalf("Failed to get embedded fulcioroots for testing")
+	}
+
+	sk := config.SigstoreKeys{
+		CertificateAuthorities: []config.CertificateAuthority{{
+			Subject: config.DistinguishedName{
+				Organization: "testorg",
+				CommonName:   "testcommonname",
+			},
+			CertChain: []byte(certChain),
+		}},
+	}
+	c := &config.Config{
+		SigstoreKeysConfig: &config.SigstoreKeysMap{
+			SigstoreKeys: map[string]config.SigstoreKeys{
+				"test-trust-root": sk,
+			},
+		},
+	}
+	testCtx := config.ToContext(context.Background(), c)
+
+	tests := []struct {
+		name              string
+		keylessRef        *webhookcip.KeylessRef
+		wantErr           string
+		wantRoots         *x509.CertPool
+		wantIntermediates *x509.CertPool
+		ctx               context.Context
+	}{{
+		name:              "no trustroots, uses embedded",
+		keylessRef:        &webhookcip.KeylessRef{},
+		wantRoots:         embeddedRoots,
+		wantIntermediates: embeddedIntermediates,
+	}, {
+		name:       "config does not exist",
+		keylessRef: &webhookcip.KeylessRef{TrustRootRef: "not-there"},
+		wantErr:    "getting SigstoreKeys: trustRootRef not-there not found, config missing",
+		ctx:        config.ToContext(context.Background(), nil),
+	}, {
+		name:       "SigstoreKeys does not exist",
+		keylessRef: &webhookcip.KeylessRef{TrustRootRef: "not-there"},
+		wantErr:    "getting SigstoreKeys: trustRootRef not-there not found, SigstoreKeys missing",
+		ctx:        config.ToContext(context.Background(), &config.Config{}),
+	}, {
+		name:       "trustroot does not exist",
+		keylessRef: &webhookcip.KeylessRef{TrustRootRef: "not-there"},
+		ctx:        testCtx,
+		wantErr:    "trustRootRef not-there not found",
+	}, {
+		name:              "trustroot found",
+		keylessRef:        &webhookcip.KeylessRef{TrustRootRef: "test-trust-root"},
+		ctx:               testCtx,
+		wantRoots:         roots,
+		wantIntermediates: intermediates,
+	}}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			tCtx := tc.ctx
+			if tCtx == nil {
+				tCtx = context.Background()
+			}
+			roots, intermediates, err := fulcioCertsFromAuthority(tCtx, tc.keylessRef)
+			if err != nil {
+				if tc.wantErr == "" {
+					t.Errorf("unexpected error: %v wanted none", err)
+				} else if err.Error() != tc.wantErr {
+					t.Errorf("unexpected error: %v wanted %q", err, tc.wantErr)
+				}
+			} else if err == nil && tc.wantErr != "" {
+				t.Errorf("wanted error: %q got none", tc.wantErr)
+			}
+			if !roots.Equal(tc.wantRoots) {
+				t.Errorf("Roots differ")
+			}
+			if !intermediates.Equal(tc.wantIntermediates) {
+				t.Errorf("Intermediates differ")
+			}
+		})
 	}
 }

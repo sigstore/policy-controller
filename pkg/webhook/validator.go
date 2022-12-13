@@ -38,6 +38,7 @@ import (
 	csigs "github.com/sigstore/cosign/pkg/signature"
 	"github.com/sigstore/policy-controller/pkg/apis/config"
 	policyduckv1beta1 "github.com/sigstore/policy-controller/pkg/apis/duck/v1beta1"
+	"github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
 	policycontrollerconfig "github.com/sigstore/policy-controller/pkg/config"
 	webhookcip "github.com/sigstore/policy-controller/pkg/webhook/clusterimagepolicy"
 	rekor "github.com/sigstore/rekor/pkg/client"
@@ -753,12 +754,6 @@ func ValidatePolicySignaturesForAuthority(ctx context.Context, ref name.Referenc
 
 	case authority.Keyless != nil:
 		if authority.Keyless.URL != nil {
-			fulcioRoots, fulcioIntermediates, err := fulcioCertsFromAuthority(ctx, authority)
-			if err != nil {
-				return nil, fmt.Errorf("getting Fulcio roots failed for authority 	%s for %s: %w", name, ref.Name(), err)
-			}
-			checkOpts.RootCerts = fulcioRoots
-			checkOpts.IntermediateCerts = fulcioIntermediates
 			sps, err := validSignatures(ctx, ref, checkOpts)
 			if err != nil {
 				logging.FromContext(ctx).Errorf("failed validSignatures for authority %s with fulcio for %s: %v", name, ref.Name(), err)
@@ -805,12 +800,6 @@ func ValidatePolicyAttestationsForAuthority(ctx context.Context, ref name.Refere
 
 	case authority.Keyless != nil:
 		if authority.Keyless != nil && authority.Keyless.URL != nil {
-			fulcioRoots, fulcioIntermediates, err := fulcioCertsFromAuthority(ctx, authority)
-			if err != nil {
-				return nil, fmt.Errorf("getting Fulcio roots failed for authority 	%s for %s: %w", name, ref.Name(), err)
-			}
-			checkOpts.RootCerts = fulcioRoots
-			checkOpts.IntermediateCerts = fulcioIntermediates
 			va, err := validAttestations(ctx, ref, checkOpts)
 			if err != nil {
 				logging.FromContext(ctx).Errorf("failed validAttestationsWithFulcio for authority %s with fulcio for %s: %v", name, ref.Name(), err)
@@ -1265,7 +1254,8 @@ func checkOptsFromAuthority(ctx context.Context, authority webhookcip.Authority,
 		RegistryClientOpts: remoteOpts,
 	}
 
-	// Add in the identities for verification purposes.
+	// Add in the identities for verification purposes, as well as Fulcio URL
+	// and certificates
 	if authority.Keyless != nil {
 		for _, id := range authority.Keyless.Identities {
 			ret.Identities = append(ret.Identities,
@@ -1275,8 +1265,14 @@ func checkOptsFromAuthority(ctx context.Context, authority webhookcip.Authority,
 					IssuerRegExp:  id.IssuerRegExp,
 					SubjectRegExp: id.SubjectRegExp})
 		}
+		fulcioRoots, fulcioIntermediates, err := fulcioCertsFromAuthority(ctx, authority.Keyless)
+		if err != nil {
+			return nil, fmt.Errorf("getting Fulcio certs for authority %s: %w", authority.Name, err)
+		}
+		ret.RootCerts = fulcioRoots
+		ret.IntermediateCerts = fulcioIntermediates
 	}
-	rekorClient, rekorPubKeys, err := rekorClientAndKeysFromAuthority(ctx, authority)
+	rekorClient, rekorPubKeys, err := rekorClientAndKeysFromAuthority(ctx, authority.CTLog)
 	if err != nil {
 		return nil, fmt.Errorf("getting Rekor key and public keys: %w", err)
 	}
@@ -1292,14 +1288,20 @@ func checkOptsFromAuthority(ctx context.Context, authority webhookcip.Authority,
 			ret.Offline = true
 		}
 	}
-
-	fulcioRoots, fulcioIntermediates, err := fulcioCertsFromAuthority(ctx, authority)
-	if err != nil {
-		return nil, fmt.Errorf("getting Fulcio roots keys: %w", err)
-	}
-	ret.RootCerts = fulcioRoots
-	ret.IntermediateCerts = fulcioIntermediates
 	return ret, nil
+}
+
+func sigstoreKeysFromContext(ctx context.Context, trustRootRef string) (*config.SigstoreKeysMap, error) {
+	config := config.FromContext(ctx)
+	if config == nil {
+		// No config, can't fetch certificates, bail.
+		return nil, fmt.Errorf("trustRootRef %s not found, config missing", trustRootRef)
+	}
+	if config.SigstoreKeysConfig == nil {
+		// No config, can't fetch keys, bail.
+		return nil, fmt.Errorf("trustRootRef %s not found, SigstoreKeys missing", trustRootRef)
+	}
+	return config.SigstoreKeysConfig, nil
 }
 
 // fulcioCertsFromAuthority gets the necessary Fulcio certificates, this is
@@ -1307,12 +1309,9 @@ func checkOptsFromAuthority(ctx context.Context, authority webhookcip.Authority,
 // Preference is given to TrustRoot if specified, from which the certificates
 // are fetched and returned. If there's no TrustRoot, the certificates are
 // fetched from embedded or cached TUF root.
-func fulcioCertsFromAuthority(ctx context.Context, authority webhookcip.Authority) (*x509.CertPool, *x509.CertPool, error) {
+func fulcioCertsFromAuthority(ctx context.Context, keylessRef *webhookcip.KeylessRef) (*x509.CertPool, *x509.CertPool, error) {
 	// If this is not Keyless, there's no Fulcio, so just return
-	if authority.Keyless == nil {
-		return nil, nil, nil
-	}
-	if authority.Keyless.TrustRootRef == "" {
+	if keylessRef.TrustRootRef == "" {
 		roots, err := fulcioroots.Get()
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to fetch Fulcio roots: %w", err)
@@ -1323,18 +1322,12 @@ func fulcioCertsFromAuthority(ctx context.Context, authority webhookcip.Authorit
 		}
 		return roots, intermediates, nil
 	}
-	trustRootRef := authority.Keyless.TrustRootRef
+
 	// There's TrustRootRef, so fetch it
-	config := config.FromContext(ctx)
-	if config == nil {
-		// No config, can't fetch certificates, bail.
-		return nil, nil, fmt.Errorf("trustRootRef %s not found", trustRootRef)
-	}
-	// Grab the key from the trust root for Fulcio
-	sigstoreKeys := config.SigstoreKeysConfig
-	if sigstoreKeys == nil {
-		// No config, can't fetch keys, bail.
-		return nil, nil, fmt.Errorf("trustRootRef %s not found", trustRootRef)
+	trustRootRef := keylessRef.TrustRootRef
+	sigstoreKeys, err := sigstoreKeysFromContext(ctx, trustRootRef)
+	if err != nil {
+		return nil, nil, fmt.Errorf("getting SigstoreKeys: %w", err)
 	}
 	rootCertsPool := x509.NewCertPool()
 	intermediateCertsPool := x509.NewCertPool()
@@ -1355,8 +1348,9 @@ func fulcioCertsFromAuthority(ctx context.Context, authority webhookcip.Authorit
 			}
 		}
 		return rootCertsPool, intermediateCertsPool, nil
+	} else {
+		return nil, nil, fmt.Errorf("trustRootRef %s not found", trustRootRef)
 	}
-	return nil, nil, nil
 }
 
 // rekorClientAndKeysFromAuthority creates a Rekor client that should be used
@@ -1366,12 +1360,12 @@ func fulcioCertsFromAuthority(ctx context.Context, authority webhookcip.Authorit
 // Preference is given to TrustRoot if specified, from which the URL and public
 // keys are fetched and returned. If there's no TrustRoot but a URL, then
 // a Rekor client is returned and the keys from the embedded or cached TUF root.
-func rekorClientAndKeysFromAuthority(ctx context.Context, authority webhookcip.Authority) (*client.Rekor, *cosign.TrustedRekorPubKeys, error) {
-	if authority.CTLog == nil {
+func rekorClientAndKeysFromAuthority(ctx context.Context, tlog *v1alpha1.TLog) (*client.Rekor, *cosign.TrustedRekorPubKeys, error) {
+	if tlog == nil {
 		return nil, nil, nil
 	}
-	if authority.CTLog.TrustRootRef != "" {
-		trustRootRef := authority.CTLog.TrustRootRef
+	if tlog.TrustRootRef != "" {
+		trustRootRef := tlog.TrustRootRef
 		rekorPubKeys, rekorURL, err := rekorKeysFromTrustRef(ctx, trustRootRef)
 		if err != nil {
 			return nil, nil, fmt.Errorf("fetching keys for trustRootRef: %s: %w", trustRootRef, err)
@@ -1386,10 +1380,10 @@ func rekorClientAndKeysFromAuthority(ctx context.Context, authority webhookcip.A
 
 	// No TrustRoot, so see if there's one specified in the authority and if
 	// not just return that no Rekor is to be used.
-	if authority.CTLog.URL == nil {
+	if tlog.URL == nil {
 		return nil, nil, nil
 	}
-	rekorClient, err := rekor.GetRekorClient(authority.CTLog.URL.String())
+	rekorClient, err := rekor.GetRekorClient(tlog.URL.String())
 	if err != nil {
 		logging.FromContext(ctx).Errorf("failed creating rekor client: %v", err)
 		return nil, nil, fmt.Errorf("creating Rekor client: %w", err)
@@ -1403,17 +1397,11 @@ func rekorClientAndKeysFromAuthority(ctx context.Context, authority webhookcip.A
 }
 
 func rekorKeysFromTrustRef(ctx context.Context, trustRootRef string) (*cosign.TrustedRekorPubKeys, string, error) {
-	config := config.FromContext(ctx)
-	if config == nil {
-		// No config, can't fetch keys, bail.
-		return nil, "", fmt.Errorf("trustRootRef %s not found", trustRootRef)
+	sigstoreKeys, err := sigstoreKeysFromContext(ctx, trustRootRef)
+	if err != nil {
+		return nil, "", fmt.Errorf("getting SigstoreKeys: %w", err)
 	}
-	// Grab the key from the trust root for Rekor
-	sigstoreKeys := config.SigstoreKeysConfig
-	if sigstoreKeys == nil {
-		// No config, can't fetch keys, bail.
-		return nil, "", fmt.Errorf("trustRootRef %s not found", trustRootRef)
-	}
+
 	if sk, ok := sigstoreKeys.SigstoreKeys[trustRootRef]; ok {
 		retKeys := &cosign.TrustedRekorPubKeys{
 			Keys: make(map[string]cosign.RekorPubKey, len(sk.TLogs)),
@@ -1437,6 +1425,7 @@ func rekorKeysFromTrustRef(ctx context.Context, trustRootRef string) (*cosign.Tr
 			rekorURL = tlog.BaseURL.String()
 		}
 		return retKeys, rekorURL, nil
+	} else {
+		return nil, "", fmt.Errorf("trustRootRef %s not found", trustRootRef)
 	}
-	return nil, "", nil
 }
