@@ -104,6 +104,9 @@ spec:
                         description: CTLog sets the configuration to verify the authority against a Rekor instance.
                         type: object
                         properties:
+                          trustRootRef:
+                            description: Use the Public Key from the referred TrustRoot.TLog
+                            type: string
                           url:
                             description: URL sets the url to the rekor instance (by default the public rekor.sigstore.dev)
                             type: string
@@ -175,6 +178,9 @@ spec:
                                 subjectRegExp:
                                   description: SubjectRegExp specifies a regular expression to match the subject for this identity.
                                   type: string
+                          trustRootRef:
+                            description: Use the Certificate Chain from the referred TrustRoot.CertificateAuthorities and TrustRoot.CTLog
+                            type: string
                           url:
                             description: URL defines a url to the keyless instance.
                             type: string
@@ -357,6 +363,9 @@ spec:
                         description: CTLog sets the configuration to verify the authority against a Rekor instance.
                         type: object
                         properties:
+                          trustRootRef:
+                            description: Use the Public Key from the referred TrustRoot.TLog
+                            type: string
                           url:
                             description: URL sets the url to the rekor instance (by default the public rekor.sigstore.dev)
                             type: string
@@ -428,6 +437,9 @@ spec:
                                 subjectRegExp:
                                   description: SubjectRegExp specifies a regular expression to match the subject for this identity.
                                   type: string
+                          trustRootRef:
+                            description: Use the Certificate Chain from the referred TrustRoot.CertificateAuthorities and TrustRoot.CTLog
+                            type: string
                           url:
                             description: URL defines a url to the keyless instance.
                             type: string

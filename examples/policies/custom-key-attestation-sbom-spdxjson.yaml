@@ -36,6 +36,8 @@ spec:
         MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEOc6HkISHzVdUbtUsdjYtPuyPYBeg
         4FCemyVurIM4KEORQk4OAu8ZNwxvGSoY3eAabYaFIPPQ8ROAjrbdPwNdJw==
         -----END PUBLIC KEY-----
+    ctlog:
+      url: https://rekor.sigstore.dev
     attestations:
     - name: must-have-spdxjson
       predicateType: spdxjson

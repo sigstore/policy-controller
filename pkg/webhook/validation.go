@@ -18,7 +18,6 @@ package webhook
 import (
 	"context"
 	"crypto"
-	"crypto/x509"
 	"encoding/pem"
 
 	"github.com/google/go-containerregistry/pkg/name"
@@ -26,21 +25,12 @@ import (
 
 	"github.com/sigstore/cosign/pkg/cosign"
 	"github.com/sigstore/cosign/pkg/oci"
-	ociremote "github.com/sigstore/cosign/pkg/oci/remote"
-	v1alpha1 "github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
-	"github.com/sigstore/rekor/pkg/generated/client"
-	"github.com/sigstore/sigstore/pkg/fulcioroots"
 	"github.com/sigstore/sigstore/pkg/signature"
 )
 
-func valid(ctx context.Context, ref name.Reference, rekorClient *client.Rekor, keys []crypto.PublicKey, hashAlgo crypto.Hash, opts ...ociremote.Option) ([]oci.Signature, error) {
+func valid(ctx context.Context, ref name.Reference, keys []crypto.PublicKey, hashAlgo crypto.Hash, checkOpts *cosign.CheckOpts) ([]oci.Signature, error) {
 	if len(keys) == 0 {
-		// If there are no keys, then verify against the fulcio root.
-		fulcioRoots, err := fulcioroots.Get()
-		if err != nil {
-			return nil, err
-		}
-		return validSignaturesWithFulcio(ctx, ref, fulcioRoots, nil /* rekor */, nil /* no identities */, opts...)
+		return validSignatures(ctx, ref, checkOpts)
 	}
 	// We return nil if ANY key matches
 	var lastErr error
@@ -51,8 +41,8 @@ func valid(ctx context.Context, ref name.Reference, rekorClient *client.Rekor, k
 			lastErr = err
 			continue
 		}
-
-		sps, err := validSignatures(ctx, ref, verifier, rekorClient, opts...)
+		checkOpts.SigVerifier = verifier
+		sps, err := validSignatures(ctx, ref, checkOpts)
 		if err != nil {
 			logging.FromContext(ctx).Errorf("error validating signatures: %v", err)
 			lastErr = err
@@ -68,58 +58,15 @@ func valid(ctx context.Context, ref name.Reference, rekorClient *client.Rekor, k
 var cosignVerifySignatures = cosign.VerifyImageSignatures
 var cosignVerifyAttestations = cosign.VerifyImageAttestations
 
-func validSignatures(ctx context.Context, ref name.Reference, verifier signature.Verifier, rekorClient *client.Rekor, opts ...ociremote.Option) ([]oci.Signature, error) {
-	sigs, _, err := cosignVerifySignatures(ctx, ref, &cosign.CheckOpts{
-		RegistryClientOpts: opts,
-		SigVerifier:        verifier,
-		RekorClient:        rekorClient,
-		ClaimVerifier:      cosign.SimpleClaimVerifier,
-	})
+func validSignatures(ctx context.Context, ref name.Reference, checkOpts *cosign.CheckOpts) ([]oci.Signature, error) {
+	checkOpts.ClaimVerifier = cosign.SimpleClaimVerifier
+	sigs, _, err := cosignVerifySignatures(ctx, ref, checkOpts)
 	return sigs, err
 }
 
-// validSignaturesWithFulcio expects a Fulcio Cert to verify against. An
-// optional rekorClient can also be given, if nil passed, default is assumed.
-func validSignaturesWithFulcio(ctx context.Context, ref name.Reference, fulcioRoots *x509.CertPool, rekorClient *client.Rekor, identities []v1alpha1.Identity, opts ...ociremote.Option) ([]oci.Signature, error) {
-	ids := make([]cosign.Identity, len(identities))
-	for i, id := range identities {
-		ids[i] = cosign.Identity{Issuer: id.Issuer, Subject: id.Subject, IssuerRegExp: id.IssuerRegExp, SubjectRegExp: id.SubjectRegExp}
-	}
-	sigs, _, err := cosignVerifySignatures(ctx, ref, &cosign.CheckOpts{
-		RegistryClientOpts: opts,
-		RootCerts:          fulcioRoots,
-		RekorClient:        rekorClient,
-		ClaimVerifier:      cosign.SimpleClaimVerifier,
-		Identities:         ids,
-	})
-	return sigs, err
-}
-
-func validAttestations(ctx context.Context, ref name.Reference, verifier signature.Verifier, rekorClient *client.Rekor, opts ...ociremote.Option) ([]oci.Signature, error) {
-	attestations, _, err := cosignVerifyAttestations(ctx, ref, &cosign.CheckOpts{
-		RegistryClientOpts: opts,
-		SigVerifier:        verifier,
-		RekorClient:        rekorClient,
-		ClaimVerifier:      cosign.IntotoSubjectClaimVerifier,
-	})
-	return attestations, err
-}
-
-// validAttestationsWithFulcio expects a Fulcio Cert to verify against. An
-// optional rekorClient can also be given, if nil passed, default is assumed.
-func validAttestationsWithFulcio(ctx context.Context, ref name.Reference, fulcioRoots *x509.CertPool, rekorClient *client.Rekor, identities []v1alpha1.Identity, opts ...ociremote.Option) ([]oci.Signature, error) {
-	ids := make([]cosign.Identity, len(identities))
-	for i, id := range identities {
-		ids[i] = cosign.Identity{Issuer: id.Issuer, Subject: id.Subject, IssuerRegExp: id.IssuerRegExp, SubjectRegExp: id.SubjectRegExp}
-	}
-
-	attestations, _, err := cosignVerifyAttestations(ctx, ref, &cosign.CheckOpts{
-		RegistryClientOpts: opts,
-		RootCerts:          fulcioRoots,
-		RekorClient:        rekorClient,
-		ClaimVerifier:      cosign.IntotoSubjectClaimVerifier,
-		Identities:         ids,
-	})
+func validAttestations(ctx context.Context, ref name.Reference, checkOpts *cosign.CheckOpts) ([]oci.Signature, error) {
+	checkOpts.ClaimVerifier = cosign.IntotoSubjectClaimVerifier
+	attestations, _, err := cosignVerifyAttestations(ctx, ref, checkOpts)
 	return attestations, err
 }
 

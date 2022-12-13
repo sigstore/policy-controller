@@ -111,6 +111,9 @@ type KeylessRef struct {
 	Identities []v1alpha1.Identity `json:"identities,omitempty"`
 	// +optional
 	CACert *KeyRef `json:"ca-cert,omitempty"`
+	// Use the Certificate Chain from the referred TrustRoot.CertificateAuthorities and TrustRoot.CTLog
+	// +optional
+	TrustRootRef string `json:"trustRootRef,omitempty"`
 }
 
 type StaticRef struct {
@@ -360,9 +363,10 @@ func convertKeylessRefV1Alpha1ToWebhook(in *v1alpha1.KeylessRef) *KeylessRef {
 	CACertRef := convertKeyRefV1Alpha1ToWebhook(in.CACert)
 
 	return &KeylessRef{
-		URL:        in.URL,
-		Identities: in.Identities,
-		CACert:     CACertRef,
+		URL:          in.URL,
+		Identities:   in.Identities,
+		CACert:       CACertRef,
+		TrustRootRef: in.TrustRootRef,
 	}
 }
 

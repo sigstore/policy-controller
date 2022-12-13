@@ -16,7 +16,10 @@
 package webhook
 
 import (
+	"bytes"
 	"context"
+	"crypto/ecdsa"
+	"crypto/x509"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -24,11 +27,10 @@ import (
 
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/authn/k8schain"
-	v1 "github.com/google/go-containerregistry/pkg/v1"
-	"github.com/google/go-containerregistry/pkg/v1/types"
-
 	"github.com/google/go-containerregistry/pkg/name"
+	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
+	"github.com/google/go-containerregistry/pkg/v1/types"
 	"github.com/sigstore/cosign/pkg/cosign"
 	"github.com/sigstore/cosign/pkg/oci"
 	ociremote "github.com/sigstore/cosign/pkg/oci/remote"
@@ -36,12 +38,15 @@ import (
 	csigs "github.com/sigstore/cosign/pkg/signature"
 	"github.com/sigstore/policy-controller/pkg/apis/config"
 	policyduckv1beta1 "github.com/sigstore/policy-controller/pkg/apis/duck/v1beta1"
+	"github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
 	policycontrollerconfig "github.com/sigstore/policy-controller/pkg/config"
 	webhookcip "github.com/sigstore/policy-controller/pkg/webhook/clusterimagepolicy"
 	rekor "github.com/sigstore/rekor/pkg/client"
 	"github.com/sigstore/rekor/pkg/generated/client"
+	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"github.com/sigstore/sigstore/pkg/fulcioroots"
 	"github.com/sigstore/sigstore/pkg/signature"
+	"github.com/sigstore/sigstore/pkg/tuf"
 	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -726,17 +731,11 @@ func attestationToPolicyAttestations(ctx context.Context, atts []attestation) []
 func ValidatePolicySignaturesForAuthority(ctx context.Context, ref name.Reference, authority webhookcip.Authority, remoteOpts ...ociremote.Option) ([]PolicySignature, error) {
 	name := authority.Name
 
-	var rekorClient *client.Rekor
-	var err error
-	if authority.CTLog != nil && authority.CTLog.URL != nil {
-		logging.FromContext(ctx).Debugf("Using CTLog %s for %s", authority.CTLog.URL, ref.Name())
-		rekorClient, err = rekor.GetRekorClient(authority.CTLog.URL.String())
-		if err != nil {
-			logging.FromContext(ctx).Errorf("failed creating rekor client: +v", err)
-			return nil, fmt.Errorf("creating Rekor client: %w", err)
-		}
+	checkOpts, err := checkOptsFromAuthority(ctx, authority, remoteOpts...)
+	if err != nil {
+		logging.FromContext(ctx).Errorf("failed constructing checkOpts for %s: +v", name, err)
+		return nil, fmt.Errorf("constructing checkOpts for %s: %w", name, err)
 	}
-
 	switch {
 	case authority.Key != nil:
 		if len(authority.Key.PublicKeys) == 0 {
@@ -746,7 +745,7 @@ func ValidatePolicySignaturesForAuthority(ctx context.Context, ref name.Referenc
 		// Is it even allowed? 'valid' returns success if any key
 		// matches.
 		// https://github.com/sigstore/policy-controller/issues/1652
-		sps, err := valid(ctx, ref, rekorClient, authority.Key.PublicKeys, authority.Key.HashAlgorithmCode, remoteOpts...)
+		sps, err := valid(ctx, ref, authority.Key.PublicKeys, authority.Key.HashAlgorithmCode, checkOpts)
 		if err != nil {
 			return nil, fmt.Errorf("signature key validation failed for authority %s for %s: %w", name, ref.Name(), err)
 		}
@@ -755,13 +754,7 @@ func ValidatePolicySignaturesForAuthority(ctx context.Context, ref name.Referenc
 
 	case authority.Keyless != nil:
 		if authority.Keyless.URL != nil {
-			// TODO: This will probably need to change for:
-			// https://github.com/sigstore/policy-controller/issues/138
-			fulcioRoots, err := fulcioroots.Get()
-			if err != nil {
-				return nil, fmt.Errorf("fetching FulcioRoot: %w", err)
-			}
-			sps, err := validSignaturesWithFulcio(ctx, ref, fulcioRoots, rekorClient, authority.Keyless.Identities, remoteOpts...)
+			sps, err := validSignatures(ctx, ref, checkOpts)
 			if err != nil {
 				logging.FromContext(ctx).Errorf("failed validSignatures for authority %s with fulcio for %s: %v", name, ref.Name(), err)
 				return nil, fmt.Errorf("signature keyless validation failed for authority %s for %s: %w", name, ref.Name(), err)
@@ -781,15 +774,10 @@ func ValidatePolicySignaturesForAuthority(ctx context.Context, ref name.Referenc
 // verify attestations against it.
 func ValidatePolicyAttestationsForAuthority(ctx context.Context, ref name.Reference, authority webhookcip.Authority, remoteOpts ...ociremote.Option) (map[string][]PolicyAttestation, error) {
 	name := authority.Name
-	var rekorClient *client.Rekor
-	var err error
-	if authority.CTLog != nil && authority.CTLog.URL != nil {
-		logging.FromContext(ctx).Debugf("Using CTLog %s for %s", authority.CTLog.URL, ref.Name())
-		rekorClient, err = rekor.GetRekorClient(authority.CTLog.URL.String())
-		if err != nil {
-			logging.FromContext(ctx).Errorf("failed creating rekor client: +v", err)
-			return nil, fmt.Errorf("creating Rekor client: %w", err)
-		}
+	checkOpts, err := checkOptsFromAuthority(ctx, authority, remoteOpts...)
+	if err != nil {
+		logging.FromContext(ctx).Errorf("failed creating checkopts client: %v", err)
+		return nil, fmt.Errorf("creating CheckOpts: %w", err)
 	}
 
 	verifiedAttestations := []oci.Signature{}
@@ -801,7 +789,8 @@ func ValidatePolicyAttestationsForAuthority(ctx context.Context, ref name.Refere
 				logging.FromContext(ctx).Errorf("error creating verifier: %v", err)
 				return nil, fmt.Errorf("creating verifier: %w", err)
 			}
-			va, err := validAttestations(ctx, ref, verifier, rekorClient, remoteOpts...)
+			checkOpts.SigVerifier = verifier
+			va, err := validAttestations(ctx, ref, checkOpts)
 			if err != nil {
 				logging.FromContext(ctx).Errorf("error validating attestations: %v", err)
 				return nil, fmt.Errorf("attestation key validation failed for authority %s for %s: %w", name, ref.Name(), err)
@@ -811,13 +800,7 @@ func ValidatePolicyAttestationsForAuthority(ctx context.Context, ref name.Refere
 
 	case authority.Keyless != nil:
 		if authority.Keyless != nil && authority.Keyless.URL != nil {
-			// TODO: This will probably need to change for:
-			// https://github.com/sigstore/policy-controller/issues/138
-			fulcioRoots, err := fulcioroots.Get()
-			if err != nil {
-				return nil, fmt.Errorf("fetching FulcioRoot: %w", err)
-			}
-			va, err := validAttestationsWithFulcio(ctx, ref, fulcioRoots, rekorClient, authority.Keyless.Identities, remoteOpts...)
+			va, err := validAttestations(ctx, ref, checkOpts)
 			if err != nil {
 				logging.FromContext(ctx).Errorf("failed validAttestationsWithFulcio for authority %s with fulcio for %s: %v", name, ref.Name(), err)
 				return nil, fmt.Errorf("attestation keyless validation failed for authority %s for %s: %w", name, ref.Name(), err)
@@ -1262,4 +1245,185 @@ func normalizeArchitecture(cf *v1.ConfigFile) string {
 		OSVersion:    cf.OSVersion,
 		Variant:      cf.Variant,
 	}.String()
+}
+
+// checkOptsFromAuthority creates the necessary options for calling Cosign
+// verify functions (signatures and attestations).
+func checkOptsFromAuthority(ctx context.Context, authority webhookcip.Authority, remoteOpts ...ociremote.Option) (*cosign.CheckOpts, error) {
+	ret := &cosign.CheckOpts{
+		RegistryClientOpts: remoteOpts,
+	}
+
+	// Add in the identities for verification purposes, as well as Fulcio URL
+	// and certificates
+	if authority.Keyless != nil {
+		for _, id := range authority.Keyless.Identities {
+			ret.Identities = append(ret.Identities,
+				cosign.Identity{
+					Issuer:        id.Issuer,
+					Subject:       id.Subject,
+					IssuerRegExp:  id.IssuerRegExp,
+					SubjectRegExp: id.SubjectRegExp})
+		}
+		fulcioRoots, fulcioIntermediates, err := fulcioCertsFromAuthority(ctx, authority.Keyless)
+		if err != nil {
+			return nil, fmt.Errorf("getting Fulcio certs: %s: %w", authority.Name, err)
+		}
+		ret.RootCerts = fulcioRoots
+		ret.IntermediateCerts = fulcioIntermediates
+	}
+	rekorClient, rekorPubKeys, err := rekorClientAndKeysFromAuthority(ctx, authority.CTLog)
+	if err != nil {
+		return nil, fmt.Errorf("getting Rekor public keys: %s: %w", authority.Name, err)
+	}
+	ret.RekorClient = rekorClient
+	ret.RekorPubKeys = rekorPubKeys
+	// Skip the TLog verification if we have no client or keys to validate
+	// against.
+	if ret.RekorClient == nil {
+		if ret.RekorPubKeys == nil {
+			ret.SkipTlogVerify = true
+		} else {
+			// If there's keys however, use offline for verification.
+			ret.Offline = true
+		}
+	}
+	return ret, nil
+}
+
+func sigstoreKeysFromContext(ctx context.Context, trustRootRef string) (*config.SigstoreKeysMap, error) {
+	config := config.FromContext(ctx)
+	if config == nil {
+		// No config, can't fetch certificates, bail.
+		return nil, fmt.Errorf("trustRootRef %s not found, config missing", trustRootRef)
+	}
+	if config.SigstoreKeysConfig == nil {
+		// No config, can't fetch keys, bail.
+		return nil, fmt.Errorf("trustRootRef %s not found, SigstoreKeys missing", trustRootRef)
+	}
+	return config.SigstoreKeysConfig, nil
+}
+
+// fulcioCertsFromAuthority gets the necessary Fulcio certificates, this is
+// rootPool and an optional intermediatePool.
+// Preference is given to TrustRoot if specified, from which the certificates
+// are fetched and returned. If there's no TrustRoot, the certificates are
+// fetched from embedded or cached TUF root.
+func fulcioCertsFromAuthority(ctx context.Context, keylessRef *webhookcip.KeylessRef) (*x509.CertPool, *x509.CertPool, error) {
+	// If this is not Keyless, there's no Fulcio, so just return
+	if keylessRef.TrustRootRef == "" {
+		roots, err := fulcioroots.Get()
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to fetch Fulcio roots: %w", err)
+		}
+		intermediates, err := fulcioroots.GetIntermediates()
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to fetch Fulcio intermediates: %w", err)
+		}
+		return roots, intermediates, nil
+	}
+
+	// There's TrustRootRef, so fetch it
+	trustRootRef := keylessRef.TrustRootRef
+	sigstoreKeys, err := sigstoreKeysFromContext(ctx, trustRootRef)
+	if err != nil {
+		return nil, nil, fmt.Errorf("getting SigstoreKeys: %w", err)
+	}
+	rootCertsPool := x509.NewCertPool()
+	intermediateCertsPool := x509.NewCertPool()
+
+	if sk, ok := sigstoreKeys.SigstoreKeys[trustRootRef]; ok {
+		for _, ca := range sk.CertificateAuthorities {
+			certs, err := cryptoutils.UnmarshalCertificatesFromPEM(ca.CertChain)
+			if err != nil {
+				return nil, nil, fmt.Errorf("error unmarshalling certificates: %w", err)
+			}
+			for _, cert := range certs {
+				// root certificates are self-signed
+				if bytes.Equal(cert.RawSubject, cert.RawIssuer) {
+					rootCertsPool.AddCert(cert)
+				} else {
+					intermediateCertsPool.AddCert(cert)
+				}
+			}
+		}
+		return rootCertsPool, intermediateCertsPool, nil
+	}
+	return nil, nil, fmt.Errorf("trustRootRef %s not found", trustRootRef)
+}
+
+// rekorClientAndKeysFromAuthority creates a Rekor client that should be used
+// and public keys to go with it.
+// Note that if Rekor is not specified, it's not an error and nil will be
+// returned for it.
+// Preference is given to TrustRoot if specified, from which the URL and public
+// keys are fetched and returned. If there's no TrustRoot but a URL, then
+// a Rekor client is returned and the keys from the embedded or cached TUF root.
+func rekorClientAndKeysFromAuthority(ctx context.Context, tlog *v1alpha1.TLog) (*client.Rekor, *cosign.TrustedRekorPubKeys, error) {
+	if tlog == nil {
+		return nil, nil, nil
+	}
+	if tlog.TrustRootRef != "" {
+		trustRootRef := tlog.TrustRootRef
+		rekorPubKeys, rekorURL, err := rekorKeysFromTrustRef(ctx, trustRootRef)
+		if err != nil {
+			return nil, nil, fmt.Errorf("fetching keys for trustRootRef: %w", err)
+		}
+		rekorClient, err := rekor.GetRekorClient(rekorURL)
+		if err != nil {
+			logging.FromContext(ctx).Errorf("failed creating rekor client: %v", err)
+			return nil, nil, fmt.Errorf("creating Rekor client: %w", err)
+		}
+		return rekorClient, rekorPubKeys, nil
+	}
+
+	// No TrustRoot, so see if there's one specified in the authority and if
+	// not just return that no Rekor is to be used.
+	if tlog.URL == nil {
+		return nil, nil, nil
+	}
+	rekorClient, err := rekor.GetRekorClient(tlog.URL.String())
+	if err != nil {
+		logging.FromContext(ctx).Errorf("failed creating rekor client: %v", err)
+		return nil, nil, fmt.Errorf("creating Rekor client: %w", err)
+	}
+	rekorPubKeys, err := cosign.GetRekorPubs(ctx)
+	if err != nil {
+		logging.FromContext(ctx).Errorf("failed getting rekor public keys: %v", err)
+		return nil, nil, fmt.Errorf("getting Rekor public keys: %w", err)
+	}
+	return rekorClient, rekorPubKeys, nil
+}
+
+func rekorKeysFromTrustRef(ctx context.Context, trustRootRef string) (*cosign.TrustedRekorPubKeys, string, error) {
+	sigstoreKeys, err := sigstoreKeysFromContext(ctx, trustRootRef)
+	if err != nil {
+		return nil, "", fmt.Errorf("getting SigstoreKeys: %w", err)
+	}
+
+	if sk, ok := sigstoreKeys.SigstoreKeys[trustRootRef]; ok {
+		retKeys := &cosign.TrustedRekorPubKeys{
+			Keys: make(map[string]cosign.RekorPubKey, len(sk.TLogs)),
+		}
+		rekorURL := ""
+		for i, tlog := range sk.TLogs {
+			pk, err := cryptoutils.UnmarshalPEMToPublicKey(tlog.PublicKey)
+			if err != nil {
+				return nil, "", fmt.Errorf("unmarshaling public key %d failed: %w", i, err)
+			}
+			// This needs to be ecdsa instead of crypto.PublicKey
+			// https://github.com/sigstore/cosign/issues/2540
+			pkecdsa, ok := pk.(*ecdsa.PublicKey)
+			if !ok {
+				return nil, "", fmt.Errorf("public key %d is not ecdsa.PublicKey", i)
+			}
+			retKeys.Keys[tlog.LogID] = cosign.RekorPubKey{
+				PubKey: pkecdsa,
+				Status: tuf.Active,
+			}
+			rekorURL = tlog.BaseURL.String()
+		}
+		return retKeys, rekorURL, nil
+	}
+	return nil, "", fmt.Errorf("trustRootRef %s not found", trustRootRef)
 }

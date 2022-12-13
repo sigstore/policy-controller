@@ -47,6 +47,9 @@ import (
 	"github.com/sigstore/policy-controller/pkg/apis/signaturealgo"
 	policycontrollerconfig "github.com/sigstore/policy-controller/pkg/config"
 	webhookcip "github.com/sigstore/policy-controller/pkg/webhook/clusterimagepolicy"
+	"github.com/sigstore/sigstore/pkg/cryptoutils"
+	"github.com/sigstore/sigstore/pkg/fulcioroots"
+	"github.com/sigstore/sigstore/pkg/tuf"
 	admissionv1 "k8s.io/api/admission/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
@@ -71,6 +74,49 @@ const (
 MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAENAyijLvRu5QpCPp2uOj8C79ZW1VJ
 SID/4H61ZiRzN4nqONzp+ZF22qQTk3MFO3D0/ZKmWHAosIf2pf2GHH7myA==
 -----END PUBLIC KEY-----`
+
+	certChain = `-----BEGIN CERTIFICATE-----
+MIIBzDCCAXKgAwIBAgIUfyGKDoFa7y6s/W1p1CiTmBRs1eAwCgYIKoZIzj0EAwIw
+MDEOMAwGA1UEChMFbG9jYWwxHjAcBgNVBAMTFVRlc3QgVFNBIEludGVybWVkaWF0
+ZTAeFw0yMjExMDkyMDMxMzRaFw0zMTExMDkyMDM0MzRaMDAxDjAMBgNVBAoTBWxv
+Y2FsMR4wHAYDVQQDExVUZXN0IFRTQSBUaW1lc3RhbXBpbmcwWTATBgcqhkjOPQIB
+BggqhkjOPQMBBwNCAAR3KcDy9jwARX0rDvyr+MGGkG3n1OA0MU5+ZiDmgusFyk6U
+6bovKWVMfD8J8NTcJZE0RaYJr8/dE9kgcIIXlhMwo2owaDAOBgNVHQ8BAf8EBAMC
+B4AwHQYDVR0OBBYEFHNn5R3b3MtUdSNrFO49Q6XDVSnkMB8GA1UdIwQYMBaAFNLS
+6gno7Om++Qt5zIa+H9o0HiT2MBYGA1UdJQEB/wQMMAoGCCsGAQUFBwMIMAoGCCqG
+SM49BAMCA0gAMEUCIQCF0olohnvdUq6T7/wPk19Z5aQP/yxRTjCWYuhn/TCyHgIg
+azV3air4GRZbN9bdYtcQ7JUAKq89GOhtFfl6kcoVUvU=
+-----END CERTIFICATE-----
+-----BEGIN CERTIFICATE-----
+MIIB0jCCAXigAwIBAgIUXpBmYJFFaGW3cC8p6b/DHr1i8IowCgYIKoZIzj0EAwIw
+KDEOMAwGA1UEChMFbG9jYWwxFjAUBgNVBAMTDVRlc3QgVFNBIFJvb3QwHhcNMjIx
+MTA5MjAyOTM0WhcNMzIxMTA5MjAzNDM0WjAwMQ4wDAYDVQQKEwVsb2NhbDEeMBwG
+A1UEAxMVVGVzdCBUU0EgSW50ZXJtZWRpYXRlMFkwEwYHKoZIzj0CAQYIKoZIzj0D
+AQcDQgAEKDPDRIwDS1ZCymub6yanCG5ma0qDjLpNonDvooSkRHEgU0TNibeJn6M+
+5W608hCw8nwuucMbXQ41kNeuBeevyqN4MHYwDgYDVR0PAQH/BAQDAgEGMBMGA1Ud
+JQQMMAoGCCsGAQUFBwMIMA8GA1UdEwEB/wQFMAMBAf8wHQYDVR0OBBYEFNLS6gno
+7Om++Qt5zIa+H9o0HiT2MB8GA1UdIwQYMBaAFB1nvXpNK7AuQlbJ+ya6nPSqWi+T
+MAoGCCqGSM49BAMCA0gAMEUCIGiwqCI29w7C4V8TltCsi728s5DtklCPySDASUSu
+a5y5AiEA40Ifdlwf7Uj8q8NSD6Z4g/0js0tGNdLSUJ1do/WoN0s=
+-----END CERTIFICATE-----
+-----BEGIN CERTIFICATE-----
+MIIBlDCCATqgAwIBAgIUYZx9sS14En7SuHDOJJP4IPopMjUwCgYIKoZIzj0EAwIw
+KDEOMAwGA1UEChMFbG9jYWwxFjAUBgNVBAMTDVRlc3QgVFNBIFJvb3QwHhcNMjIx
+MTA5MjAyOTM0WhcNMzIxMTA5MjAzNDM0WjAoMQ4wDAYDVQQKEwVsb2NhbDEWMBQG
+A1UEAxMNVGVzdCBUU0EgUm9vdDBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABAbB
+B0SU8G75hVIUphChA4nfOwNWP347TjScIdsEPrKVn+/Y1HmmLHJDjSfn+xhEFoEk
+7jqgrqon48i4xbo7xAujQjBAMA4GA1UdDwEB/wQEAwIBBjAPBgNVHRMBAf8EBTAD
+AQH/MB0GA1UdDgQWBBQdZ716TSuwLkJWyfsmupz0qlovkzAKBggqhkjOPQQDAgNI
+ADBFAiBe5P56foqmFcZAVpEeAOFZrAlEiq05CCpMNYh5EjLvmAIhAKNF6xIV5uFd
+pSTJsAwzjW78CKQm7qol0uPmPPu6mNaw
+-----END CERTIFICATE-----
+`
+
+	rekorPublicKey = `-----BEGIN PUBLIC KEY-----
+MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE7D2WvgqSzs9jpdJsOJ5Nl6xg8JXm
+Nmo7M3bN7+dQddw9Ibc2R3SV8tzBZw0rST8FKcn4apJepcKM4qUpYUeNfw==
+-----END PUBLIC KEY-----
+`
 )
 
 func TestValidatePodSpec(t *testing.T) {
@@ -2733,5 +2779,425 @@ func TestPolicyControllerConfigNoMatchPolicy(t *testing.T) {
 				t.Errorf("ValidatePod() Wrong Level = %v, wanted %v", got.Level, tc.want.Level)
 			}
 		}
+	}
+}
+
+func TestFulcioCertsFromAuthority(t *testing.T) {
+	certs, err := cryptoutils.UnmarshalCertificatesFromPEM([]byte(certChain))
+	if err != nil {
+		t.Fatalf("Failed to unmarshal certs for testing: %v", err)
+	}
+
+	roots := x509.NewCertPool()
+	// last cert is the root
+	roots.AddCert(certs[2])
+	intermediates := x509.NewCertPool()
+	intermediates.AddCert(certs[0])
+	intermediates.AddCert(certs[1])
+
+	embeddedRoots, err := fulcioroots.Get()
+	if err != nil {
+		t.Fatalf("Failed to get embedded fulcioroots for testing")
+	}
+	embeddedIntermediates, err := fulcioroots.GetIntermediates()
+	if err != nil {
+		t.Fatalf("Failed to get embedded fulcioroots for testing")
+	}
+
+	sk := config.SigstoreKeys{
+		CertificateAuthorities: []config.CertificateAuthority{{
+			Subject: config.DistinguishedName{
+				Organization: "testorg",
+				CommonName:   "testcommonname",
+			},
+			CertChain: []byte(certChain),
+		}},
+	}
+	c := &config.Config{
+		SigstoreKeysConfig: &config.SigstoreKeysMap{
+			SigstoreKeys: map[string]config.SigstoreKeys{
+				"test-trust-root": sk,
+			},
+		},
+	}
+	testCtx := config.ToContext(context.Background(), c)
+
+	tests := []struct {
+		name              string
+		keylessRef        *webhookcip.KeylessRef
+		wantErr           string
+		wantRoots         *x509.CertPool
+		wantIntermediates *x509.CertPool
+		ctx               context.Context
+	}{{
+		name:              "no trustroots, uses embedded",
+		keylessRef:        &webhookcip.KeylessRef{},
+		wantRoots:         embeddedRoots,
+		wantIntermediates: embeddedIntermediates,
+	}, {
+		name:       "config does not exist",
+		keylessRef: &webhookcip.KeylessRef{TrustRootRef: "not-there"},
+		wantErr:    "getting SigstoreKeys: trustRootRef not-there not found, config missing",
+		ctx:        config.ToContext(context.Background(), nil),
+	}, {
+		name:       "SigstoreKeys does not exist",
+		keylessRef: &webhookcip.KeylessRef{TrustRootRef: "not-there"},
+		wantErr:    "getting SigstoreKeys: trustRootRef not-there not found, SigstoreKeys missing",
+		ctx:        config.ToContext(context.Background(), &config.Config{}),
+	}, {
+		name:       "trustroot does not exist",
+		keylessRef: &webhookcip.KeylessRef{TrustRootRef: "not-there"},
+		ctx:        testCtx,
+		wantErr:    "trustRootRef not-there not found",
+	}, {
+		name:              "trustroot found",
+		keylessRef:        &webhookcip.KeylessRef{TrustRootRef: "test-trust-root"},
+		ctx:               testCtx,
+		wantRoots:         roots,
+		wantIntermediates: intermediates,
+	}}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			tCtx := tc.ctx
+			if tCtx == nil {
+				tCtx = context.Background()
+			}
+			roots, intermediates, err := fulcioCertsFromAuthority(tCtx, tc.keylessRef)
+			if err != nil {
+				if tc.wantErr == "" {
+					t.Errorf("unexpected error: %v wanted none", err)
+				} else if err.Error() != tc.wantErr {
+					t.Errorf("unexpected error: %v wanted %q", err, tc.wantErr)
+				}
+			} else if err == nil && tc.wantErr != "" {
+				t.Errorf("wanted error: %q got none", tc.wantErr)
+			}
+			if !roots.Equal(tc.wantRoots) {
+				t.Errorf("Roots differ")
+			}
+			if !intermediates.Equal(tc.wantIntermediates) {
+				t.Errorf("Intermediates differ")
+			}
+		})
+	}
+}
+
+func TestRekorClientAndKeysFromAuthority(t *testing.T) {
+	pk, err := cryptoutils.UnmarshalPEMToPublicKey([]byte(rekorPublicKey))
+	if err != nil {
+		t.Fatalf("Failed to unmarshal public key for testing: %v", err)
+	}
+	ecpk, ok := pk.(*ecdsa.PublicKey)
+	if !ok {
+		t.Fatalf("pk is not a ecsda public key")
+	}
+
+	embeddedPKs, err := cosign.GetRekorPubs(context.Background())
+	if err != nil {
+		t.Fatalf("Failed to get embedded rekor pubs for testing")
+	}
+	if len(embeddedPKs.Keys) != 1 {
+		t.Fatalf("Did not get a single Public Key for Rekor")
+	}
+	var embeddedLogID string
+	var embeddedPK *ecdsa.PublicKey
+	for k, v := range embeddedPKs.Keys {
+		embeddedLogID = k
+		embeddedPK = v.PubKey
+	}
+
+	sk := config.SigstoreKeys{
+		TLogs: []config.TransparencyLogInstance{{
+			PublicKey: []byte(rekorPublicKey),
+			LogID:     "rekor-logid",
+			BaseURL:   *apis.HTTPS("rekor.example.com"),
+		}},
+	}
+	c := &config.Config{
+		SigstoreKeysConfig: &config.SigstoreKeysMap{
+			SigstoreKeys: map[string]config.SigstoreKeys{
+				"test-trust-root": sk,
+			},
+		},
+	}
+	testCtx := config.ToContext(context.Background(), c)
+
+	tests := []struct {
+		name       string
+		tlog       *v1alpha1.TLog
+		wantErr    string
+		wantPK     *ecdsa.PublicKey
+		wantLogID  string
+		wantClient bool
+		ctx        context.Context
+	}{{
+		name:       "no trustroots, uses embedded",
+		tlog:       &v1alpha1.TLog{URL: apis.HTTPS("rekor.sigstore.dev")},
+		wantPK:     embeddedPK,
+		wantLogID:  embeddedLogID,
+		wantClient: true,
+	}, {
+
+		name:    "config does not exist",
+		tlog:    &v1alpha1.TLog{TrustRootRef: "not-there"},
+		wantErr: "fetching keys for trustRootRef: getting SigstoreKeys: trustRootRef not-there not found, config missing",
+		ctx:     config.ToContext(context.Background(), nil),
+	}, {
+		name:    "SigstoreKeys does not exist",
+		tlog:    &v1alpha1.TLog{TrustRootRef: "not-there"},
+		wantErr: "fetching keys for trustRootRef: getting SigstoreKeys: trustRootRef not-there not found, SigstoreKeys missing",
+		ctx:     config.ToContext(context.Background(), &config.Config{}),
+	}, {
+		name:    "trustroot does not exist",
+		tlog:    &v1alpha1.TLog{TrustRootRef: "not-there"},
+		ctx:     testCtx,
+		wantErr: "fetching keys for trustRootRef: trustRootRef not-there not found",
+	}, {
+		name:       "trustroot found",
+		tlog:       &v1alpha1.TLog{TrustRootRef: "test-trust-root"},
+		wantPK:     ecpk,
+		wantLogID:  "rekor-logid",
+		ctx:        testCtx,
+		wantClient: true,
+	}}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			tCtx := tc.ctx
+			if tCtx == nil {
+				tCtx = context.Background()
+			}
+			rekorClient, gotPKs, err := rekorClientAndKeysFromAuthority(tCtx, tc.tlog)
+			if err != nil {
+				if tc.wantErr == "" {
+					t.Errorf("unexpected error: %v wanted none", err)
+				} else if err.Error() != tc.wantErr {
+					t.Errorf("unexpected error: %v wanted %q", err, tc.wantErr)
+				}
+			} else if err == nil && tc.wantErr != "" {
+				t.Errorf("wanted error: %q got none", tc.wantErr)
+			}
+			if tc.wantLogID != "" {
+				if gotPKs == nil || gotPKs.Keys == nil {
+					t.Errorf("Wanted logid %s got none", tc.wantLogID)
+				} else if !tc.wantPK.Equal(gotPKs.Keys[tc.wantLogID].PubKey) {
+					t.Errorf("did not get wanted PK, want %+v got %+v", tc.wantPK, gotPKs.Keys[tc.wantLogID])
+				}
+			} else if gotPKs != nil {
+				t.Errorf("did not want PK, %+v", gotPKs)
+			}
+			if tc.wantClient && rekorClient == nil {
+				t.Errorf("wanted rekor client, but got none")
+			} else if !tc.wantClient && rekorClient != nil {
+				t.Errorf("did not want rekor client, but got one")
+			}
+		})
+	}
+}
+
+func TestCheckOptsFromAuthority(t *testing.T) {
+	pk, err := cryptoutils.UnmarshalPEMToPublicKey([]byte(rekorPublicKey))
+	if err != nil {
+		t.Fatalf("Failed to unmarshal public key for testing: %v", err)
+	}
+	ecpk, ok := pk.(*ecdsa.PublicKey)
+	if !ok {
+		t.Fatalf("pk is not a ecsda public key")
+	}
+
+	embeddedPKs, err := cosign.GetRekorPubs(context.Background())
+	if err != nil {
+		t.Fatalf("Failed to get embedded rekor pubs for testing")
+	}
+	if len(embeddedPKs.Keys) != 1 {
+		t.Fatalf("Did not get a single Public Key for Rekor")
+	}
+	var embeddedLogID string
+	var embeddedPK *ecdsa.PublicKey
+	for k, v := range embeddedPKs.Keys {
+		embeddedLogID = k
+		embeddedPK = v.PubKey
+	}
+
+	certs, err := cryptoutils.UnmarshalCertificatesFromPEM([]byte(certChain))
+	if err != nil {
+		t.Fatalf("Failed to unmarshal certs for testing: %v", err)
+	}
+
+	roots := x509.NewCertPool()
+	// last cert is the root
+	roots.AddCert(certs[2])
+	intermediates := x509.NewCertPool()
+	intermediates.AddCert(certs[0])
+	intermediates.AddCert(certs[1])
+
+	embeddedRoots, err := fulcioroots.Get()
+	if err != nil {
+		t.Fatalf("Failed to get embedded fulcioroots for testing")
+	}
+	embeddedIntermediates, err := fulcioroots.GetIntermediates()
+	if err != nil {
+		t.Fatalf("Failed to get embedded fulcioroots for testing")
+	}
+
+	skRekor := config.SigstoreKeys{
+		TLogs: []config.TransparencyLogInstance{{
+			PublicKey: []byte(rekorPublicKey),
+			LogID:     "rekor-logid",
+			BaseURL:   *apis.HTTPS("rekor.example.com"),
+		}},
+	}
+	skFulcio := config.SigstoreKeys{
+		CertificateAuthorities: []config.CertificateAuthority{{
+			Subject: config.DistinguishedName{
+				Organization: "testorg",
+				CommonName:   "testcommonname",
+			},
+			CertChain: []byte(certChain),
+		}},
+	}
+	skCombined := config.SigstoreKeys{
+		TLogs: []config.TransparencyLogInstance{{
+			PublicKey: []byte(rekorPublicKey),
+			LogID:     "rekor-logid",
+			BaseURL:   *apis.HTTPS("rekor.example.com"),
+		}},
+		CertificateAuthorities: []config.CertificateAuthority{{
+			Subject: config.DistinguishedName{
+				Organization: "testorg",
+				CommonName:   "testcommonname",
+			},
+			CertChain: []byte(certChain),
+		}},
+	}
+	c := &config.Config{
+		SigstoreKeysConfig: &config.SigstoreKeysMap{
+			SigstoreKeys: map[string]config.SigstoreKeys{
+				"test-trust-rekor":    skRekor,
+				"test-trust-fulcio":   skFulcio,
+				"test-trust-combined": skCombined,
+			},
+		},
+	}
+	testCtx := config.ToContext(context.Background(), c)
+
+	tests := []struct {
+		name          string
+		authority     webhookcip.Authority
+		wantErr       string
+		wantCheckOpts *cosign.CheckOpts
+		ctx           context.Context
+		wantClient    bool
+	}{{
+		name: "no trustroots, uses embedded",
+		authority: webhookcip.Authority{
+			CTLog:   &v1alpha1.TLog{URL: apis.HTTPS("rekor.sigstore.dev")},
+			Keyless: &webhookcip.KeylessRef{URL: apis.HTTPS("fulcio.sigstore.dev")},
+		},
+		wantCheckOpts: &cosign.CheckOpts{
+			RekorPubKeys:      &cosign.TrustedRekorPubKeys{Keys: map[string]cosign.RekorPubKey{embeddedLogID: {PubKey: embeddedPK, Status: tuf.Active}}},
+			RootCerts:         embeddedRoots,
+			IntermediateCerts: embeddedIntermediates,
+		},
+		wantClient: true,
+	}, {
+		name: "SigstoreKeys does not exist for Rekor",
+		authority: webhookcip.Authority{
+			Name: "test-authority",
+			CTLog: &v1alpha1.TLog{
+				URL:          apis.HTTPS("rekor.example.com"),
+				TrustRootRef: "not-there"}},
+		wantErr: "getting Rekor public keys: test-authority: fetching keys for trustRootRef: trustRootRef not-there not found",
+		ctx:     testCtx,
+	}, {
+		name: "SigstoreKeys does not exist for Fulcio",
+		authority: webhookcip.Authority{
+			Name: "test-authority",
+			Keyless: &webhookcip.KeylessRef{
+				URL:          apis.HTTPS("fulcio.example.com"),
+				TrustRootRef: "not-there"}},
+		wantErr: "getting Fulcio certs: test-authority: trustRootRef not-there not found",
+		ctx:     testCtx,
+	}, {
+		name: "trustroot found, Rekor",
+		authority: webhookcip.Authority{
+			CTLog: &v1alpha1.TLog{
+				URL:          apis.HTTPS("rekor.example.com"),
+				TrustRootRef: "test-trust-rekor"}},
+		ctx:        testCtx,
+		wantClient: true,
+		wantCheckOpts: &cosign.CheckOpts{
+			RekorPubKeys: &cosign.TrustedRekorPubKeys{Keys: map[string]cosign.RekorPubKey{"rekor-logid": {PubKey: ecpk, Status: tuf.Active}}},
+		},
+	}, {
+		name: "trustroot found, Fulcio",
+		authority: webhookcip.Authority{
+			Keyless: &webhookcip.KeylessRef{
+				URL:          apis.HTTPS("fulcio.example.com"),
+				TrustRootRef: "test-trust-fulcio"}},
+		ctx: testCtx,
+		wantCheckOpts: &cosign.CheckOpts{
+			RootCerts:         roots,
+			IntermediateCerts: intermediates,
+			SkipTlogVerify:    true,
+		},
+	}, {
+		name: "trustroot found, combined, with Identities",
+		authority: webhookcip.Authority{
+			CTLog: &v1alpha1.TLog{
+				URL:          apis.HTTPS("rekor.example.com"),
+				TrustRootRef: "test-trust-rekor"},
+			Keyless: &webhookcip.KeylessRef{
+				Identities: []v1alpha1.Identity{{
+					Issuer:  "issuer",
+					Subject: "subject",
+				}},
+				URL:          apis.HTTPS("rekor.example.com"),
+				TrustRootRef: "test-trust-combined"}},
+		ctx:        testCtx,
+		wantClient: true,
+		wantCheckOpts: &cosign.CheckOpts{
+			RootCerts:         roots,
+			IntermediateCerts: intermediates,
+			RekorPubKeys:      &cosign.TrustedRekorPubKeys{Keys: map[string]cosign.RekorPubKey{"rekor-logid": {PubKey: ecpk, Status: tuf.Active}}},
+			Identities: []cosign.Identity{{
+				Issuer:  "issuer",
+				Subject: "subject",
+			}},
+		},
+	}}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			tCtx := tc.ctx
+			if tCtx == nil {
+				tCtx = context.Background()
+			}
+			gotCheckOpts, err := checkOptsFromAuthority(tCtx, tc.authority)
+			if err != nil {
+				if tc.wantErr == "" {
+					t.Errorf("unexpected error: %v wanted none", err)
+				} else if err.Error() != tc.wantErr {
+					t.Errorf("unexpected error: %v wanted %q", err, tc.wantErr)
+				}
+			} else if err == nil && tc.wantErr != "" {
+				t.Errorf("wanted error: %q got none", tc.wantErr)
+			}
+			if tc.wantClient && (gotCheckOpts == nil || gotCheckOpts.RekorClient == nil) {
+				t.Errorf("wanted rekor client, but got none")
+			} else if !tc.wantClient && gotCheckOpts != nil && gotCheckOpts.RekorClient != nil {
+				t.Errorf("did not want rekor client, but got one")
+			}
+			// nil out the rekorclient since we can't meaningfully diff it, and
+			// we check above that we get one when we expect one, and don't when
+			// we don't.
+			if gotCheckOpts != nil {
+				gotCheckOpts.RekorClient = nil
+			}
+			if diff := cmp.Diff(gotCheckOpts, tc.wantCheckOpts); diff != "" {
+				t.Errorf("CheckOpts differ: %s", diff)
+			}
+		})
 	}
 }

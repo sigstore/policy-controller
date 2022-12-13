@@ -46,8 +46,10 @@ func FromContextOrDefaults(ctx context.Context) *Config {
 		return cfg
 	}
 	config, _ := NewImagePoliciesConfigFromMap(map[string]string{})
+	sigstoreKeysMap, _ := NewSigstoreKeysFromMap(map[string]string{})
 	return &Config{
-		ImagePolicyConfig: config,
+		ImagePolicyConfig:  config,
+		SigstoreKeysConfig: sigstoreKeysMap,
 	}
 }
 
@@ -88,6 +90,7 @@ func (s *Store) ToContext(ctx context.Context) context.Context {
 // Load creates a Config from the current config state of the Store.
 func (s *Store) Load() *Config {
 	return &Config{
-		ImagePolicyConfig: s.UntypedLoad(ImagePoliciesConfigName).(*ImagePolicyConfig),
+		ImagePolicyConfig:  s.UntypedLoad(ImagePoliciesConfigName).(*ImagePolicyConfig),
+		SigstoreKeysConfig: s.UntypedLoad(SigstoreKeysConfigName).(*SigstoreKeysMap),
 	}
 }

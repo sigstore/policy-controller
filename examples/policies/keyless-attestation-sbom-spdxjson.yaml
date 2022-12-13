@@ -35,6 +35,8 @@ spec:
       identities:
         - issuer: https://token.actions.githubusercontent.com
           subject: "https://github.com/sigstore/policy-controller/.github/workflows/policy-tester-examples.yml@refs/heads/main"
+    ctlog:
+      url: https://rekor.sigstore.dev
     attestations:
     - name: must-have-spdxjson
       predicateType: spdxjson

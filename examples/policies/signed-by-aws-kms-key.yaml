@@ -34,3 +34,5 @@ spec:
       # NB: the policy controller must have kms.DescribeKey, kms.GetPublicKey
       # and kms.Verify IAM permissions on the relevant key.
       kms: awskms:///arn:aws:kms:<< region >>:<< account id >>:key/<< key id >>
+    ctlog:
+      url: https://rekor.sigstore.dev

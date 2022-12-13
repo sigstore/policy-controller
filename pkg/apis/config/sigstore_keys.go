@@ -106,7 +106,7 @@ type SigstoreKeysMap struct {
 }
 
 // NewSigstoreKeysFromMap creates a map of SigstoreKeys to use for validation.
-func NewSigstoreKeysFromMap(data map[string]string) (map[string]SigstoreKeys, error) {
+func NewSigstoreKeysFromMap(data map[string]string) (*SigstoreKeysMap, error) {
 	ret := make(map[string]SigstoreKeys, len(data))
 	// Spin through the ConfigMap. Each entry will have a serialized form of
 	// necessary validation keys in the form of SigstoreKeys.
@@ -125,11 +125,11 @@ func NewSigstoreKeysFromMap(data map[string]string) (map[string]SigstoreKeys, er
 		}
 		ret[k] = *sigstoreKeys
 	}
-	return ret, nil
+	return &SigstoreKeysMap{SigstoreKeys: ret}, nil
 }
 
 // NewImagePoliciesConfigFromConfigMap creates a Features from the supplied ConfigMap
-func NewSigstoreKeysFromConfigMap(config *corev1.ConfigMap) (map[string]SigstoreKeys, error) {
+func NewSigstoreKeysFromConfigMap(config *corev1.ConfigMap) (*SigstoreKeysMap, error) {
 	return NewSigstoreKeysFromMap(config.Data)
 }
 
