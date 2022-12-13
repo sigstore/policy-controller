@@ -38,7 +38,7 @@ jobs:
       OS: ${{ matrix.os }}
 
     steps:
-      - uses: actions/checkout@755da8c3cf115ac066823e79a1e1788f8940201b # v2.4.0
+      - uses: actions/checkout@755da8c3cf115ac066823e79a1e1788f8940201b # v3.2.0
       # https://github.com/mvdan/github-actions-golang#how-do-i-set-up-caching-between-builds
       - uses: actions/cache@9b0c1fce7a93df8e3bb8926b0d6e9d89e92f20a7 # v3.0.8
         with:
@@ -71,7 +71,7 @@ jobs:
     name: license boilerplate check
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@755da8c3cf115ac066823e79a1e1788f8940201b # v2.4.0
+      - uses: actions/checkout@755da8c3cf115ac066823e79a1e1788f8940201b # v3.2.0
       - uses: actions/setup-go@d0a58c1c4d2b25278816e339b944508c875f3613 # v2.2.0
         with:
           go-version: ${{ env.GO_VERSION }}
@@ -87,7 +87,7 @@ jobs:
     name: lint
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@755da8c3cf115ac066823e79a1e1788f8940201b # v2.4.0
+      - uses: actions/checkout@755da8c3cf115ac066823e79a1e1788f8940201b # v3.2.0
       - uses: actions/setup-go@d0a58c1c4d2b25278816e339b944508c875f3613 # v2.2.0
         with:
           go-version: ${{ env.GO_VERSION }}
