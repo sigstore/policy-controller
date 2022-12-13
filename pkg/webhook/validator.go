@@ -1267,14 +1267,14 @@ func checkOptsFromAuthority(ctx context.Context, authority webhookcip.Authority,
 		}
 		fulcioRoots, fulcioIntermediates, err := fulcioCertsFromAuthority(ctx, authority.Keyless)
 		if err != nil {
-			return nil, fmt.Errorf("getting Fulcio certs for authority %s: %w", authority.Name, err)
+			return nil, fmt.Errorf("getting Fulcio certs: %s: %w", authority.Name, err)
 		}
 		ret.RootCerts = fulcioRoots
 		ret.IntermediateCerts = fulcioIntermediates
 	}
 	rekorClient, rekorPubKeys, err := rekorClientAndKeysFromAuthority(ctx, authority.CTLog)
 	if err != nil {
-		return nil, fmt.Errorf("getting Rekor key and public keys: %w", err)
+		return nil, fmt.Errorf("getting Rekor public keys: %s: %w", authority.Name, err)
 	}
 	ret.RekorClient = rekorClient
 	ret.RekorPubKeys = rekorPubKeys
@@ -1348,9 +1348,8 @@ func fulcioCertsFromAuthority(ctx context.Context, keylessRef *webhookcip.Keyles
 			}
 		}
 		return rootCertsPool, intermediateCertsPool, nil
-	} else {
-		return nil, nil, fmt.Errorf("trustRootRef %s not found", trustRootRef)
 	}
+	return nil, nil, fmt.Errorf("trustRootRef %s not found", trustRootRef)
 }
 
 // rekorClientAndKeysFromAuthority creates a Rekor client that should be used
@@ -1368,7 +1367,7 @@ func rekorClientAndKeysFromAuthority(ctx context.Context, tlog *v1alpha1.TLog) (
 		trustRootRef := tlog.TrustRootRef
 		rekorPubKeys, rekorURL, err := rekorKeysFromTrustRef(ctx, trustRootRef)
 		if err != nil {
-			return nil, nil, fmt.Errorf("fetching keys for trustRootRef: %s: %w", trustRootRef, err)
+			return nil, nil, fmt.Errorf("fetching keys for trustRootRef: %w", err)
 		}
 		rekorClient, err := rekor.GetRekorClient(rekorURL)
 		if err != nil {
@@ -1412,20 +1411,19 @@ func rekorKeysFromTrustRef(ctx context.Context, trustRootRef string) (*cosign.Tr
 			if err != nil {
 				return nil, "", fmt.Errorf("unmarshaling public key %d failed: %w", i, err)
 			}
-			// TODO: Why must this be ecdsa.PublicKey instead of
-			// just PublicKey? Ask upstream cosign about this.
-			pkecdsa, ok := pk.(ecdsa.PublicKey)
+			// This needs to be ecdsa instead of crypto.PublicKey
+			// https://github.com/sigstore/cosign/issues/2540
+			pkecdsa, ok := pk.(*ecdsa.PublicKey)
 			if !ok {
 				return nil, "", fmt.Errorf("public key %d is not ecdsa.PublicKey", i)
 			}
 			retKeys.Keys[tlog.LogID] = cosign.RekorPubKey{
-				PubKey: &pkecdsa,
+				PubKey: pkecdsa,
 				Status: tuf.Active,
 			}
 			rekorURL = tlog.BaseURL.String()
 		}
 		return retKeys, rekorURL, nil
-	} else {
-		return nil, "", fmt.Errorf("trustRootRef %s not found", trustRootRef)
 	}
+	return nil, "", fmt.Errorf("trustRootRef %s not found", trustRootRef)
 }
