@@ -117,6 +117,8 @@ MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE7D2WvgqSzs9jpdJsOJ5Nl6xg8JXm
 Nmo7M3bN7+dQddw9Ibc2R3SV8tzBZw0rST8FKcn4apJepcKM4qUpYUeNfw==
 -----END PUBLIC KEY-----
 `
+	// This is the Rekor LogID constructed from above public key.
+	rekorLogID = "0bac0fddd0c15fbc46f8b1bf51c2b57676a9f262294fe13417d85602e73f392a"
 )
 
 func TestValidatePodSpec(t *testing.T) {
@@ -2914,10 +2916,18 @@ func TestRekorClientAndKeysFromAuthority(t *testing.T) {
 			BaseURL:   *apis.HTTPS("rekor.example.com"),
 		}},
 	}
+	// This one constructs the Rekor logid from the PublicKey
+	skNoLogID := config.SigstoreKeys{
+		TLogs: []config.TransparencyLogInstance{{
+			PublicKey: []byte(rekorPublicKey),
+			BaseURL:   *apis.HTTPS("rekor.example.com"),
+		}},
+	}
 	c := &config.Config{
 		SigstoreKeysConfig: &config.SigstoreKeysMap{
 			SigstoreKeys: map[string]config.SigstoreKeys{
-				"test-trust-root": sk,
+				"test-trust-root":                 sk,
+				"test-trust-root-construct-logid": skNoLogID,
 			},
 		},
 	}
@@ -2958,6 +2968,13 @@ func TestRekorClientAndKeysFromAuthority(t *testing.T) {
 		tlog:       &v1alpha1.TLog{TrustRootRef: "test-trust-root"},
 		wantPK:     ecpk,
 		wantLogID:  "rekor-logid",
+		ctx:        testCtx,
+		wantClient: true,
+	}, {
+		name:       "trustroot found, LogID constructed from PublicKey",
+		tlog:       &v1alpha1.TLog{TrustRootRef: "test-trust-root-construct-logid"},
+		wantPK:     ecpk,
+		wantLogID:  rekorLogID,
 		ctx:        testCtx,
 		wantClient: true,
 	}}

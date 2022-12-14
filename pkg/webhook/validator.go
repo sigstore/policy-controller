@@ -18,8 +18,11 @@ package webhook
 import (
 	"bytes"
 	"context"
+	"crypto"
 	"crypto/ecdsa"
+	"crypto/sha256"
 	"crypto/x509"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -1417,7 +1420,11 @@ func rekorKeysFromTrustRef(ctx context.Context, trustRootRef string) (*cosign.Tr
 			if !ok {
 				return nil, "", fmt.Errorf("public key %d is not ecdsa.PublicKey", i)
 			}
-			retKeys.Keys[tlog.LogID] = cosign.RekorPubKey{
+			logID, err := getLogID(tlog.LogID, pkecdsa)
+			if err != nil {
+				return nil, "", fmt.Errorf("failed to create LogID from public key")
+			}
+			retKeys.Keys[logID] = cosign.RekorPubKey{
 				PubKey: pkecdsa,
 				Status: tuf.Active,
 			}
@@ -1426,4 +1433,21 @@ func rekorKeysFromTrustRef(ctx context.Context, trustRootRef string) (*cosign.Tr
 		return retKeys, rekorURL, nil
 	}
 	return nil, "", fmt.Errorf("trustRootRef %s not found", trustRootRef)
+}
+
+// LogID for Rekor apparently gets generated from the public key, so for future
+// proofing, we allow one to specify it in the TLog config for
+// TransparencyLogInstance but perhaps for Rekor we should never allow for it?
+//
+// getLogID generates a SHA256 hash of a DER-encoded public key.
+func getLogID(logID string, pub crypto.PublicKey) (string, error) {
+	if logID != "" {
+		return logID, nil
+	}
+	pubBytes, err := x509.MarshalPKIXPublicKey(pub)
+	if err != nil {
+		return "", err
+	}
+	digest := sha256.Sum256(pubBytes)
+	return hex.EncodeToString(digest[:]), nil
 }

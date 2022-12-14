@@ -30,7 +30,6 @@ spec:
       hashAlgorithm: sha-256
       publicKey: |-
         REKOR_PUBLIC_KEY
-      logID: ""
     ctLogs:
     - baseURL: https://ctfe.example.com
       hashAlgorithm: sha-256

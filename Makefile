@@ -197,4 +197,8 @@ docs/generate-api:
 	    "v1beta1" \
 	    `find ./pkg/apis/policy/v1beta1/ -iname '*types.go' |  sort -r | tr '\n' ' '` \
 	    > docs/api-types/index.md;
+	  go run -ldflags "$(GO_LDFLAGS)" ./cmd/api-docs/main.go \
+	    "v1alpha1" \
+	    `find ./pkg/apis/policy/v1alpha1/ -iname '*types.go' |  sort -r | tr '\n' ' '` \
+	    > docs/api-types/index-v1alpha1.md;
 
