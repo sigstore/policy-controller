@@ -1288,9 +1288,6 @@ func checkOptsFromAuthority(ctx context.Context, authority webhookcip.Authority,
 			ret.Offline = true
 		}
 	}
-	// ***DO NOT SUBMIT*** Testing without CTLOG because checkopts do not support
-	// passing that in yet
-	ret.IgnoreSCT = true
 	return ret, nil
 }
 

@@ -2959,13 +2959,6 @@ func TestRekorClientAndKeysFromAuthority(t *testing.T) {
 		name:       "trustroot found",
 		tlog:       &v1alpha1.TLog{TrustRootRef: "test-trust-root"},
 		wantPK:     ecpk,
-		wantLogID:  "rekor-logid",
-		ctx:        testCtx,
-		wantClient: true,
-	}, {
-		name:       "trustroot found, LogID constructed from PublicKey",
-		tlog:       &v1alpha1.TLog{TrustRootRef: "test-trust-root-construct-logid"},
-		wantPK:     ecpk,
 		wantLogID:  rekorLogID,
 		ctx:        testCtx,
 		wantClient: true,
