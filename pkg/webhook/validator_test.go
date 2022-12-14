@@ -2912,22 +2912,14 @@ func TestRekorClientAndKeysFromAuthority(t *testing.T) {
 	sk := config.SigstoreKeys{
 		TLogs: []config.TransparencyLogInstance{{
 			PublicKey: []byte(rekorPublicKey),
-			LogID:     "rekor-logid",
-			BaseURL:   *apis.HTTPS("rekor.example.com"),
-		}},
-	}
-	// This one constructs the Rekor logid from the PublicKey
-	skNoLogID := config.SigstoreKeys{
-		TLogs: []config.TransparencyLogInstance{{
-			PublicKey: []byte(rekorPublicKey),
+			LogID:     rekorLogID,
 			BaseURL:   *apis.HTTPS("rekor.example.com"),
 		}},
 	}
 	c := &config.Config{
 		SigstoreKeysConfig: &config.SigstoreKeysMap{
 			SigstoreKeys: map[string]config.SigstoreKeys{
-				"test-trust-root":                 sk,
-				"test-trust-root-construct-logid": skNoLogID,
+				"test-trust-root": sk,
 			},
 		},
 	}
