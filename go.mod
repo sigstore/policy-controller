@@ -254,7 +254,7 @@ require (
 	golang.org/x/text v0.5.0 // indirect
 	golang.org/x/tools v0.2.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.2.0 // indirect
-	google.golang.org/api v0.104.0 // indirect
+	google.golang.org/api v0.105.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20221206210731-b1a01be3a5f6 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
@@ -274,6 +274,4 @@ replace github.com/golang/glog => github.com/jdolitsky/glog v0.0.0-2022072917223
 
 // Bring in the latest cosign so we can pass various keys in to verification
 // functions
-replace github.com/sigstore/cosign/v2 => github.com/vaikas/cosign/v2 v2.0.0-20221215003938-48e6404789cc
-
-// replace github.com/sigstore/cosign => github.com/sigstore/cosign v1.13.2-0.20221209171251-6cb723fc299c
+replace github.com/sigstore/cosign/v2 => github.com/sigstore/cosign/v2 v2.0.0-rc.0.0.20221215215028-8f0cf022fc2d
