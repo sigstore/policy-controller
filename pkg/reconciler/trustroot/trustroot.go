@@ -24,6 +24,7 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/sigstore/cosign/v2/pkg/cosign/fulcioverifier/ctutil"
 	"github.com/sigstore/policy-controller/pkg/apis/config"
 	"github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
 	trustrootreconciler "github.com/sigstore/policy-controller/pkg/client/injection/reconciler/policy/v1alpha1/trustroot"
@@ -76,10 +77,12 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, trustroot *v1alpha1.Trus
 	}
 	// LogIDs for Rekor get created from the PublicKey, so we need to construct
 	// them before serializing.
+	// Note this is identical to what we do with CTLog PublicKeys, but they
+	// are not restricted to being only ecdsa.PublicKey.
 	for i, tlog := range sigstoreKeys.TLogs {
 		pk, err := cryptoutils.UnmarshalPEMToPublicKey(tlog.PublicKey)
 		if err != nil {
-			return fmt.Errorf("unmarshaling public key %d failed: %w", i, err)
+			return fmt.Errorf("unmarshaling rekor public key %d failed: %w", i, err)
 		}
 		// This needs to be ecdsa instead of crypto.PublicKey
 		// https://github.com/sigstore/cosign/issues/2540
@@ -87,13 +90,22 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, trustroot *v1alpha1.Trus
 		if !ok {
 			return fmt.Errorf("public key %d is not ecdsa.PublicKey", i)
 		}
-		if tlog.LogID == "" {
-			logID, err := getLogID(tlog.LogID, pkecdsa)
-			if err != nil {
-				return fmt.Errorf("failed to construct LogID for rekor: %w", err)
-			}
-			sigstoreKeys.TLogs[i].LogID = logID
+		logID, err := ctutil.GetCTLogID(pkecdsa)
+		if err != nil {
+			return fmt.Errorf("failed to construct LogID for rekor: %w", err)
 		}
+		sigstoreKeys.TLogs[i].LogID = hex.EncodeToString(logID[:])
+	}
+	for i, ctlog := range sigstoreKeys.CTLogs {
+		pk, err := cryptoutils.UnmarshalPEMToPublicKey(ctlog.PublicKey)
+		if err != nil {
+			return fmt.Errorf("unmarshaling ctlog public key %d failed: %w", i, err)
+		}
+		logID, err := ctutil.GetCTLogID(pk)
+		if err != nil {
+			return fmt.Errorf("failed to construct LogID for ctlog: %w", err)
+		}
+		sigstoreKeys.CTLogs[i].LogID = hex.EncodeToString(logID[:])
 	}
 
 	// See if the CM holding configs exists

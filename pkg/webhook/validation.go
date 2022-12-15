@@ -23,8 +23,8 @@ import (
 	"github.com/google/go-containerregistry/pkg/name"
 	"knative.dev/pkg/logging"
 
-	"github.com/sigstore/cosign/pkg/cosign"
-	"github.com/sigstore/cosign/pkg/oci"
+	"github.com/sigstore/cosign/v2/pkg/cosign"
+	"github.com/sigstore/cosign/v2/pkg/oci"
 	"github.com/sigstore/sigstore/pkg/signature"
 )
 

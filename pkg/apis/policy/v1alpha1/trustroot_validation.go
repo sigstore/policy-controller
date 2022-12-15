@@ -158,8 +158,5 @@ func ValidateTransparencyLogInstance(ctx context.Context, tli TransparencyLogIns
 	if len(tli.PublicKey) == 0 {
 		errors = errors.Also(apis.ErrMissingField("publicKey"))
 	}
-	if tli.LogID == "" {
-		errors = errors.Also(apis.ErrMissingField("logID"))
-	}
 	return
 }

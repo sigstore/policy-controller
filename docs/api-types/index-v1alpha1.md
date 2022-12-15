@@ -98,7 +98,6 @@ TransparencyLogInstance describes the immutable parameters from a transparency l
 | baseURL | The base URL which can be used for URLs for clients. | apis.URL | true |
 | hashAlgorithm | / The hash algorithm used for the Merkle Tree | string | true |
 | publicKey | PEM encoded public key | []byte | true |
-| logID | The unique identifier for this transparency log. Note for Rekor entries this should be left out, since the LogID is constructed from the PublicKey in order to support sharding. | string | false |
 
 [Back to TOC](#table-of-contents)
 

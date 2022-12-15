@@ -24,7 +24,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/authn/kubernetes"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
-	ociremote "github.com/sigstore/cosign/pkg/oci/remote"
+	ociremote "github.com/sigstore/cosign/v2/pkg/oci/remote"
 	"github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
 	signaturealgo "github.com/sigstore/policy-controller/pkg/apis/signaturealgo"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
