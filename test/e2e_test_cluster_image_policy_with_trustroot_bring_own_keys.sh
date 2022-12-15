@@ -115,9 +115,11 @@ echo '::endgroup::'
 echo '::group:: Create TrustRoot that specifies Fulcio and Rekor certs/keys'
 export FULCIO_CERT_CHAIN=`kubectl -n tuf-system get secrets fulcio-pub-key -ojsonpath='{.data.cert}'`
 export REKOR_PUBLIC_KEY=`kubectl -n tuf-system get secrets rekor-pub-key -ojsonpath='{.data.public}'`
+export CTFE_PUBLIC_KEY=`kubectl -n tuf-system get secrets ctlog-public-key -ojsonpath='{.data.public}'`
 
 sed -i'' -e "s@FULCIO_CERT_CHAIN@${FULCIO_CERT_CHAIN}@g" ./test/testdata/trustroot/e2e/bring-your-own-keys.yaml
 sed -i'' -e "s@REKOR_PUBLIC_KEY@${REKOR_PUBLIC_KEY}@g" ./test/testdata/trustroot/e2e/bring-your-own-keys.yaml
+sed -i'' -e "s@CTFE_PUBLIC_KEY@${CTFE_PUBLIC_KEY}@g" ./test/testdata/trustroot/e2e/bring-your-own-keys.yaml
 kubectl apply -f ./test/testdata/trustroot/e2e/bring-your-own-keys.yaml
 
 # allow things to propagate
