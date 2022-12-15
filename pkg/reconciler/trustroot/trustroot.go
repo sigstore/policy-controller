@@ -16,13 +16,17 @@ package trustroot
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"encoding/hex"
 	"errors"
 	"fmt"
 
+	"github.com/sigstore/cosign/v2/pkg/cosign/fulcioverifier/ctutil"
 	"github.com/sigstore/policy-controller/pkg/apis/config"
 	"github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
 	trustrootreconciler "github.com/sigstore/policy-controller/pkg/client/injection/reconciler/policy/v1alpha1/trustroot"
 	"github.com/sigstore/policy-controller/pkg/reconciler/trustroot/resources"
+	"github.com/sigstore/sigstore/pkg/cryptoutils"
 
 	corev1 "k8s.io/api/core/v1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
@@ -68,6 +72,39 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, trustroot *v1alpha1.Trus
 		logging.FromContext(ctx).Errorf("Failed to get Sigstore Keys: %v", err)
 		return err
 	}
+	// LogIDs for Rekor get created from the PublicKey, so we need to construct
+	// them before serializing.
+	// Note this is identical to what we do with CTLog PublicKeys, but they
+	// are not restricted to being only ecdsa.PublicKey.
+	for i, tlog := range sigstoreKeys.TLogs {
+		pk, err := cryptoutils.UnmarshalPEMToPublicKey(tlog.PublicKey)
+		if err != nil {
+			return fmt.Errorf("unmarshaling rekor public key %d failed: %w", i, err)
+		}
+		// This needs to be ecdsa instead of crypto.PublicKey
+		// https://github.com/sigstore/cosign/issues/2540
+		pkecdsa, ok := pk.(*ecdsa.PublicKey)
+		if !ok {
+			return fmt.Errorf("public key %d is not ecdsa.PublicKey", i)
+		}
+		logID, err := ctutil.GetCTLogID(pkecdsa)
+		if err != nil {
+			return fmt.Errorf("failed to construct LogID for rekor: %w", err)
+		}
+		sigstoreKeys.TLogs[i].LogID = hex.EncodeToString(logID[:])
+	}
+	for i, ctlog := range sigstoreKeys.CTLogs {
+		pk, err := cryptoutils.UnmarshalPEMToPublicKey(ctlog.PublicKey)
+		if err != nil {
+			return fmt.Errorf("unmarshaling ctlog public key %d failed: %w", i, err)
+		}
+		logID, err := ctutil.GetCTLogID(pk)
+		if err != nil {
+			return fmt.Errorf("failed to construct LogID for ctlog: %w", err)
+		}
+		sigstoreKeys.CTLogs[i].LogID = hex.EncodeToString(logID[:])
+	}
+
 	// See if the CM holding configs exists
 	existing, err := r.configmaplister.ConfigMaps(system.Namespace()).Get(config.SigstoreKeysConfigName)
 	if err != nil {

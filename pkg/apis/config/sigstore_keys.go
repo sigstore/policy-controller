@@ -184,6 +184,5 @@ func ConvertTransparencyLogInstance(source v1alpha1.TransparencyLogInstance) Tra
 		BaseURL:       *source.BaseURL.DeepCopy(),
 		HashAlgorithm: source.HashAlgorithm,
 		PublicKey:     source.PublicKey,
-		LogID:         source.LogID,
 	}
 }

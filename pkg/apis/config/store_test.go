@@ -20,7 +20,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"github.com/sigstore/cosign/pkg/oci/remote"
+	"github.com/sigstore/cosign/v2/pkg/oci/remote"
 	"k8s.io/apimachinery/pkg/api/resource"
 	logtesting "knative.dev/pkg/logging/testing"
 

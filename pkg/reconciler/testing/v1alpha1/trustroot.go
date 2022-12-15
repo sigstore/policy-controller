@@ -83,13 +83,11 @@ func WithSigstoreKeys(sk map[string]string) TrustRootOption {
 				BaseURL:       *apis.HTTPS("rekor.example.com"),
 				HashAlgorithm: "sha-256",
 				PublicKey:     []byte(sk["rekor"]),
-				LogID:         "rekor-log-id",
 			}},
 			CTLogs: []v1alpha1.TransparencyLogInstance{{
 				BaseURL:       *apis.HTTPS("ctfe.example.com"),
 				HashAlgorithm: "sha-256",
 				PublicKey:     []byte(sk["ctfe"]),
-				LogID:         "ctfe-log-id",
 			}},
 			TimeStampAuthorities: []v1alpha1.CertificateAuthority{{
 				Subject: v1alpha1.DistinguishedName{

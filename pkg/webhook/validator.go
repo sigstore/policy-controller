@@ -31,11 +31,12 @@ import (
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/google/go-containerregistry/pkg/v1/types"
-	"github.com/sigstore/cosign/pkg/cosign"
-	"github.com/sigstore/cosign/pkg/oci"
-	ociremote "github.com/sigstore/cosign/pkg/oci/remote"
-	"github.com/sigstore/cosign/pkg/policy"
-	csigs "github.com/sigstore/cosign/pkg/signature"
+	"github.com/sigstore/cosign/v2/pkg/cosign"
+	"github.com/sigstore/cosign/v2/pkg/cosign/fulcioverifier/ctl"
+	"github.com/sigstore/cosign/v2/pkg/oci"
+	ociremote "github.com/sigstore/cosign/v2/pkg/oci/remote"
+	"github.com/sigstore/cosign/v2/pkg/policy"
+	csigs "github.com/sigstore/cosign/v2/pkg/signature"
 	"github.com/sigstore/policy-controller/pkg/apis/config"
 	policyduckv1beta1 "github.com/sigstore/policy-controller/pkg/apis/duck/v1beta1"
 	"github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
@@ -1265,12 +1266,13 @@ func checkOptsFromAuthority(ctx context.Context, authority webhookcip.Authority,
 					IssuerRegExp:  id.IssuerRegExp,
 					SubjectRegExp: id.SubjectRegExp})
 		}
-		fulcioRoots, fulcioIntermediates, err := fulcioCertsFromAuthority(ctx, authority.Keyless)
+		fulcioRoots, fulcioIntermediates, ctlogKeys, err := fulcioCertsFromAuthority(ctx, authority.Keyless)
 		if err != nil {
 			return nil, fmt.Errorf("getting Fulcio certs: %s: %w", authority.Name, err)
 		}
 		ret.RootCerts = fulcioRoots
 		ret.IntermediateCerts = fulcioIntermediates
+		ret.CTLogPubKeys = ctlogKeys
 	}
 	rekorClient, rekorPubKeys, err := rekorClientAndKeysFromAuthority(ctx, authority.CTLog)
 	if err != nil {
@@ -1305,51 +1307,76 @@ func sigstoreKeysFromContext(ctx context.Context, trustRootRef string) (*config.
 }
 
 // fulcioCertsFromAuthority gets the necessary Fulcio certificates, this is
-// rootPool and an optional intermediatePool.
+// rootPool and an optional intermediatePool. Additionally fetches the CTLog
+// public keys.
 // Preference is given to TrustRoot if specified, from which the certificates
 // are fetched and returned. If there's no TrustRoot, the certificates are
 // fetched from embedded or cached TUF root.
-func fulcioCertsFromAuthority(ctx context.Context, keylessRef *webhookcip.KeylessRef) (*x509.CertPool, *x509.CertPool, error) {
+func fulcioCertsFromAuthority(ctx context.Context, keylessRef *webhookcip.KeylessRef) (*x509.CertPool, *x509.CertPool, *ctl.TrustedCTLogPubKeys, error) {
 	// If this is not Keyless, there's no Fulcio, so just return
 	if keylessRef.TrustRootRef == "" {
 		roots, err := fulcioroots.Get()
 		if err != nil {
-			return nil, nil, fmt.Errorf("failed to fetch Fulcio roots: %w", err)
+			return nil, nil, nil, fmt.Errorf("failed to fetch Fulcio roots: %w", err)
 		}
 		intermediates, err := fulcioroots.GetIntermediates()
 		if err != nil {
-			return nil, nil, fmt.Errorf("failed to fetch Fulcio intermediates: %w", err)
+			return nil, nil, nil, fmt.Errorf("failed to fetch Fulcio intermediates: %w", err)
 		}
-		return roots, intermediates, nil
+		ctPubs, err := ctl.GetCTLogPubs(ctx)
+		if err != nil {
+			return nil, nil, nil, fmt.Errorf("failed to fetch CTLog public keys: %w", err)
+		}
+		return roots, intermediates, ctPubs, nil
 	}
 
 	// There's TrustRootRef, so fetch it
 	trustRootRef := keylessRef.TrustRootRef
 	sigstoreKeys, err := sigstoreKeysFromContext(ctx, trustRootRef)
 	if err != nil {
-		return nil, nil, fmt.Errorf("getting SigstoreKeys: %w", err)
+		return nil, nil, nil, fmt.Errorf("getting SigstoreKeys: %w", err)
 	}
 	rootCertsPool := x509.NewCertPool()
 	intermediateCertsPool := x509.NewCertPool()
 
-	if sk, ok := sigstoreKeys.SigstoreKeys[trustRootRef]; ok {
-		for _, ca := range sk.CertificateAuthorities {
-			certs, err := cryptoutils.UnmarshalCertificatesFromPEM(ca.CertChain)
-			if err != nil {
-				return nil, nil, fmt.Errorf("error unmarshalling certificates: %w", err)
-			}
-			for _, cert := range certs {
-				// root certificates are self-signed
-				if bytes.Equal(cert.RawSubject, cert.RawIssuer) {
-					rootCertsPool.AddCert(cert)
-				} else {
-					intermediateCertsPool.AddCert(cert)
-				}
+	sk, ok := sigstoreKeys.SigstoreKeys[trustRootRef]
+	if !ok {
+		return nil, nil, nil, fmt.Errorf("trustRootRef %s not found", trustRootRef)
+	}
+	for _, ca := range sk.CertificateAuthorities {
+		certs, err := cryptoutils.UnmarshalCertificatesFromPEM(ca.CertChain)
+		if err != nil {
+			return nil, nil, nil, fmt.Errorf("error unmarshalling certificates: %w", err)
+		}
+		for _, cert := range certs {
+			// root certificates are self-signed
+			if bytes.Equal(cert.RawSubject, cert.RawIssuer) {
+				rootCertsPool.AddCert(cert)
+			} else {
+				intermediateCertsPool.AddCert(cert)
 			}
 		}
-		return rootCertsPool, intermediateCertsPool, nil
 	}
-	return nil, nil, fmt.Errorf("trustRootRef %s not found", trustRootRef)
+
+	ctlogKeys := &ctl.TrustedCTLogPubKeys{
+		Keys: make(map[string]ctl.LogIDMetadata, len(sk.CTLogs)),
+	}
+	for i, ctlog := range sk.CTLogs {
+		pk, err := cryptoutils.UnmarshalPEMToPublicKey(ctlog.PublicKey)
+		if err != nil {
+			return nil, nil, nil, fmt.Errorf("unmarshaling public key %d failed: %w", i, err)
+		}
+		ctlogKeys.Keys[ctlog.LogID] = ctl.LogIDMetadata{
+			PubKey: pk,
+			Status: tuf.Active,
+		}
+	}
+	if len(ctlogKeys.Keys) == 0 {
+		// if keys are empty just return a nil map to make easier for the caller
+		// to see if it's empty.
+		ctlogKeys = nil
+	}
+	return rootCertsPool, intermediateCertsPool, ctlogKeys, nil
 }
 
 // rekorClientAndKeysFromAuthority creates a Rekor client that should be used

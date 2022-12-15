@@ -36,11 +36,12 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-containerregistry/pkg/authn/k8schain"
 	"github.com/google/go-containerregistry/pkg/name"
-	"github.com/sigstore/cosign/pkg/cosign"
-	"github.com/sigstore/cosign/pkg/cosign/bundle"
-	"github.com/sigstore/cosign/pkg/oci"
-	"github.com/sigstore/cosign/pkg/oci/remote"
-	"github.com/sigstore/cosign/pkg/oci/static"
+	"github.com/sigstore/cosign/v2/pkg/cosign"
+	"github.com/sigstore/cosign/v2/pkg/cosign/bundle"
+	"github.com/sigstore/cosign/v2/pkg/cosign/fulcioverifier/ctl"
+	"github.com/sigstore/cosign/v2/pkg/oci"
+	"github.com/sigstore/cosign/v2/pkg/oci/remote"
+	"github.com/sigstore/cosign/v2/pkg/oci/static"
 	"github.com/sigstore/policy-controller/pkg/apis/config"
 	policyduckv1beta1 "github.com/sigstore/policy-controller/pkg/apis/duck/v1beta1"
 	"github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
@@ -117,6 +118,16 @@ MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE7D2WvgqSzs9jpdJsOJ5Nl6xg8JXm
 Nmo7M3bN7+dQddw9Ibc2R3SV8tzBZw0rST8FKcn4apJepcKM4qUpYUeNfw==
 -----END PUBLIC KEY-----
 `
+	// This is the Rekor LogID constructed from above public key.
+	rekorLogID = "0bac0fddd0c15fbc46f8b1bf51c2b57676a9f262294fe13417d85602e73f392a"
+
+	ctfePublicKey = `-----BEGIN PUBLIC KEY-----
+MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEJvCJi707fv5tMJ1U2TVMZ+uO4dKG
+aEcvjlCkgBCKXbrkumZV0m0dSlK1V1gxEiyQ8y6hk1MxJNe2AZrZUt7a4w==
+-----END PUBLIC KEY-----
+`
+	// This is the LogID for above PublicKey
+	ctfeLogID = "39d1c085f7d5f3fe7a0de9e52a3ead14186891e52a9269d90de7990a30b55083"
 )
 
 func TestValidatePodSpec(t *testing.T) {
@@ -2804,6 +2815,10 @@ func TestFulcioCertsFromAuthority(t *testing.T) {
 		t.Fatalf("Failed to get embedded fulcioroots for testing")
 	}
 
+	embeddedCTLogKeys, err := ctl.GetCTLogPubs(context.Background())
+	if err != nil {
+		t.Fatalf("Failed to get embedded CTLog Public keys for testing")
+	}
 	sk := config.SigstoreKeys{
 		CertificateAuthorities: []config.CertificateAuthority{{
 			Subject: config.DistinguishedName{
@@ -2812,6 +2827,7 @@ func TestFulcioCertsFromAuthority(t *testing.T) {
 			},
 			CertChain: []byte(certChain),
 		}},
+		CTLogs: []config.TransparencyLogInstance{{LogID: ctfeLogID, PublicKey: []byte(ctfePublicKey)}},
 	}
 	c := &config.Config{
 		SigstoreKeysConfig: &config.SigstoreKeysMap{
@@ -2820,6 +2836,11 @@ func TestFulcioCertsFromAuthority(t *testing.T) {
 			},
 		},
 	}
+	marshalledPK, err := cryptoutils.UnmarshalPEMToPublicKey([]byte(ctfePublicKey))
+	if err != nil {
+		t.Fatalf("Failed to unmarshal CTLog public key: %v", err)
+	}
+
 	testCtx := config.ToContext(context.Background(), c)
 
 	tests := []struct {
@@ -2828,12 +2849,14 @@ func TestFulcioCertsFromAuthority(t *testing.T) {
 		wantErr           string
 		wantRoots         *x509.CertPool
 		wantIntermediates *x509.CertPool
+		wantCTLogKeys     *ctl.TrustedCTLogPubKeys
 		ctx               context.Context
 	}{{
 		name:              "no trustroots, uses embedded",
 		keylessRef:        &webhookcip.KeylessRef{},
 		wantRoots:         embeddedRoots,
 		wantIntermediates: embeddedIntermediates,
+		wantCTLogKeys:     embeddedCTLogKeys,
 	}, {
 		name:       "config does not exist",
 		keylessRef: &webhookcip.KeylessRef{TrustRootRef: "not-there"},
@@ -2855,6 +2878,7 @@ func TestFulcioCertsFromAuthority(t *testing.T) {
 		ctx:               testCtx,
 		wantRoots:         roots,
 		wantIntermediates: intermediates,
+		wantCTLogKeys:     &ctl.TrustedCTLogPubKeys{Keys: map[string]ctl.LogIDMetadata{ctfeLogID: {PubKey: marshalledPK, Status: tuf.Active}}},
 	}}
 
 	for _, tc := range tests {
@@ -2863,7 +2887,7 @@ func TestFulcioCertsFromAuthority(t *testing.T) {
 			if tCtx == nil {
 				tCtx = context.Background()
 			}
-			roots, intermediates, err := fulcioCertsFromAuthority(tCtx, tc.keylessRef)
+			roots, intermediates, ctlogKeys, err := fulcioCertsFromAuthority(tCtx, tc.keylessRef)
 			if err != nil {
 				if tc.wantErr == "" {
 					t.Errorf("unexpected error: %v wanted none", err)
@@ -2878,6 +2902,9 @@ func TestFulcioCertsFromAuthority(t *testing.T) {
 			}
 			if !intermediates.Equal(tc.wantIntermediates) {
 				t.Errorf("Intermediates differ")
+			}
+			if diff := cmp.Diff(tc.wantCTLogKeys, ctlogKeys); diff != "" {
+				t.Errorf("CTLog keys differ: %s", diff)
 			}
 		})
 	}
@@ -2910,7 +2937,7 @@ func TestRekorClientAndKeysFromAuthority(t *testing.T) {
 	sk := config.SigstoreKeys{
 		TLogs: []config.TransparencyLogInstance{{
 			PublicKey: []byte(rekorPublicKey),
-			LogID:     "rekor-logid",
+			LogID:     rekorLogID,
 			BaseURL:   *apis.HTTPS("rekor.example.com"),
 		}},
 	}
@@ -2957,7 +2984,7 @@ func TestRekorClientAndKeysFromAuthority(t *testing.T) {
 		name:       "trustroot found",
 		tlog:       &v1alpha1.TLog{TrustRootRef: "test-trust-root"},
 		wantPK:     ecpk,
-		wantLogID:  "rekor-logid",
+		wantLogID:  rekorLogID,
 		ctx:        testCtx,
 		wantClient: true,
 	}}
@@ -3041,6 +3068,16 @@ func TestCheckOptsFromAuthority(t *testing.T) {
 		t.Fatalf("Failed to get embedded fulcioroots for testing")
 	}
 
+	embeddedCTLogKeys, err := ctl.GetCTLogPubs(context.Background())
+	if err != nil {
+		t.Fatalf("Failed to get embedded CTLog Public keys for testing")
+	}
+
+	marshalledPK, err := cryptoutils.UnmarshalPEMToPublicKey([]byte(ctfePublicKey))
+	if err != nil {
+		t.Fatalf("Failed to unmarshal CTLog public key: %v", err)
+	}
+
 	skRekor := config.SigstoreKeys{
 		TLogs: []config.TransparencyLogInstance{{
 			PublicKey: []byte(rekorPublicKey),
@@ -3056,6 +3093,7 @@ func TestCheckOptsFromAuthority(t *testing.T) {
 			},
 			CertChain: []byte(certChain),
 		}},
+		CTLogs: []config.TransparencyLogInstance{{LogID: ctfeLogID, PublicKey: []byte(ctfePublicKey)}},
 	}
 	skCombined := config.SigstoreKeys{
 		TLogs: []config.TransparencyLogInstance{{
@@ -3070,6 +3108,7 @@ func TestCheckOptsFromAuthority(t *testing.T) {
 			},
 			CertChain: []byte(certChain),
 		}},
+		CTLogs: []config.TransparencyLogInstance{{LogID: ctfeLogID, PublicKey: []byte(ctfePublicKey)}},
 	}
 	c := &config.Config{
 		SigstoreKeysConfig: &config.SigstoreKeysMap{
@@ -3099,6 +3138,7 @@ func TestCheckOptsFromAuthority(t *testing.T) {
 			RekorPubKeys:      &cosign.TrustedRekorPubKeys{Keys: map[string]cosign.RekorPubKey{embeddedLogID: {PubKey: embeddedPK, Status: tuf.Active}}},
 			RootCerts:         embeddedRoots,
 			IntermediateCerts: embeddedIntermediates,
+			CTLogPubKeys:      embeddedCTLogKeys,
 		},
 		wantClient: true,
 	}, {
@@ -3141,6 +3181,7 @@ func TestCheckOptsFromAuthority(t *testing.T) {
 			RootCerts:         roots,
 			IntermediateCerts: intermediates,
 			SkipTlogVerify:    true,
+			CTLogPubKeys:      &ctl.TrustedCTLogPubKeys{Keys: map[string]ctl.LogIDMetadata{ctfeLogID: {PubKey: marshalledPK, Status: tuf.Active}}},
 		},
 	}, {
 		name: "trustroot found, combined, with Identities",
@@ -3165,6 +3206,7 @@ func TestCheckOptsFromAuthority(t *testing.T) {
 				Issuer:  "issuer",
 				Subject: "subject",
 			}},
+			CTLogPubKeys: &ctl.TrustedCTLogPubKeys{Keys: map[string]ctl.LogIDMetadata{ctfeLogID: {PubKey: marshalledPK, Status: tuf.Active}}},
 		},
 	}}
 

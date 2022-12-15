@@ -117,8 +117,6 @@ type TransparencyLogInstance struct {
 	HashAlgorithm string `json:"hashAlgorithm"`
 	// PEM encoded public key
 	PublicKey []byte `json:"publicKey"`
-	// The unique identifier for this transparency log.
-	LogID string `json:"logID"`
 }
 
 type DistinguishedName struct {

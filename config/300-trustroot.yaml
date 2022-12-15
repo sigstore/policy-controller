@@ -98,9 +98,6 @@ spec:
                           hashAlgorithm:
                             description: / The hash algorithm used for the Merkle Tree
                             type: string
-                          logID:
-                            description: The unique identifier for this transparency log.
-                            type: string
                           publicKey:
                             description: PEM encoded public key
                             type: string
@@ -115,9 +112,6 @@ spec:
                             type: string
                           hashAlgorithm:
                             description: / The hash algorithm used for the Merkle Tree
-                            type: string
-                          logID:
-                            description: The unique identifier for this transparency log.
                             type: string
                           publicKey:
                             description: PEM encoded public key

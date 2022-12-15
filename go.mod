@@ -41,6 +41,7 @@ require (
 	github.com/pierrec/lz4 v2.6.1+incompatible
 	github.com/ryanuber/go-glob v1.0.0
 	github.com/sigstore/cosign v1.13.1
+	github.com/sigstore/cosign/v2 v2.0.0-00010101000000-000000000000
 	github.com/sigstore/rekor v1.0.1
 	github.com/sigstore/sigstore v1.5.0
 	github.com/stretchr/testify v1.8.1
@@ -202,7 +203,7 @@ require (
 	github.com/mpvl/unique v0.0.0-20150818121801-cbe035fff7de // indirect
 	github.com/munnerz/goautoneg v0.0.0-20191010083416-a7dc8b61c822 // indirect
 	github.com/oklog/ulid v1.3.1 // indirect
-	github.com/open-policy-agent/opa v0.47.2 // indirect
+	github.com/open-policy-agent/opa v0.47.3 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	github.com/opencontainers/image-spec v1.1.0-rc2 // indirect
 	github.com/opentracing/opentracing-go v1.2.0 // indirect
@@ -235,7 +236,7 @@ require (
 	github.com/tjfoc/gmsm v1.4.1 // indirect
 	github.com/transparency-dev/merkle v0.0.1 // indirect
 	github.com/vbatts/tar-split v0.11.2 // indirect
-	github.com/xanzy/go-gitlab v0.76.0 // indirect
+	github.com/xanzy/go-gitlab v0.77.0 // indirect
 	github.com/xeipuuv/gojsonpointer v0.0.0-20190905194746-02993c407bfb // indirect
 	github.com/xeipuuv/gojsonreference v0.0.0-20180127040603-bd5ef7bd5415 // indirect
 	github.com/yashtewari/glob-intersection v0.1.0 // indirect
@@ -253,7 +254,7 @@ require (
 	golang.org/x/text v0.5.0 // indirect
 	golang.org/x/tools v0.2.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.2.0 // indirect
-	google.golang.org/api v0.104.0 // indirect
+	google.golang.org/api v0.105.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20221206210731-b1a01be3a5f6 // indirect
 	gopkg.in/inf.v0 v0.9.1 // indirect
@@ -273,4 +274,4 @@ replace github.com/golang/glog => github.com/jdolitsky/glog v0.0.0-2022072917223
 
 // Bring in the latest cosign so we can pass various keys in to verification
 // functions
-replace github.com/sigstore/cosign => github.com/sigstore/cosign v1.13.2-0.20221209171251-6cb723fc299c
+replace github.com/sigstore/cosign/v2 => github.com/sigstore/cosign/v2 v2.0.0-rc.0.0.20221215215028-8f0cf022fc2d
