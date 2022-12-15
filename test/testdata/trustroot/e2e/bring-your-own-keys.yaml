@@ -35,7 +35,6 @@ spec:
       hashAlgorithm: sha-256
       publicKey: |-
         LS0tLS1CRUdJTiBQVUJMSUMgS0VZLS0tLS0KTUZrd0V3WUhLb1pJemowQ0FRWUlLb1pJemowREFRY0RRZ0FFSnZDSmk3MDdmdjV0TUoxVTJUVk1aK3VPNGRLRwphRWN2amxDa2dCQ0tYYnJrdW1aVjBtMGRTbEsxVjFneEVpeVE4eTZoazFNeEpOZTJBWnJaVXQ3YTR3PT0KLS0tLS1FTkQgUFVCTElDIEtFWS0tLS0tCg==
-      logID: ctfe-log-id
     timestampAuthorities:
     - subject:
         organization: tsa-organization
