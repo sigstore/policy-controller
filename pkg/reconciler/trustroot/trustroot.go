@@ -16,10 +16,7 @@ package trustroot
 
 import (
 	"context"
-	"crypto"
 	"crypto/ecdsa"
-	"crypto/sha256"
-	"crypto/x509"
 	"encoding/hex"
 	"errors"
 	"fmt"
@@ -193,21 +190,4 @@ func (r *Reconciler) removeTrustRootEntry(ctx context.Context, cm *corev1.Config
 		return err
 	}
 	return nil
-}
-
-// LogID for Rekor apparently gets generated from the public key, so for future
-// proofing, we allow one to specify it in the TLog config for
-// TransparencyLogInstance but perhaps for Rekor we should never allow for it?
-//
-// getLogID generates a SHA256 hash of a DER-encoded public key.
-func getLogID(logID string, pub crypto.PublicKey) (string, error) {
-	if logID != "" {
-		return logID, nil
-	}
-	pubBytes, err := x509.MarshalPKIXPublicKey(pub)
-	if err != nil {
-		return "", err
-	}
-	digest := sha256.Sum256(pubBytes)
-	return hex.EncodeToString(digest[:]), nil
 }
