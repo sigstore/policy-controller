@@ -81,15 +81,15 @@ type includeSpecKey struct{}
 // levels and we want the highest resource level to be available, otherwise
 // everything boils down to PodSpec and it's lossy then.
 func IncludeSpec(ctx context.Context, spec interface{}) context.Context {
-	if getIncludeSpec(ctx) == nil {
+	if GetIncludeSpec(ctx) == nil {
 		return context.WithValue(ctx, includeSpecKey{}, spec)
 	}
 	return ctx
 }
 
-// getIncludeSpec returns the highest level spec for a resource possible.
+// GetIncludeSpec returns the highest level spec for a resource possible.
 // For example, for Deployment it would return Deployment.Spec
-func getIncludeSpec(ctx context.Context) interface{} {
+func GetIncludeSpec(ctx context.Context) interface{} {
 	return ctx.Value(includeSpecKey{})
 }
 
@@ -107,15 +107,15 @@ type includeTypeMetaKey struct{}
 // levels and we want the highest resource level to be available, otherwise
 // everything boils down to PodSpec and it's lossy then.
 func IncludeObjectMeta(ctx context.Context, meta interface{}) context.Context {
-	if getIncludeObjectMeta(ctx) == nil {
+	if GetIncludeObjectMeta(ctx) == nil {
 		return context.WithValue(ctx, includeObjectMetaKey{}, meta)
 	}
 	return ctx
 }
 
-// getIncludeObjectMeta returns the highest level ObjectMeta for a resource
+// GetIncludeObjectMeta returns the highest level ObjectMeta for a resource
 // possible. For example, for Deployment it would return Deployment.Spec
-func getIncludeObjectMeta(ctx context.Context) interface{} {
+func GetIncludeObjectMeta(ctx context.Context) interface{} {
 	return ctx.Value(includeObjectMetaKey{})
 }
 
@@ -125,17 +125,17 @@ func getIncludeObjectMeta(ctx context.Context) interface{} {
 // levels and we want the highest resource level to be available, otherwise
 // everything boils down to PodSpec and it's lossy then.
 func IncludeTypeMeta(ctx context.Context, meta interface{}) context.Context {
-	if getIncludeTypeMeta(ctx) == nil {
+	if GetIncludeTypeMeta(ctx) == nil {
 		return context.WithValue(ctx, includeTypeMetaKey{}, meta)
 	}
 	return ctx
 }
 
-// getIncludeTypeMeta returns the highest level TypeMeta for a resource
+// GetIncludeTypeMeta returns the highest level TypeMeta for a resource
 // possible. For example, for Deployment it would return:
 // apiVersion: apps/v1
 // kind: Deployment
-func getIncludeTypeMeta(ctx context.Context) interface{} {
+func GetIncludeTypeMeta(ctx context.Context) interface{} {
 	return ctx.Value(includeTypeMetaKey{})
 }
 
@@ -610,13 +610,13 @@ func ValidatePolicy(ctx context.Context, namespace string, ref name.Reference, c
 			policyResult.Config = configFiles
 		}
 		if cip.Policy.IncludeSpec != nil && *cip.Policy.IncludeSpec {
-			policyResult.Spec = getIncludeSpec(ctx)
+			policyResult.Spec = GetIncludeSpec(ctx)
 		}
 		if cip.Policy.IncludeObjectMeta != nil && *cip.Policy.IncludeObjectMeta {
-			policyResult.ObjectMeta = getIncludeObjectMeta(ctx)
+			policyResult.ObjectMeta = GetIncludeObjectMeta(ctx)
 		}
 		if cip.Policy.IncludeTypeMeta != nil && *cip.Policy.IncludeTypeMeta {
-			policyResult.TypeMeta = getIncludeTypeMeta(ctx)
+			policyResult.TypeMeta = GetIncludeTypeMeta(ctx)
 		}
 
 		logging.FromContext(ctx).Info("Validating CIP level policy")
