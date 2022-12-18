@@ -47,7 +47,7 @@ spec:
                       description: 'Mirror is the remote mirror, for example: https://sigstore-tuf-root.storage.googleapis.com'
                       type: string
                     root:
-                      description: Root is the json encoded trusted initial root.
+                      description: Root is the base64 encoded, json trusted initial root.
                       type: string
                 repository:
                   description: Repository contains the serialized TUF remote repository.
@@ -57,7 +57,7 @@ spec:
                       description: MirrorFS is the base64 tarred, gzipped, and base64 encoded remote repository that can be used for example in air-gap environments. Will not make outbound network connections, and must then be kept up to date in some other manner. The repository must contain metadata as well as targets.
                       type: string
                     root:
-                      description: Root is the json encoded trusted initial root.
+                      description: Root is the base64 encoded, json trusted initial root.
                       type: string
                     targets:
                       description: Targets is where the targets live off of the root of the Repository above. If not specified 'targets' is defaulted.

@@ -59,7 +59,7 @@ Remote specifies the TUF with trusted initial root and remote mirror where to fe
 
 | Field | Description | Scheme | Required |
 | ----- | ----------- | ------ | -------- |
-| root | Root is the json encoded trusted initial root. | string | true |
+| root | Root is the base64 encoded, json trusted initial root. | []byte | true |
 | mirror | Mirror is the remote mirror, for example: https://sigstore-tuf-root.storage.googleapis.com | apis.URL | true |
 
 [Back to TOC](#table-of-contents)
@@ -70,7 +70,7 @@ Repository specifies an airgapped TUF. Specifies the trusted initial root as wel
 
 | Field | Description | Scheme | Required |
 | ----- | ----------- | ------ | -------- |
-| root | Root is the json encoded trusted initial root. | string | true |
+| root | Root is the base64 encoded, json trusted initial root. | []byte | true |
 | mirrorFS | MirrorFS is the base64 tarred, gzipped, and base64 encoded remote repository that can be used for example in air-gap environments. Will not make outbound network connections, and must then be kept up to date in some other manner. The repository must contain metadata as well as targets. | []byte | true |
 | targets | Targets is where the targets live off of the root of the Repository above. If not specified 'targets' is defaulted. | string | false |
 

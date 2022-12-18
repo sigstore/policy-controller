@@ -100,3 +100,15 @@ func WithSigstoreKeys(sk map[string]string) TrustRootOption {
 		}
 	}
 }
+
+// WithRepository constructs a TrustRootOption which is suitable
+// for reconciler table driven testing.
+func WithRepository(targets string, root, repository []byte) TrustRootOption {
+	return func(tk *v1alpha1.TrustRoot) {
+		tk.Spec.Repository = &v1alpha1.Repository{
+			Root:     root,
+			Targets:  targets,
+			MirrorFS: repository,
+		}
+	}
+}

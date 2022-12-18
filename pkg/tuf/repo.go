@@ -19,7 +19,6 @@ import (
 	"bytes"
 	"compress/gzip"
 	"context"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"io"
@@ -156,7 +155,7 @@ func sanitizeArchivePath(d, t string) (v string, err error) {
 
 // UncompressMemFS takes a TUF repository that's been compressed with CompressFS
 // and returns FS backed by memory.
-func UncompressMemFS(src io.Reader) (fs.FS, error) {
+func UncompressMemFS(src io.Reader, stripPrefix string) (fs.FS, error) {
 	testFS := fstest.MapFS{}
 
 	zr, err := gzip.NewReader(src)
@@ -183,8 +182,20 @@ func UncompressMemFS(src io.Reader) (fs.FS, error) {
 			return nil, err
 		}
 
+		// Remove the prefix if given. Note that paths are relative to root, so
+		// no '/' is allowed, so we always remove that.
+		target = strings.TrimPrefix(target, stripPrefix)
+		target = strings.TrimPrefix(target, "/")
 		// check the type
-		if header.Typeflag == tar.TypeReg {
+		switch header.Typeflag {
+		// Create directories
+		case tar.TypeDir:
+			testFS[target] = &fstest.MapFile{
+				Mode:    os.ModeDir,
+				ModTime: header.ModTime,
+			}
+		// Write out files
+		case tar.TypeReg:
 			data := make([]byte, header.Size)
 			_, err := tr.Read(data)
 			// EOF is unwrapped
@@ -203,15 +214,11 @@ func UncompressMemFS(src io.Reader) (fs.FS, error) {
 }
 
 // ClientFromSerializedMirror will construct a TUF client by
-// unserializing the repository and constructing an in-memory client
-// for it.
-func ClientFromSerializedMirror(ctx context.Context, repo []byte, targets string) (*client.Client, error) {
-	r, err := base64.StdEncoding.DecodeString(string(repo))
-	if err != nil {
-		return nil, fmt.Errorf("failed to base64 decode: %w", err)
-	}
+// base64 decoding, unzip/untar the repository and constructing an in-memory TUF
+// client for it. Will also Init/Update it.
+func ClientFromSerializedMirror(ctx context.Context, repo, rootJSON []byte, targets, stripPrefix string) (*client.Client, error) {
 	// unzip/untar the repository.
-	tufFS, err := UncompressMemFS(bytes.NewReader(r))
+	tufFS, err := UncompressMemFS(bytes.NewReader(repo), stripPrefix)
 	if err != nil {
 		return nil, fmt.Errorf("failed to uncompress: %w", err)
 	}
@@ -225,5 +232,17 @@ func ClientFromSerializedMirror(ctx context.Context, repo []byte, targets string
 
 	// TODO(vaikas): What should we do with above tufClient validation
 	// wise before just returning it?
-	return tufClient, err
+	err = tufClient.Init(rootJSON)
+	if err != nil {
+		return nil, fmt.Errorf("failed to init TUF client: %w", err)
+	}
+	targetFiles, err := tufClient.Update()
+	if err != nil {
+		return nil, fmt.Errorf("failed to update TUF client: %w", err)
+	}
+
+	if len(targetFiles) == 0 {
+		return nil, errors.New("there are no valid targetfiles in TUF repo")
+	}
+	return tufClient, nil
 }
