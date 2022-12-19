@@ -57,6 +57,10 @@ const (
 	glob              = "ghcr.io/example/*"
 	kmsKey            = "azure-kms://foo/bar"
 	fakeKMSKey        = "fakekms://keycip"
+	policyCMName      = "policy-configmap"
+
+	testPolicy = `predicateType: "cosign.sigstore.dev/attestation/v1"
+	predicate: Data: "foobar key e2e test"`
 
 	// Just some public key that was laying around, only format matters.
 	validPublicKeyData = `-----BEGIN PUBLIC KEY-----
@@ -81,6 +85,12 @@ RCTfQ5s1kD+hGMSE1rH7s46hmXEeyhnlRnaGF8eMU/SBJE/2NKPnxE7WzQ==
 	// This is the patch for removing only a single entry from a map that has
 	// two entries but only one is being removed. For keyless entry.
 	removeSingleEntryKeylessPatch = `[{"op":"remove","path":"/data/test-cip-2"}]`
+
+	// This is the patch for inlined policy configmap ref.
+	inlinedPolicyPatch = `[{"op":"replace","path":"/data/test-cip","value":"{\"uid\":\"test-uid\",\"resourceVersion\":\"0123456789\",\"images\":[{\"glob\":\"ghcr.io/example/*\"}],\"authorities\":[{\"name\":\"authority-0\",\"static\":{\"action\":\"pass\"},\"attestations\":[{\"name\":\"\",\"predicateType\":\"\",\"data\":\"predicateType: \\\"cosign.sigstore.dev/attestation/v1\\\"\\n\\tpredicate: Data: \\\"foobar key e2e test\\\"\"}]}],\"mode\":\"enforce\"}"}]`
+
+	// This is the patch for inlined cip policy configmap ref.
+	inlinedCIPPolicyPatch = `[{"op":"replace","path":"/data/test-cip","value":"{\"uid\":\"test-uid\",\"resourceVersion\":\"0123456789\",\"images\":[{\"glob\":\"ghcr.io/example/*\"}],\"authorities\":[{\"name\":\"authority-0\",\"static\":{\"action\":\"pass\"}}],\"policy\":{\"name\":\"\",\"predicateType\":\"\",\"data\":\"predicateType: \\\"cosign.sigstore.dev/attestation/v1\\\"\\n\\tpredicate: Data: \\\"foobar key e2e test\\\"\"},\"mode\":\"enforce\"}"}]`
 
 	// This is the patch for inlined secret for keyless cakey ref data
 	inlinedSecretKeylessPatch = `[{"op":"replace","path":"/data/test-cip-2","value":"{\"uid\":\"test-uid\",\"resourceVersion\":\"0123456789\",\"images\":[{\"glob\":\"ghcr.io/example/*\"}],\"authorities\":[{\"name\":\"authority-0\",\"keyless\":{\"ca-cert\":{\"data\":\"-----BEGIN PUBLIC KEY-----\\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAExB6+H6054/W1SJgs5JR6AJr6J35J\\nRCTfQ5s1kD+hGMSE1rH7s46hmXEeyhnlRnaGF8eMU/SBJE/2NKPnxE7WzQ==\\n-----END PUBLIC KEY-----\",\"hashAlgorithm\":\"sha256\"}}}],\"mode\":\"enforce\"}"}]`
@@ -743,6 +753,72 @@ func TestReconcile(t *testing.T) {
 			PostConditions: []func(*testing.T, *TableRow){
 				AssertTrackingSecret(system.Namespace(), keylessSecretName),
 			},
+		}, {
+			Name: "Static with attestation policy, configmapref exists, inlined",
+			Key:  testKey,
+
+			SkipNamespaceValidation: true, // Cluster scoped
+			Objects: []runtime.Object{
+				NewClusterImagePolicy(cipName,
+					WithUID(uid),
+					WithResourceVersion(resourceVersion),
+					WithFinalizer,
+					WithImagePattern(v1alpha1.ImagePattern{
+						Glob: glob,
+					}),
+					WithAuthority(v1alpha1.Authority{
+						Static: &v1alpha1.StaticRef{
+							Action: "pass",
+						},
+						Attestations: []v1alpha1.Attestation{{
+							Policy: &v1alpha1.Policy{
+								ConfigMapRef: &v1alpha1.ConfigMapReference{
+									Name: policyCMName,
+								},
+							},
+						}}}),
+				),
+				makeConfigMap(),
+				makePolicyConfigMap(policyCMName, map[string]string{"policy": testPolicy}),
+			},
+			WantPatches: []clientgotesting.PatchActionImpl{
+				makePatch(inlinedPolicyPatch),
+			},
+			PostConditions: []func(*testing.T, *TableRow){
+				AssertTrackingConfigMap(system.Namespace(), policyCMName),
+			},
+		}, {
+			Name: "Static with CIP level policy, configmapref exists, inlined",
+			Key:  testKey,
+
+			SkipNamespaceValidation: true, // Cluster scoped
+			Objects: []runtime.Object{
+				NewClusterImagePolicy(cipName,
+					WithUID(uid),
+					WithResourceVersion(resourceVersion),
+					WithFinalizer,
+					WithImagePattern(v1alpha1.ImagePattern{
+						Glob: glob,
+					}),
+					WithAuthority(v1alpha1.Authority{
+						Static: &v1alpha1.StaticRef{
+							Action: "pass",
+						}}),
+					WithPolicy(&v1alpha1.Policy{
+						ConfigMapRef: &v1alpha1.ConfigMapReference{
+							Name: policyCMName,
+						},
+					}),
+				),
+				makeConfigMap(),
+				makePolicyConfigMap(policyCMName, map[string]string{"policy": testPolicy}),
+			},
+			WantPatches: []clientgotesting.PatchActionImpl{
+				makePatch(inlinedCIPPolicyPatch),
+			},
+			PostConditions: []func(*testing.T, *TableRow){
+				AssertTrackingConfigMap(system.Namespace(), policyCMName),
+			},
 		}}
 
 	logger := logtesting.TestLogger(t)
@@ -773,6 +849,16 @@ func makeSecret(name, secret string) *corev1.Secret {
 		Data: map[string][]byte{
 			"publicKey": []byte(secret),
 		},
+	}
+}
+
+func makePolicyConfigMap(name string, data map[string]string) *corev1.ConfigMap {
+	return &corev1.ConfigMap{
+		ObjectMeta: metav1.ObjectMeta{
+			Namespace: system.Namespace(),
+			Name:      name,
+		},
+		Data: data,
 	}
 }
 

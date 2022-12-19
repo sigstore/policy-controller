@@ -173,6 +173,12 @@ func AssertTrackingSecret(namespace, name string) func(*testing.T, *reconcilerte
 	return AssertTrackingObject(gvk, namespace, name)
 }
 
+// AssertTrackingConfigMap will ensure the provided ConfigMap is being tracked
+func AssertTrackingConfigMap(namespace, name string) func(*testing.T, *reconcilertesting.TableRow) {
+	gvk := corev1.SchemeGroupVersion.WithKind("ConfigMap")
+	return AssertTrackingObject(gvk, namespace, name)
+}
+
 // AssertTrackingObject will ensure the following objects are being tracked
 func AssertTrackingObject(gvk schema.GroupVersionKind, namespace, name string) func(*testing.T, *reconcilertesting.TableRow) {
 	apiVersion, kind := gvk.ToAPIVersionAndKind()

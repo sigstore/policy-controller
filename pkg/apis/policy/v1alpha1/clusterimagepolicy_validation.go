@@ -259,8 +259,11 @@ func (p *Policy) Validate(ctx context.Context) *apis.FieldError {
 	if p.Type != "cue" && p.Type != "rego" {
 		errs = errs.Also(apis.ErrInvalidValue(p.Type, "type", "only [cue,rego] are supported at the moment"))
 	}
-	if p.Data == "" {
-		errs = errs.Also(apis.ErrMissingField("data"))
+	if p.Data == "" && p.ConfigMapRef == nil {
+		errs = errs.Also(apis.ErrMissingField("data", "configMapRef"))
+	}
+	if p.Data != "" && p.ConfigMapRef != nil {
+		errs = errs.Also(apis.ErrMultipleOneOf("data", "configMapRef"))
 	}
 	if !apis.IsInSpec(ctx) && p.FetchConfigFile != nil {
 		errs = errs.Also(apis.ErrDisallowedFields("fetchConfigFile"))
