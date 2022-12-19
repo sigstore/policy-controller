@@ -106,7 +106,7 @@ func main() {
 	// TODO(jdolitsky): This should use v1beta1 once there exists a
 	// webhookcip.ConvertClusterImagePolicyV1beta1ToWebhook() method
 	var v1alpha1cip v1alpha1.ClusterImagePolicy
-	if err := yaml.Unmarshal(cipRaw, &v1alpha1cip); err != nil {
+	if err := yaml.UnmarshalStrict(cipRaw, &v1alpha1cip); err != nil {
 		log.Fatal(err)
 	}
 	v1alpha1cip.SetDefaults(ctx)
