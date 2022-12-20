@@ -130,9 +130,22 @@ expected_error='no matching attestations'
 assert_error ${expected_error}
 echo '::endgroup::'
 
-# Create attestation and it should pass.
-echo '::group:: Create one keyless attestation and verify it'
+# Create an attestation but do not add it to Rekor and since our attestation
+# specifies Rekor, this should still fail
+echo '::group:: Create one keyless attestation and verify it, but no tlog upload'
 echo -n 'foobar e2e test' > ./predicate-file-custom
+COSIGN_EXPERIMENTAL=1 cosign attest --predicate ./predicate-file-custom --fulcio-url ${FULCIO_URL} --allow-insecure-registry ${demoimage} --no-tlog-upload --identity-token `curl $ISSUER_URL`
+COSIGN_EXPERIMENTAL=1 cosign verify-attestation --type=custom --rekor-url= --allow-insecure-registry ${demoimage}
+echo '::endgroup::'
+
+# This image has an attestation, but was not added to TLog
+echo '::group:: test job rejection'
+expected_error='No leaf found for hash'
+assert_error ${expected_error}
+echo '::endgroup::'
+
+# Create attestation and upload to tlog and it should now pass.
+echo '::group:: Create one keyless attestation and verify it'
 COSIGN_EXPERIMENTAL=1 cosign attest --predicate ./predicate-file-custom --fulcio-url ${FULCIO_URL} --rekor-url ${REKOR_URL} --allow-insecure-registry --force ${demoimage} --identity-token ${OIDC_TOKEN}
 
 COSIGN_EXPERIMENTAL=1 cosign verify-attestation --type=custom --rekor-url ${REKOR_URL} --allow-insecure-registry ${demoimage}

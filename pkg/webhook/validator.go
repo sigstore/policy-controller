@@ -1396,6 +1396,10 @@ func rekorClientAndKeysFromAuthority(ctx context.Context, tlog *v1alpha1.TLog) (
 		if err != nil {
 			return nil, nil, fmt.Errorf("fetching keys for trustRootRef: %w", err)
 		}
+		if rekorURL == "" && tlog.URL != nil {
+			// Pull this from the tlog entry in this case.
+			rekorURL = tlog.URL.String()
+		}
 		rekorClient, err := rekor.GetRekorClient(rekorURL)
 		if err != nil {
 			logging.FromContext(ctx).Errorf("failed creating rekor client: %v", err)
