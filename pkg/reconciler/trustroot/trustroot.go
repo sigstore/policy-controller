@@ -165,7 +165,11 @@ func (r *Reconciler) getSigstoreKeysFromMirrorFS(ctx context.Context, repository
 }
 
 func (r *Reconciler) getSigstoreKeysFromRemote(ctx context.Context, remote *v1alpha1.Remote) (*config.SigstoreKeys, error) {
-	return nil, errors.New("not implemented yet")
+	tufClient, err := tuf.ClientFromRemote(ctx, remote.Mirror.String(), remote.Root)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct TUF client from remote: %w", err)
+	}
+	return getSigstoreKeysFromTuf(ctx, tufClient)
 }
 
 // remoteTrustRootEntry removes a TrustRoot entry from a CM. If no entry exists, it's a nop.
