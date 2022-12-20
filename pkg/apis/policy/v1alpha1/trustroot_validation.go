@@ -15,9 +15,7 @@
 package v1alpha1
 
 import (
-	"bytes"
 	"context"
-	"encoding/base64"
 	"encoding/json"
 
 	"github.com/sigstore/policy-controller/pkg/tuf"
@@ -25,6 +23,10 @@ import (
 	"knative.dev/pkg/apis"
 	"knative.dev/pkg/logging"
 )
+
+// By default the TUF repo contains this prefix, so if it's there, remove
+// it.
+const DefaultTUFRepoPrefix = "/repository/"
 
 // Validate implements apis.Validatable
 func (c *TrustRoot) Validate(ctx context.Context) *apis.FieldError {
@@ -66,18 +68,23 @@ func (repo *Repository) Validate(ctx context.Context) (errors *apis.FieldError) 
 	if len(repo.MirrorFS) == 0 {
 		errors = errors.Also(apis.ErrMissingField("repository"))
 	} else {
-		r, err := base64.StdEncoding.DecodeString(string(repo.MirrorFS))
+		if errors != nil {
+			// We return here in case there in case there are errors. This is
+			// because we do not want to pollute the error message, because
+			// with any of the above errors, the TUF init will fail and it will
+			// not be a meaningful error without fixing the above errors.
+			return
+		}
+		// Make sure we can construct a TUF client out of it.
+		c, err := tuf.ClientFromSerializedMirror(ctx, repo.MirrorFS, repo.Root, repo.Targets, DefaultTUFRepoPrefix)
 		if err != nil {
-			errors = errors.Also(apis.ErrInvalidValue("failed to base64 decode", "mirrorFS", err.Error()))
+			errors = errors.Also(apis.ErrInvalidValue("failed to construct a TUF client", "mirrorFS", err.Error()))
 		} else {
-			// Validte that we can uncompress the TUF root.
-			fs, err := tuf.UncompressMemFS(bytes.NewReader(r))
+			targetFiles, err := c.Targets()
 			if err != nil {
-				errors = errors.Also(apis.ErrInvalidValue("failed to uncompress", "mirrorFS", err.Error()))
+				errors = errors.Also(apis.ErrInvalidValue("failed to get targets from a TUF client", "mirrorFS", err.Error()))
 			}
-
-			// TODO(vaikas): Do more validation with the FS here.
-			logging.FromContext(ctx).Infof("FS uncompressed ok: %+v", fs)
+			logging.FromContext(ctx).Debugf("FS uncompressed ok, have %d valid targets", len(targetFiles))
 		}
 	}
 	return
@@ -100,28 +107,31 @@ func (sigstoreKeys *SigstoreKeys) Validate(ctx context.Context) (errors *apis.Fi
 		}
 	}
 
-	if len(sigstoreKeys.TimeStampAuthorities) == 0 {
-		errors = errors.Also(apis.ErrMissingField("timestampAuthorities"))
-	} else {
-		for i, ca := range sigstoreKeys.TimeStampAuthorities {
-			errors = ValidateCertificateAuthority(ctx, ca).ViaFieldIndex("timestampAuthorities", i)
-		}
+	// These are optionals, so we just validate them if they are there and do
+	// not report them as missing.
+	for i, tsa := range sigstoreKeys.TimeStampAuthorities {
+		errors = ValidateCertificateAuthority(ctx, tsa).ViaFieldIndex("timestampAuthorities", i)
+	}
+	for i, ctl := range sigstoreKeys.CTLogs {
+		errors = ValidateTransparencyLogInstance(ctx, ctl).ViaFieldIndex("ctLogs", i)
+	}
+	for i, tl := range sigstoreKeys.TLogs {
+		errors = ValidateTransparencyLogInstance(ctx, tl).ViaFieldIndex("tLogs", i)
 	}
 	return
 }
 
-func ValidateRoot(ctx context.Context, rootJSON string) *apis.FieldError {
-	if rootJSON == "" {
+func ValidateRoot(ctx context.Context, rootJSON []byte) *apis.FieldError {
+	if rootJSON == nil {
 		return apis.ErrMissingField("root")
 	}
-	r, err := base64.StdEncoding.DecodeString(rootJSON)
-	if err != nil {
-		return apis.ErrInvalidValue("failed to base64 decode", "mirrorFS", err.Error())
+	var root map[string]interface{}
+	if err := json.Unmarshal(rootJSON, &root); err != nil {
+		return apis.ErrInvalidValue("failed to unmarshal", "root", err.Error())
 	}
 	// TODO(vaikas): Tighten this validation to check for proper shape.
-	var root map[string]interface{}
-	if err := json.Unmarshal(r, &root); err != nil {
-		return apis.ErrInvalidValue("failed to unmarshal", "root", err.Error())
+	if root["signatures"] == nil {
+		return apis.ErrInvalidValue("missing signatures in root.json", "root", "no signatures")
 	}
 	return nil
 }

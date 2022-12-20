@@ -15,9 +15,12 @@
 package trustroot
 
 import (
+	"bytes"
 	"context"
+	"crypto"
 	"crypto/ecdsa"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"fmt"
 
@@ -26,8 +29,10 @@ import (
 	"github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
 	trustrootreconciler "github.com/sigstore/policy-controller/pkg/client/injection/reconciler/policy/v1alpha1/trustroot"
 	"github.com/sigstore/policy-controller/pkg/reconciler/trustroot/resources"
+	"github.com/sigstore/policy-controller/pkg/tuf"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
-
+	sigstoretuf "github.com/sigstore/sigstore/pkg/tuf"
+	"github.com/theupdateframework/go-tuf/client"
 	corev1 "k8s.io/api/core/v1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -77,32 +82,24 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, trustroot *v1alpha1.Trus
 	// Note this is identical to what we do with CTLog PublicKeys, but they
 	// are not restricted to being only ecdsa.PublicKey.
 	for i, tlog := range sigstoreKeys.TLogs {
-		pk, err := cryptoutils.UnmarshalPEMToPublicKey(tlog.PublicKey)
+		pk, logID, err := pemToKeyAndID(tlog.PublicKey)
 		if err != nil {
-			return fmt.Errorf("unmarshaling rekor public key %d failed: %w", i, err)
+			return fmt.Errorf("invalid rekor public key %d: %w", i, err)
 		}
 		// This needs to be ecdsa instead of crypto.PublicKey
 		// https://github.com/sigstore/cosign/issues/2540
-		pkecdsa, ok := pk.(*ecdsa.PublicKey)
+		_, ok := pk.(*ecdsa.PublicKey)
 		if !ok {
 			return fmt.Errorf("public key %d is not ecdsa.PublicKey", i)
 		}
-		logID, err := ctutil.GetCTLogID(pkecdsa)
-		if err != nil {
-			return fmt.Errorf("failed to construct LogID for rekor: %w", err)
-		}
-		sigstoreKeys.TLogs[i].LogID = hex.EncodeToString(logID[:])
+		sigstoreKeys.TLogs[i].LogID = logID
 	}
 	for i, ctlog := range sigstoreKeys.CTLogs {
-		pk, err := cryptoutils.UnmarshalPEMToPublicKey(ctlog.PublicKey)
+		_, logID, err := pemToKeyAndID(ctlog.PublicKey)
 		if err != nil {
-			return fmt.Errorf("unmarshaling ctlog public key %d failed: %w", i, err)
+			return fmt.Errorf("invalid ctlog public key %d: %w", i, err)
 		}
-		logID, err := ctutil.GetCTLogID(pk)
-		if err != nil {
-			return fmt.Errorf("failed to construct LogID for ctlog: %w", err)
-		}
-		sigstoreKeys.CTLogs[i].LogID = hex.EncodeToString(logID[:])
+		sigstoreKeys.CTLogs[i].LogID = logID
 	}
 
 	// See if the CM holding configs exists
@@ -159,19 +156,12 @@ func (r *Reconciler) FinalizeKind(ctx context.Context, trustroot *v1alpha1.Trust
 // getSigstoreKeys will take a TUF Repository specification, and fetch the
 // necessary Keys / Certificates from there for Fulcio, Rekor, and CTLog.
 func (r *Reconciler) getSigstoreKeysFromMirrorFS(ctx context.Context, repository *v1alpha1.Repository) (*config.SigstoreKeys, error) {
-	// TODO: Uncomment and add proper tests for this.
-	/*
-		tufClient, err := tuf.TUFClientFromSerializedMirror(ctx, repository.MirrorFS, repository.Targets)
-		if err != nil {
-			return nil, fmt.Errorf(err, "failed to construct TUF client from mirror: %w", err)
-		}
+	tufClient, err := tuf.ClientFromSerializedMirror(ctx, repository.MirrorFS, repository.Root, repository.Targets, v1alpha1.DefaultTUFRepoPrefix)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct TUF client from mirror: %w", err)
+	}
 
-		return tuf.GetSigstoreKeysFromTUF(ctx, tufClient)
-		local := client.MemoryLocalStore()
-		remote := client.NewFileRemoteStore()
-		tufClient := client.NewClient(local, remote)
-	*/
-	return &config.SigstoreKeys{}, errors.New("not implemented yet")
+	return getSigstoreKeysFromTuf(ctx, tufClient)
 }
 
 func (r *Reconciler) getSigstoreKeysFromRemote(ctx context.Context, remote *v1alpha1.Remote) (*config.SigstoreKeys, error) {
@@ -191,3 +181,81 @@ func (r *Reconciler) removeTrustRootEntry(ctx context.Context, cm *corev1.Config
 	}
 	return nil
 }
+
+// pemToKeyAndID takes a public key in PEM format, and turns it into
+// crypto.PublicKey and the CTLog LogID.
+func pemToKeyAndID(pem []byte) (crypto.PublicKey, string, error) {
+	pk, err := cryptoutils.UnmarshalPEMToPublicKey(pem)
+	if err != nil {
+		return nil, "", fmt.Errorf("unmarshaling PEM public key: %w", err)
+	}
+	logID, err := ctutil.GetCTLogID(pk)
+	if err != nil {
+		return nil, "", fmt.Errorf("failed to construct LogID for rekor: %w", err)
+	}
+	return pk, hex.EncodeToString(logID[:]), nil
+}
+
+// These are private to sigstore/sigstore even though I don't think they should
+// be.
+type customMetadata struct {
+	Usage  sigstoretuf.UsageKind  `json:"usage"`
+	Status sigstoretuf.StatusKind `json:"status"`
+}
+
+type sigstoreCustomMetadata struct {
+	Sigstore customMetadata `json:"sigstore"`
+}
+
+// getSigstoreKeysFromTuf returns the sigstore keys from the TUF client. Note
+// that this should really be exposed from the sigstore/sigstore TUF pkg, but
+// is currently not.
+func getSigstoreKeysFromTuf(ctx context.Context, tufClient *client.Client) (*config.SigstoreKeys, error) {
+	targets, err := tufClient.Targets()
+	if err != nil {
+		return nil, fmt.Errorf("error getting targets: %w", err)
+	}
+	ret := &config.SigstoreKeys{}
+	for name, targetMeta := range targets {
+		// Skip any targets that do not include custom metadata.
+		if targetMeta.Custom == nil {
+			continue
+		}
+		var scm sigstoreCustomMetadata
+		err := json.Unmarshal(*targetMeta.Custom, &scm)
+		if err != nil {
+			logging.FromContext(ctx).Warnf("Custom metadata not configured properly for target %s, skipping target: %v", name, err)
+			continue
+		}
+		dl := newDownloader()
+		if err = tufClient.Download(name, &dl); err != nil {
+			return nil, fmt.Errorf("downloading target %s: %w", name, err)
+		}
+		switch scm.Sigstore.Usage {
+		case sigstoretuf.Fulcio:
+			ret.CertificateAuthorities = append(ret.CertificateAuthorities, config.CertificateAuthority{CertChain: dl.Bytes()})
+		case sigstoretuf.CTFE:
+			ret.CTLogs = append(ret.CTLogs, config.TransparencyLogInstance{PublicKey: dl.Bytes()})
+		case sigstoretuf.Rekor:
+			ret.TLogs = append(ret.TLogs, config.TransparencyLogInstance{PublicKey: dl.Bytes()})
+		}
+	}
+	// Make sure there's at least a single CertificateAuthority (Fulcio there).
+	// Some others could be optional.
+	if len(ret.CertificateAuthorities) == 0 {
+		return nil, errors.New("no certificate authorities found")
+	}
+	return ret, nil
+}
+
+func newDownloader() downloader {
+	return downloader{&bytes.Buffer{}}
+}
+
+type downloader struct {
+	b *bytes.Buffer
+}
+
+func (d downloader) Delete() error                     { return nil }
+func (d downloader) Bytes() []byte                     { return d.b.Bytes() }
+func (d downloader) Write(p []byte) (n int, err error) { return d.b.Write(p) }

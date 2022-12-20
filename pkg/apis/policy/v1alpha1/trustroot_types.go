@@ -77,8 +77,8 @@ type TrustRootSpec struct {
 // Remote specifies the TUF with trusted initial root and remote mirror where
 // to fetch updates from.
 type Remote struct {
-	// Root is the json encoded trusted initial root.
-	Root string `json:"root"`
+	// Root is the base64 encoded, json trusted initial root.
+	Root []byte `json:"root"`
 
 	// Mirror is the remote mirror, for example:
 	// https://sigstore-tuf-root.storage.googleapis.com
@@ -88,8 +88,8 @@ type Remote struct {
 // Repository specifies an airgapped TUF. Specifies the trusted initial root as
 // well as a serialized repository.
 type Repository struct {
-	// Root is the json encoded trusted initial root.
-	Root string `json:"root"`
+	// Root is the base64 encoded, json trusted initial root.
+	Root []byte `json:"root"`
 
 	// MirrorFS is the base64 tarred, gzipped, and base64 encoded remote
 	// repository that can be used for example in air-gap environments. Will
