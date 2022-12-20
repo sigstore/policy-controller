@@ -224,7 +224,7 @@ func getSigstoreKeysFromTuf(ctx context.Context, tufClient *client.Client) (*con
 		var scm sigstoreCustomMetadata
 		err := json.Unmarshal(*targetMeta.Custom, &scm)
 		if err != nil {
-			logging.FromContext(ctx).Errorf("**Warning** Custom metadata not configured properly for target %s, skipping target: %v", name, err)
+			logging.FromContext(ctx).Warnf("Custom metadata not configured properly for target %s, skipping target: %v", name, err)
 			continue
 		}
 		dl := newDownloader()
@@ -243,7 +243,7 @@ func getSigstoreKeysFromTuf(ctx context.Context, tufClient *client.Client) (*con
 	// Make sure there's at least a single CertificateAuthority (Fulcio there).
 	// Some others could be optional.
 	if len(ret.CertificateAuthorities) == 0 {
-		return nil, errors.New("no certificateauthorities found")
+		return nil, errors.New("no certificate authorities found")
 	}
 	return ret, nil
 }
