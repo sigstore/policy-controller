@@ -1054,13 +1054,37 @@ func TestAttestationsValidation(t *testing.T) {
 		},
 		errorString: "invalid value: not-cue: policy.type\nonly [cue,rego] are supported at the moment",
 	}, {
-		name: "custom with missing policy data",
+		name: "custom with missing policy data and configMapRef",
 		attestation: Attestation{Name: "second", PredicateType: "custom",
 			Policy: &Policy{
 				Type: "cue",
 			},
 		},
-		errorString: "missing field(s): policy.data",
+		errorString: "missing field(s): policy.configMapRef, policy.data",
+	}, {
+		name: "custom with both policy data and configMapRef",
+		attestation: Attestation{Name: "second", PredicateType: "custom",
+			Policy: &Policy{
+				Type: "cue",
+				Data: `predicateType: "cosign.sigstore.dev/attestation/vuln/v1"`,
+				ConfigMapRef: &ConfigMapReference{
+					Name: "cmname",
+					Key:  "keyname",
+				},
+			},
+		},
+		errorString: "expected exactly one, got both: policy.configMapRef, policy.data",
+	}, {
+		name: "custom with invalid configMapRef, missing key",
+		attestation: Attestation{Name: "second", PredicateType: "custom",
+			Policy: &Policy{
+				Type: "cue",
+				ConfigMapRef: &ConfigMapReference{
+					Name: "cmname",
+				},
+			},
+		},
+		errorString: "missing field(s): policy.configMapRef.key",
 	}, {
 		name: "custom with policy",
 		attestation: Attestation{Name: "second", PredicateType: "custom",

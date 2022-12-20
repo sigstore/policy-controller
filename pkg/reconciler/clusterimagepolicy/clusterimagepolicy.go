@@ -270,6 +270,7 @@ func (r *Reconciler) inlinePolicies(ctx context.Context, cip *v1alpha1.ClusterIm
 // is modified.
 func (r *Reconciler) inlineAndTrackConfigMap(ctx context.Context, cip *v1alpha1.ClusterImagePolicy, policyRef *v1alpha1.Policy) error {
 	cmName := policyRef.ConfigMapRef.Name
+	keyName := policyRef.ConfigMapRef.Key
 	if err := r.tracker.TrackReference(tracker.Reference{
 		APIVersion: "v1",
 		Kind:       "ConfigMap",
@@ -285,14 +286,12 @@ func (r *Reconciler) inlineAndTrackConfigMap(ctx context.Context, cip *v1alpha1.
 	if len(cm.Data) == 0 {
 		return fmt.Errorf("configmap %q contains no data", cmName)
 	}
-	if len(cm.Data) > 1 {
-		return fmt.Errorf("configmap %q contains multiple data entries, only one is supported", cmName)
+	if cm.Data[keyName] == "" {
+		return fmt.Errorf("configmap %q does not contain key %s", cmName, keyName)
 	}
-	for k, v := range cm.Data {
-		logging.FromContext(ctx).Infof("inlining configmap %q key %q", cmName, k)
-		policyRef.Data = v
-		policyRef.ConfigMapRef = nil
-	}
+	logging.FromContext(ctx).Infof("inlining configmap %q key %q", cmName, keyName)
+	policyRef.Data = cm.Data[keyName]
+	policyRef.ConfigMapRef = nil
 	return nil
 }
 

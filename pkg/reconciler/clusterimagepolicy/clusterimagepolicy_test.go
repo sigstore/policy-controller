@@ -58,6 +58,7 @@ const (
 	kmsKey            = "azure-kms://foo/bar"
 	fakeKMSKey        = "fakekms://keycip"
 	policyCMName      = "policy-configmap"
+	policyCMKey       = "policy-configmap-key"
 
 	testPolicy = `predicateType: "cosign.sigstore.dev/attestation/v1"
 	predicate: Data: "foobar key e2e test"`
@@ -774,12 +775,13 @@ func TestReconcile(t *testing.T) {
 							Policy: &v1alpha1.Policy{
 								ConfigMapRef: &v1alpha1.ConfigMapReference{
 									Name: policyCMName,
+									Key:  policyCMKey,
 								},
 							},
 						}}}),
 				),
 				makeConfigMap(),
-				makePolicyConfigMap(policyCMName, map[string]string{"policy": testPolicy}),
+				makePolicyConfigMap(policyCMName, map[string]string{policyCMKey: testPolicy}),
 			},
 			WantPatches: []clientgotesting.PatchActionImpl{
 				makePatch(inlinedPolicyPatch),
@@ -807,11 +809,12 @@ func TestReconcile(t *testing.T) {
 					WithPolicy(&v1alpha1.Policy{
 						ConfigMapRef: &v1alpha1.ConfigMapReference{
 							Name: policyCMName,
+							Key:  policyCMKey,
 						},
 					}),
 				),
 				makeConfigMap(),
-				makePolicyConfigMap(policyCMName, map[string]string{"policy": testPolicy}),
+				makePolicyConfigMap(policyCMName, map[string]string{policyCMKey: testPolicy}),
 			},
 			WantPatches: []clientgotesting.PatchActionImpl{
 				makePatch(inlinedCIPPolicyPatch),

@@ -207,6 +207,7 @@ ConfigMapReference is cut&paste from SecretReference, but for the life of me cou
 | ----- | ----------- | ------ | -------- |
 | name | Name is unique within a namespace to reference a configmap resource. | string | false |
 | namespace | Namespace defines the space within which the configmap name must be unique. | string | false |
+| key | Key defines the key to pull from the configmap. | string | false |
 
 [Back to TOC](#table-of-contents)
 

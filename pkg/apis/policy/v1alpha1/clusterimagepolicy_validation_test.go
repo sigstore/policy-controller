@@ -1007,10 +1007,22 @@ func TestAttestationsValidation(t *testing.T) {
 				Data: `predicateType: "cosign.sigstore.dev/attestation/vuln/v1"`,
 				ConfigMapRef: &ConfigMapReference{
 					Name: "cmname",
+					Key:  "keyname",
 				},
 			},
 		},
 		errorString: "expected exactly one, got both: policy.configMapRef, policy.data",
+	}, {
+		name: "custom with invalid configMapRef, missing key",
+		attestation: Attestation{Name: "second", PredicateType: "custom",
+			Policy: &Policy{
+				Type: "cue",
+				ConfigMapRef: &ConfigMapReference{
+					Name: "cmname",
+				},
+			},
+		},
+		errorString: "missing field(s): policy.configMapRef.key",
 	}, {
 		name: "custom with policy",
 		attestation: Attestation{Name: "second", PredicateType: "custom",

@@ -146,6 +146,7 @@ func (p *Policy) ConvertTo(ctx context.Context, sink *v1beta1.Policy) {
 		sink.ConfigMapRef = &v1beta1.ConfigMapReference{
 			Name:      p.ConfigMapRef.Name,
 			Namespace: p.ConfigMapRef.Namespace,
+			Key:       p.ConfigMapRef.Key,
 		}
 	}
 	if p.FetchConfigFile != nil {
@@ -172,6 +173,7 @@ func (p *Policy) ConvertFrom(ctx context.Context, source *v1beta1.Policy) {
 		p.ConfigMapRef = &ConfigMapReference{
 			Name:      source.ConfigMapRef.Name,
 			Namespace: source.ConfigMapRef.Namespace,
+			Key:       source.ConfigMapRef.Key,
 		}
 	}
 	if source.FetchConfigFile != nil {

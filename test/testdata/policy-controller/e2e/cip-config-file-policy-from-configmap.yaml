@@ -27,3 +27,4 @@ spec:
     type: "cue"
     configMapRef:
       name: policy-config
+      key: policy
