@@ -72,6 +72,14 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, cip *v1alpha1.ClusterIma
 		return cipErr
 	}
 
+	cipErr = r.inlinePolicies(ctx, cipCopy)
+	if cipErr != nil {
+		r.handleCIPError(ctx, cip.Name)
+		// Note that we return the error about the Invalid cip here to make
+		// sure that it's surfaced.
+		return cipErr
+	}
+
 	webhookCIP := webhookcip.ConvertClusterImagePolicyV1alpha1ToWebhook(cipCopy)
 
 	// See if the CM holding configs exists
@@ -228,6 +236,62 @@ func (r *Reconciler) inlineAndTrackSecret(ctx context.Context, cip *v1alpha1.Clu
 		keyref.Data = string(v)
 		keyref.SecretRef = nil
 	}
+	return nil
+}
+
+// inlinePolicies will go through the CIP and try to read the referenced
+// ConfigMapRefs and convert them into inlined data. Modifies the cip in-place
+func (r *Reconciler) inlinePolicies(ctx context.Context, cip *v1alpha1.ClusterImagePolicy) error {
+	for _, authority := range cip.Spec.Authorities {
+		for _, att := range authority.Attestations {
+			if att.Policy != nil && att.Policy.ConfigMapRef != nil {
+				err := r.inlineAndTrackConfigMap(ctx, cip, att.Policy)
+				if err != nil {
+					logging.FromContext(ctx).Errorf("Failed to read configmap %q: %v", att.Policy.ConfigMapRef.Name, err)
+					return err
+				}
+			}
+		}
+	}
+	if cip.Spec.Policy != nil && cip.Spec.Policy.ConfigMapRef != nil {
+		err := r.inlineAndTrackConfigMap(ctx, cip, cip.Spec.Policy)
+		if err != nil {
+			logging.FromContext(ctx).Errorf("Failed to read configmap %q: %v", cip.Spec.Policy.ConfigMapRef.Name, err)
+			return err
+		}
+	}
+	return nil
+}
+
+// inlineAndTrackConfigMap will take in a ConfigMapRef and tries to read the ConfigMap,
+// finding the first key from it and will inline it in place of Data and then
+// clear out the ConfigMapRef and return it.
+// Additionally, we set up a tracker so we will be notified if the ConfigMap
+// is modified.
+func (r *Reconciler) inlineAndTrackConfigMap(ctx context.Context, cip *v1alpha1.ClusterImagePolicy, policyRef *v1alpha1.Policy) error {
+	cmName := policyRef.ConfigMapRef.Name
+	keyName := policyRef.ConfigMapRef.Key
+	if err := r.tracker.TrackReference(tracker.Reference{
+		APIVersion: "v1",
+		Kind:       "ConfigMap",
+		Namespace:  system.Namespace(),
+		Name:       cmName,
+	}, cip); err != nil {
+		return fmt.Errorf("failed to track changes to configmap %q : %w", cmName, err)
+	}
+	cm, err := r.configmaplister.ConfigMaps(system.Namespace()).Get(cmName)
+	if err != nil {
+		return err
+	}
+	if len(cm.Data) == 0 {
+		return fmt.Errorf("configmap %q contains no data", cmName)
+	}
+	if cm.Data[keyName] == "" {
+		return fmt.Errorf("configmap %q does not contain key %s", cmName, keyName)
+	}
+	logging.FromContext(ctx).Infof("inlining configmap %q key %q", cmName, keyName)
+	policyRef.Data = cm.Data[keyName]
+	policyRef.ConfigMapRef = nil
 	return nil
 }
 

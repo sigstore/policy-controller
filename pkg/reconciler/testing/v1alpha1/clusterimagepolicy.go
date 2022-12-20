@@ -71,6 +71,12 @@ func WithAuthority(a v1alpha1.Authority) ClusterImagePolicyOption {
 	}
 }
 
+func WithPolicy(p *v1alpha1.Policy) ClusterImagePolicyOption {
+	return func(cip *v1alpha1.ClusterImagePolicy) {
+		cip.Spec.Policy = p
+	}
+}
+
 func WithMatch(a v1alpha1.MatchResource) ClusterImagePolicyOption {
 	return func(cip *v1alpha1.ClusterImagePolicy) {
 		cip.Spec.Match = append(cip.Spec.Match, a)

@@ -252,6 +252,17 @@ func (a *Attestation) Validate(ctx context.Context) *apis.FieldError {
 	return errs
 }
 
+func (cmr *ConfigMapReference) Validate(ctx context.Context) *apis.FieldError {
+	var errs *apis.FieldError
+	if cmr.Name == "" {
+		errs = errs.Also(apis.ErrMissingField("name"))
+	}
+	if cmr.Key == "" {
+		errs = errs.Also(apis.ErrMissingField("key"))
+	}
+	return errs
+}
+
 func (p *Policy) Validate(ctx context.Context) *apis.FieldError {
 	if p == nil {
 		return nil
@@ -260,8 +271,14 @@ func (p *Policy) Validate(ctx context.Context) *apis.FieldError {
 	if p.Type != "cue" && p.Type != "rego" {
 		errs = errs.Also(apis.ErrInvalidValue(p.Type, "type", "only [cue,rego] are supported at the moment"))
 	}
-	if p.Data == "" {
-		errs = errs.Also(apis.ErrMissingField("data"))
+	if p.Data == "" && p.ConfigMapRef == nil {
+		errs = errs.Also(apis.ErrMissingField("data", "configMapRef"))
+	}
+	if p.Data != "" && p.ConfigMapRef != nil {
+		errs = errs.Also(apis.ErrMultipleOneOf("data", "configMapRef"))
+	}
+	if p.ConfigMapRef != nil {
+		errs = errs.Also(p.ConfigMapRef.Validate(ctx).ViaField("configMapRef"))
 	}
 	if !apis.IsInSpec(ctx) && p.FetchConfigFile != nil {
 		errs = errs.Also(apis.ErrDisallowedFields("fetchConfigFile"))

@@ -70,6 +70,9 @@ spec:
                                   description: ConfigMapRef defines the reference to a configMap with the policy definition.
                                   type: object
                                   properties:
+                                    key:
+                                      description: Key defines the key to pull from the configmap.
+                                      type: string
                                     name:
                                       description: Name is unique within a namespace to reference a configmap resource.
                                       type: string
@@ -268,6 +271,9 @@ spec:
                       description: ConfigMapRef defines the reference to a configMap with the policy definition.
                       type: object
                       properties:
+                        key:
+                          description: Key defines the key to pull from the configmap.
+                          type: string
                         name:
                           description: Name is unique within a namespace to reference a configmap resource.
                           type: string
@@ -329,6 +335,9 @@ spec:
                                   description: ConfigMapRef defines the reference to a configMap with the policy definition.
                                   type: object
                                   properties:
+                                    key:
+                                      description: Key defines the key to pull from the configmap.
+                                      type: string
                                     name:
                                       description: Name is unique within a namespace to reference a configmap resource.
                                       type: string
@@ -527,6 +536,9 @@ spec:
                       description: ConfigMapRef defines the reference to a configMap with the policy definition.
                       type: object
                       properties:
+                        key:
+                          description: Key defines the key to pull from the configmap.
+                          type: string
                         name:
                           description: Name is unique within a namespace to reference a configmap resource.
                           type: string

@@ -76,6 +76,16 @@ func NewController(
 		),
 	))
 
+	configMapInformer.Informer().AddEventHandler(controller.HandleAll(
+		// Call the tracker's OnChanged method, but we've seen the objects
+		// coming through this path missing TypeMeta, so ensure it is properly
+		// populated.
+		controller.EnsureTypeMeta(
+			r.tracker.OnChanged,
+			corev1.SchemeGroupVersion.WithKind("ConfigMap"),
+		),
+	))
+
 	// When the underlying ConfigMap changes,perform a global resync on
 	// ClusterImagePolicies to make sure their state is correctly reflected
 	// in the ConfigMap. This is admittedly a bit heavy handed, but I don't

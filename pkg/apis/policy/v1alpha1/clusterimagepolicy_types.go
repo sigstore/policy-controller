@@ -262,6 +262,9 @@ type ConfigMapReference struct {
 	// Namespace defines the space within which the configmap name must be unique.
 	// +optional
 	Namespace string `json:"namespace,omitempty"`
+	// Key defines the key to pull from the configmap.
+	// +optional
+	Key string `json:"key,omitempty"`
 }
 
 // Identity may contain the issuer and/or the subject found in the transparency
