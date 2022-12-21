@@ -17,6 +17,8 @@ package tuf
 import (
 	"bytes"
 	"encoding/base64"
+	"net/http"
+	"net/http/httptest"
 
 	"context"
 	"fmt"
@@ -198,11 +200,51 @@ func TestClientFromSerializedMirror(t *testing.T) {
 	}
 	root, err := base64.StdEncoding.DecodeString(rootJSON)
 	if err != nil {
-		t.Fatalf("failed to decode validrepository: %v", err)
+		t.Fatalf("failed to decode rootJSON: %v", err)
 	}
 	tufClient, err := ClientFromSerializedMirror(context.Background(), repo, root, "targets", "/repository/")
 	if err != nil {
 		t.Fatalf("Failed to unserialize repo: %v", err)
+	}
+	targets, err := tufClient.Targets()
+	if err != nil {
+		t.Errorf("failed to get Targets from tuf: %v", err)
+	}
+	if len(targets) == 0 {
+		t.Errorf("Got no targets from the TUF client")
+	}
+}
+
+func TestClientFromRemoteMirror(t *testing.T) {
+	files := map[string][]byte{
+		"fulcio_v1.crt.pem": []byte(fulcioRootCert),
+		"ctfe.pub":          []byte(ctlogPublicKey),
+		"rekor.pub":         []byte(rekorPublicKey),
+	}
+	local, dir, err := createRepo(context.Background(), files)
+	if err != nil {
+		t.Fatalf("Failed to CreateRepo: %s", err)
+	}
+	defer os.RemoveAll(dir)
+	meta, err := local.GetMeta()
+	if err != nil {
+		t.Fatalf("getting meta: %v", err)
+	}
+	rootJSON, ok := meta["root.json"]
+	if !ok {
+		t.Fatalf("Getting root: %v", err)
+	}
+	serveDir := filepath.Join(dir, "repository")
+	t.Logf("tuf repository was created in: %s serving tuf root at %s", dir, serveDir)
+	fs := http.FileServer(http.Dir(serveDir))
+	http.Handle("/", fs)
+
+	ts := httptest.NewServer(fs)
+	defer ts.Close()
+
+	tufClient, err := ClientFromRemote(context.Background(), ts.URL, rootJSON)
+	if err != nil {
+		t.Fatalf("Failed to get client from remote: %v", err)
 	}
 	targets, err := tufClient.Targets()
 	if err != nil {

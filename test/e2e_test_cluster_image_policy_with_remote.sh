@@ -114,7 +114,6 @@ echo '::endgroup::'
 
 echo '::group:: Create TrustRoot that specifies remote with mirror'
 export ROOT_JSON=`kubectl -n tuf-system get secrets tuf-root -ojsonpath='{.data.root}'`
-export MIRROR=`kubectl -n tuf-system get secrets tuf-root -ojsonpath='{.data.repository}'`
 
 sed -i'' -e "s@ROOT_JSON@${ROOT_JSON}@g" ./test/testdata/trustroot/e2e/with-remote.yaml
 sed -i'' -e "s@TUF_MIRROR@${TUF_MIRROR}@g" ./test/testdata/trustroot/e2e/with-remote.yaml
@@ -151,7 +150,6 @@ else
 fi
 kubectl delete -n ${NS} job demo
 echo '::endgroup::'
-
 
 echo '::group::' Cleanup
 kubectl delete cip --all
