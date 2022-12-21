@@ -61,6 +61,7 @@ Remote specifies the TUF with trusted initial root and remote mirror where to fe
 | ----- | ----------- | ------ | -------- |
 | root | Root is the base64 encoded, json trusted initial root. | []byte | true |
 | mirror | Mirror is the remote mirror, for example: https://sigstore-tuf-root.storage.googleapis.com | apis.URL | true |
+| targets | Targets is where the targets live off of the root of the Remote If not specified 'targets' is defaulted. | string | false |
 
 [Back to TOC](#table-of-contents)
 

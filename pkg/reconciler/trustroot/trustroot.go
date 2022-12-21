@@ -165,7 +165,7 @@ func (r *Reconciler) getSigstoreKeysFromMirrorFS(ctx context.Context, repository
 }
 
 func (r *Reconciler) getSigstoreKeysFromRemote(ctx context.Context, remote *v1alpha1.Remote) (*config.SigstoreKeys, error) {
-	tufClient, err := tuf.ClientFromRemote(ctx, remote.Mirror.String(), remote.Root)
+	tufClient, err := tuf.ClientFromRemote(ctx, remote.Mirror.String(), remote.Root, remote.Targets)
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct TUF client from remote: %w", err)
 	}

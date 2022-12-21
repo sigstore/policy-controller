@@ -83,6 +83,11 @@ type Remote struct {
 	// Mirror is the remote mirror, for example:
 	// https://sigstore-tuf-root.storage.googleapis.com
 	Mirror apis.URL `json:"mirror"`
+
+	// Targets is where the targets live off of the root of the Remote
+	// If not specified 'targets' is defaulted.
+	// +optional
+	Targets string `json:"targets,omitempty"`
 }
 
 // Repository specifies an airgapped TUF. Specifies the trusted initial root as

@@ -23,12 +23,22 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing/fstest"
+	"time"
 
 	"github.com/theupdateframework/go-tuf/client"
+	"sigs.k8s.io/release-utils/version"
+)
+
+var (
+	// uaString is meant to resemble the User-Agent sent by browsers with requests.
+	// See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent
+	uaString = fmt.Sprintf("cosign/%s (%s; %s)", version.GetVersionInfo().GitVersion, runtime.GOOS, runtime.GOARCH)
 )
 
 func CompressFS(fsys fs.FS, buf io.Writer, skipDirs map[string]bool) error {
@@ -247,10 +257,18 @@ func ClientFromSerializedMirror(ctx context.Context, repo, rootJSON []byte, targ
 	return tufClient, nil
 }
 
-// ClientFromRemote will construct a TUF client by
-func ClientFromRemote(ctx context.Context, mirror string, rootJSON []byte) (*client.Client, error) {
-	// TODO(vaikas): Configure proper http options (like retries, ctx, etc.)
-	remote, err := client.HTTPRemoteStore(mirror, nil, nil)
+// ClientFromRemote will construct a TUF client from a root, and mirror
+func ClientFromRemote(ctx context.Context, mirror string, rootJSON []byte, targets string) (*client.Client, error) {
+	opts := &client.HTTPRemoteOptions{
+		UserAgent:   uaString,
+		TargetsPath: targets,
+		Retries:     client.DefaultHTTPRetries,
+	}
+	// It's a bit unfortunate that the TUF client methods don't support context
+	// We could maybe plumb timeouts through from our context and set the
+	// timeouts based on that.
+	remote, err := client.HTTPRemoteStore(mirror, opts, &http.Client{
+		Timeout: 4 * time.Second})
 	if err != nil {
 		return nil, fmt.Errorf("failed to create remote HTTP store: %w", err)
 	}

@@ -242,7 +242,7 @@ func TestClientFromRemoteMirror(t *testing.T) {
 	ts := httptest.NewServer(fs)
 	defer ts.Close()
 
-	tufClient, err := ClientFromRemote(context.Background(), ts.URL, rootJSON)
+	tufClient, err := ClientFromRemote(context.Background(), ts.URL, rootJSON, "targets")
 	if err != nil {
 		t.Fatalf("Failed to get client from remote: %v", err)
 	}
