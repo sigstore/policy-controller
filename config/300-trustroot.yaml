@@ -49,6 +49,9 @@ spec:
                     root:
                       description: Root is the base64 encoded, json trusted initial root.
                       type: string
+                    targets:
+                      description: Targets is where the targets live off of the root of the Remote If not specified 'targets' is defaulted.
+                      type: string
                 repository:
                   description: Repository contains the serialized TUF remote repository.
                   type: object

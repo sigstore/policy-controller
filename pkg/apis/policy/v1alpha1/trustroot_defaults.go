@@ -25,4 +25,7 @@ func (spec *TrustRootSpec) SetDefaults(ctx context.Context) {
 	if spec.Repository != nil && spec.Repository.Targets == "" {
 		spec.Repository.Targets = "targets"
 	}
+	if spec.Remote != nil && spec.Remote.Targets == "" {
+		spec.Remote.Targets = "targets"
+	}
 }

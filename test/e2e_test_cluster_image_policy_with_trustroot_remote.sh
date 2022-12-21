@@ -101,32 +101,29 @@ popd
 echo '::endgroup::'
 
 echo '::group:: Create and label new namespace for verification'
-kubectl create namespace demo-trustroot-bring-your-keys
-kubectl label namespace demo-trustroot-bring-your-keys policy.sigstore.dev/include=true
-export NS=demo-trustroot-bring-your-keys
+kubectl create namespace demo-trustroot-remote
+kubectl label namespace demo-trustroot-remote policy.sigstore.dev/include=true
+export NS=demo-trustroot-remote
 echo '::endgroup::'
 
 echo '::group:: Create CIP that requires keyless attestation with trustroot'
-kubectl apply -f ./test/testdata/policy-controller/e2e/cip-keyless-with-trustroot-with-attestations.yaml
+kubectl apply -f ./test/testdata/policy-controller/e2e/cip-keyless-with-trustroot-remote-with-attestations.yaml
 # allow things to propagate
 sleep 5
 echo '::endgroup::'
 
-echo '::group:: Create TrustRoot that specifies Fulcio and Rekor certs/keys'
-export FULCIO_CERT_CHAIN=`kubectl -n tuf-system get secrets fulcio-pub-key -ojsonpath='{.data.cert}'`
-export REKOR_PUBLIC_KEY=`kubectl -n tuf-system get secrets rekor-pub-key -ojsonpath='{.data.public}'`
-export CTFE_PUBLIC_KEY=`kubectl -n tuf-system get secrets ctlog-public-key -ojsonpath='{.data.public}'`
+echo '::group:: Create TrustRoot that specifies remote with mirror'
+export ROOT_JSON=`kubectl -n tuf-system get secrets tuf-root -ojsonpath='{.data.root}'`
 
-sed -i'' -e "s@FULCIO_CERT_CHAIN@${FULCIO_CERT_CHAIN}@g" ./test/testdata/trustroot/e2e/bring-your-own-keys.yaml
-sed -i'' -e "s@REKOR_PUBLIC_KEY@${REKOR_PUBLIC_KEY}@g" ./test/testdata/trustroot/e2e/bring-your-own-keys.yaml
-sed -i'' -e "s@CTFE_PUBLIC_KEY@${CTFE_PUBLIC_KEY}@g" ./test/testdata/trustroot/e2e/bring-your-own-keys.yaml
-kubectl apply -f ./test/testdata/trustroot/e2e/bring-your-own-keys.yaml
+sed -i'' -e "s@ROOT_JSON@${ROOT_JSON}@g" ./test/testdata/trustroot/e2e/with-remote.yaml
+sed -i'' -e "s@TUF_MIRROR@${TUF_MIRROR}@g" ./test/testdata/trustroot/e2e/with-remote.yaml
+kubectl apply -f ./test/testdata/trustroot/e2e/with-remote.yaml
 
 # allow things to propagate
 sleep 5
 echo '::endgroup::'
 
-# This image does not have an attestation, so should fail
+# This image has no attestation, so should fail
 echo '::group:: test job rejection'
 expected_error='no matching attestations'
 assert_error ${expected_error}
@@ -141,7 +138,7 @@ COSIGN_EXPERIMENTAL=1 cosign verify-attestation --type=custom --rekor-url ${REKO
 echo '::endgroup::'
 
 echo '::group:: test job success'
-# We created keyless attestation, so should pass.
+# This has now a keyless attestation, so should pass.
 export KUBECTL_SUCCESS_FILE="/tmp/kubectl.success.out"
 if ! kubectl create -n ${NS} job demo --image=${demoimage} 2> ${KUBECTL_SUCCESS_FILE} ; then
   echo Failed to create job with keyless attestation

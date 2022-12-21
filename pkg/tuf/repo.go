@@ -23,12 +23,22 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"net/http"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing/fstest"
+	"time"
 
 	"github.com/theupdateframework/go-tuf/client"
+	"sigs.k8s.io/release-utils/version"
+)
+
+var (
+	// uaString is meant to resemble the User-Agent sent by browsers with requests.
+	// See: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/User-Agent
+	uaString = fmt.Sprintf("cosign/%s (%s; %s)", version.GetVersionInfo().GitVersion, runtime.GOOS, runtime.GOARCH)
 )
 
 func CompressFS(fsys fs.FS, buf io.Writer, skipDirs map[string]bool) error {
@@ -214,7 +224,7 @@ func UncompressMemFS(src io.Reader, stripPrefix string) (fs.FS, error) {
 }
 
 // ClientFromSerializedMirror will construct a TUF client by
-// base64 decoding, unzip/untar the repository and constructing an in-memory TUF
+// unzip/untar the repository and constructing an in-memory TUF
 // client for it. Will also Init/Update it.
 func ClientFromSerializedMirror(ctx context.Context, repo, rootJSON []byte, targets, stripPrefix string) (*client.Client, error) {
 	// unzip/untar the repository.
@@ -232,6 +242,38 @@ func ClientFromSerializedMirror(ctx context.Context, repo, rootJSON []byte, targ
 
 	// TODO(vaikas): What should we do with above tufClient validation
 	// wise before just returning it?
+	err = tufClient.Init(rootJSON)
+	if err != nil {
+		return nil, fmt.Errorf("failed to init TUF client: %w", err)
+	}
+	targetFiles, err := tufClient.Update()
+	if err != nil {
+		return nil, fmt.Errorf("failed to update TUF client: %w", err)
+	}
+
+	if len(targetFiles) == 0 {
+		return nil, errors.New("there are no valid targetfiles in TUF repo")
+	}
+	return tufClient, nil
+}
+
+// ClientFromRemote will construct a TUF client from a root, and mirror
+func ClientFromRemote(ctx context.Context, mirror string, rootJSON []byte, targets string) (*client.Client, error) {
+	opts := &client.HTTPRemoteOptions{
+		UserAgent:   uaString,
+		TargetsPath: targets,
+		Retries:     client.DefaultHTTPRetries,
+	}
+	// It's a bit unfortunate that the TUF client methods don't support context
+	// We could maybe plumb timeouts through from our context and set the
+	// timeouts based on that.
+	remote, err := client.HTTPRemoteStore(mirror, opts, &http.Client{
+		Timeout: 4 * time.Second})
+	if err != nil {
+		return nil, fmt.Errorf("failed to create remote HTTP store: %w", err)
+	}
+	local := client.MemoryLocalStore()
+	tufClient := client.NewClient(local, remote)
 	err = tufClient.Init(rootJSON)
 	if err != nil {
 		return nil, fmt.Errorf("failed to init TUF client: %w", err)
