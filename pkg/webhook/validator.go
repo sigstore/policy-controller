@@ -1187,7 +1187,7 @@ func getConfigs(ctx context.Context, ref name.Reference, options ...remote.Optio
 					return
 				}
 
-				newRefConfigs, errs := getConfigs(ctx, newRef)
+				newRefConfigs, errs := getConfigs(ctx, newRef, options...)
 				results <- configFileResult{ret: newRefConfigs, errs: errs}
 			}()
 		}
@@ -1201,8 +1201,8 @@ func getConfigs(ctx context.Context, ref name.Reference, options ...remote.Optio
 				if !ok {
 					errs = append(errs, errors.New("channel closed before all results were gathered"))
 				} else {
-					if result.errs != nil {
-						errs = append(errs, fmt.Errorf("failed to get a ConfigFile: %w", err))
+					if len(result.errs) != 0 {
+						errs = append(errs, fmt.Errorf("failed to get a ConfigFile: %v", result.errs))
 					} else {
 						for k, v := range result.ret {
 							ret[k] = v
