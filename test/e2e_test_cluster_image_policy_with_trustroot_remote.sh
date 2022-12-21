@@ -106,7 +106,7 @@ kubectl label namespace demo-trustroot-remote policy.sigstore.dev/include=true
 export NS=demo-trustroot-remote
 echo '::endgroup::'
 
-echo '::group:: Create CIP that requires keyless attestations with trustroot'
+echo '::group:: Create CIP that requires keyless attestation with trustroot'
 kubectl apply -f ./test/testdata/policy-controller/e2e/cip-keyless-with-trustroot-remote-with-attestations.yaml
 # allow things to propagate
 sleep 5
@@ -123,7 +123,7 @@ kubectl apply -f ./test/testdata/trustroot/e2e/with-remote.yaml
 sleep 5
 echo '::endgroup::'
 
-# This image has not been signed at all, so should get auto-reject
+# This image has no attestation, so should fail
 echo '::group:: test job rejection'
 expected_error='no matching attestations'
 assert_error ${expected_error}
@@ -138,15 +138,14 @@ COSIGN_EXPERIMENTAL=1 cosign verify-attestation --type=custom --rekor-url ${REKO
 echo '::endgroup::'
 
 echo '::group:: test job success'
-# We signed this with keyless and it has a keyless attestation, so should
-# pass.
+# This has now a keyless attestation, so should pass.
 export KUBECTL_SUCCESS_FILE="/tmp/kubectl.success.out"
 if ! kubectl create -n ${NS} job demo --image=${demoimage} 2> ${KUBECTL_SUCCESS_FILE} ; then
-  echo Failed to create job with keyless signature and an attestation
+  echo Failed to create job with keyless attestation
   cat ${KUBECTL_SUCCESS_FILE}
   exit 1
 else
-  echo Created the job with keyless signature and an attestation
+  echo Created the job with keyless attestation
 fi
 kubectl delete -n ${NS} job demo
 echo '::endgroup::'

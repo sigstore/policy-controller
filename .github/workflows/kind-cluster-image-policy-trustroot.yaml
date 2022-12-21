@@ -37,6 +37,11 @@ jobs:
         - v1.24.x
         - v1.25.x
 
+      script:
+      - repository
+      - remote
+      - bring_own_keys
+
     env:
       KO_DOCKER_REPO: "registry.local:5000/policy-controller"
       SCAFFOLDING_RELEASE_VERSION: "v0.5.4"
@@ -75,6 +80,7 @@ jobs:
         k8s-version: ${{ matrix.k8s-version}}
         version: ${{ env.SCAFFOLDING_RELEASE_VERSION }}
 
+    # Install policy-controller that does not have TUF embedded or installed.
     - name: Install policy-controller
       env:
         GIT_HASH: ${{ github.sha }}
@@ -91,10 +97,10 @@ jobs:
         kubectl rollout status --timeout 5m --namespace cosign-system deployments/webhook
         echo "TUF_ROOT_FILE=./root.json" >> $GITHUB_ENV
 
-    - name: Run Cluster Image Policy Tests that tests with bring your own keys
+    - name: Run Trustroot Tests that tests with different TUF configurations
       timeout-minutes: 5
       run: |
-        ./test/e2e_test_cluster_image_policy_with_trustroot_bring_own_keys.sh
+        ./test/e2e_test_cluster_image_policy_with_trustroot_${{ matrix.script }}.sh
 
     - name: Collect diagnostics
       if: ${{ failure() }}
