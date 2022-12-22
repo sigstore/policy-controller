@@ -19,12 +19,11 @@ import (
 	"context"
 	"crypto"
 	"crypto/ecdsa"
-	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
 
-	"github.com/sigstore/cosign/v2/pkg/cosign/fulcioverifier/ctutil"
+	"github.com/sigstore/cosign/v2/pkg/cosign"
 	"github.com/sigstore/policy-controller/pkg/apis/config"
 	"github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
 	trustrootreconciler "github.com/sigstore/policy-controller/pkg/client/injection/reconciler/policy/v1alpha1/trustroot"
@@ -193,11 +192,11 @@ func pemToKeyAndID(pem []byte) (crypto.PublicKey, string, error) {
 	if err != nil {
 		return nil, "", fmt.Errorf("unmarshaling PEM public key: %w", err)
 	}
-	logID, err := ctutil.GetCTLogID(pk)
+	logID, err := cosign.GetTransparencyLogID(pk)
 	if err != nil {
 		return nil, "", fmt.Errorf("failed to construct LogID for rekor: %w", err)
 	}
-	return pk, hex.EncodeToString(logID[:]), nil
+	return pk, logID, nil
 }
 
 // These are private to sigstore/sigstore even though I don't think they should
