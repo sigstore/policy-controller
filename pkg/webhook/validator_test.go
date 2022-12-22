@@ -38,7 +38,6 @@ import (
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/sigstore/cosign/v2/pkg/cosign"
 	"github.com/sigstore/cosign/v2/pkg/cosign/bundle"
-	"github.com/sigstore/cosign/v2/pkg/cosign/fulcioverifier/ctl"
 	"github.com/sigstore/cosign/v2/pkg/oci"
 	"github.com/sigstore/cosign/v2/pkg/oci/remote"
 	"github.com/sigstore/cosign/v2/pkg/oci/static"
@@ -2815,7 +2814,7 @@ func TestFulcioCertsFromAuthority(t *testing.T) {
 		t.Fatalf("Failed to get embedded fulcioroots for testing")
 	}
 
-	embeddedCTLogKeys, err := ctl.GetCTLogPubs(context.Background())
+	embeddedCTLogKeys, err := cosign.GetCTLogPubs(context.Background())
 	if err != nil {
 		t.Fatalf("Failed to get embedded CTLog Public keys for testing")
 	}
@@ -2849,7 +2848,7 @@ func TestFulcioCertsFromAuthority(t *testing.T) {
 		wantErr           string
 		wantRoots         *x509.CertPool
 		wantIntermediates *x509.CertPool
-		wantCTLogKeys     *ctl.TrustedCTLogPubKeys
+		wantCTLogKeys     *cosign.TrustedTransparencyLogPubKeys
 		ctx               context.Context
 	}{{
 		name:              "no trustroots, uses embedded",
@@ -2878,7 +2877,7 @@ func TestFulcioCertsFromAuthority(t *testing.T) {
 		ctx:               testCtx,
 		wantRoots:         roots,
 		wantIntermediates: intermediates,
-		wantCTLogKeys:     &ctl.TrustedCTLogPubKeys{Keys: map[string]ctl.LogIDMetadata{ctfeLogID: {PubKey: marshalledPK, Status: tuf.Active}}},
+		wantCTLogKeys:     &cosign.TrustedTransparencyLogPubKeys{Keys: map[string]cosign.TransparencyLogPubKey{ctfeLogID: {PubKey: marshalledPK, Status: tuf.Active}}},
 	}}
 
 	for _, tc := range tests {
@@ -2928,7 +2927,7 @@ func TestRekorClientAndKeysFromAuthority(t *testing.T) {
 		t.Fatalf("Did not get a single Public Key for Rekor")
 	}
 	var embeddedLogID string
-	var embeddedPK *ecdsa.PublicKey
+	var embeddedPK crypto.PublicKey
 	for k, v := range embeddedPKs.Keys {
 		embeddedLogID = k
 		embeddedPK = v.PubKey
@@ -2954,7 +2953,7 @@ func TestRekorClientAndKeysFromAuthority(t *testing.T) {
 		name       string
 		tlog       *v1alpha1.TLog
 		wantErr    string
-		wantPK     *ecdsa.PublicKey
+		wantPK     crypto.PublicKey
 		wantLogID  string
 		wantClient bool
 		ctx        context.Context
@@ -3008,8 +3007,8 @@ func TestRekorClientAndKeysFromAuthority(t *testing.T) {
 			if tc.wantLogID != "" {
 				if gotPKs == nil || gotPKs.Keys == nil {
 					t.Errorf("Wanted logid %s got none", tc.wantLogID)
-				} else if !tc.wantPK.Equal(gotPKs.Keys[tc.wantLogID].PubKey) {
-					t.Errorf("did not get wanted PK, want %+v got %+v", tc.wantPK, gotPKs.Keys[tc.wantLogID])
+				} else if diff := cmp.Diff(gotPKs.Keys[tc.wantLogID].PubKey, tc.wantPK); diff != "" {
+					t.Errorf("did not get wanted PK: %s", diff)
 				}
 			} else if gotPKs != nil {
 				t.Errorf("did not want PK, %+v", gotPKs)
@@ -3041,7 +3040,7 @@ func TestCheckOptsFromAuthority(t *testing.T) {
 		t.Fatalf("Did not get a single Public Key for Rekor")
 	}
 	var embeddedLogID string
-	var embeddedPK *ecdsa.PublicKey
+	var embeddedPK crypto.PublicKey
 	for k, v := range embeddedPKs.Keys {
 		embeddedLogID = k
 		embeddedPK = v.PubKey
@@ -3068,7 +3067,7 @@ func TestCheckOptsFromAuthority(t *testing.T) {
 		t.Fatalf("Failed to get embedded fulcioroots for testing")
 	}
 
-	embeddedCTLogKeys, err := ctl.GetCTLogPubs(context.Background())
+	embeddedCTLogKeys, err := cosign.GetCTLogPubs(context.Background())
 	if err != nil {
 		t.Fatalf("Failed to get embedded CTLog Public keys for testing")
 	}
@@ -3135,7 +3134,7 @@ func TestCheckOptsFromAuthority(t *testing.T) {
 			Keyless: &webhookcip.KeylessRef{URL: apis.HTTPS("fulcio.sigstore.dev")},
 		},
 		wantCheckOpts: &cosign.CheckOpts{
-			RekorPubKeys:      &cosign.TrustedRekorPubKeys{Keys: map[string]cosign.RekorPubKey{embeddedLogID: {PubKey: embeddedPK, Status: tuf.Active}}},
+			RekorPubKeys:      &cosign.TrustedTransparencyLogPubKeys{Keys: map[string]cosign.TransparencyLogPubKey{embeddedLogID: {PubKey: embeddedPK, Status: tuf.Active}}},
 			RootCerts:         embeddedRoots,
 			IntermediateCerts: embeddedIntermediates,
 			CTLogPubKeys:      embeddedCTLogKeys,
@@ -3168,7 +3167,7 @@ func TestCheckOptsFromAuthority(t *testing.T) {
 		ctx:        testCtx,
 		wantClient: true,
 		wantCheckOpts: &cosign.CheckOpts{
-			RekorPubKeys: &cosign.TrustedRekorPubKeys{Keys: map[string]cosign.RekorPubKey{"rekor-logid": {PubKey: ecpk, Status: tuf.Active}}},
+			RekorPubKeys: &cosign.TrustedTransparencyLogPubKeys{Keys: map[string]cosign.TransparencyLogPubKey{"rekor-logid": {PubKey: ecpk, Status: tuf.Active}}},
 		},
 	}, {
 		name: "trustroot found, Fulcio",
@@ -3181,7 +3180,7 @@ func TestCheckOptsFromAuthority(t *testing.T) {
 			RootCerts:         roots,
 			IntermediateCerts: intermediates,
 			SkipTlogVerify:    true,
-			CTLogPubKeys:      &ctl.TrustedCTLogPubKeys{Keys: map[string]ctl.LogIDMetadata{ctfeLogID: {PubKey: marshalledPK, Status: tuf.Active}}},
+			CTLogPubKeys:      &cosign.TrustedTransparencyLogPubKeys{Keys: map[string]cosign.TransparencyLogPubKey{ctfeLogID: {PubKey: marshalledPK, Status: tuf.Active}}},
 		},
 	}, {
 		name: "trustroot found, combined, with Identities",
@@ -3201,12 +3200,12 @@ func TestCheckOptsFromAuthority(t *testing.T) {
 		wantCheckOpts: &cosign.CheckOpts{
 			RootCerts:         roots,
 			IntermediateCerts: intermediates,
-			RekorPubKeys:      &cosign.TrustedRekorPubKeys{Keys: map[string]cosign.RekorPubKey{"rekor-logid": {PubKey: ecpk, Status: tuf.Active}}},
+			RekorPubKeys:      &cosign.TrustedTransparencyLogPubKeys{Keys: map[string]cosign.TransparencyLogPubKey{"rekor-logid": {PubKey: ecpk, Status: tuf.Active}}},
 			Identities: []cosign.Identity{{
 				Issuer:  "issuer",
 				Subject: "subject",
 			}},
-			CTLogPubKeys: &ctl.TrustedCTLogPubKeys{Keys: map[string]ctl.LogIDMetadata{ctfeLogID: {PubKey: marshalledPK, Status: tuf.Active}}},
+			CTLogPubKeys: &cosign.TrustedTransparencyLogPubKeys{Keys: map[string]cosign.TransparencyLogPubKey{ctfeLogID: {PubKey: marshalledPK, Status: tuf.Active}}},
 		},
 	}}
 

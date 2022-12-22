@@ -133,7 +133,7 @@ require (
 	github.com/containerd/stargz-snapshotter/estargz v0.12.1 // indirect
 	github.com/cyberphone/json-canonicalization v0.0.0-20220623050100-57a0ce2678a7 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/digitorus/pkcs7 v0.0.0-20221019075359-21b8b40e6bb4 // indirect
+	github.com/digitorus/pkcs7 v0.0.0-20221212123742-001c36b64ec3 // indirect
 	github.com/digitorus/timestamp v0.0.0-20221019182153-ef3b63b79b31 // indirect
 	github.com/dimchansky/utfbom v1.1.1 // indirect
 	github.com/docker/cli v20.10.21+incompatible // indirect
@@ -220,7 +220,7 @@ require (
 	github.com/sassoftware/relic v0.0.0-20210427151427-dfb082b79b74 // indirect
 	github.com/secure-systems-lab/go-securesystemslib v0.4.0 // indirect
 	github.com/shibumi/go-pathspec v1.3.0 // indirect
-	github.com/sigstore/timestamp-authority v0.1.3-0.20221114113831-cf271cea5d83 // indirect
+	github.com/sigstore/timestamp-authority v0.2.0 // indirect
 	github.com/sirupsen/logrus v1.9.0 // indirect
 	github.com/spf13/afero v1.9.2 // indirect
 	github.com/spf13/cast v1.5.0 // indirect
@@ -274,4 +274,4 @@ replace github.com/golang/glog => github.com/jdolitsky/glog v0.0.0-2022072917223
 
 // Bring in the latest cosign so we can pass various keys in to verification
 // functions
-replace github.com/sigstore/cosign/v2 => github.com/sigstore/cosign/v2 v2.0.0-rc.0.0.20221215215028-8f0cf022fc2d
+replace github.com/sigstore/cosign/v2 => github.com/sigstore/cosign/v2 v2.0.0-rc.0.0.20221222182250-269483d7f983

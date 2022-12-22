@@ -32,7 +32,6 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/remote"
 	"github.com/google/go-containerregistry/pkg/v1/types"
 	"github.com/sigstore/cosign/v2/pkg/cosign"
-	"github.com/sigstore/cosign/v2/pkg/cosign/fulcioverifier/ctl"
 	"github.com/sigstore/cosign/v2/pkg/oci"
 	ociremote "github.com/sigstore/cosign/v2/pkg/oci/remote"
 	"github.com/sigstore/cosign/v2/pkg/policy"
@@ -1312,7 +1311,7 @@ func sigstoreKeysFromContext(ctx context.Context, trustRootRef string) (*config.
 // Preference is given to TrustRoot if specified, from which the certificates
 // are fetched and returned. If there's no TrustRoot, the certificates are
 // fetched from embedded or cached TUF root.
-func fulcioCertsFromAuthority(ctx context.Context, keylessRef *webhookcip.KeylessRef) (*x509.CertPool, *x509.CertPool, *ctl.TrustedCTLogPubKeys, error) {
+func fulcioCertsFromAuthority(ctx context.Context, keylessRef *webhookcip.KeylessRef) (*x509.CertPool, *x509.CertPool, *cosign.TrustedTransparencyLogPubKeys, error) {
 	// If this is not Keyless, there's no Fulcio, so just return
 	if keylessRef.TrustRootRef == "" {
 		roots, err := fulcioroots.Get()
@@ -1323,7 +1322,7 @@ func fulcioCertsFromAuthority(ctx context.Context, keylessRef *webhookcip.Keyles
 		if err != nil {
 			return nil, nil, nil, fmt.Errorf("failed to fetch Fulcio intermediates: %w", err)
 		}
-		ctPubs, err := ctl.GetCTLogPubs(ctx)
+		ctPubs, err := cosign.GetCTLogPubs(ctx)
 		if err != nil {
 			return nil, nil, nil, fmt.Errorf("failed to fetch CTLog public keys: %w", err)
 		}
@@ -1358,15 +1357,15 @@ func fulcioCertsFromAuthority(ctx context.Context, keylessRef *webhookcip.Keyles
 		}
 	}
 
-	ctlogKeys := &ctl.TrustedCTLogPubKeys{
-		Keys: make(map[string]ctl.LogIDMetadata, len(sk.CTLogs)),
+	ctlogKeys := &cosign.TrustedTransparencyLogPubKeys{
+		Keys: make(map[string]cosign.TransparencyLogPubKey, len(sk.CTLogs)),
 	}
 	for i, ctlog := range sk.CTLogs {
 		pk, err := cryptoutils.UnmarshalPEMToPublicKey(ctlog.PublicKey)
 		if err != nil {
 			return nil, nil, nil, fmt.Errorf("unmarshaling public key %d failed: %w", i, err)
 		}
-		ctlogKeys.Keys[ctlog.LogID] = ctl.LogIDMetadata{
+		ctlogKeys.Keys[ctlog.LogID] = cosign.TransparencyLogPubKey{
 			PubKey: pk,
 			Status: tuf.Active,
 		}
@@ -1386,7 +1385,7 @@ func fulcioCertsFromAuthority(ctx context.Context, keylessRef *webhookcip.Keyles
 // Preference is given to TrustRoot if specified, from which the URL and public
 // keys are fetched and returned. If there's no TrustRoot but a URL, then
 // a Rekor client is returned and the keys from the embedded or cached TUF root.
-func rekorClientAndKeysFromAuthority(ctx context.Context, tlog *v1alpha1.TLog) (*client.Rekor, *cosign.TrustedRekorPubKeys, error) {
+func rekorClientAndKeysFromAuthority(ctx context.Context, tlog *v1alpha1.TLog) (*client.Rekor, *cosign.TrustedTransparencyLogPubKeys, error) {
 	if tlog == nil {
 		return nil, nil, nil
 	}
@@ -1426,15 +1425,15 @@ func rekorClientAndKeysFromAuthority(ctx context.Context, tlog *v1alpha1.TLog) (
 	return rekorClient, rekorPubKeys, nil
 }
 
-func rekorKeysFromTrustRef(ctx context.Context, trustRootRef string) (*cosign.TrustedRekorPubKeys, string, error) {
+func rekorKeysFromTrustRef(ctx context.Context, trustRootRef string) (*cosign.TrustedTransparencyLogPubKeys, string, error) {
 	sigstoreKeys, err := sigstoreKeysFromContext(ctx, trustRootRef)
 	if err != nil {
 		return nil, "", fmt.Errorf("getting SigstoreKeys: %w", err)
 	}
 
 	if sk, ok := sigstoreKeys.SigstoreKeys[trustRootRef]; ok {
-		retKeys := &cosign.TrustedRekorPubKeys{
-			Keys: make(map[string]cosign.RekorPubKey, len(sk.TLogs)),
+		retKeys := &cosign.TrustedTransparencyLogPubKeys{
+			Keys: make(map[string]cosign.TransparencyLogPubKey, len(sk.TLogs)),
 		}
 		rekorURL := ""
 		for i, tlog := range sk.TLogs {
@@ -1448,7 +1447,7 @@ func rekorKeysFromTrustRef(ctx context.Context, trustRootRef string) (*cosign.Tr
 			if !ok {
 				return nil, "", fmt.Errorf("public key %d is not ecdsa.PublicKey", i)
 			}
-			retKeys.Keys[tlog.LogID] = cosign.RekorPubKey{
+			retKeys.Keys[tlog.LogID] = cosign.TransparencyLogPubKey{
 				PubKey: pkecdsa,
 				Status: tuf.Active,
 			}
