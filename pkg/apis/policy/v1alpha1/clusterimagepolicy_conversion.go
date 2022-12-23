@@ -93,6 +93,10 @@ func (authority *Authority) ConvertTo(ctx context.Context, sink *v1beta1.Authori
 			TrustRootRef: authority.CTLog.TrustRootRef,
 		}
 	}
+	if authority.RFC3161Timestamp != nil && authority.RFC3161Timestamp.TrustRootRef != "" {
+		sink.RFC3161Timestamp = &v1beta1.RFC3161Timestamp{}
+		sink.RFC3161Timestamp.TrustRootRef = authority.RFC3161Timestamp.TrustRootRef
+	}
 	for _, source := range authority.Sources {
 		v1beta1Source := v1beta1.Source{}
 		v1beta1Source.OCI = source.OCI
@@ -232,6 +236,10 @@ func (authority *Authority) ConvertFrom(ctx context.Context, source *v1beta1.Aut
 			URL:          source.CTLog.URL.DeepCopy(),
 			TrustRootRef: source.CTLog.TrustRootRef,
 		}
+	}
+	if source.RFC3161Timestamp != nil && source.RFC3161Timestamp.TrustRootRef != "" {
+		authority.RFC3161Timestamp = &RFC3161Timestamp{}
+		authority.RFC3161Timestamp.TrustRootRef = source.RFC3161Timestamp.TrustRootRef
 	}
 	for _, s := range source.Sources {
 		src := Source{}

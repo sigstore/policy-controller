@@ -586,7 +586,7 @@ func TestAuthoritiesValidation(t *testing.T) {
 		policy      ClusterImagePolicy
 	}{{
 		name:        "Should fail when authority is empty",
-		errorString: "expected exactly one, got neither: spec.authorities[0].key, spec.authorities[0].keyless, spec.authorities[0].static",
+		errorString: "expected exactly one, got neither: spec.authorities[0].key, spec.authorities[0].keyless, spec.authorities[0].rfc3161timestamp, spec.authorities[0].static",
 		policy: ClusterImagePolicy{
 			Spec: ClusterImagePolicySpec{
 				Images: []ImagePattern{
@@ -601,7 +601,7 @@ func TestAuthoritiesValidation(t *testing.T) {
 		},
 	}, {
 		name:        "Should fail when key/keyless specified",
-		errorString: "expected exactly one, got both: spec.authorities[0].key, spec.authorities[0].keyless, spec.authorities[0].static",
+		errorString: "expected exactly one, got both: spec.authorities[0].key, spec.authorities[0].keyless, spec.authorities[0].rfc3161timestamp, spec.authorities[0].static",
 		policy: ClusterImagePolicy{
 			Spec: ClusterImagePolicySpec{
 				Images: []ImagePattern{
@@ -619,7 +619,7 @@ func TestAuthoritiesValidation(t *testing.T) {
 		},
 	}, {
 		name:        "Should fail when key/static specified",
-		errorString: "expected exactly one, got both: spec.authorities[0].key, spec.authorities[0].keyless, spec.authorities[0].static",
+		errorString: "expected exactly one, got both: spec.authorities[0].key, spec.authorities[0].keyless, spec.authorities[0].rfc3161timestamp, spec.authorities[0].static",
 		policy: ClusterImagePolicy{
 			Spec: ClusterImagePolicySpec{
 				Images: []ImagePattern{
@@ -637,7 +637,7 @@ func TestAuthoritiesValidation(t *testing.T) {
 		},
 	}, {
 		name:        "Should fail when keyless/static specified",
-		errorString: "expected exactly one, got both: spec.authorities[0].key, spec.authorities[0].keyless, spec.authorities[0].static",
+		errorString: "expected exactly one, got both: spec.authorities[0].key, spec.authorities[0].keyless, spec.authorities[0].rfc3161timestamp, spec.authorities[0].static",
 		policy: ClusterImagePolicy{
 			Spec: ClusterImagePolicySpec{
 				Images: []ImagePattern{
@@ -655,7 +655,7 @@ func TestAuthoritiesValidation(t *testing.T) {
 		},
 	}, {
 		name:        "Should fail when key/keyless/static specified",
-		errorString: "expected exactly one, got both: spec.authorities[0].key, spec.authorities[0].keyless, spec.authorities[0].static",
+		errorString: "expected exactly one, got both: spec.authorities[0].key, spec.authorities[0].keyless, spec.authorities[0].rfc3161timestamp, spec.authorities[0].static",
 		policy: ClusterImagePolicy{
 			Spec: ClusterImagePolicySpec{
 				Images: []ImagePattern{
@@ -695,6 +695,33 @@ func TestAuthoritiesValidation(t *testing.T) {
 							},
 						},
 						CTLog: &TLog{},
+					},
+				},
+			},
+		},
+	}, {
+		name:        "Should fail when static and sources,attestations, and rfc3161timestamp is specified",
+		errorString: "expected exactly one, got both: spec.authorities[0].key, spec.authorities[0].keyless, spec.authorities[0].rfc3161timestamp, spec.authorities[0].static",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{
+					{
+						Glob: "globbityglob",
+					},
+				},
+				Authorities: []Authority{
+					{
+						Static:       &StaticRef{Action: "fail"},
+						Attestations: []Attestation{{Name: "first", PredicateType: "vuln"}},
+						Sources: []Source{
+							{
+								OCI: "registry1",
+								SignaturePullSecrets: []v1.LocalObjectReference{
+									{Name: "placeholder"},
+								},
+							},
+						},
+						RFC3161Timestamp: &RFC3161Timestamp{},
 					},
 				},
 			},
