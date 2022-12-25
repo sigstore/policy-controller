@@ -99,8 +99,8 @@ func (remote *Remote) Validate(ctx context.Context) (errors *apis.FieldError) {
 }
 
 func (sigstoreKeys *SigstoreKeys) Validate(ctx context.Context) (errors *apis.FieldError) {
-	if len(sigstoreKeys.CertificateAuthorities) == 0 {
-		errors = errors.Also(apis.ErrMissingField("certificateAuthority"))
+	if len(sigstoreKeys.CertificateAuthorities) == 0 && len(sigstoreKeys.TimeStampAuthorities) == 0 {
+		errors = errors.Also(apis.ErrMissingOneOf("certificateAuthority", "timestampAuthorities"))
 	} else {
 		for i, ca := range sigstoreKeys.CertificateAuthorities {
 			errors = ValidateCertificateAuthority(ctx, ca).ViaFieldIndex("certificateAuthority", i)
