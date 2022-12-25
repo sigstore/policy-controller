@@ -15,10 +15,13 @@
 package v1alpha1
 
 import (
+	"bytes"
 	"context"
+	"crypto/x509"
 	"encoding/json"
 
 	"github.com/sigstore/policy-controller/pkg/tuf"
+	"github.com/sigstore/sigstore/pkg/cryptoutils"
 
 	"knative.dev/pkg/apis"
 	"knative.dev/pkg/logging"
@@ -110,7 +113,7 @@ func (sigstoreKeys *SigstoreKeys) Validate(ctx context.Context) (errors *apis.Fi
 	// These are optionals, so we just validate them if they are there and do
 	// not report them as missing.
 	for i, tsa := range sigstoreKeys.TimeStampAuthorities {
-		errors = ValidateCertificateAuthority(ctx, tsa).ViaFieldIndex("timestampAuthorities", i)
+		errors = ValidateTimeStampAuthority(ctx, tsa).ViaFieldIndex("timestampAuthorities", i)
 	}
 	for i, ctl := range sigstoreKeys.CTLogs {
 		errors = ValidateTransparencyLogInstance(ctx, ctl).ViaFieldIndex("ctLogs", i)
@@ -142,9 +145,26 @@ func ValidateCertificateAuthority(ctx context.Context, ca CertificateAuthority) 
 		errors = errors.Also(apis.ErrMissingField("uri"))
 	}
 	if len(ca.CertChain) == 0 {
-		errors = errors.Also(apis.ErrMissingField("certChain"))
+		errors = errors.Also(apis.ErrMissingField("certchain"))
 	}
-	// TODO: Validate the certchain more thorougly.
+	return
+}
+
+func ValidateTimeStampAuthority(ctx context.Context, ca CertificateAuthority) (errors *apis.FieldError) {
+	errors = errors.Also(ValidateDistinguishedName(ctx, ca.Subject)).ViaField("subject")
+	if ca.URI.String() == "" {
+		errors = errors.Also(apis.ErrMissingField("uri"))
+	}
+	if len(ca.CertChain) == 0 {
+		errors = errors.Also(apis.ErrMissingField("certchain"))
+	}
+	leaves, _, _, err := SplitPEMCertificateChain(ca.CertChain)
+	if err != nil {
+		errors = errors.Also(apis.ErrInvalidValue("error splitting the certificates", "certChain", err.Error()))
+	}
+	if len(leaves) > 1 {
+		errors = errors.Also(apis.ErrInvalidValue("certificate chain must contain at most one TSA certificate", "certChain"))
+	}
 	return
 }
 
@@ -169,4 +189,28 @@ func ValidateTransparencyLogInstance(ctx context.Context, tli TransparencyLogIns
 		errors = errors.Also(apis.ErrMissingField("publicKey"))
 	}
 	return
+}
+
+// SplitPEMCertificateChain returns a list of leaf (non-CA) certificates, a certificate pool for
+// intermediate CA certificates, and a certificate pool for root CA certificates
+func SplitPEMCertificateChain(pem []byte) (leaves, intermediates, roots []*x509.Certificate, err error) {
+	certs, err := cryptoutils.UnmarshalCertificatesFromPEM(pem)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	for _, cert := range certs {
+		if !cert.IsCA {
+			leaves = append(leaves, cert)
+		} else {
+			// root certificates are self-signed
+			if bytes.Equal(cert.RawSubject, cert.RawIssuer) {
+				roots = append(roots, cert)
+			} else {
+				intermediates = append(intermediates, cert)
+			}
+		}
+	}
+
+	return leaves, intermediates, roots, nil
 }

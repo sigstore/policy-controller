@@ -16,8 +16,13 @@ package v1alpha1
 
 import (
 	"context"
+	"crypto/x509"
 	"encoding/base64"
 	"testing"
+
+	"github.com/sigstore/policy-controller/test"
+	"github.com/sigstore/sigstore/pkg/cryptoutils"
+	"knative.dev/pkg/apis"
 )
 
 // validRepository is a TUF repository that's been tarred, gzipped and base64
@@ -108,6 +113,69 @@ func TestTrustRootValidation(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			err := test.trustroot.Validate(context.TODO())
+			validateError(t, test.errorString, "", err)
+		})
+	}
+}
+
+func TestTimeStampAuthorityValidation(t *testing.T) {
+	rootCert, rootKey, _ := test.GenerateRootCa()
+	subCert, subKey, _ := test.GenerateSubordinateCa(rootCert, rootKey)
+	leafCert, _, _ := test.GenerateLeafCert("subject", "oidc-issuer", subCert, subKey)
+	rootCert2, rootKey2, _ := test.GenerateRootCa()
+	subCert2, subKey2, _ := test.GenerateSubordinateCa(rootCert2, rootKey2)
+	leafCert2, _, _ := test.GenerateLeafCert("subject", "oidc-issuer", subCert2, subKey2)
+
+	pem, err := cryptoutils.MarshalCertificatesToPEM([]*x509.Certificate{rootCert, subCert, leafCert})
+	if err != nil {
+		t.Fatalf("unexpected error marshalling certificates to PEM: %v", err)
+	}
+	tooManyLeavesPem, err := cryptoutils.MarshalCertificatesToPEM([]*x509.Certificate{rootCert, subCert, leafCert, leafCert2})
+	if err != nil {
+		t.Fatalf("unexpected error marshalling certificates to PEM: %v", err)
+	}
+
+	tests := []struct {
+		name        string
+		tsa         CertificateAuthority
+		errorString string
+	}{{
+		name: "Should work with a valid repository",
+		tsa: CertificateAuthority{
+			Subject: DistinguishedName{
+				Organization: "fulcio-organization",
+				CommonName:   "fulcio-common-name",
+			},
+			URI:       *apis.HTTPS("fulcio.example.com"),
+			CertChain: pem,
+		},
+	}, {
+		name:        "Should fail splitting the certificates of the certChain",
+		errorString: "invalid value: error splitting the certificates: certChain\nerror during PEM decoding",
+		tsa: CertificateAuthority{
+			Subject: DistinguishedName{
+				Organization: "fulcio-organization",
+				CommonName:   "fulcio-common-name",
+			},
+			URI:       *apis.HTTPS("fulcio.example.com"),
+			CertChain: []byte("INVALID"),
+		},
+	}, {
+		name:        "Should fail with a must contain at most one TSA certificate",
+		errorString: "invalid value: certificate chain must contain at most one TSA certificate: certChain",
+		tsa: CertificateAuthority{
+			Subject: DistinguishedName{
+				Organization: "fulcio-organization",
+				CommonName:   "fulcio-common-name",
+			},
+			URI:       *apis.HTTPS("fulcio.example.com"),
+			CertChain: tooManyLeavesPem,
+		},
+	}}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			err := ValidateTimeStampAuthority(context.TODO(), test.tsa)
 			validateError(t, test.errorString, "", err)
 		})
 	}
