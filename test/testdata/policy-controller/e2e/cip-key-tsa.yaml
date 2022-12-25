@@ -21,7 +21,10 @@ spec:
   - glob: "**demo**"
   authorities:
   - key:
-      secretRef:
-        name: cip-secret
+      data: |
+        -----BEGIN PUBLIC KEY-----
+        MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEIcbqK2RAVZOfPzo+kbOhNYq8DK9f
+        B2BGbU7jAXEvYthJ3vRcYq8l7g9UAXXiz9P2awFuTa4COcZU2IdEDVU0uA==
+        -----END PUBLIC KEY-----
     rfc3161timestamp:
       trustRootRef: my-sigstore-keys

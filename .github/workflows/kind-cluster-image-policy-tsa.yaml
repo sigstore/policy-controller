@@ -65,9 +65,7 @@ jobs:
       with:
         mirror: mirror.gcr.io
 
-    - uses: sigstore/cosign-installer@main
-      with:
-        cosign-release: 'v1.13.1'
+    - uses: sigstore/cosign-installer@9becc617647dfa20ae7b1151972e9b3a2c338a2b # v2
 
     - name: Install cluster + sigstore
       uses: sigstore/scaffolding/actions/setup@v0.5.4
@@ -105,12 +103,26 @@ jobs:
       run: |
         go build -o ./timestamp-cli ./cmd/timestamp-cli
 
-    - name: Exercise TSA
-      env:
-         TSA_URL: tsa.chainops.dev
+    - name: Exercise our local TSA
       working-directory: ./src/github.com/sigstore/timestamp-authority
       run: |
-        curl ${{ env.TSA_URL }}/api/v1/timestamp/certchain > ts_chain.pem
+        TSA_URL=$(kubectl -n tsa-system get ksvc tsa -ojsonpath='{.status.url}')
+        echo "TSA_URL=$TSA_URL" >> $GITHUB_ENV
+
+        curl $TSA_URL/api/v1/timestamp/certchain > ts_chain.pem
+        echo "myblob" > myblob
+        if ! ./timestamp-cli --timestamp_server $TSA_URL timestamp --hash sha256 --artifact myblob --out response.tsr ; then
+          echo "failed to timestamp artifact"
+          exit -1
+        fi
+        if ! ./timestamp-cli verify --timestamp response.tsr --artifact "myblob" --certificate-chain ts_chain.pem ; then
+          echo "failed to verify timestamp"
+          exit -1
+        fi
+        if ! ./timestamp-cli inspect --timestamp response.tsr --format json ; then
+          echo "failed to inspect the timestamp"
+          exit -1
+        fi
 
     - name: Run TSA Tests
       timeout-minutes: 5

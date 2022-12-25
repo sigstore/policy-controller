@@ -106,46 +106,55 @@ kubectl label namespace demo-tsa-remote policy.sigstore.dev/include=true
 export NS=demo-tsa-remote
 echo '::endgroup::'
 
+echo '::group:: Generate New Signing Key that we use for key-ful signing'
+COSIGN_PASSWORD="" cosign generate-key-pair
+echo '::endgroup::'
+
+# Ok, so now we have satisfied the keyless requirements, one signature, one
+# custom attestation. Let's now do it for 'keyful' one.
+echo '::group:: Create CIP that requires a keyful signature'
+yq '. | .spec.authorities[0].key.data |= load_str("cosign.pub")' ./test/testdata/policy-controller/e2e/cip-key.tsa.yaml | kubectl apply -f -
+
+# Give the policy controller a moment to update the configmap
+# and pick up the change in the admission controller.
+sleep 5
+echo '::endgroup::'
+
+# Sign it with key
+echo '::group:: Sign demoimage with key, and add to rekor'
+export TSA_URL=`kubectl -n tsa-system get ksvc tsa -ojsonpath='{.status.url}'`
+COSIGN_EXPERIMENTAL=1 COSIGN_PASSWORD="" cosign sign --key cosign.key --force --allow-insecure-registry --rekor-url ${REKOR_URL} --timestamp-server-url ${TSA_URL} ${demoimage}
+echo '::endgroup::'
+
+echo '::group:: Verify demoimage with cosign key'
+export TSA_CERT_CHAIN=`kubectl -n tsa-system get secrets tsa-cert-chain -ojsonpath='{.data.cert}'`
+cat $TSA_CERT_CHAIN | base64 -w0 >> tsa-cert-chain.pem
+COSIGN_EXPERIMENTAL=1 cosign verify --key cosign.pub --timestamp-cert-chain tsa-cert-chain.pem --insecure-skip-tlog-verify --rekor-url ${REKOR_URL} --allow-insecure-registry ${demoimage}
+echo '::endgroup::'
+
+echo '::group:: Create TrustRoot that specifies TSA'
+sed -i'' -e "s@TSA_CERT_CHAIN@${TSA_CERT_CHAIN}@g" ./test/testdata/trustroot/e2e/with-tsa.yaml
+sed -i'' -e "s@TSA_URL@${TSA_URL}@g" ./test/testdata/trustroot/e2e/with-tsa.yaml
+kubectl apply -f ./test/testdata/trustroot/e2e/with-tsa.yaml
+# allow things to propagate
+sleep 5
+echo '::endgroup::'
+
 echo '::group:: Create CIP that uses a TSA'
 kubectl apply -f ./test/testdata/policy-controller/e2e/cip-key-tsa.yaml
 # allow things to propagate
 sleep 5
 echo '::endgroup::'
 
-echo '::group:: Create TrustRoot that specifies remote with mirror'
-export ROOT_JSON=`kubectl -n tuf-system get secrets tuf-root -ojsonpath='{.data.root}'`
-
-#sed -i'' -e "s@ROOT_JSON@${ROOT_JSON}@g" ./test/testdata/trustroot/e2e/with-tsa.yaml
-#sed -i'' -e "s@TUF_MIRROR@${TUF_MIRROR}@g" ./test/testdata/trustroot/e2e/with-tsa.yaml
-kubectl apply -f ./test/testdata/trustroot/e2e/with-tsa.yaml
-
-# allow things to propagate
-sleep 5
-echo '::endgroup::'
-
-# This image has no attestation, so should fail
-echo '::group:: test job rejection'
-expected_error='no matching attestations'
-assert_error ${expected_error}
-echo '::endgroup::'
-
-# Create attestation and it should pass.
-echo '::group:: Create one keyless attestation and verify it'
-echo -n 'foobar e2e test' > ./predicate-file-custom
-COSIGN_EXPERIMENTAL=1 cosign attest --predicate ./predicate-file-custom --fulcio-url ${FULCIO_URL} --rekor-url ${REKOR_URL} --allow-insecure-registry --force ${demoimage} --identity-token ${OIDC_TOKEN}
-
-COSIGN_EXPERIMENTAL=1 cosign verify-attestation --type=custom --rekor-url ${REKOR_URL} --allow-insecure-registry ${demoimage}
-echo '::endgroup::'
-
 echo '::group:: test job success'
-# This has now a keyless attestation, so should pass.
+# This has now a job signed and verified via a TSA, so should pass.
 export KUBECTL_SUCCESS_FILE="/tmp/kubectl.success.out"
 if ! kubectl create -n ${NS} job demo --image=${demoimage} 2> ${KUBECTL_SUCCESS_FILE} ; then
-  echo Failed to create job with keyless attestation
+  echo Failed to create job with a TSA verification
   cat ${KUBECTL_SUCCESS_FILE}
   exit 1
 else
-  echo Created the job with keyless attestation
+  echo Created the job with a TSA verification
 fi
 kubectl delete -n ${NS} job demo
 echo '::endgroup::'
