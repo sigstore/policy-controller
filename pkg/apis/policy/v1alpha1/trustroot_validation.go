@@ -142,7 +142,7 @@ func ValidateCertificateAuthority(ctx context.Context, ca CertificateAuthority) 
 		errors = errors.Also(apis.ErrMissingField("uri"))
 	}
 	if len(ca.CertChain) == 0 {
-		errors = errors.Also(apis.ErrMissingField("subject"))
+		errors = errors.Also(apis.ErrMissingField("certChain"))
 	}
 	// TODO: Validate the certchain more thorougly.
 	return
