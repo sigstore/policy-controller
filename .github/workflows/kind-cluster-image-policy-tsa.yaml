@@ -65,7 +65,7 @@ jobs:
       with:
         mirror: mirror.gcr.io
 
-    - uses: sigstore/cosign-installer@9becc617647dfa20ae7b1151972e9b3a2c338a2b # v2
+    - uses: hectorj2f/cosign-installer@c5ac9ce01eb4b0048c02123cb3721624c8f4dc55 # v2
       with:
         cosign-release: 'v2.0.0-rc.0'
 
