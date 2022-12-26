@@ -18,6 +18,7 @@ metadata:
   name: my-sigstore-keys
 spec:
   sigstoreKeys:
+    certificateAuthorities: []
     timestampAuthorities:
     - subject:
         organization: tsa-organization

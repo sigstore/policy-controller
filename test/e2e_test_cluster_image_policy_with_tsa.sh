@@ -123,12 +123,12 @@ echo '::endgroup::'
 # Sign it with key
 echo '::group:: Sign demoimage with key, and add to rekor'
 export TSA_URL=`kubectl -n tsa-system get ksvc tsa -ojsonpath='{.status.url}'`
-COSIGN_EXPERIMENTAL=1 COSIGN_PASSWORD="" cosign sign --key cosign.key --force --allow-insecure-registry --rekor-url ${REKOR_URL} --timestamp-server-url ${TSA_URL} ${demoimage}
+COSIGN_EXPERIMENTAL=1 COSIGN_PASSWORD="" cosign sign --key cosign.key --allow-insecure-registry --rekor-url ${REKOR_URL} --timestamp-server-url ${TSA_URL} ${demoimage}
 echo '::endgroup::'
 
 echo '::group:: Verify demoimage with cosign key'
-export TSA_CERT_CHAIN=`kubectl -n tsa-system get secrets tsa-cert-chain -ojsonpath='{.data.cert}'`
-cat $TSA_CERT_CHAIN | base64 -w0 >> tsa-cert-chain.pem
+export TSA_CERT_CHAIN=`kubectl -n tsa-system get secrets tsa-cert-chain -ojsonpath='{.data.cert-chain}'`
+echo "$TSA_CERT_CHAIN" | base64 -d > tsa-cert-chain.pem
 COSIGN_EXPERIMENTAL=1 cosign verify --key cosign.pub --timestamp-cert-chain tsa-cert-chain.pem --insecure-skip-tlog-verify --rekor-url ${REKOR_URL} --allow-insecure-registry ${demoimage}
 echo '::endgroup::'
 

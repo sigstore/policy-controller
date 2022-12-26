@@ -92,7 +92,7 @@ type CertificateAuthority struct {
 // SigstoreKeys.
 type SigstoreKeys struct {
 	// Trusted certificate authorities (e.g Fulcio).
-	CertificateAuthorities []CertificateAuthority `json:"certificateAuthorities"`
+	CertificateAuthorities []CertificateAuthority `json:"certificateAuthorities,omitempty"`
 	// Rekor log specifications
 	TLogs []TransparencyLogInstance `json:"tLogs,omitempty"`
 	// Certificate Transparency Log
