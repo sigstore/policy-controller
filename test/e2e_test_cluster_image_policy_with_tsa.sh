@@ -113,7 +113,7 @@ echo '::endgroup::'
 # Ok, so now we have satisfied the keyless requirements, one signature, one
 # custom attestation. Let's now do it for 'keyful' one.
 echo '::group:: Create CIP that requires a keyful signature'
-yq '. | .spec.authorities[0].key.data |= load_str("cosign.pub")' ./test/testdata/policy-controller/e2e/cip-key.tsa.yaml | kubectl apply -f -
+yq '. | .spec.authorities[0].key.data |= load_str("cosign.pub")' ./test/testdata/policy-controller/e2e/cip-key-tsa.yaml | kubectl apply -f -
 
 # Give the policy controller a moment to update the configmap
 # and pick up the change in the admission controller.
