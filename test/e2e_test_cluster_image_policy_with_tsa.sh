@@ -110,16 +110,6 @@ echo '::group:: Generate New Signing Key that we use for key-ful signing'
 COSIGN_PASSWORD="" cosign generate-key-pair
 echo '::endgroup::'
 
-# Ok, so now we have satisfied the keyless requirements, one signature, one
-# custom attestation. Let's now do it for 'keyful' one.
-echo '::group:: Create CIP that requires a keyful signature'
-yq '. | .spec.authorities[0].key.data |= load_str("cosign.pub")' ./test/testdata/policy-controller/e2e/cip-key-tsa.yaml | kubectl apply -f -
-
-# Give the policy controller a moment to update the configmap
-# and pick up the change in the admission controller.
-sleep 5
-echo '::endgroup::'
-
 # Sign it with key
 echo '::group:: Sign demoimage with key, and add to rekor'
 export TSA_URL=`kubectl -n tsa-system get ksvc tsa -ojsonpath='{.status.url}'`
@@ -140,9 +130,10 @@ kubectl apply -f ./test/testdata/trustroot/e2e/with-tsa.yaml
 sleep 5
 echo '::endgroup::'
 
-echo '::group:: Create CIP that uses a TSA'
-kubectl apply -f ./test/testdata/policy-controller/e2e/cip-key-tsa.yaml
-# allow things to propagate
+echo '::group:: Create CIP that requires a keyful and includes a TSA verification'
+yq '. | .spec.authorities[0].key.data |= load_str("cosign.pub")' ./test/testdata/policy-controller/e2e/cip-key-tsa.yaml | kubectl apply -f -
+# Give the policy controller a moment to update the configmap
+# and pick up the change in the admission controller.
 sleep 5
 echo '::endgroup::'
 
