@@ -150,6 +150,33 @@ fi
 kubectl delete -n ${NS} job demo
 echo '::endgroup::'
 
+# Publish the second test image
+echo '::group:: publish test image demoimage'
+pushd $(mktemp -d)
+go mod init example.com/demo
+cat <<EOF > main.go
+package main
+import "fmt"
+func main() {
+  fmt.Println("hello world 2 TIMESTAMP")
+}
+EOF
+sed -i'' -e "s@TIMESTAMP@${TIMESTAMP}@g" main.go
+cat main.go
+export demoimage2=`ko publish -B example.com/demo`
+popd
+echo '::endgroup::'
+
+# We did not sign this, should fail due to TSA verification
+echo '::group:: test job rejection'
+if kubectl create -n ${NS} job demo2 --image=${demoimage2} ; then
+  echo Failed to block unsigned Job creation!
+  exit 1
+else
+  echo Successfully blocked Job creation with unsigned image due to TSA verification
+fi
+echo '::endgroup::'
+
 echo '::group::' Cleanup
 kubectl delete cip --all
 kubectl delete trustroot --all
