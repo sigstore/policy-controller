@@ -111,18 +111,19 @@ COSIGN_PASSWORD="" cosign generate-key-pair
 echo '::endgroup::'
 
 # Sign it with key
-echo '::group:: Sign demoimage with key, and add to rekor'
+echo '::group:: Sign demoimage with key, and add to rekor and TSA'
 export TSA_URL=`kubectl -n tsa-system get ksvc tsa -ojsonpath='{.status.url}'`
 COSIGN_EXPERIMENTAL=1 COSIGN_PASSWORD="" cosign sign --key cosign.key --allow-insecure-registry --rekor-url ${REKOR_URL} --timestamp-server-url ${TSA_URL} ${demoimage}
 echo '::endgroup::'
 
-echo '::group:: Verify demoimage with cosign key'
+echo '::group:: Verify demoimage with cosign key and TSA'
 export TSA_CERT_CHAIN=`kubectl -n tsa-system get secrets tsa-cert-chain -ojsonpath='{.data.cert-chain}'`
 echo "$TSA_CERT_CHAIN" | base64 -d > tsa-cert-chain.pem
 COSIGN_EXPERIMENTAL=1 cosign verify --key cosign.pub --timestamp-cert-chain tsa-cert-chain.pem --insecure-skip-tlog-verify --rekor-url ${REKOR_URL} --allow-insecure-registry ${demoimage}
 echo '::endgroup::'
 
 echo '::group:: Create TrustRoot that specifies TSA'
+cp ./test/testdata/trustroot/e2e/with-tsa.yaml ./with-tsa.yaml.bkp
 sed -i'' -e "s@TSA_CERT_CHAIN@${TSA_CERT_CHAIN}@g" ./test/testdata/trustroot/e2e/with-tsa.yaml
 sed -i'' -e "s@TSA_URL@${TSA_URL}@g" ./test/testdata/trustroot/e2e/with-tsa.yaml
 kubectl apply -f ./test/testdata/trustroot/e2e/with-tsa.yaml
@@ -167,13 +168,36 @@ export demoimage2=`ko publish -B example.com/demo`
 popd
 echo '::endgroup::'
 
-# We did not sign this, should fail due to TSA verification
-echo '::group:: test job rejection'
+# Sign it with key
+echo '::group:: Sign demoimage2 with key, and add to rekor and TSA'
+export TSA_URL=`kubectl -n tsa-system get ksvc tsa -ojsonpath='{.status.url}'`
+COSIGN_EXPERIMENTAL=1 COSIGN_PASSWORD="" cosign sign --key cosign.key --allow-insecure-registry --rekor-url ${REKOR_URL} --timestamp-server-url ${TSA_URL} ${demoimage2}
+echo '::endgroup::'
+
+echo '::group:: Verify demoimage2 with cosign key and TSA'
+export TSA_CERT_CHAIN=`kubectl -n tsa-system get secrets tsa-cert-chain -ojsonpath='{.data.cert-chain}'`
+echo "$TSA_CERT_CHAIN" | base64 -d > tsa-cert-chain.pem
+COSIGN_EXPERIMENTAL=1 cosign verify --key cosign.pub --timestamp-cert-chain tsa-cert-chain.pem --insecure-skip-tlog-verify --allow-insecure-registry ${demoimage2}
+echo '::endgroup::'
+
+echo '::group:: Change Certificate chain of TrustRoot to a wrong one for our TSA'
+cp ./with-tsa.yaml.bkp ./test/testdata/trustroot/e2e/with-tsa.yaml
+# This certificate chain belongs a different TSA server so any verification should fail
+export TSA_CERT_CHAIN="LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJ6RENDQVhLZ0F3SUJBZ0lVWFBCNWVWRWhZcVBPaEk0dE45ak4wM1ZkUW5rd0NnWUlLb1pJemowRUF3SXcKTURFT01Bd0dBMVVFQ2hNRmJHOWpZV3d4SGpBY0JnTlZCQU1URlZSbGMzUWdWRk5CSUVsdWRHVnliV1ZrYVdGMApaVEFlRncweU1qRXhNakV4TVRVNE1UaGFGdzB6TVRFeE1qRXhNakF4TVRoYU1EQXhEakFNQmdOVkJBb1RCV3h2ClkyRnNNUjR3SEFZRFZRUURFeFZVWlhOMElGUlRRU0JVYVcxbGMzUmhiWEJwYm1jd1dUQVRCZ2NxaGtqT1BRSUIKQmdncWhrak9QUU1CQndOQ0FBVEhvRUE3b05URWJDcjVxdnd6STlsN0ZJaHNqQlFnUDhGbFhEeFNDaFdYVDJZNQpMWDhQVlFYTHJFbHhNVzJ0dnk0SjQzdTJCRG9JQ1hHeW5xZ1pWMlBmbzJvd2FEQU9CZ05WSFE4QkFmOEVCQU1DCkI0QXdIUVlEVlIwT0JCWUVGQis4WEx2TTlWU3pyUmdFQiswOUZrdlhmYVM2TUI4R0ExVWRJd1FZTUJhQUZDWUIKSEc1eDVDVE9YLytueVlsanltWVZQT3ZqTUJZR0ExVWRKUUVCL3dRTU1Bb0dDQ3NHQVFVRkJ3TUlNQW9HQ0NxRwpTTTQ5QkFNQ0EwZ0FNRVVDSUFJd1IwMG5xRS96cG5OSEozY3VoWTRRZjEzTkd3anhUOTBSUWhxSjFNZlpBaUVBCm9lclFGQWVGYnZYU3VLTFdXK2lsdEh2dEsyUUF1VXZub1ZnZ0tCYzhpSTg9Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0KLS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUIwakNDQVhpZ0F3SUJBZ0lVVXgvd3NrMFNhVU5ZcUtKWEtLMlpyMmYzZlJFd0NnWUlLb1pJemowRUF3SXcKS0RFT01Bd0dBMVVFQ2hNRmJHOWpZV3d4RmpBVUJnTlZCQU1URFZSbGMzUWdWRk5CSUZKdmIzUXdIaGNOTWpJeApNVEl4TVRFMU5qRTRXaGNOTXpJeE1USXhNVEl3TVRFNFdqQXdNUTR3REFZRFZRUUtFd1ZzYjJOaGJERWVNQndHCkExVUVBeE1WVkdWemRDQlVVMEVnU1c1MFpYSnRaV1JwWVhSbE1Ga3dFd1lIS29aSXpqMENBUVlJS29aSXpqMEQKQVFjRFFnQUVvUysxNFNXTmUxc2hwc280cERFMEhTNjZqdmYyenlJUS9jcHRuM2pyUTAyelJYZWQ5THBWS1A3YwpJbEVXWWNSaWw0anNXUkFsMU9zVjk4eGNFTUpvaktONE1IWXdEZ1lEVlIwUEFRSC9CQVFEQWdFR01CTUdBMVVkCkpRUU1NQW9HQ0NzR0FRVUZCd01JTUE4R0ExVWRFd0VCL3dRRk1BTUJBZjh3SFFZRFZSME9CQllFRkNZQkhHNXgKNUNUT1gvK255WWxqeW1ZVlBPdmpNQjhHQTFVZEl3UVlNQmFBRkYxWEFHbW4xQXdtdFk0L0RGVWQ4RzhkTFRIMQpNQW9HQ0NxR1NNNDlCQU1DQTBnQU1FVUNJUUNoZTVTWVpsbVNWeXczczJOcDRQNE5FS1l0ODc4RGZ6M3JlRlZKCkVHemxJd0lnUEc4bHlaYXdLOWo2c3BlTHFtUy9Hei9LdjJJQ3FsSy9XOEFzNGN1OEtuRT0KLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQotLS0tLUJFR0lOIENFUlRJRklDQVRFLS0tLS0KTUlJQmxUQ0NBVHFnQXdJQkFnSVVQY2NwVS95TUJkNmViMzM1YlZSOTZwTGZNQWN3Q2dZSUtvWkl6ajBFQXdJdwpLREVPTUF3R0ExVUVDaE1GYkc5allXd3hGakFVQmdOVkJBTVREVlJsYzNRZ1ZGTkJJRkp2YjNRd0hoY05Nakl4Ck1USXhNVEUxTmpFNFdoY05Nekl4TVRJeE1USXdNVEU0V2pBb01RNHdEQVlEVlFRS0V3VnNiMk5oYkRFV01CUUcKQTFVRUF4TU5WR1Z6ZENCVVUwRWdVbTl2ZERCWk1CTUdCeXFHU000OUFnRUdDQ3FHU000OUF3RUhBMElBQklUWgpqZnVhTGJXbjloYjhtNVVabmtrcUs5K3dQam92b0F3VCtPQWRTK0kzZlptTFRnamdoMW8vUHhtb0UvT2RuOUtOCmtxcnVKWkJuaWQwb0VVT3BwWE9qUWpCQU1BNEdBMVVkRHdFQi93UUVBd0lCQmpBUEJnTlZIUk1CQWY4RUJUQUQKQVFIL01CMEdBMVVkRGdRV0JCUmRWd0JwcDlRTUpyV09Qd3hWSGZCdkhTMHg5VEFLQmdncWhrak9QUVFEQWdOSgpBREJHQWlFQWhFdW9xQ2JaRDA5bmx2WjNtcFJiR0paZFg0Nm1rUFUrVFFpUklFT2l5NGdDSVFEakRBWDdxT0x0Cm5RVEVrRGcwcklBU0hqaVVNTk5tRVFqTlZmaDlDMEx3OXc9PQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0t"
+sed -i'' -e "s@TSA_CERT_CHAIN@${TSA_CERT_CHAIN}@g" ./test/testdata/trustroot/e2e/with-tsa.yaml
+sed -i'' -e "s@TSA_URL@${TSA_URL}@g" ./test/testdata/trustroot/e2e/with-tsa.yaml
+kubectl apply -f ./test/testdata/trustroot/e2e/with-tsa.yaml
+# allow things to propagate
+sleep 10
+echo '::endgroup::'
+
+# We did sign this, but should fail due to a different certificate chain for the TSA verification
+echo '::group:: test job rejection with TSA using a different cert-chain'
 if kubectl create -n ${NS} job demo2 --image=${demoimage2} ; then
-  echo Failed to block unsigned Job creation!
+  echo Failed to block Job creation when TSA verification fails!
   exit 1
 else
-  echo Successfully blocked Job creation with unsigned image due to TSA verification
+  echo Successfully blocked Job creation with TSA using a different certificate chain
 fi
 echo '::endgroup::'
 
