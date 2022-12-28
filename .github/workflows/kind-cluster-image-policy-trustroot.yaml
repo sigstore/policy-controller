@@ -37,10 +37,10 @@ jobs:
         - v1.24.x
         - v1.25.x
 
-      script:
-      - repository
-      - remote
-      - bring_own_keys
+        script:
+        - repository
+        - remote
+        - bring_own_keys
 
     env:
       KO_DOCKER_REPO: "registry.local:5000/policy-controller"
