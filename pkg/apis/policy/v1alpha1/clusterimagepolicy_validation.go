@@ -93,16 +93,17 @@ func (image *ImagePattern) Validate(ctx context.Context) *apis.FieldError {
 
 func (authority *Authority) Validate(ctx context.Context) *apis.FieldError {
 	var errs *apis.FieldError
-	if authority.Key == nil && authority.Keyless == nil && authority.Static == nil {
-		errs = errs.Also(apis.ErrMissingOneOf("key", "keyless", "static"))
+	if authority.Key == nil && authority.Keyless == nil && authority.RFC3161Timestamp == nil && authority.Static == nil {
+		errs = errs.Also(apis.ErrMissingOneOf("key", "keyless", "rfc3161timestamp", "static"))
 		// Instead of returning all the missing subfields, just return here
 		// to give a more concise and arguably a more meaningful error message.
 		return errs
 	}
 	if (authority.Key != nil && authority.Keyless != nil) ||
+		(authority.RFC3161Timestamp != nil && authority.Static != nil) ||
 		(authority.Key != nil && authority.Static != nil) ||
 		(authority.Keyless != nil && authority.Static != nil) {
-		errs = errs.Also(apis.ErrMultipleOneOf("key", "keyless", "static"))
+		errs = errs.Also(apis.ErrMultipleOneOf("key", "keyless", "rfc3161timestamp", "static"))
 		// Instead of returning all the missing subfields, just return here
 		// to give a more concise and arguably a more meaningful error message.
 		return errs
@@ -125,6 +126,9 @@ func (authority *Authority) Validate(ctx context.Context) *apis.FieldError {
 		}
 		if authority.CTLog != nil {
 			errs = errs.Also(apis.ErrMultipleOneOf("static", "ctlog"))
+		}
+		if authority.RFC3161Timestamp != nil {
+			errs = errs.Also(apis.ErrMultipleOneOf("static", "rfc3161timestamp"))
 		}
 	}
 

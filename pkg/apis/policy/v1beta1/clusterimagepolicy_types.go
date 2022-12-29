@@ -114,6 +114,9 @@ type Authority struct {
 	// once the signature for this authority has been verified.
 	// +optional
 	Attestations []Attestation `json:"attestations,omitempty"`
+	// RFC3161Timestamp sets the configuration to verify the signature timestamp against a RFC3161 time-stamping instance.
+	// +optional
+	RFC3161Timestamp *RFC3161Timestamp `json:"rfc3161timestamp,omitempty"`
 }
 
 // This references a public verification key stored in
@@ -283,6 +286,14 @@ type Identity struct {
 	// SubjectRegExp specifies a regular expression to match the subject for this identity.
 	// +optional
 	SubjectRegExp string `json:"subjectRegExp,omitempty"`
+}
+
+// RFC3161Timestamp specifies the URL to a RFC3161 time-stamping server that holds
+// the time-stamped verification for the signature
+type RFC3161Timestamp struct {
+	// Use the Certificate Chain from the referred TrustRoot.TimeStampAuthorities
+	// +optional
+	TrustRootRef string `json:"trustRootRef,omitempty"`
 }
 
 // ClusterImagePolicyList is a list of ClusterImagePolicy resources

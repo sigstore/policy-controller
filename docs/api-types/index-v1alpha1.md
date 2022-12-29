@@ -26,6 +26,7 @@
 * [KeylessRef](#keylessref)
 * [MatchResource](#matchresource)
 * [Policy](#policy)
+* [RFC3161Timestamp](#rfc3161timestamp)
 * [Source](#source)
 * [StaticRef](#staticref)
 * [TLog](#tlog)
@@ -161,6 +162,7 @@ Attestation defines the type of attestation to validate and optionally apply a p
 | source | Sources sets the configuration to specify the sources from where to consume the signatures. | [][Source](#source) | false |
 | ctlog | CTLog sets the configuration to verify the authority against a Rekor instance. | [TLog](#tlog) | false |
 | attestations | Attestations is a list of individual attestations for this authority, once the signature for this authority has been verified. | [][Attestation](#attestation) | false |
+| rfc3161timestamp | RFC3161Timestamp sets the configuration to verify the signature timestamp against a RFC3161 time-stamping instance. | [RFC3161Timestamp](#rfc3161timestamp) | false |
 
 [Back to TOC](#table-of-contents)
 
@@ -285,6 +287,16 @@ Policy specifies a policy to use for Attestation or the CIP validation (iff at l
 | includeSpec | IncludeSpec controls whether resource `Spec` will be included and made available for CIP level policy evaluation. Note that this only gets evaluated iff at least one authority matches. Also note that because Spec may be of a different shape depending on the resource being evaluatied (see MatchResource for filtering) you might want to configure these to match the policy file to ensure the shape of the Spec is what you expect when evaling the policy. | bool | false |
 | includeObjectMeta | IncludeObjectMeta controls whether the ObjectMeta will be included and made available for CIP level policy evalutation. Note that this only gets evaluated iff at least one authority matches. | bool | false |
 | includeTypeMeta | IncludeTypeMeta controls whether the TypeMeta will be included and made available for CIP level policy evalutation. Note that this only gets evaluated iff at least one authority matches. | bool | false |
+
+[Back to TOC](#table-of-contents)
+
+## RFC3161Timestamp
+
+RFC3161Timestamp specifies the URL to a RFC3161 time-stamping server that holds the time-stamped verification for the signature
+
+| Field | Description | Scheme | Required |
+| ----- | ----------- | ------ | -------- |
+| trustRootRef | Use the Certificate Chain from the referred TrustRoot.TimeStampAuthorities | string | false |
 
 [Back to TOC](#table-of-contents)
 

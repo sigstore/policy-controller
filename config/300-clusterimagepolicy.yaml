@@ -190,6 +190,13 @@ spec:
                       name:
                         description: Name is the name for this authority. Used by the CIP Policy validator to be able to reference matching signature or attestation verifications. If not specified, the name will be authority-<index in array>
                         type: string
+                      rfc3161timestamp:
+                        description: RFC3161Timestamp sets the configuration to verify the signature timestamp against a RFC3161 time-stamping instance.
+                        type: object
+                        properties:
+                          trustRootRef:
+                            description: Use the Certificate Chain from the referred TrustRoot.TimeStampAuthorities
+                            type: string
                       source:
                         description: Sources sets the configuration to specify the sources from where to consume the signatures.
                         type: array
@@ -455,6 +462,13 @@ spec:
                       name:
                         description: Name is the name for this authority. Used by the CIP Policy validator to be able to reference matching signature or attestation verifications. If not specified, the name will be authority-<index in array>
                         type: string
+                      rfc3161timestamp:
+                        description: RFC3161Timestamp sets the configuration to verify the signature timestamp against a RFC3161 time-stamping instance.
+                        type: object
+                        properties:
+                          trustRootRef:
+                            description: Use the Certificate Chain from the referred TrustRoot.TimeStampAuthorities
+                            type: string
                       source:
                         description: Sources sets the configuration to specify the sources from where to consume the signatures.
                         type: array

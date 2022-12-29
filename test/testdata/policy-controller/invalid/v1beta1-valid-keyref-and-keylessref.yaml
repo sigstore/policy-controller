@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ---
-# ERROR:expected exactly one, got both: spec.authorities[0].key, spec.authorities[0].keyless, spec.authorities[0].static
+# ERROR:expected exactly one, got both: spec.authorities[0].key, spec.authorities[0].keyless, spec.authorities[0].rfc3161timestamp, spec.authorities[0].static
 apiVersion: policy.sigstore.dev/v1beta1
 kind: ClusterImagePolicy
 metadata:

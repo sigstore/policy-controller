@@ -763,6 +763,14 @@ func ValidatePolicySignaturesForAuthority(ctx context.Context, ref name.Referenc
 			return ociSignatureToPolicySignature(ctx, sps), nil
 		}
 		return nil, fmt.Errorf("no Keyless URL specified")
+	case authority.RFC3161Timestamp != nil:
+		sps, err := validSignatures(ctx, ref, checkOpts)
+		if err != nil {
+			logging.FromContext(ctx).Errorf("failed validSignatures for authority %s with fulcio for %s: %v", name, ref.Name(), err)
+			return nil, fmt.Errorf("signature TSA validation failed for authority %s for %s: %w", name, ref.Name(), err)
+		}
+		logging.FromContext(ctx).Debugf("validated TSA signature for %s, got %d signatures", ref.Name(), len(sps))
+		return ociSignatureToPolicySignature(ctx, sps), nil
 	}
 
 	// This should never happen because authority has to have been validated to
@@ -807,6 +815,14 @@ func ValidatePolicyAttestationsForAuthority(ctx context.Context, ref name.Refere
 			}
 			verifiedAttestations = append(verifiedAttestations, va...)
 		}
+	case authority.RFC3161Timestamp != nil:
+		va, err := validAttestations(ctx, ref, checkOpts)
+		if err != nil {
+			logging.FromContext(ctx).Errorf("failed validAttestations for authority %s with fulcio for %s: %v", name, ref.Name(), err)
+			return nil, fmt.Errorf("signature TSA validAttestations failed for authority %s for %s: %w", name, ref.Name(), err)
+		}
+		logging.FromContext(ctx).Debugf("validated TSA signature for %s, got %d signatures", ref.Name(), len(va))
+		verifiedAttestations = append(verifiedAttestations, va...)
 	}
 
 	// If we didn't get any verified attestations either from the Key or Keyless
@@ -1289,6 +1305,35 @@ func checkOptsFromAuthority(ctx context.Context, authority webhookcip.Authority,
 			ret.Offline = true
 		}
 	}
+	if authority.RFC3161Timestamp != nil && authority.RFC3161Timestamp.TrustRootRef != "" {
+		logging.FromContext(ctx).Debug("Using RFC3161Timestamp...")
+		// TODO: By default, we disable any tlog verification when using the RFC3161Timestamp validation.
+		// There are use cases when the validation is only handled by TSA, and there isn't any TLog involved.
+		ret.SkipTlogVerify = true
+
+		sigstoreKeys, err := sigstoreKeysFromContext(ctx, authority.RFC3161Timestamp.TrustRootRef)
+		if err != nil {
+			return nil, err
+		}
+		sk, ok := sigstoreKeys.SigstoreKeys[authority.RFC3161Timestamp.TrustRootRef]
+		if !ok {
+			return nil, fmt.Errorf("trustRootRef %s not found", authority.RFC3161Timestamp.TrustRootRef)
+		}
+		for _, timestampAuthority := range sk.TimeStampAuthorities {
+			leaves, intermediates, roots, err := splitPEMCertificateChain(timestampAuthority.CertChain)
+			if err != nil {
+				return nil, fmt.Errorf("error splitting certificates: %w", err)
+			}
+			if len(leaves) > 1 {
+				return nil, fmt.Errorf("certificate chain must contain at most one TSA certificate")
+			}
+			if len(leaves) == 1 {
+				ret.TSACertificate = leaves[0]
+			}
+			ret.TSAIntermediateCertificates = intermediates
+			ret.TSARootCertificates = roots
+		}
+	}
 	return ret, nil
 }
 
@@ -1456,4 +1501,28 @@ func rekorKeysFromTrustRef(ctx context.Context, trustRootRef string) (*cosign.Tr
 		return retKeys, rekorURL, nil
 	}
 	return nil, "", fmt.Errorf("trustRootRef %s not found", trustRootRef)
+}
+
+// splitPEMCertificateChain returns a list of leaf (non-CA) certificates, a certificate pool for
+// intermediate CA certificates, and a certificate pool for root CA certificates
+func splitPEMCertificateChain(pem []byte) (leaves, intermediates, roots []*x509.Certificate, err error) {
+	certs, err := cryptoutils.UnmarshalCertificatesFromPEM(pem)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	for _, cert := range certs {
+		if !cert.IsCA {
+			leaves = append(leaves, cert)
+		} else {
+			// root certificates are self-signed
+			if bytes.Equal(cert.RawSubject, cert.RawIssuer) {
+				roots = append(roots, cert)
+			} else {
+				intermediates = append(intermediates, cert)
+			}
+		}
+	}
+
+	return leaves, intermediates, roots, nil
 }

@@ -83,6 +83,8 @@ type Authority struct {
 	RemoteOpts []ociremote.Option `json:"-"`
 	// +optional
 	Attestations []AttestationPolicy `json:"attestations,omitempty"`
+	// +optional
+	RFC3161Timestamp *RFC3161Timestamp `json:"rfc3161timestamp,omitempty"`
 }
 
 // This references a public verification key stored in
@@ -150,6 +152,14 @@ type AttestationPolicy struct {
 	// evaluated iff at least one authority matches.
 	// +optional
 	IncludeTypeMeta *bool `json:"includeTypeMeta,omitempty"`
+}
+
+// RFC3161Timestamp specifies the URL to a RFC3161 time-stamping server that holds
+// the time-stamped verification for the signature
+type RFC3161Timestamp struct {
+	// Use the Certificate Chain from the referred TrustRoot.TimeStampAuthorities
+	// +optional
+	TrustRootRef string `json:"trustRootRef,omitempty"`
 }
 
 // UnmarshalJSON populates the PublicKeys using Data because
@@ -295,15 +305,27 @@ func convertAuthorityV1Alpha1ToWebhook(in v1alpha1.Authority) *Authority {
 	keylessRef := convertKeylessRefV1Alpha1ToWebhook(in.Keyless)
 	staticRef := convertStaticRefV1Alpha1ToWebhook(in.Static)
 	attestations := convertAttestationsV1Alpha1ToWebhook(in.Attestations)
+	rfc3161Timestamp := convertRFC3161TimestampV1Alpha1ToWebhook(in.RFC3161Timestamp)
 
 	return &Authority{
-		Name:         in.Name,
-		Key:          keyRef,
-		Keyless:      keylessRef,
-		Static:       staticRef,
-		Sources:      in.Sources,
-		CTLog:        in.CTLog,
-		Attestations: attestations,
+		Name:             in.Name,
+		Key:              keyRef,
+		Keyless:          keylessRef,
+		Static:           staticRef,
+		Sources:          in.Sources,
+		CTLog:            in.CTLog,
+		RFC3161Timestamp: rfc3161Timestamp,
+		Attestations:     attestations,
+	}
+}
+
+func convertRFC3161TimestampV1Alpha1ToWebhook(in *v1alpha1.RFC3161Timestamp) *RFC3161Timestamp {
+	if in == nil {
+		return nil
+	}
+
+	return &RFC3161Timestamp{
+		TrustRootRef: in.TrustRootRef,
 	}
 }
 

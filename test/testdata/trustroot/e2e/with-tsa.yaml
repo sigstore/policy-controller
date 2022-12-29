@@ -12,17 +12,17 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ---
-# ERROR:expected exactly one, got both: spec.authorities[0].key, spec.authorities[0].keyless, spec.authorities[0].rfc3161timestamp, spec.authorities[0].static
 apiVersion: policy.sigstore.dev/v1alpha1
-kind: ClusterImagePolicy
+kind: TrustRoot
 metadata:
-  name: image-policy
+  name: my-sigstore-keys
 spec:
-  images:
-  - glob: image*
-  authorities:
-  - keyless:
-      identities:
-      - issuer: "issue-details"
-    key:
-      kms: "kms://url"
+  sigstoreKeys:
+    certificateAuthorities: []
+    timestampAuthorities:
+    - subject:
+        organization: tsa-organization
+        commonName: tsa-common-name
+      uri: TSA_URL
+      certChain: |-
+        TSA_CERT_CHAIN
