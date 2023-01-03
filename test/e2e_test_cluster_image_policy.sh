@@ -124,7 +124,7 @@ kubectl apply -f ./test/testdata/policy-controller/e2e/cip-keyless.yaml
 echo '::endgroup::'
 
 echo '::group:: Sign demo image'
-if ! cosign sign --rekor-url ${REKOR_URL} --fulcio-url ${FULCIO_URL} --force --allow-insecure-registry ${demoimage} --identity-token ${OIDC_TOKEN} ; then
+if ! cosign sign --rekor-url ${REKOR_URL} --fulcio-url ${FULCIO_URL} --yes --allow-insecure-registry ${demoimage} --identity-token ${OIDC_TOKEN} ; then
   echo "failed to sign with keyless"
   exit 1
 fi
@@ -260,7 +260,7 @@ fi
 echo '::endgroup::'
 
 echo '::group:: Sign demoimage with cosign key'
-if ! COSIGN_PASSWORD="" cosign sign --key cosign-colocated-signing.key --force --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage} ; then
+if ! COSIGN_PASSWORD="" cosign sign --key cosign-colocated-signing.key --yes --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage} ; then
   echo failed to sign demoimage with key
   exit 1
 fi
@@ -337,7 +337,7 @@ fi
 echo '::endgroup::'
 
 echo '::group:: Sign demoimage with cosign key secret'
-if ! COSIGN_PASSWORD="" cosign sign --key cosign-secret.key --force --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage} ; then
+if ! COSIGN_PASSWORD="" cosign sign --key cosign-secret.key --yes --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage} ; then
   echo failed to sign demoimage with key secret
   exit 1
 fi
@@ -378,7 +378,7 @@ sleep 5
 echo '::endgroup::'
 
 echo '::group:: Sign demoimage with cosign remote key'
-if ! COSIGN_PASSWORD="" COSIGN_REPOSITORY="${KO_DOCKER_REPO}/remote-signature" cosign sign --key cosign-remote-signing.key --force --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage} ; then
+if ! COSIGN_PASSWORD="" COSIGN_REPOSITORY="${KO_DOCKER_REPO}/remote-signature" cosign sign --key cosign-remote-signing.key --yes --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage} ; then
   echo "failed to sign with remote key"
   exit 1
 fi
@@ -489,7 +489,7 @@ fi
 echo '::endgroup::'
 
 echo '::group:: Sign demoimage with cosign key'
-if ! COSIGN_PASSWORD="" cosign sign --key cosign-match-signing.key --force --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage} ; then
+if ! COSIGN_PASSWORD="" cosign sign --key cosign-match-signing.key --yes --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage} ; then
   echo failed to sign demoimage with key
   exit 1
 fi
@@ -579,7 +579,7 @@ kubectl apply -f ./test/testdata/policy-controller/e2e/cip-keyless.yaml
 echo '::endgroup::'
 
 echo '::group:: Sign demo image'
-if ! cosign sign --rekor-url ${REKOR_URL} --fulcio-url ${FULCIO_URL} --force --allow-insecure-registry ${demoEphemeralImage} --identity-token ${OIDC_TOKEN} ; then
+if ! cosign sign --rekor-url ${REKOR_URL} --fulcio-url ${FULCIO_URL} --yes --allow-insecure-registry ${demoEphemeralImage} --identity-token ${OIDC_TOKEN} ; then
   echo "failed to sign with keyless"
   exit 1
 fi

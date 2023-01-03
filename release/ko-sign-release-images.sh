@@ -32,5 +32,5 @@ if [[ ! -f policyImagerefs ]]; then
 fi
 
 echo "Signing images with Keyless..."
-cosign sign --force -a GIT_HASH="$GIT_HASH" -a GIT_VERSION="$GIT_VERSION" $(cat policyControllerImagerefs)
-cosign sign --force -a GIT_HASH="$GIT_HASH" -a GIT_VERSION="$GIT_VERSION" $(cat policyImagerefs)
+cosign sign --yes -a GIT_HASH="$GIT_HASH" -a GIT_VERSION="$GIT_VERSION" $(cat policyControllerImagerefs)
+cosign sign --yes -a GIT_HASH="$GIT_HASH" -a GIT_VERSION="$GIT_VERSION" $(cat policyImagerefs)

@@ -25,7 +25,9 @@ jobs:
           go-version: 1.19
           check-latest: true
 
-      - uses: sigstore/cosign-installer@9becc617647dfa20ae7b1151972e9b3a2c338a2b # v2
+      - uses: sigstore/cosign-installer@55fd288876ce156f3d39276ebf89f86bf3702f37
+        with:
+          cosign-release: 'v2.0.0-rc.0'
 
       - uses: anchore/sbom-action/download-syft@06e109483e6aa305a2b2395eabae554e51530e1d # v0.11.0
 

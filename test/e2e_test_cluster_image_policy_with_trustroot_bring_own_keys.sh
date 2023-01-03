@@ -135,7 +135,7 @@ echo '::endgroup::'
 # Create attestation and it should pass.
 echo '::group:: Create one keyless attestation and verify it'
 echo -n 'foobar e2e test' > ./predicate-file-custom
-COSIGN_EXPERIMENTAL=1 cosign attest --predicate ./predicate-file-custom --fulcio-url ${FULCIO_URL} --rekor-url ${REKOR_URL} --allow-insecure-registry --force ${demoimage} --identity-token ${OIDC_TOKEN}
+COSIGN_EXPERIMENTAL=1 cosign attest --predicate ./predicate-file-custom --fulcio-url ${FULCIO_URL} --rekor-url ${REKOR_URL} --allow-insecure-registry --yes ${demoimage} --identity-token ${OIDC_TOKEN}
 
 COSIGN_EXPERIMENTAL=1 cosign verify-attestation --type=custom --rekor-url ${REKOR_URL} --allow-insecure-registry ${demoimage}
 echo '::endgroup::'
