@@ -18,9 +18,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
-	"net/http"
-	"os"
 
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/name"
@@ -37,12 +34,22 @@ import (
 // the policies backing this interface.
 type Verifier interface {
 	// Verify checks that the provided reference satisfies the backing policies.
-	Verify(context.Context, name.Reference, authn.Keychain) error
+	//
+	// For policies specifying `match:` criteria with apiVersion/kind, the
+	// TypeMeta should be associated with `ctx` here using:
+	//    webhook.GetIncludeTypeMeta(ctx)
+	//
+	// For policies specifying `match:` criteria with label selectors, the
+	// ObjectMeta should be associated with `ctx` here using:
+	//    webhook.GetIncludeObjectMeta(ctx)
+	Verify(context.Context, name.Reference, authn.Keychain, ...ociremote.Option) error
 }
 
 // WarningWriter is used to surface warning messages in a manner that
 // is customizable by callers that's suitable for their execution
-// environment.
+// environment.  The signature is intended to match the standard format string
+// signature (e.g. Printf, Infof, Logf, Errorf, Fatalf, ...), so functions like
+// log.Printf or t.Errorf can be passed here directly.
 type WarningWriter func(string, ...interface{})
 
 // Compile turns a Verification into an executable Verifier.
@@ -72,33 +79,9 @@ func gather(ctx context.Context, v Verification, ww WarningWriter) (*config.Imag
 	}
 
 	for i, p := range pol {
-		var content string
-		switch {
-		case p.Data != "":
-			content = p.Data
-
-		case p.Path != "":
-			raw, err := os.ReadFile(p.Path)
-			if err != nil {
-				return nil, err
-			}
-			content = string(raw)
-
-		case p.URL != "":
-			resp, err := http.Get(p.URL)
-			if err != nil {
-				return nil, err
-			}
-			defer resp.Body.Close()
-			raw, err := io.ReadAll(resp.Body)
-			if err != nil {
-				return nil, err
-			}
-			content = string(raw)
-
-		default:
-			// This should never happen for a validated policy.
-			return nil, fmt.Errorf("unsupported policy shape: %v", p)
+		content, err := p.fetch(ctx)
+		if err != nil {
+			return nil, err
 		}
 
 		l, warns, err := ParseClusterImagePolicies(ctx, content)
@@ -148,7 +131,7 @@ type impl struct {
 var _ Verifier = (*impl)(nil)
 
 // Verify implements Verifier
-func (i *impl) Verify(ctx context.Context, ref name.Reference, kc authn.Keychain) error {
+func (i *impl) Verify(ctx context.Context, ref name.Reference, kc authn.Keychain, opts ...ociremote.Option) error {
 	tm := getTypeMeta(ctx)
 	om := getObjectMeta(ctx)
 	matches, err := i.ipc.GetMatchingPolicies(ref.Name(), tm.Kind, tm.APIVersion, om.Labels)
@@ -170,9 +153,11 @@ func (i *impl) Verify(ctx context.Context, ref name.Reference, kc authn.Keychain
 		}
 	}
 
+	// Add the keychain to our (optional) list of options.
+	opts = append(opts, ociremote.WithRemoteOptions(remote.WithAuthFromKeychain(kc)))
+
 	for _, p := range matches {
-		_, errs := webhook.ValidatePolicy(ctx, "" /* namespace */, ref, p,
-			kc, ociremote.WithRemoteOptions(remote.WithAuthFromKeychain(kc)))
+		_, errs := webhook.ValidatePolicy(ctx, "" /* namespace */, ref, p, kc, opts...)
 		for _, err := range errs {
 			var fe *apis.FieldError
 			if errors.As(err, &fe) {

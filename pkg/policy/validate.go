@@ -39,7 +39,8 @@ var (
 )
 
 // Validate decodes a provided YAML document containing zero or more objects
-// and performs limited validation on them.
+// and performs limited validation on them, after applying defaulting (to
+// simulate the mutating webhook running before the validating webhook).
 func Validate(ctx context.Context, document string) (warns error, err error) {
 	if len(document) == 0 {
 		return nil, ErrEmptyDocument

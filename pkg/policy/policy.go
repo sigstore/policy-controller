@@ -16,6 +16,7 @@ package policy
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -29,8 +30,9 @@ type Verification struct {
 	// of the listed policies.  It allows the values: allow, deny, and warn.
 	NoMatchPolicy string `yaml:"no-match-policy,omitempty"`
 
-	// Policies specifies a collection of policies to use to cover the base
-	// images used as part of evaluation.  See "policy" below for usage.
+	// Policies specifies a set of Sources for fetching policies to use to cover
+	// images used as part of evaluation.  For more information about what each
+	// Source supports, see its usage.
 	// Policies can be nil so that we can distinguish between an explicitly
 	// specified empty list and when policies is unspecified.
 	Policies *[]Source `yaml:"policies,omitempty"`
@@ -71,65 +73,76 @@ func (v *Verification) Validate(ctx context.Context) (errs *apis.FieldError) {
 	return errs
 }
 
-func (pd *Source) Validate(ctx context.Context) (errs *apis.FieldError) {
+func (pd *Source) Validate(ctx context.Context) *apis.FieldError {
 	// Check that exactly one of the fields is set.
 	set := sets.NewString()
 	if pd.Data != "" {
 		set.Insert("data")
-		_, _, err := ParseClusterImagePolicies(ctx, pd.Data)
-		if err != nil {
-			errs = errs.Also(apis.ErrInvalidValue(err.Error(), "data"))
-		}
 	}
 	if pd.Path != "" {
 		set.Insert("path")
-		raw, err := os.ReadFile(pd.Path)
-		if err != nil {
-			errs = errs.Also(&apis.FieldError{
-				Message: err.Error(),
-				Paths:   []string{"path"},
-			})
-		} else {
-			_, _, err := ParseClusterImagePolicies(ctx, string(raw))
-			if err != nil {
-				errs = errs.Also(apis.ErrInvalidValue(err.Error(), "path"))
-			}
-		}
 	}
 	if pd.URL != "" {
 		set.Insert("url")
-		resp, err := http.Get(pd.URL)
-		if err != nil {
-			errs = errs.Also(&apis.FieldError{
-				Message: err.Error(),
-				Paths:   []string{"url"},
-			})
-		} else {
-			defer resp.Body.Close()
-			raw, err := io.ReadAll(resp.Body)
-			if err != nil {
-				errs = errs.Also(&apis.FieldError{
-					Message: err.Error(),
-					Paths:   []string{"url"},
-				})
-			} else {
-				_, _, err := ParseClusterImagePolicies(ctx, string(raw))
-				if err != nil {
-					errs = errs.Also(apis.ErrInvalidValue(err.Error(), "url"))
-				}
-			}
-		}
 	}
-
+	// This returns eagerly to avoid confusing `oneof` validation with errors
+	// along multiple paths of the oneof.
 	switch set.Len() {
 	case 0:
-		errs = errs.Also(apis.ErrMissingOneOf("data", "path", "url"))
+		return apis.ErrMissingOneOf("data", "path", "url")
 	case 1:
 		// What we want.
 	default:
 		// This will be unreachable until we add more than one thing
 		// to our oneof.
-		errs = errs.Also(apis.ErrMultipleOneOf(set.List()...))
+		return apis.ErrMultipleOneOf(set.List()...)
 	}
-	return errs
+	// We know (from the switch above) there is exactly one field name.
+	field, _ := set.PopAny()
+
+	content, err := pd.fetch(ctx)
+	if err != nil {
+		return &apis.FieldError{
+			Message: err.Error(),
+			Paths:   []string{field},
+		}
+	}
+	if _, _, err := ParseClusterImagePolicies(ctx, content); err != nil {
+		return apis.ErrInvalidValue(err.Error(), field)
+	}
+	return nil
+}
+
+func (pd *Source) fetch(ctx context.Context) (string, error) {
+	switch {
+	case pd.Data != "":
+		return pd.Data, nil
+
+	case pd.Path != "":
+		raw, err := os.ReadFile(pd.Path)
+		if err != nil {
+			return "", err
+		}
+		return string(raw), nil
+
+	case pd.URL != "":
+		req, err := http.NewRequestWithContext(ctx, http.MethodGet, pd.URL, nil)
+		if err != nil {
+			return "", err
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			return "", err
+		}
+		defer resp.Body.Close()
+		raw, err := io.ReadAll(resp.Body)
+		if err != nil {
+			return "", err
+		}
+		return string(raw), nil
+
+	default:
+		// This should never happen for a validated policy.
+		return "", fmt.Errorf("unsupported policy shape: %v", pd)
+	}
 }
