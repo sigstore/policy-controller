@@ -119,7 +119,7 @@ assert_error ${expected_error}
 echo '::endgroup::'
 
 echo '::group:: Sign demoimage with keyless'
-COSIGN_EXPERIMENTAL=1 cosign sign --rekor-url ${REKOR_URL} --fulcio-url ${FULCIO_URL} --force --allow-insecure-registry ${demoimage} --identity-token ${OIDC_TOKEN}
+COSIGN_EXPERIMENTAL=1 cosign sign --rekor-url ${REKOR_URL} --fulcio-url ${FULCIO_URL} --yes --allow-insecure-registry ${demoimage} --identity-token ${OIDC_TOKEN}
 echo '::endgroup::'
 
 echo '::group:: Create CIP that requires keyless custom attestation with policy'
@@ -137,7 +137,7 @@ echo '::endgroup::'
 # Ok, cool. So attest and it should pass.
 echo '::group:: Create one keyless attestation and verify it'
 echo -n 'foobar e2e test' > ./predicate-file-custom
-COSIGN_EXPERIMENTAL=1 cosign attest --predicate ./predicate-file-custom --fulcio-url ${FULCIO_URL} --rekor-url ${REKOR_URL} --allow-insecure-registry --force ${demoimage} --identity-token ${OIDC_TOKEN}
+COSIGN_EXPERIMENTAL=1 cosign attest --predicate ./predicate-file-custom --fulcio-url ${FULCIO_URL} --rekor-url ${REKOR_URL} --allow-insecure-registry --yes ${demoimage} --identity-token ${OIDC_TOKEN}
 
 COSIGN_EXPERIMENTAL=1 cosign verify-attestation --type=custom --rekor-url ${REKOR_URL} --allow-insecure-registry ${demoimage}
 echo '::endgroup::'
@@ -179,7 +179,7 @@ echo '::endgroup::'
 
 # Sign it with key
 echo '::group:: Sign demoimage with key, and add to rekor'
-COSIGN_EXPERIMENTAL=1 COSIGN_PASSWORD="" cosign sign --key cosign.key --force --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage}
+COSIGN_EXPERIMENTAL=1 COSIGN_PASSWORD="" cosign sign --key cosign.key --yes --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage}
 echo '::endgroup::'
 
 echo '::group:: Verify demoimage with cosign key'
@@ -207,7 +207,7 @@ echo '::endgroup::'
 # Fine, so create an attestation for it that's different from the keyless one
 echo '::group:: create keyful attestation, add add to rekor'
 echo -n 'foobar key e2e test' > ./predicate-file-key-custom
-COSIGN_EXPERIMENTAL=1 COSIGN_PASSWORD="" cosign attest --predicate ./predicate-file-key-custom --rekor-url ${REKOR_URL} --key ./cosign.key --allow-insecure-registry --force ${demoimage}
+COSIGN_EXPERIMENTAL=1 COSIGN_PASSWORD="" cosign attest --predicate ./predicate-file-key-custom --rekor-url ${REKOR_URL} --key ./cosign.key --allow-insecure-registry --yes ${demoimage}
 
 COSIGN_EXPERIMENTAL=1 cosign verify-attestation --key ./cosign.pub --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage}
 echo '::endgroup::'
@@ -251,7 +251,7 @@ assert_error ${expected_error}
 echo '::endgroup::'
 
 echo '::group:: Create vuln keyless attestation and verify it'
-COSIGN_EXPERIMENTAL=1 cosign attest --predicate ./test/testdata/attestations/vuln-predicate.json --type=vuln --fulcio-url ${FULCIO_URL} --rekor-url ${REKOR_URL} --allow-insecure-registry --force ${demoimage} --identity-token ${OIDC_TOKEN}
+COSIGN_EXPERIMENTAL=1 cosign attest --predicate ./test/testdata/attestations/vuln-predicate.json --type=vuln --fulcio-url ${FULCIO_URL} --rekor-url ${REKOR_URL} --allow-insecure-registry --yes ${demoimage} --identity-token ${OIDC_TOKEN}
 
 COSIGN_EXPERIMENTAL=1 cosign verify-attestation --type=vuln --rekor-url ${REKOR_URL} --allow-insecure-registry ${demoimage}
 echo '::endgroup::'
