@@ -23,50 +23,12 @@ import (
 	"github.com/sigstore/policy-controller/pkg/apis/glob"
 	webhookcip "github.com/sigstore/policy-controller/pkg/webhook/clusterimagepolicy"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/meta"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	metalabels "k8s.io/apimachinery/pkg/labels"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"sigs.k8s.io/yaml"
 )
-
-// TODO (hectorj2f): Find an optimal function to match GroupVersionResource with the provided kind and apiVersion
-var kindResourceMap = map[string]schema.GroupVersionResource{
-	"Deployment": {
-		Group:    "apps",
-		Version:  "v1",
-		Resource: "deployments",
-	},
-	"ReplicatSet": {
-		Group:    "apps",
-		Version:  "v1",
-		Resource: "replicasets",
-	},
-	"CronJob": {
-		Group:    "batch",
-		Version:  "v1",
-		Resource: "cronjobs",
-	},
-	"Job": {
-		Group:    "batch",
-		Version:  "v1",
-		Resource: "jobs",
-	},
-	"DaemonSet": {
-		Group:    "",
-		Version:  "v1",
-		Resource: "daemonsets",
-	},
-	"StatefulSet": {
-		Group:    "apps",
-		Version:  "v1",
-		Resource: "statefulsets",
-	},
-	"Pod": {
-		Group:    "",
-		Version:  "v1",
-		Resource: "pods",
-	},
-}
 
 const (
 	// ImagePoliciesConfigName is the name of ConfigMap created by the
@@ -126,6 +88,13 @@ func (p *ImagePolicyConfig) GetMatchingPolicies(image string, kind, apiVersion s
 		return nil, errors.New("config is nil")
 	}
 
+	gv, err := schema.ParseGroupVersion(apiVersion)
+	if err != nil {
+		return nil, err
+	}
+	// While unsafe, this is correct (safe!) for everything we care about.
+	gvr, _ := meta.UnsafeGuessKindToResource(gv.WithKind(kind))
+
 	var lastError error
 	ret := make(map[string]webhookcip.ClusterImagePolicy)
 
@@ -135,26 +104,32 @@ func (p *ImagePolicyConfig) GetMatchingPolicies(image string, kind, apiVersion s
 	for k, v := range p.Policies {
 		if len(v.Match) > 0 {
 			foundMatch := false
-			resourceGroupVersion := kindResourceMap[kind]
 			for _, matchResource := range v.Match {
-				if matchResource.Resource == resourceGroupVersion.Resource && (matchResource.Version == resourceGroupVersion.Version || matchResource.Version == "*") && matchResource.Group == resourceGroupVersion.Group {
-					if matchResource.ResourceSelector != nil {
-						selector, err := metav1.LabelSelectorAsSelector(matchResource.ResourceSelector)
-						if err != nil {
-							return nil, errors.New("policy with wrong match label selector")
-						}
-						if !selector.Matches(metalabels.Set(labels)) {
-							continue
-						}
-						// We found a resource type that matches the provided labels
-						foundMatch = true
-						break
-					} else {
-						// We found a resource that matches the available name, version and group
-						foundMatch = true
-						break
+				if matchResource.Resource != gvr.Resource {
+					// Resource doesn't match.
+					continue
+				}
+				if matchResource.Version != gvr.Version && matchResource.Version != "*" {
+					// Version doesn't match exactly or wildcard.
+					continue
+				}
+				if matchResource.Group != gvr.Group {
+					// Group doesn't match.
+					continue
+				}
+
+				if matchResource.ResourceSelector != nil {
+					selector, err := metav1.LabelSelectorAsSelector(matchResource.ResourceSelector)
+					if err != nil {
+						return nil, errors.New("policy with wrong match label selector")
+					}
+					if !selector.Matches(metalabels.Set(labels)) {
+						continue
 					}
 				}
+				// We found a set of match criteria that this resource satisfies
+				foundMatch = true
+				break
 			}
 			if !foundMatch {
 				// We didn't find any match with the current resource types, so we continue looking for policies
