@@ -167,3 +167,32 @@ data:
         - oci: "example.registry.com/alternative/signature"
           signaturePullSecrets:
           - name: examplePullSecret
+    cluster-image-policy-match-pods: |
+      match:
+      - version: v1
+        resource: pods
+      images:
+      - glob: match-pods*
+      authorities:
+      - name: attestation-0
+        key:
+          data: |-
+            -----BEGIN PUBLIC KEY-----
+            MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAExB6+H6054/W1SJgs5JR6AJr6J35J
+            RCTfQ5s1kD+hGMSE1rH7s46hmXEeyhnlRnaGF8eMU/SBJE/2NKPnxE7WzQ==
+            -----END PUBLIC KEY-----
+    cluster-image-policy-match-deployments: |
+      match:
+      - group: apps
+        version: v1
+        resource: deployments
+      images:
+      - glob: match-deployments*
+      authorities:
+      - name: attestation-0
+        key:
+          data: |-
+            -----BEGIN PUBLIC KEY-----
+            MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAExB6+H6054/W1SJgs5JR6AJr6J35J
+            RCTfQ5s1kD+hGMSE1rH7s46hmXEeyhnlRnaGF8eMU/SBJE/2NKPnxE7WzQ==
+            -----END PUBLIC KEY-----

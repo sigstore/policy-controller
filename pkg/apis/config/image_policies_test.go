@@ -213,6 +213,27 @@ func TestGetAuthorities(t *testing.T) {
 	if got := getAuthority(t, c, matchedPolicy).Sources[0].SignaturePullSecrets[0].Name; got != want {
 		t.Errorf("Did not get what I wanted %q, got %+v", want, got)
 	}
+
+	// Test resource matching
+	c, err = defaults.GetMatchingPolicies("match-pods", "Pod", "v1", map[string]string{"match": "match"})
+	checkGetMatches(t, c, err)
+	if len(c) != 1 {
+		t.Errorf("Wanted 1 match, got %d", len(c))
+	}
+	c, err = defaults.GetMatchingPolicies("match-pods", "Pod", "apps/v1", map[string]string{"match": "match"})
+	if err != nil {
+		t.Fatalf("GetMatchingPolicies() = %v", err)
+	}
+	if len(c) != 0 {
+		t.Errorf("Wanted 0 matches, got %d", len(c))
+	}
+	c, err = defaults.GetMatchingPolicies("match-pods", "Pod", "blah/v1alpha1", map[string]string{"match": "match"})
+	if err != nil {
+		t.Fatalf("GetMatchingPolicies() = %v", err)
+	}
+	if len(c) != 0 {
+		t.Errorf("Wanted 0 matches, got %d", len(c))
+	}
 }
 
 func TestFailsToLoadInvalid(t *testing.T) {
