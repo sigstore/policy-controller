@@ -18,6 +18,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"net/url"
 	"path/filepath"
 	"regexp"
 	"strings"
@@ -249,7 +250,10 @@ func (a *Attestation) Validate(ctx context.Context) *apis.FieldError {
 	if a.PredicateType == "" {
 		errs = errs.Also(apis.ErrMissingField("predicateType"))
 	} else if !validPredicateTypes.Has(a.PredicateType) {
-		errs = errs.Also(apis.ErrInvalidValue(a.PredicateType, "predicateType", "unsupported precicate type"))
+		// This could be a fully specified URL, so check for that here.
+		if _, err := url.ParseRequestURI(a.PredicateType); err != nil {
+			errs = errs.Also(apis.ErrInvalidValue(a.PredicateType, "predicateType", "unsupported predicate type"))
+		}
 	}
 	errs = errs.Also(a.Policy.Validate(ctx).ViaField("policy"))
 	return errs

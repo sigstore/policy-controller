@@ -1060,6 +1060,9 @@ func TestAttestationsValidation(t *testing.T) {
 		name:        "vuln",
 		attestation: Attestation{Name: "first", PredicateType: "vuln"},
 	}, {
+		name:        "fully specified URL",
+		attestation: Attestation{Name: "fullyspecified", PredicateType: "https://cyclonedx.org/schema"},
+	}, {
 		name:        "missing name",
 		attestation: Attestation{PredicateType: "vuln"},
 		errorString: "missing field(s): name",
@@ -1070,7 +1073,7 @@ func TestAttestationsValidation(t *testing.T) {
 	}, {
 		name:        "invalid predicatetype",
 		attestation: Attestation{Name: "first", PredicateType: "notsupported"},
-		errorString: "invalid value: notsupported: predicateType\nunsupported precicate type",
+		errorString: "invalid value: notsupported: predicateType\nunsupported predicate type",
 	}, {
 		name: "custom with invalid policy type",
 		attestation: Attestation{Name: "second", PredicateType: "custom",
