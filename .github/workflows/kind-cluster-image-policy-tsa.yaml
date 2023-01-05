@@ -46,7 +46,7 @@ jobs:
       COSIGN_EXPERIMENTAL: true
 
     steps:
-    - uses: actions/checkout@755da8c3cf115ac066823e79a1e1788f8940201b # v3.2.0
+    - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # v3.3.0
     - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # v3.5.0
       with:
         go-version: '1.19'
@@ -95,7 +95,7 @@ jobs:
         echo "TUF_ROOT_FILE=./root.json" >> $GITHUB_ENV
 
     - name: Checkout TSA for testing.
-      uses: actions/checkout@755da8c3cf115ac066823e79a1e1788f8940201b # v3.0.2
+      uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # v3.0.2
       with:
         repository: sigstore/timestamp-authority
         path: ./src/github.com/sigstore/timestamp-authority
