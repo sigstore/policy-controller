@@ -68,7 +68,7 @@ func TestVerifierDeny(t *testing.T) {
 			}},
 		},
 		d:       name.MustParseReference("cgr.dev/chainguard/static@" + ancientDigest).(name.Digest),
-		wantErr: errors.New("signature keyless validation failed for authority authority-0 for cgr.dev/chainguard/static@sha256:a9650a15060275287ebf4530b34020b8d998bd2de9aea00d113c332d8c41eb0b: no matching signatures:\nnone of the expected identities matched what was in the certificate: "),
+		wantErr: errors.New("signature keyless validation failed for authority authority-0 for cgr.dev/chainguard/static@sha256:a9650a15060275287ebf4530b34020b8d998bd2de9aea00d113c332d8c41eb0b: no matching signatures:\nnone of the expected identities matched what was in the certificate, got subjects [https://github.com/distroless/static/.github/workflows/release.yaml@refs/heads/main] with issuer https://token.actions.githubusercontent.com: "),
 	}}
 
 	for _, test := range tests {
@@ -81,10 +81,10 @@ func TestVerifierDeny(t *testing.T) {
 
 			gotErr := vfy.Verify(context.Background(), test.d, authn.DefaultKeychain)
 			if (gotErr != nil) != (test.wantErr != nil) {
-				t.Fatalf("Verify() = %v, wanted %v", gotErr, test.wantErr)
+				t.Fatalf("Verify() = %v, wanted: %v", gotErr, test.wantErr)
 			}
 			if gotErr != nil && gotErr.Error() != test.wantErr.Error() {
-				t.Fatalf("Verify() = %v, wanted %v", gotErr, test.wantErr)
+				t.Fatalf("Verify() = %v, wanted: %v", gotErr, test.wantErr)
 			}
 		})
 	}
@@ -124,7 +124,7 @@ func TestVerifierWarn(t *testing.T) {
 			}},
 		},
 		d:       name.MustParseReference("cgr.dev/chainguard/static@" + ancientDigest).(name.Digest),
-		wantErr: errors.New("signature keyless validation failed for authority authority-0 for cgr.dev/chainguard/static@sha256:a9650a15060275287ebf4530b34020b8d998bd2de9aea00d113c332d8c41eb0b: no matching signatures:\nnone of the expected identities matched what was in the certificate: "),
+		wantErr: errors.New("signature keyless validation failed for authority authority-0 for cgr.dev/chainguard/static@sha256:a9650a15060275287ebf4530b34020b8d998bd2de9aea00d113c332d8c41eb0b: no matching signatures:\nnone of the expected identities matched what was in the certificate, got subjects [https://github.com/distroless/static/.github/workflows/release.yaml@refs/heads/main] with issuer https://token.actions.githubusercontent.com: "),
 	}, {
 		name: "duplicate policies",
 		v: Verification{
@@ -166,10 +166,10 @@ func TestVerifierWarn(t *testing.T) {
 			}
 
 			if (gotErr != nil) != (test.wantErr != nil) {
-				t.Fatalf("Verify() = %v, wanted %v", gotErr, test.wantErr)
+				t.Fatalf("Verify() = %v, wanted: %v", gotErr, test.wantErr)
 			}
 			if gotErr != nil && gotErr.Error() != test.wantErr.Error() {
-				t.Fatalf("Verify() = %v, wanted %v", gotErr, test.wantErr)
+				t.Fatalf("Verify() = %v, wanted: %v", gotErr, test.wantErr)
 			}
 		})
 	}

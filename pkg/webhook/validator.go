@@ -624,10 +624,14 @@ func ValidatePolicy(ctx context.Context, namespace string, ref name.Reference, c
 			return nil, append(authorityErrors, err)
 		}
 		logging.FromContext(ctx).Infof("CIP level policy: %s", string(policyJSON))
-		err = policy.EvaluatePolicyAgainstJSON(ctx, "ClusterImagePolicy", cip.Policy.Type, cip.Policy.Data, policyJSON)
+		warn, err := policy.EvaluatePolicyAgainstJSON(ctx, "ClusterImagePolicy", cip.Policy.Type, cip.Policy.Data, policyJSON)
 		if err != nil {
 			logging.FromContext(ctx).Warnf("Failed to validate CIP level policy against %s", string(policyJSON))
 			return nil, append(authorityErrors, asFieldError(cip.Mode == "warn", err))
+		}
+		if warn != nil {
+			logging.FromContext(ctx).Warnf("Failed to validate CIP level policy against %s", string(policyJSON))
+			return nil, append(authorityErrors, asFieldError(cip.Mode == "warn", warn))
 		}
 	}
 	return policyResult, authorityErrors
@@ -864,10 +868,13 @@ func ValidatePolicyAttestationsForAuthority(ctx context.Context, ref name.Refere
 				continue
 			}
 			if wantedAttestation.Type != "" {
-				if err := policy.EvaluatePolicyAgainstJSON(ctx, wantedAttestation.Name, wantedAttestation.Type, wantedAttestation.Data, attBytes); err != nil {
+				if warn, err := policy.EvaluatePolicyAgainstJSON(ctx, wantedAttestation.Name, wantedAttestation.Type, wantedAttestation.Data, attBytes); err != nil || warn != nil {
 					if reterror == nil {
 						// Only stash the first error
 						reterror = err
+						if err == nil {
+							reterror = warn
+						}
 					}
 					logging.FromContext(ctx).Warnf("failed policy validation for %s: %v", wantedAttestation.Name, err)
 					continue
