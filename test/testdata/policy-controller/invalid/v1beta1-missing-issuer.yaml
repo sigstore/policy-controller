@@ -12,11 +12,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Warning: missing field(s): spec.authorities[0].keyless.identities
+# ERROR:missing field(s): spec.authorities[0].keyless.identities[0].issuer, spec.authorities[0].keyless.identities[0].issuerRegExp
 apiVersion: policy.sigstore.dev/v1beta1
 kind: ClusterImagePolicy
 metadata:
-  name: image-policy-missing-identity-v1beta1
+  name: image-policy-missing-issuer-v1beta1
 spec:
   mode: warn
   images:
@@ -24,3 +24,5 @@ spec:
   authorities:
   - keyless:
       url: https://fulcio.sigstore.dev
+      identities:
+      - subject: "testsubject"

@@ -41,25 +41,6 @@ spec:
       url: https://rekor.sigstore.dev
 `
 
-	// This is a policy that has warnings when compiled because it is missing
-	// identity verification in its keyless block.
-	warnPolicy = `
-apiVersion: policy.sigstore.dev/v1beta1
-kind: ClusterImagePolicy
-metadata:
-  name: ko-default-base-image-policy
-spec:
-  images:
-  - glob: cgr.dev/chainguard/static*
-  authorities:
-  - keyless:
-      url: https://fulcio.sigstore.dev
-    # TODO(https://github.com/sigstore/policy-controller/issues/479):
-    # Remove this once the above is fixed.
-    ctlog:
-      url: https://rekor.sigstore.dev
-`
-
 	badPolicy = `
 apiVersion: policy.sigstore.dev/v1beta1
 kind: ClusterImagePolicy

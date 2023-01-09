@@ -23,6 +23,9 @@ spec:
   - name: attestation
     keyless:
       url: http://fulcio.fulcio-system.svc
+      identities:
+      - issuerRegExp: .*kubernetes.default.*
+        subjectRegExp: .*kubernetes.io/namespaces/default/serviceaccounts/default
     ctlog:
       url: http://rekor.rekor-system.svc
     attestations:

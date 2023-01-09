@@ -226,12 +226,10 @@ func TestKeylessValidation(t *testing.T) {
 	tests := []struct {
 		name        string
 		errorString string
-		warnString  string
 		policy      ClusterImagePolicy
 	}{{
 		name:        "Should fail when keyless is empty",
-		errorString: "expected exactly one, got neither: spec.authorities[0].keyless.ca-cert, spec.authorities[0].keyless.url",
-		warnString:  "missing field(s): spec.authorities[0].keyless.identities",
+		errorString: "expected exactly one, got neither: spec.authorities[0].keyless.ca-cert, spec.authorities[0].keyless.url\nmissing field(s): spec.authorities[0].keyless.identities",
 		policy: ClusterImagePolicy{
 			Spec: ClusterImagePolicySpec{
 				Images: []ImagePattern{
@@ -248,8 +246,7 @@ func TestKeylessValidation(t *testing.T) {
 		},
 	}, {
 		name:        "Should fail when keyless has multiple properties",
-		errorString: "expected exactly one, got both: spec.authorities[0].keyless.ca-cert, spec.authorities[0].keyless.url",
-		warnString:  "missing field(s): spec.authorities[0].keyless.identities",
+		errorString: "expected exactly one, got both: spec.authorities[0].keyless.ca-cert, spec.authorities[0].keyless.url\nmissing field(s): spec.authorities[0].keyless.identities",
 		policy: ClusterImagePolicy{
 			Spec: ClusterImagePolicySpec{
 				Images: []ImagePattern{
@@ -272,8 +269,8 @@ func TestKeylessValidation(t *testing.T) {
 			},
 		},
 	}, {
-		name:       "Should warn when valid keyless ref is specified, but no identities given",
-		warnString: "missing field(s): spec.authorities[0].keyless.identities",
+		name:        "Should warn when valid keyless ref is specified, but no identities given",
+		errorString: "missing field(s): spec.authorities[0].keyless.identities",
 		policy: ClusterImagePolicy{
 			Spec: ClusterImagePolicySpec{
 				Images: []ImagePattern{
@@ -324,7 +321,7 @@ func TestKeylessValidation(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			err := test.policy.Validate(context.TODO())
-			validateError(t, test.errorString, test.warnString, err)
+			validateError(t, test.errorString, "", err)
 		})
 	}
 }
@@ -534,7 +531,6 @@ func TestAuthoritiesValidation(t *testing.T) {
 	tests := []struct {
 		name        string
 		errorString string
-		warnString  string
 		policy      ClusterImagePolicy
 	}{{
 		name:        "Should fail when authority is empty",
@@ -761,8 +757,7 @@ func TestAuthoritiesValidation(t *testing.T) {
 		},
 	}, {
 		name:        "Should fail with invalid AWS KMS for Keyless",
-		errorString: "invalid value: awskms://localhost:8888/arn:butnotvalid: spec.authorities[0].keyless.ca-cert.kms\nfailed to parse either key or alias arn: arn: not enough sections",
-		warnString:  "missing field(s): spec.authorities[0].keyless.identities",
+		errorString: "invalid value: awskms://localhost:8888/arn:butnotvalid: spec.authorities[0].keyless.ca-cert.kms\nfailed to parse either key or alias arn: arn: not enough sections\nmissing field(s): spec.authorities[0].keyless.identities",
 		policy: ClusterImagePolicy{
 			Spec: ClusterImagePolicySpec{
 				Images: []ImagePattern{{Glob: "gcr.io/*"}},
@@ -957,7 +952,7 @@ func TestAuthoritiesValidation(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			err := test.policy.Validate(context.TODO())
-			validateError(t, test.errorString, test.warnString, err)
+			validateError(t, test.errorString, "", err)
 		})
 	}
 }
@@ -1048,7 +1043,6 @@ func TestIdentitiesValidation(t *testing.T) {
 	tests := []struct {
 		name        string
 		errorString string
-		warnString  string
 		policy      ClusterImagePolicy
 	}{{
 		name: "Should pass with identities",
@@ -1072,8 +1066,8 @@ func TestIdentitiesValidation(t *testing.T) {
 			},
 		},
 	}, {
-		name:       "Should warn when identities fields are empty",
-		warnString: "missing field(s): spec.authorities[0].keyless.identities[0].issuer, spec.authorities[0].keyless.identities[0].issuerRegExp, spec.authorities[0].keyless.identities[0].subject, spec.authorities[0].keyless.identities[0].subjectRegExp",
+		name:        "Should warn when identities fields are empty",
+		errorString: "missing field(s): spec.authorities[0].keyless.identities[0].issuer, spec.authorities[0].keyless.identities[0].issuerRegExp, spec.authorities[0].keyless.identities[0].subject, spec.authorities[0].keyless.identities[0].subjectRegExp",
 		policy: ClusterImagePolicy{
 			Spec: ClusterImagePolicySpec{
 				Images: []ImagePattern{
@@ -1163,8 +1157,8 @@ func TestIdentitiesValidation(t *testing.T) {
 			},
 		},
 	}, {
-		name:       "Should warn when issuer or issuerRegExp is missing",
-		warnString: "missing field(s): spec.authorities[0].keyless.identities[0].issuer, spec.authorities[0].keyless.identities[0].issuerRegExp",
+		name:        "Should warn when issuer or issuerRegExp is missing",
+		errorString: "missing field(s): spec.authorities[0].keyless.identities[0].issuer, spec.authorities[0].keyless.identities[0].issuerRegExp",
 		policy: ClusterImagePolicy{
 			Spec: ClusterImagePolicySpec{
 				Images: []ImagePattern{
@@ -1186,8 +1180,8 @@ func TestIdentitiesValidation(t *testing.T) {
 			},
 		},
 	}, {
-		name:       "Should warn when subject or subjectRegExp is missing",
-		warnString: "missing field(s): spec.authorities[0].keyless.identities[0].subject, spec.authorities[0].keyless.identities[0].subjectRegExp",
+		name:        "Should warn when subject or subjectRegExp is missing",
+		errorString: "missing field(s): spec.authorities[0].keyless.identities[0].subject, spec.authorities[0].keyless.identities[0].subjectRegExp",
 		policy: ClusterImagePolicy{
 			Spec: ClusterImagePolicySpec{
 				Images: []ImagePattern{
@@ -1285,7 +1279,7 @@ func TestIdentitiesValidation(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			err := test.policy.Validate(context.TODO())
-			validateError(t, test.errorString, test.warnString, err)
+			validateError(t, test.errorString, "", err)
 		})
 	}
 }
@@ -1356,7 +1350,6 @@ func TestMatchValidation(t *testing.T) {
 	tests := []struct {
 		name        string
 		errorString string
-		warnString  string
 		policy      ClusterImagePolicy
 	}{{
 		name: "Should pass with identities",
@@ -1496,7 +1489,7 @@ func TestMatchValidation(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			err := test.policy.Validate(context.TODO())
-			validateError(t, test.errorString, test.warnString, err)
+			validateError(t, test.errorString, "", err)
 		})
 	}
 }
@@ -1504,6 +1497,10 @@ func TestMatchValidation(t *testing.T) {
 // validateError checks the given error against wanted error/warning strings
 // if either is "" then it's assume an error/warning is not wanted and if
 // one is given, will error.
+// nolint since currently we do not have warnings we expect, but having this
+// around makes it easier to add warning validations in the future.
+//
+//nolint:all
 func validateError(t *testing.T, wantErrStr, wantWarnStr string, fe *apis.FieldError) {
 	t.Helper()
 	// Grab warning and check it first

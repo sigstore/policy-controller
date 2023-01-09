@@ -33,5 +33,8 @@ spec:
       url: http://rekor.rekor-system.svc
   - keyless:
       url: http://fulcio.sigstore.dev
+      identities:
+      - issuerRegExp: .*kubernetes.default.*
+        subjectRegExp: .*kubernetes.io/namespaces/default/serviceaccounts/default
     ctlog:
       url: http://rekor.sigstore.dev

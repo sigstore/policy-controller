@@ -136,7 +136,7 @@ spec: {}
 `,
 		wantErr: errors.New(`unknown type: unknown.dev/v1, Kind=OtherPolicy`),
 	}, {
-		name: "warning - missing field",
+		name: "error - missing field",
 		doc: `
 apiVersion: policy.sigstore.dev/v1beta1
 kind: ClusterImagePolicy
@@ -149,8 +149,7 @@ spec:
   - keyless:
       url: https://fulcio.sigstore.dev
 `,
-		wantWarns: errors.New("missing field(s): spec.authorities[0].keyless.identities"),
-		wantErr:   nil,
+		wantErr: errors.New("missing field(s): spec.authorities[0].keyless.identities"),
 	},
 		{
 			name: "admit - missing authorities",

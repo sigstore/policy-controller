@@ -142,7 +142,7 @@ KeylessRef contains location of the validating certificate and the identities ag
 | Field | Description | Scheme | Required |
 | ----- | ----------- | ------ | -------- |
 | url | URL defines a url to the keyless instance. | apis.URL | false |
-| identities | Identities sets a list of identities. | [][Identity](#identity) | false |
+| identities | Identities sets a list of identities. | [][Identity](#identity) | true |
 | ca-cert | CACert sets a reference to CA certificate | [KeyRef](#keyref) | false |
 | trustRootRef | Use the Certificate Chain from the referred TrustRoot.CertificateAuthorities and TrustRoot.CTLog | string | false |
 

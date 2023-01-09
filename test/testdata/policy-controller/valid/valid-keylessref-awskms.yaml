@@ -21,14 +21,26 @@ spec:
   - glob: images.*
   authorities:
   - keyless:
+      identities:
+      - issuerRegExp: .*kubernetes.default.*
+        subjectRegExp: .*kubernetes.io/namespaces/default/serviceaccounts/default
       ca-cert:
         kms: "awskms:///arn:aws:kms:us-east-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab"
   - keyless:
+      identities:
+      - issuerRegExp: .*kubernetes.default.*
+        subjectRegExp: .*kubernetes.io/namespaces/default/serviceaccounts/default
       ca-cert:
         kms: "awskms://localhost:4566/arn:aws:kms:us-east-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab"
   - keyless:
+      identities:
+      - issuerRegExp: .*kubernetes.default.*
+        subjectRegExp: .*kubernetes.io/namespaces/default/serviceaccounts/default
        ca-cert:
          kms: "awskms:///arn:aws:kms:us-east-2:111122223333:alias/ExampleAlias"
   - keyless:
+      identities:
+      - issuerRegExp: .*kubernetes.default.*
+        subjectRegExp: .*kubernetes.io/namespaces/default/serviceaccounts/default
        ca-cert:
          kms: "awskms://localhost:4566/arn:aws:kms:us-east-2:111122223333:alias/ExampleAlias"

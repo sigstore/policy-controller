@@ -22,6 +22,9 @@ spec:
   authorities:
   - keyless:
       url: http://fulcio.fulcio-system.svc
+      identities:
+      - issuerRegExp: .*kubernetes.default.*
+        subjectRegExp: .*kubernetes.io/namespaces/default/serviceaccounts/default
     source:
     - oci: registry.local:5000/policy-controller/demo
     ctlog:
