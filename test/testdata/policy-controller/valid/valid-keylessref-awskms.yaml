@@ -36,11 +36,11 @@ spec:
       identities:
       - issuerRegExp: .*kubernetes.default.*
         subjectRegExp: .*kubernetes.io/namespaces/default/serviceaccounts/default
-       ca-cert:
-         kms: "awskms:///arn:aws:kms:us-east-2:111122223333:alias/ExampleAlias"
+      ca-cert:
+        kms: "awskms:///arn:aws:kms:us-east-2:111122223333:alias/ExampleAlias"
   - keyless:
       identities:
       - issuerRegExp: .*kubernetes.default.*
         subjectRegExp: .*kubernetes.io/namespaces/default/serviceaccounts/default
-       ca-cert:
-         kms: "awskms://localhost:4566/arn:aws:kms:us-east-2:111122223333:alias/ExampleAlias"
+      ca-cert:
+        kms: "awskms://localhost:4566/arn:aws:kms:us-east-2:111122223333:alias/ExampleAlias"
