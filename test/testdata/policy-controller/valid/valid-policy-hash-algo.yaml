@@ -23,6 +23,9 @@ spec:
   - glob: image*
   authorities:
   - keyless:
+      identities:
+      - issuerRegExp: .*kubernetes.default.*
+        subjectRegExp: .*kubernetes.io/namespaces/default/serviceaccounts/default
       ca-cert:
         secretRef:
           name: ca-cert-secret
@@ -78,7 +81,8 @@ spec:
         subjectRegExp: ".*subject.*"
   - keyless:
       identities:
-      - issuer: "issue.*"
+      - issuerRegExp: "issue.*"
+        subject: "subject"
   - key:
       hashAlgorithm: sha256
       data: |

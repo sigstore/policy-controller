@@ -24,6 +24,9 @@ spec:
     keyless:
       url: http://fulcio.fulcio-system.svc
       trustRootRef: my-repository-serialized
+      identities:
+      - issuerRegExp: .*kubernetes.default.*
+        subjectRegExp: .*kubernetes.io/namespaces/default/serviceaccounts/default
     ctlog:
       url: http://rekor.rekor-system.svc
       trustRootRef: my-repository-serialized

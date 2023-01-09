@@ -214,9 +214,9 @@ func (keyless *KeylessRef) Validate(ctx context.Context) *apis.FieldError {
 	if keyless.CACert != nil {
 		errs = errs.Also(keyless.DeepCopy().CACert.Validate(ctx).ViaField("ca-cert"))
 	}
-	// Warn if there are no identities specified
+	// Check that identities is specified.
 	if len(keyless.Identities) == 0 {
-		errs = errs.Also(apis.ErrMissingField("identities").At(apis.WarningLevel))
+		errs = errs.Also(apis.ErrMissingField("identities"))
 	}
 	for i, identity := range keyless.Identities {
 		errs = errs.Also(identity.Validate(ctx).ViaFieldIndex("identities", i))
@@ -318,10 +318,10 @@ func (identity *Identity) Validate(ctx context.Context) *apis.FieldError {
 		errs = errs.Also(ValidateRegex(identity.SubjectRegExp).ViaField("subjectRegExp"))
 	}
 	if identity.SubjectRegExp == "" && identity.Subject == "" {
-		errs = errs.Also(apis.ErrMissingField("subject", "subjectRegExp").At(apis.WarningLevel))
+		errs = errs.Also(apis.ErrMissingField("subject", "subjectRegExp"))
 	}
 	if identity.IssuerRegExp == "" && identity.Issuer == "" {
-		errs = errs.Also(apis.ErrMissingField("issuer", "issuerRegExp").At(apis.WarningLevel))
+		errs = errs.Also(apis.ErrMissingField("issuer", "issuerRegExp"))
 	}
 	return errs
 }

@@ -137,16 +137,6 @@ func TestVerifierWarn(t *testing.T) {
 		},
 		d:       name.MustParseReference("cgr.dev/chainguard/static@" + staticDigest).(name.Digest),
 		wantErr: errors.New(`duplicate policy named "ko-default-base-image-policy", skipping`),
-	}, {
-		name: "compilation warnings",
-		v: Verification{
-			NoMatchPolicy: "deny", // This is always surfaced as a warning.
-			Policies: &[]Source{{
-				Data: warnPolicy,
-			}},
-		},
-		d:       name.MustParseReference("cgr.dev/chainguard/static@" + ancientDigest).(name.Digest),
-		wantErr: errors.New(`policy 0: missing field(s): spec.authorities[0].keyless.identities`),
 	}}
 
 	for _, test := range tests {

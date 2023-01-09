@@ -22,6 +22,9 @@ spec:
   - glob: image*
   authorities:
   - keyless:
+      identities:
+      - issuer: "issue-details"
+        subject: "subject-details"
       ca-cert:
         secretRef:
           name: ca-cert-secret
@@ -33,6 +36,7 @@ spec:
   - keyless:
       identities:
       - issuer: "issue-details1"
+        subject: "subject-details1"
   - key:
       data: |
         -----BEGIN PUBLIC KEY-----

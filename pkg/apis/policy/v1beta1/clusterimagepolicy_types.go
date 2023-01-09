@@ -176,8 +176,7 @@ type KeylessRef struct {
 	// +optional
 	URL *apis.URL `json:"url,omitempty"`
 	// Identities sets a list of identities.
-	// +optional
-	Identities []Identity `json:"identities,omitempty"`
+	Identities []Identity `json:"identities"`
 	// CACert sets a reference to CA certificate
 	// +optional
 	CACert *KeyRef `json:"ca-cert,omitempty"`
