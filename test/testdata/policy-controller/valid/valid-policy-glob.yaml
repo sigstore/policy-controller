@@ -37,6 +37,7 @@ spec:
   - keyless:
       identities:
       - issuer: "issue-details1"
+        subject: "subject-details1"
   - key:
       data: |
         -----BEGIN PUBLIC KEY-----
