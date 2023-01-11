@@ -1298,25 +1298,26 @@ func checkOptsFromAuthority(ctx context.Context, authority webhookcip.Authority,
 		ret.IntermediateCerts = fulcioIntermediates
 		ret.CTLogPubKeys = ctlogKeys
 
-		// If keyless does not skip tlog verification, then default to rekor url as done in cosign
 		if authority.Keyless.SkipTlogVerify != nil {
 			ret.SkipTlogVerify = *authority.Keyless.SkipTlogVerify
-			if !*authority.Keyless.SkipTlogVerify {
-				rekorClient, err := rekor.GetRekorClient(DefaultRekorURL)
-				if err != nil {
-					logging.FromContext(ctx).Errorf("failed creating rekor client: %v", err)
-					return nil, fmt.Errorf("creating Rekor client: %w", err)
-				}
-				rekorPubKeys, err := cosign.GetRekorPubs(ctx)
-				if err != nil {
-					logging.FromContext(ctx).Errorf("failed getting rekor public keys: %v", err)
-					return nil, fmt.Errorf("getting Rekor public keys: %w", err)
-				}
-				ret.RekorClient = rekorClient
-				ret.RekorPubKeys = rekorPubKeys
+		}
+		// If keyless does not skip tlog verification, then default to rekor url as done in cosign
+		if authority.Keyless.SkipTlogVerify == nil || !*authority.Keyless.SkipTlogVerify {
+			rekorClient, err := rekor.GetRekorClient(DefaultRekorURL)
+			if err != nil {
+				logging.FromContext(ctx).Errorf("failed creating rekor client: %v", err)
+				return nil, fmt.Errorf("creating Rekor client: %w", err)
 			}
+			rekorPubKeys, err := cosign.GetRekorPubs(ctx)
+			if err != nil {
+				logging.FromContext(ctx).Errorf("failed getting rekor public keys: %v", err)
+				return nil, fmt.Errorf("getting Rekor public keys: %w", err)
+			}
+			ret.RekorClient = rekorClient
+			ret.RekorPubKeys = rekorPubKeys
 		}
 	}
+	// If a CTLog is specified then use these rekor settings instead of the rekor.sigstore.dev
 	if authority.CTLog != nil {
 		rekorClient, rekorPubKeys, err := rekorClientAndKeysFromAuthority(ctx, authority.CTLog)
 		if err != nil {
