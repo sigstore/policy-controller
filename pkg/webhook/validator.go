@@ -57,6 +57,8 @@ import (
 	"knative.dev/pkg/logging"
 )
 
+const DefaultRekorURL = "https://rekor.sigstore.dev"
+
 type Validator struct{}
 
 func NewValidator(ctx context.Context) *Validator {
@@ -1295,23 +1297,40 @@ func checkOptsFromAuthority(ctx context.Context, authority webhookcip.Authority,
 		ret.RootCerts = fulcioRoots
 		ret.IntermediateCerts = fulcioIntermediates
 		ret.CTLogPubKeys = ctlogKeys
-	}
-	rekorClient, rekorPubKeys, err := rekorClientAndKeysFromAuthority(ctx, authority.CTLog)
-	if err != nil {
-		return nil, fmt.Errorf("getting Rekor public keys: %s: %w", authority.Name, err)
-	}
-	ret.RekorClient = rekorClient
-	ret.RekorPubKeys = rekorPubKeys
-	// Skip the TLog verification if we have no client or keys to validate
-	// against.
-	if ret.RekorClient == nil {
-		if ret.RekorPubKeys == nil {
-			ret.SkipTlogVerify = true
-		} else {
-			// If there's keys however, use offline for verification.
-			ret.Offline = true
+
+		// If keyless does not skip tlog verification, then default to rekor url as done in cosign
+		if authority.Keyless.SkipTlogVerify != nil {
+			ret.SkipTlogVerify = *authority.Keyless.SkipTlogVerify
+			if !*authority.Keyless.SkipTlogVerify {
+				rekorClient, err := rekor.GetRekorClient(DefaultRekorURL)
+				if err != nil {
+					logging.FromContext(ctx).Errorf("failed creating rekor client: %v", err)
+					return nil, fmt.Errorf("creating Rekor client: %w", err)
+				}
+				rekorPubKeys, err := cosign.GetRekorPubs(ctx)
+				if err != nil {
+					logging.FromContext(ctx).Errorf("failed getting rekor public keys: %v", err)
+					return nil, fmt.Errorf("getting Rekor public keys: %w", err)
+				}
+				ret.RekorClient = rekorClient
+				ret.RekorPubKeys = rekorPubKeys
+			}
 		}
 	}
+	if authority.CTLog != nil {
+		rekorClient, rekorPubKeys, err := rekorClientAndKeysFromAuthority(ctx, authority.CTLog)
+		if err != nil {
+			return nil, fmt.Errorf("getting Rekor public keys: %s: %w", authority.Name, err)
+		}
+		ret.RekorClient = rekorClient
+		ret.RekorPubKeys = rekorPubKeys
+	}
+	// If we have no client or but we have keys then set Offline flag.
+	if ret.RekorClient == nil && ret.RekorPubKeys != nil {
+		// If there's keys however, use offline for verification.
+		ret.Offline = true
+	}
+
 	if authority.RFC3161Timestamp != nil && authority.RFC3161Timestamp.TrustRootRef != "" {
 		logging.FromContext(ctx).Debug("Using RFC3161Timestamp...")
 		// TODO: By default, we disable any tlog verification when using the RFC3161Timestamp validation.

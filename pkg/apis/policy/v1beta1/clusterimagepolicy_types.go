@@ -183,6 +183,8 @@ type KeylessRef struct {
 	// Use the Certificate Chain from the referred TrustRoot.CertificateAuthorities and TrustRoot.CTLog
 	// +optional
 	TrustRootRef string `json:"trustRootRef,omitempty"`
+	// +optional
+	SkipTlogVerify *bool `json:"skipTlogVerify,omitempty"`
 }
 
 // Attestation defines the type of attestation to validate and optionally
