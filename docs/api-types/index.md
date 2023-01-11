@@ -145,6 +145,7 @@ KeylessRef contains location of the validating certificate and the identities ag
 | identities | Identities sets a list of identities. | [][Identity](#identity) | true |
 | ca-cert | CACert sets a reference to CA certificate | [KeyRef](#keyref) | false |
 | trustRootRef | Use the Certificate Chain from the referred TrustRoot.CertificateAuthorities and TrustRoot.CTLog | string | false |
+| skipTlogVerify |  | bool | false |
 
 [Back to TOC](#table-of-contents)
 
