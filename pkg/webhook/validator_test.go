@@ -3179,7 +3179,7 @@ func TestCheckOptsFromAuthority(t *testing.T) {
 		wantCheckOpts: &cosign.CheckOpts{
 			RootCerts:         roots,
 			IntermediateCerts: intermediates,
-			SkipTlogVerify:    true,
+			IgnoreTlog:        true,
 			CTLogPubKeys:      &cosign.TrustedTransparencyLogPubKeys{Keys: map[string]cosign.TransparencyLogPubKey{ctfeLogID: {PubKey: marshalledPK, Status: tuf.Active}}},
 		},
 	}, {

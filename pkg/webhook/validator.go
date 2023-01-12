@@ -1306,7 +1306,7 @@ func checkOptsFromAuthority(ctx context.Context, authority webhookcip.Authority,
 	// against.
 	if ret.RekorClient == nil {
 		if ret.RekorPubKeys == nil {
-			ret.SkipTlogVerify = true
+			ret.IgnoreTlog = true
 		} else {
 			// If there's keys however, use offline for verification.
 			ret.Offline = true
@@ -1316,7 +1316,7 @@ func checkOptsFromAuthority(ctx context.Context, authority webhookcip.Authority,
 		logging.FromContext(ctx).Debug("Using RFC3161Timestamp...")
 		// TODO: By default, we disable any tlog verification when using the RFC3161Timestamp validation.
 		// There are use cases when the validation is only handled by TSA, and there isn't any TLog involved.
-		ret.SkipTlogVerify = true
+		ret.IgnoreTlog = true
 
 		sigstoreKeys, err := sigstoreKeysFromContext(ctx, authority.RFC3161Timestamp.TrustRootRef)
 		if err != nil {
