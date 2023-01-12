@@ -328,8 +328,8 @@ func (in *KeylessRef) DeepCopyInto(out *KeylessRef) {
 		*out = new(KeyRef)
 		(*in).DeepCopyInto(*out)
 	}
-	if in.SkipTlogVerify != nil {
-		in, out := &in.SkipTlogVerify, &out.SkipTlogVerify
+	if in.IgnoreTlog != nil {
+		in, out := &in.IgnoreTlog, &out.IgnoreTlog
 		*out = new(bool)
 		**out = **in
 	}

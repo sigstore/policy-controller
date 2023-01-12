@@ -3173,9 +3173,9 @@ func TestCheckOptsFromAuthority(t *testing.T) {
 		name: "trustroot found, Fulcio",
 		authority: webhookcip.Authority{
 			Keyless: &webhookcip.KeylessRef{
-				URL:            apis.HTTPS("fulcio.example.com"),
-				TrustRootRef:   "test-trust-fulcio",
-				SkipTlogVerify: ptr.Bool(true),
+				URL:          apis.HTTPS("fulcio.example.com"),
+				TrustRootRef: "test-trust-fulcio",
+				IgnoreTlog:   ptr.Bool(true),
 			}},
 		ctx: testCtx,
 		wantCheckOpts: &cosign.CheckOpts{

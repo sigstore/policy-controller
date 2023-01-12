@@ -185,7 +185,7 @@ type KeylessRef struct {
 	// +optional
 	TrustRootRef string `json:"trustRootRef,omitempty"`
 	// +optional
-	SkipTlogVerify *bool `json:"skipTlogVerify,omitempty"`
+	IgnoreTlog *bool `json:"skipTlogVerify,omitempty"`
 }
 
 // Attestation defines the type of attestation to validate and optionally

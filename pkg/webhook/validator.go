@@ -1298,11 +1298,11 @@ func checkOptsFromAuthority(ctx context.Context, authority webhookcip.Authority,
 		ret.IntermediateCerts = fulcioIntermediates
 		ret.CTLogPubKeys = ctlogKeys
 
-		if authority.Keyless.SkipTlogVerify != nil {
-			ret.SkipTlogVerify = *authority.Keyless.SkipTlogVerify
+		if authority.Keyless.IgnoreTlog != nil {
+			ret.SkipTlogVerify = *authority.Keyless.IgnoreTlog
 		}
 		// If keyless does not skip tlog verification, then default to rekor url as done in cosign
-		if authority.Keyless.SkipTlogVerify == nil || !*authority.Keyless.SkipTlogVerify {
+		if authority.Keyless.IgnoreTlog == nil || !*authority.Keyless.IgnoreTlog {
 			rekorClient, err := rekor.GetRekorClient(DefaultRekorURL)
 			if err != nil {
 				logging.FromContext(ctx).Errorf("failed creating rekor client: %v", err)
@@ -1330,6 +1330,10 @@ func checkOptsFromAuthority(ctx context.Context, authority webhookcip.Authority,
 	if ret.RekorClient == nil && ret.RekorPubKeys != nil {
 		// If there's keys however, use offline for verification.
 		ret.Offline = true
+	}
+	if ret.RekorClient == nil && ret.RekorPubKeys == nil {
+		// If there is not a rekor client definition then skip tlog verification.
+		ret.SkipTlogVerify = true
 	}
 
 	if authority.RFC3161Timestamp != nil && authority.RFC3161Timestamp.TrustRootRef != "" {
