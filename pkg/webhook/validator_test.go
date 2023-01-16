@@ -2994,7 +2994,7 @@ func TestRekorClientAndKeysFromAuthority(t *testing.T) {
 			if tCtx == nil {
 				tCtx = context.Background()
 			}
-			rekorClient, gotPKs, err := rekorClientAndKeysFromAuthority(tCtx, tc.tlog)
+			rekorClient, gotPKs, err := rekorClientAndKeysFromAuthority(tCtx, webhookcip.Authority{CTLog: tc.tlog})
 			if err != nil {
 				if tc.wantErr == "" {
 					t.Errorf("unexpected error: %v wanted none", err)
