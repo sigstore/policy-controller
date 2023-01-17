@@ -12,7 +12,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ---
-# ERROR:keyless.identities: Invalid value
+# ERROR:expected exactly one, got neither: spec.authorities[0].key.data, spec.authorities[0].key.kms, spec.authorities[0].key.secretref
 apiVersion: policy.sigstore.dev/v1beta1
 kind: ClusterImagePolicy
 metadata:
@@ -21,5 +21,5 @@ spec:
   images:
   - glob: image*
   authorities:
-  - keyless: {}
-    key: {}
+  - key: {}
+    keyless:
