@@ -38,7 +38,6 @@ import (
 	csigs "github.com/sigstore/cosign/v2/pkg/signature"
 	"github.com/sigstore/policy-controller/pkg/apis/config"
 	policyduckv1beta1 "github.com/sigstore/policy-controller/pkg/apis/duck/v1beta1"
-	"github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
 	policycontrollerconfig "github.com/sigstore/policy-controller/pkg/config"
 	webhookcip "github.com/sigstore/policy-controller/pkg/webhook/clusterimagepolicy"
 	rekor "github.com/sigstore/rekor/pkg/client"
@@ -1296,22 +1295,25 @@ func checkOptsFromAuthority(ctx context.Context, authority webhookcip.Authority,
 		ret.IntermediateCerts = fulcioIntermediates
 		ret.CTLogPubKeys = ctlogKeys
 	}
-	rekorClient, rekorPubKeys, err := rekorClientAndKeysFromAuthority(ctx, authority.CTLog)
+	rekorClient, rekorPubKeys, err := rekorClientAndKeysFromAuthority(ctx, authority)
 	if err != nil {
 		return nil, fmt.Errorf("getting Rekor public keys: %s: %w", authority.Name, err)
 	}
 	ret.RekorClient = rekorClient
 	ret.RekorPubKeys = rekorPubKeys
+
 	// Skip the TLog verification if we have no client or keys to validate
 	// against.
 	if ret.RekorClient == nil {
-		if ret.RekorPubKeys == nil {
-			ret.IgnoreTlog = true
-		} else {
+		if ret.RekorPubKeys != nil {
 			// If there's keys however, use offline for verification.
 			ret.Offline = true
+		} else {
+			// If there is not a rekor client definition then skip tlog verification.
+			ret.IgnoreTlog = true
 		}
 	}
+
 	if authority.RFC3161Timestamp != nil && authority.RFC3161Timestamp.TrustRootRef != "" {
 		logging.FromContext(ctx).Debug("Using RFC3161Timestamp...")
 		// TODO: By default, we disable any tlog verification when using the RFC3161Timestamp validation.
@@ -1437,7 +1439,17 @@ func fulcioCertsFromAuthority(ctx context.Context, keylessRef *webhookcip.Keyles
 // Preference is given to TrustRoot if specified, from which the URL and public
 // keys are fetched and returned. If there's no TrustRoot but a URL, then
 // a Rekor client is returned and the keys from the embedded or cached TUF root.
-func rekorClientAndKeysFromAuthority(ctx context.Context, tlog *v1alpha1.TLog) (*client.Rekor, *cosign.TrustedTransparencyLogPubKeys, error) {
+func rekorClientAndKeysFromAuthority(ctx context.Context, authority webhookcip.Authority) (*client.Rekor, *cosign.TrustedTransparencyLogPubKeys, error) {
+	// In keyless, if no TrustRoot was defined and CTLog is nil, then default to rekor pub keys as done in cosign
+	if authority.Keyless != nil && authority.Keyless.TrustRootRef == "" && authority.CTLog == nil {
+		rekorPubKeys, err := cosign.GetRekorPubs(ctx)
+		if err != nil {
+			logging.FromContext(ctx).Errorf("failed getting rekor public keys: %v", err)
+			return nil, nil, fmt.Errorf("getting Rekor public keys: %w", err)
+		}
+		return nil, rekorPubKeys, nil
+	}
+	tlog := authority.CTLog
 	if tlog == nil {
 		return nil, nil, nil
 	}
