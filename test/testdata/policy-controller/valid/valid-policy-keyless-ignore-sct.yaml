@@ -23,7 +23,7 @@ spec:
   - glob: image*
   authorities:
   - keyless:
-      insecureIgnoreSCT: true 
+      insecureIgnoreSCT: true
       identities:
       - issuerRegExp: .*kubernetes.default.*
         subjectRegExp: .*kubernetes.io/namespaces/default/serviceaccounts/default
