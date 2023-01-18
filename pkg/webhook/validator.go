@@ -1294,6 +1294,9 @@ func checkOptsFromAuthority(ctx context.Context, authority webhookcip.Authority,
 		ret.RootCerts = fulcioRoots
 		ret.IntermediateCerts = fulcioIntermediates
 		ret.CTLogPubKeys = ctlogKeys
+		if authority.Keyless.InsecureIgnoreSCT != nil && *authority.Keyless.InsecureIgnoreSCT {
+			ret.IgnoreSCT = *authority.Keyless.InsecureIgnoreSCT
+		}
 	}
 	rekorClient, rekorPubKeys, err := rekorClientAndKeysFromAuthority(ctx, authority)
 	if err != nil {

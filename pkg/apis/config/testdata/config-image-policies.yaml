@@ -66,6 +66,7 @@ data:
         rfc3161timestamp:
           trustRootRef: trustroot-tsa-ref
         keyless:
+          insecureIgnoreSCT: true
           ca-cert:
             data: |-
               -----BEGIN PUBLIC KEY-----

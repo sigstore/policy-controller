@@ -181,6 +181,9 @@ spec:
                                 subjectRegExp:
                                   description: SubjectRegExp specifies a regular expression to match the subject for this identity.
                                   type: string
+                          insecureIgnoreSCT:
+                            description: InsecureIgnoreSCT omits verifying if a certificate contains an embedded SCT
+                            type: boolean
                           trustRootRef:
                             description: Use the Certificate Chain from the referred TrustRoot.CertificateAuthorities and TrustRoot.CTLog
                             type: string
@@ -453,6 +456,9 @@ spec:
                                 subjectRegExp:
                                   description: SubjectRegExp specifies a regular expression to match the subject for this identity.
                                   type: string
+                          insecureIgnoreSCT:
+                            description: InsecureIgnoreSCT omits verifying if a certificate contains an embedded SCT
+                            type: boolean
                           trustRootRef:
                             description: Use the Certificate Chain from the referred TrustRoot.CertificateAuthorities and TrustRoot.CTLog
                             type: string
