@@ -313,6 +313,36 @@ else
 fi
 echo '::endgroup::'
 
+# Deploy a CIP that adds a keyless entry, that tests OR.
+echo '::group:: Deploy ClusterImagePolicy With Key Signing and Ignore SCT'
+yq '. | .spec.authorities[0].key.data |= load_str("cosign-colocated-signing.pub")' \
+  ./test/testdata/policy-controller/e2e/cip-key-and-keyless-ignore-sct.yaml | \
+  kubectl apply -f -
+
+# Give the policy controller a moment to update the configmap
+# and pick up the change in the admission controller.
+sleep 5
+echo '::endgroup::'
+
+echo '::group:: test with key and keyless ignoring sct'
+if ! kubectl create -n demo-key-signing job demo-ignore-sct --image=${demoimage} ; then
+  echo Failed to create Job in namespace after adding a keyless authority ignoring sct, OR is not working
+  exit 1
+else
+  echo Succcessfully created Job with signed image
+fi
+echo '::endgroup::'
+
+echo '::group:: test job rejection ignoring sct'
+# We did not sign this, should fail
+if kubectl create -n demo-key-signing job demo2-ignore-sct --image=${demoimage2} ; then
+  echo Failed to block unsigned Job creation!
+  exit 1
+else
+  echo Successfully blocked Job creation with unsigned image
+fi
+echo '::endgroup::'
+
 echo '::group:: Generate new Signing key and secret used for validating secret'
 COSIGN_PASSWORD="" cosign generate-key-pair
 mv cosign.key cosign-secret.key

@@ -328,6 +328,11 @@ func (in *KeylessRef) DeepCopyInto(out *KeylessRef) {
 		*out = new(KeyRef)
 		(*in).DeepCopyInto(*out)
 	}
+	if in.InsecureIgnoreSCT != nil {
+		in, out := &in.InsecureIgnoreSCT, &out.InsecureIgnoreSCT
+		*out = new(bool)
+		**out = **in
+	}
 	return
 }
 

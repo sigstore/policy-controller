@@ -184,6 +184,9 @@ type KeylessRef struct {
 	// Use the Certificate Chain from the referred TrustRoot.CertificateAuthorities and TrustRoot.CTLog
 	// +optional
 	TrustRootRef string `json:"trustRootRef,omitempty"`
+	// InsecureIgnoreSCT omits verifying if a certificate contains an embedded SCT
+	// +optional
+	InsecureIgnoreSCT *bool `json:"insecureIgnoreSCT,omitempty"`
 }
 
 // Attestation defines the type of attestation to validate and optionally

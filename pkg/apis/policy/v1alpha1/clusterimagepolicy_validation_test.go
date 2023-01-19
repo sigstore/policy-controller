@@ -1435,7 +1435,7 @@ func TestMatchValidation(t *testing.T) {
 							URL: &apis.URL{
 								Host: "myhost",
 							},
-
+							InsecureIgnoreSCT: ptr.Bool(true),
 							Identities: []Identity{
 								{
 									Issuer:  "some issuer",

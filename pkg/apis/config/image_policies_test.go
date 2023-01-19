@@ -87,6 +87,10 @@ func TestGetAuthorities(t *testing.T) {
 	if got := getAuthority(t, c, matchedPolicy).Keyless.CACert.Data; got != want {
 		t.Errorf("Did not get what I wanted %q, got %+v", want, got)
 	}
+	wantInsecureIgnoreSCT := true
+	if got := getAuthority(t, c, matchedPolicy).Keyless.InsecureIgnoreSCT; *got != wantInsecureIgnoreSCT {
+		t.Errorf("Did not get what I wanted %v, got %+v", wantInsecureIgnoreSCT, got)
+	}
 	want = "issuer"
 	if got := getAuthority(t, c, matchedPolicy).Keyless.Identities[0].Issuer; got != want {
 		t.Errorf("Did not get what I wanted %q, got %+v", want, got)
