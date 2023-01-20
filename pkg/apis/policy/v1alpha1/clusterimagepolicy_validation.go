@@ -281,10 +281,10 @@ func (p *Policy) Validate(ctx context.Context) *apis.FieldError {
 		errs = errs.Also(apis.ErrMultipleOneOf("data", "configMapRef", "url"))
 	}
 	if p.URL != nil {
-		url := *p.URL
-		_, err := apis.ParseURL(url.String())
-		if err != nil {
-			errs = errs.Also(apis.ErrInvalidValue(p.URL, "url", "url valid is invalid"))
+		urlObj := *p.URL
+		u, err := url.Parse(urlObj.String())
+		if err != nil || (err == nil && (u.Host == "" || u.Scheme == "" || u.Scheme != "https")) {
+			errs = errs.Also(apis.ErrInvalidValue(p.URL, "url", "url valid is invalid. host and https scheme are expected"))
 		}
 	}
 	if p.ConfigMapRef != nil {

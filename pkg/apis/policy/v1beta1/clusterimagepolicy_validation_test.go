@@ -1122,7 +1122,7 @@ func TestAttestationsValidation(t *testing.T) {
 					Name: "cmname",
 					Key:  "keyname",
 				},
-				URL: apis.HTTP("example.com"),
+				URL: apis.HTTPS("example.com"),
 			},
 		},
 		errorString: "expected exactly one, got both: policy.configMapRef, policy.data, policy.url",
@@ -1131,9 +1131,18 @@ func TestAttestationsValidation(t *testing.T) {
 		attestation: Attestation{Name: "second", PredicateType: "custom",
 			Policy: &Policy{
 				Type: "cue",
+				URL:  apis.HTTPS("example.com"),
+			},
+		},
+	}, {
+		name: "custom with invalid policy url scheme",
+		attestation: Attestation{Name: "second", PredicateType: "custom",
+			Policy: &Policy{
+				Type: "cue",
 				URL:  apis.HTTP("example.com"),
 			},
 		},
+		errorString: "invalid value: http://example.com: policy.url\nurl valid is invalid. host and https scheme are expected",
 	}, {
 		name: "custom with invalid configMapRef, missing key",
 		attestation: Attestation{Name: "second", PredicateType: "custom",
