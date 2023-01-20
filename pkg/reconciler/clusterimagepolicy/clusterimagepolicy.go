@@ -18,6 +18,8 @@ import (
 	"context"
 	"crypto"
 	"fmt"
+	"io"
+	"net/http"
 	"strings"
 
 	"github.com/sigstore/policy-controller/pkg/apis/config"
@@ -251,6 +253,13 @@ func (r *Reconciler) inlinePolicies(ctx context.Context, cip *v1alpha1.ClusterIm
 					return err
 				}
 			}
+			if att.Policy != nil && att.Policy.URL != nil {
+				err := r.inlinePolicyURL(ctx, att.Policy)
+				if err != nil {
+					logging.FromContext(ctx).Errorf("Failed to read policy url %s: %v", cip.Spec.Policy.URL.String(), err)
+					return err
+				}
+			}
 		}
 	}
 	if cip.Spec.Policy != nil && cip.Spec.Policy.ConfigMapRef != nil {
@@ -260,6 +269,32 @@ func (r *Reconciler) inlinePolicies(ctx context.Context, cip *v1alpha1.ClusterIm
 			return err
 		}
 	}
+	if cip.Spec.Policy != nil && cip.Spec.Policy.URL != nil {
+		err := r.inlinePolicyURL(ctx, cip.Spec.Policy)
+		if err != nil {
+			logging.FromContext(ctx).Errorf("Failed to read policy url %s: %v", cip.Spec.Policy.URL.String(), err)
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *Reconciler) inlinePolicyURL(ctx context.Context, policyRef *v1alpha1.Policy) error {
+	logging.FromContext(ctx).Infof("inlining policy url %q", policyRef.URL.String())
+	resp, err := http.Get(policyRef.URL.String())
+	if err != nil {
+		return fmt.Errorf("failed to fetch content from policy url: %w", err)
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		return fmt.Errorf("failed to fetch content from policy url with code %q", resp.StatusCode)
+	}
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read policy url response: %w", err)
+	}
+	policyRef.Data = string(data)
+	policyRef.URL = nil
 	return nil
 }
 

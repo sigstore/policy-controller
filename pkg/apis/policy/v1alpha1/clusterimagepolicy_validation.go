@@ -269,11 +269,23 @@ func (p *Policy) Validate(ctx context.Context) *apis.FieldError {
 	if p.Type != "cue" && p.Type != "rego" {
 		errs = errs.Also(apis.ErrInvalidValue(p.Type, "type", "only [cue,rego] are supported at the moment"))
 	}
-	if p.Data == "" && p.ConfigMapRef == nil {
-		errs = errs.Also(apis.ErrMissingField("data", "configMapRef"))
+	if p.Data == "" && p.ConfigMapRef == nil && p.URL == nil {
+		errs = errs.Also(apis.ErrMissingField("data", "configMapRef", "url"))
 	}
-	if p.Data != "" && p.ConfigMapRef != nil {
-		errs = errs.Also(apis.ErrMultipleOneOf("data", "configMapRef"))
+	if p.Data != "" && p.ConfigMapRef != nil && p.URL != nil {
+		errs = errs.Also(apis.ErrMultipleOneOf("data", "configMapRef", "url"))
+	}
+	if (p.Data != "" && p.ConfigMapRef != nil) ||
+		(p.Data != "" && p.URL != nil) ||
+		(p.ConfigMapRef != nil && p.URL != nil) {
+		errs = errs.Also(apis.ErrMultipleOneOf("data", "configMapRef", "url"))
+	}
+	if p.URL != nil {
+		url := *p.URL
+		_, err := apis.ParseURL(url.String())
+		if err != nil {
+			errs = errs.Also(apis.ErrInvalidValue(p.URL, "url", "url valid is invalid"))
+		}
 	}
 	if p.ConfigMapRef != nil {
 		errs = errs.Also(p.ConfigMapRef.Validate(ctx).ViaField("configMapRef"))

@@ -1010,7 +1010,7 @@ func TestAttestationsValidation(t *testing.T) {
 				Type: "cue",
 			},
 		},
-		errorString: "missing field(s): policy.configMapRef, policy.data",
+		errorString: "missing field(s): policy.configMapRef, policy.data, policy.url",
 	}, {
 		name: "custom with both policy data and configMapRef",
 		attestation: Attestation{Name: "second", PredicateType: "custom",
@@ -1023,7 +1023,29 @@ func TestAttestationsValidation(t *testing.T) {
 				},
 			},
 		},
-		errorString: "expected exactly one, got both: policy.configMapRef, policy.data",
+		errorString: "expected exactly one, got both: policy.configMapRef, policy.data, policy.url",
+	}, {
+		name: "custom with both policy data, url and configMapRef",
+		attestation: Attestation{Name: "second", PredicateType: "custom",
+			Policy: &Policy{
+				Type: "cue",
+				Data: `predicateType: "cosign.sigstore.dev/attestation/vuln/v1"`,
+				ConfigMapRef: &ConfigMapReference{
+					Name: "cmname",
+					Key:  "keyname",
+				},
+				URL: apis.HTTP("example.com"),
+			},
+		},
+		errorString: "expected exactly one, got both: policy.configMapRef, policy.data, policy.url",
+	}, {
+		name: "custom with both policy url",
+		attestation: Attestation{Name: "second", PredicateType: "custom",
+			Policy: &Policy{
+				Type: "cue",
+				URL:  apis.HTTP("example.com"),
+			},
+		},
 	}, {
 		name: "custom with invalid configMapRef, missing key",
 		attestation: Attestation{Name: "second", PredicateType: "custom",
