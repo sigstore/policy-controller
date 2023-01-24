@@ -31,10 +31,6 @@ spec:
   authorities:
   - name: gcp-kms
     key:
-      # NB: the policy controller must have roles/cloudkms.viewer
-      # and roles/cloudkms.verifier IAM permissions on the relevant service account.
-      # Also, the GKE cluster should have the https://www.googleapis.com/auth/cloudkms scope.
-      kms: awskms:///arn:aws:kms:<< region >>:<< account id >>:key/<< key id >>
-      kms: gcpkms://projects/<< PROJECT_ID >>/locations/<< REGION >>/keyRings/<< KEY_RING >>/cryptoKeys/<< KEY_NAME >>/cryptoKeyVersions/<< KEY_VERSION >>
+      kms: gcpkms://projects/${PROJECT_ID}/locations/${REGION}/keyRings/${KEY_RING}/cryptoKeys/${KEY_NAME}/cryptoKeyVersions/${KEY_VERSION}
     ctlog:
       url: https://rekor.sigstore.dev
