@@ -124,6 +124,45 @@ Next sign your container using the KMS key and `cosign`
 cosign sign --key "awskms:///<< arn of kms key >>" "${IMAGE}"
 ```
 
+### signed-by-gcp-kms-key
+
+Source:  [policies/signed-by-gcp-kms.yaml](./policies/signed-by-gcp-kms.yaml)
+
+Asserts that images have been signed by a specific GCP KMS key.
+
+```
+POLICY="policies/signed-by-gcp-kms.yaml"
+```
+
+#### How to satisfy this policy
+
+Create the GCP KMS keyring and key to sign your container images.
+
+```sh
+gcloud kms keyrings create ${KEY_RING} \
+    --location ${REGION}
+gcloud kms keys create ${KEY_NAME} \
+    --keyring ${KEY_RING} \
+    --location ${REGION} \
+    --purpose asymmetric-signing \
+    --default-algorithm ec-sign-p256-sha256
+```
+
+Next sign your container using the KMS key and `cosign`.
+
+```sh
+gcloud auth application-default login
+cosign generate-key-pair \
+    --kms gcpkms://projects/${PROJECT_ID}/locations/${REGION}/keyRings/${KEY_RING}/cryptoKeys/${KEY_NAME}
+cosign sign \
+    --key gcpkms://projects/${PROJECT_ID}/locations/${REGION}/keyRings/${KEY_RING}/cryptoKeys/${KEY_NAME} \
+    ${IMAGE}
+```
+
+To satisfy the policy, ensure that the policy controller must have `roles/cloudkms.viewer`
+and `roles/cloudkms.verifier` IAM permissions on the relevant service account. Also,
+the GKE cluster should have the `https://www.googleapis.com/auth/cloudkms` scope.
+
 ### signed-by-github-actions
 
 Source:  [policies/signed-by-github-actions.yaml](./policies/signed-by-github-actions.yaml)
