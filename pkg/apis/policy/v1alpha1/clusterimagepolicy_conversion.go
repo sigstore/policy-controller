@@ -143,8 +143,11 @@ func (authority *Authority) ConvertTo(ctx context.Context, sink *v1beta1.Authori
 func (p *Policy) ConvertTo(ctx context.Context, sink *v1beta1.Policy) {
 	sink.Type = p.Type
 	sink.Data = p.Data
-	if p.URL != nil {
-		sink.URL = p.URL.DeepCopy()
+	if p.Remote != nil {
+		sink.Remote = &v1beta1.URL{
+			URL:       p.Remote.URL,
+			Sha256sum: p.Remote.Sha256sum,
+		}
 	}
 	if p.ConfigMapRef != nil {
 		sink.ConfigMapRef = &v1beta1.ConfigMapReference{
@@ -170,8 +173,11 @@ func (p *Policy) ConvertTo(ctx context.Context, sink *v1beta1.Policy) {
 func (p *Policy) ConvertFrom(ctx context.Context, source *v1beta1.Policy) {
 	p.Type = source.Type
 	p.Data = source.Data
-	if source.URL != nil {
-		p.URL = source.URL.DeepCopy()
+	if source.Remote != nil {
+		p.Remote = &URL{
+			URL:       source.Remote.URL,
+			Sha256sum: source.Remote.Sha256sum,
+		}
 	}
 	if source.ConfigMapRef != nil {
 		p.ConfigMapRef = &ConfigMapReference{

@@ -262,6 +262,19 @@ func (cmr *ConfigMapReference) Validate(ctx context.Context) *apis.FieldError {
 	return errs
 }
 
+func (r *URL) Validate(ctx context.Context) *apis.FieldError {
+	var errs *apis.FieldError
+	urlObj := r.URL
+	u, err := url.Parse(urlObj.String())
+	if err != nil || (err == nil && (u.Host == "" || u.Scheme == "" || u.Scheme != "https")) {
+		errs = errs.Also(apis.ErrInvalidValue(r.URL.String(), "url", "url valid is invalid. host and https scheme are expected"))
+	}
+	if r.Sha256sum == "" {
+		errs = errs.Also(apis.ErrMissingField("sha256sum"))
+	}
+	return errs
+}
+
 func (p *Policy) Validate(ctx context.Context) *apis.FieldError {
 	if p == nil {
 		return nil
@@ -270,23 +283,19 @@ func (p *Policy) Validate(ctx context.Context) *apis.FieldError {
 	if p.Type != "cue" && p.Type != "rego" {
 		errs = errs.Also(apis.ErrInvalidValue(p.Type, "type", "only [cue,rego] are supported at the moment"))
 	}
-	if p.Data == "" && p.ConfigMapRef == nil && p.URL == nil {
-		errs = errs.Also(apis.ErrMissingField("data", "configMapRef", "url"))
+	if p.Data == "" && p.ConfigMapRef == nil && p.Remote == nil {
+		errs = errs.Also(apis.ErrMissingField("data", "configMapRef", "remote"))
 	}
-	if p.Data != "" && p.ConfigMapRef != nil && p.URL != nil {
-		errs = errs.Also(apis.ErrMultipleOneOf("data", "configMapRef", "url"))
+	if p.Data != "" && p.ConfigMapRef != nil && p.Remote != nil {
+		errs = errs.Also(apis.ErrMultipleOneOf("data", "configMapRef", "remote"))
 	}
 	if (p.Data != "" && p.ConfigMapRef != nil) ||
-		(p.Data != "" && p.URL != nil) ||
-		(p.ConfigMapRef != nil && p.URL != nil) {
-		errs = errs.Also(apis.ErrMultipleOneOf("data", "configMapRef", "url"))
+		(p.Data != "" && p.Remote != nil) ||
+		(p.ConfigMapRef != nil && p.Remote != nil) {
+		errs = errs.Also(apis.ErrMultipleOneOf("data", "configMapRef", "remote"))
 	}
-	if p.URL != nil {
-		urlObj := *p.URL
-		u, err := url.Parse(urlObj.String())
-		if err != nil || (err == nil && (u.Host == "" || u.Scheme == "" || u.Scheme != "https")) {
-			errs = errs.Also(apis.ErrInvalidValue(p.URL, "url", "url valid is invalid. host and https scheme are expected"))
-		}
+	if p.Remote != nil {
+		errs = errs.Also(p.Remote.Validate(ctx).ViaField("remote"))
 	}
 	if p.ConfigMapRef != nil {
 		errs = errs.Also(p.ConfigMapRef.Validate(ctx).ViaField("configMapRef"))

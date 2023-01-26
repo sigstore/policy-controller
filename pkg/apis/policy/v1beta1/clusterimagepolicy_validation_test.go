@@ -1098,7 +1098,7 @@ func TestAttestationsValidation(t *testing.T) {
 				Type: "cue",
 			},
 		},
-		errorString: "missing field(s): policy.configMapRef, policy.data, policy.url",
+		errorString: "missing field(s): policy.configMapRef, policy.data, policy.remote",
 	}, {
 		name: "custom with both policy data and configMapRef",
 		attestation: Attestation{Name: "second", PredicateType: "custom",
@@ -1111,7 +1111,7 @@ func TestAttestationsValidation(t *testing.T) {
 				},
 			},
 		},
-		errorString: "expected exactly one, got both: policy.configMapRef, policy.data, policy.url",
+		errorString: "expected exactly one, got both: policy.configMapRef, policy.data, policy.remote",
 	}, {
 		name: "custom with both policy data, url and configMapRef",
 		attestation: Attestation{Name: "second", PredicateType: "custom",
@@ -1122,16 +1122,22 @@ func TestAttestationsValidation(t *testing.T) {
 					Name: "cmname",
 					Key:  "keyname",
 				},
-				URL: apis.HTTPS("example.com"),
+				Remote: &URL{
+					URL:       *apis.HTTPS("example.com"),
+					Sha256sum: "123123123",
+				},
 			},
 		},
-		errorString: "expected exactly one, got both: policy.configMapRef, policy.data, policy.url",
+		errorString: "expected exactly one, got both: policy.configMapRef, policy.data, policy.remote",
 	}, {
 		name: "custom with both policy url",
 		attestation: Attestation{Name: "second", PredicateType: "custom",
 			Policy: &Policy{
 				Type: "cue",
-				URL:  apis.HTTPS("example.com"),
+				Remote: &URL{
+					URL:       *apis.HTTPS("example.com"),
+					Sha256sum: "123123123",
+				},
 			},
 		},
 	}, {
@@ -1139,10 +1145,13 @@ func TestAttestationsValidation(t *testing.T) {
 		attestation: Attestation{Name: "second", PredicateType: "custom",
 			Policy: &Policy{
 				Type: "cue",
-				URL:  apis.HTTP("example.com"),
+				Remote: &URL{
+					URL:       *apis.HTTP("example.com"),
+					Sha256sum: "123123123",
+				},
 			},
 		},
-		errorString: "invalid value: http://example.com: policy.url\nurl valid is invalid. host and https scheme are expected",
+		errorString: "invalid value: http://example.com: policy.remote.url\nurl valid is invalid. host and https scheme are expected",
 	}, {
 		name: "custom with invalid configMapRef, missing key",
 		attestation: Attestation{Name: "second", PredicateType: "custom",

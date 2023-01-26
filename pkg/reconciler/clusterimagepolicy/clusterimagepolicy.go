@@ -17,6 +17,7 @@ package clusterimagepolicy
 import (
 	"context"
 	"crypto"
+	"crypto/sha256"
 	"fmt"
 	"io"
 	"net/http"
@@ -253,10 +254,10 @@ func (r *Reconciler) inlinePolicies(ctx context.Context, cip *v1alpha1.ClusterIm
 					return err
 				}
 			}
-			if att.Policy != nil && att.Policy.URL != nil {
+			if att.Policy != nil && att.Policy.Remote != nil {
 				err := r.inlinePolicyURL(ctx, att.Policy)
 				if err != nil {
-					logging.FromContext(ctx).Errorf("Failed to read policy url %s: %v", cip.Spec.Policy.URL.String(), err)
+					logging.FromContext(ctx).Errorf("Failed to read policy url %s: %v", cip.Spec.Policy.Remote.URL.String(), err)
 					return err
 				}
 			}
@@ -269,10 +270,10 @@ func (r *Reconciler) inlinePolicies(ctx context.Context, cip *v1alpha1.ClusterIm
 			return err
 		}
 	}
-	if cip.Spec.Policy != nil && cip.Spec.Policy.URL != nil {
+	if cip.Spec.Policy != nil && cip.Spec.Policy.Remote != nil {
 		err := r.inlinePolicyURL(ctx, cip.Spec.Policy)
 		if err != nil {
-			logging.FromContext(ctx).Errorf("Failed to read policy url %s: %v", cip.Spec.Policy.URL.String(), err)
+			logging.FromContext(ctx).Errorf("Failed to read policy url %s: %v", cip.Spec.Policy.Remote.URL.String(), err)
 			return err
 		}
 	}
@@ -280,8 +281,8 @@ func (r *Reconciler) inlinePolicies(ctx context.Context, cip *v1alpha1.ClusterIm
 }
 
 func (r *Reconciler) inlinePolicyURL(ctx context.Context, policyRef *v1alpha1.Policy) error {
-	logging.FromContext(ctx).Infof("inlining policy url %q", policyRef.URL.String())
-	resp, err := http.Get(policyRef.URL.String())
+	logging.FromContext(ctx).Infof("inlining policy url %q", policyRef.Remote.URL.String())
+	resp, err := http.Get(policyRef.Remote.URL.String())
 	if err != nil {
 		return fmt.Errorf("failed to fetch content from policy url: %w", err)
 	}
@@ -293,8 +294,14 @@ func (r *Reconciler) inlinePolicyURL(ctx context.Context, policyRef *v1alpha1.Po
 	if err != nil {
 		return fmt.Errorf("failed to read policy url response: %w", err)
 	}
+	// Chechking the sha256sum value in comparison with the one set in the policy
+	h := sha256.New()
+	_, _ = h.Write(data)
+	if string(h.Sum(nil)) != policyRef.Remote.Sha256sum {
+		return fmt.Errorf("failed to check sha256sum from policy remote: %s", policyRef.Remote.Sha256sum)
+	}
 	policyRef.Data = string(data)
-	policyRef.URL = nil
+	policyRef.Remote = nil
 	return nil
 }
 
