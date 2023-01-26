@@ -648,12 +648,9 @@ func TestReconcile(t *testing.T) {
 				makePatch(replaceCIPKeySourceWithoutOCIPatch),
 			},
 		}, {
-			Name: "ClusterImagePolicy with glob and KMS key, for unsupported KMS provider",
+			Name: "ClusterImagePolicy with glob and KMS key, for invalid KMS key",
 			Key:  cipKMSName,
 
-			// gcpkms:// is not enabled in tests; this test serves
-			// as an extra check that "real" KMS providers like GCP
-			// aren't enabled in dependencies of this test.
 			SkipNamespaceValidation: true, // Cluster scoped
 			Objects: []runtime.Object{
 				NewClusterImagePolicy(cipKMSName,
@@ -675,7 +672,7 @@ func TestReconcile(t *testing.T) {
 			},
 			WantEvents: []string{
 				Eventf(corev1.EventTypeNormal, "FinalizerUpdate", `Updated "test-kms-cip" finalizers`),
-				Eventf(corev1.EventTypeWarning, "InternalError", `no kms provider found for key reference: gcpkms://blah`),
+				Eventf(corev1.EventTypeWarning, "InternalError", `kms specification should be in the format gcpkms://projects/[PROJECT_ID]/locations/[LOCATION]/keyRings/[KEY_RING]/cryptoKeys/[KEY]/cryptoKeyVersions/[VERSION]`),
 			},
 		}, {
 			Name: "Keyless with match label selector",

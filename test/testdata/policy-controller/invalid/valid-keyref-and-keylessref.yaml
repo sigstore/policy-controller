@@ -25,4 +25,4 @@ spec:
       identities:
       - issuer: "issue-details"
     key:
-      kms: "kms://url"
+      kms: "hashivault://url"

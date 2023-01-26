@@ -97,7 +97,7 @@ func TestImagePatternValidation(t *testing.T) {
 				Authorities: []Authority{
 					{
 						Key: &KeyRef{
-							KMS: "kms://key/path",
+							KMS: "hashivault://key/path",
 						},
 					},
 				},
@@ -115,7 +115,7 @@ func TestImagePatternValidation(t *testing.T) {
 				Authorities: []Authority{
 					{
 						Key: &KeyRef{
-							KMS: "kms://key/path",
+							KMS: "hashivault://key/path",
 						},
 					},
 				},
@@ -151,7 +151,7 @@ func TestKeyValidation(t *testing.T) {
 					{
 						Key: &KeyRef{
 							Data: "-----BEGIN PUBLIC KEY-----\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEaEOVJCFtduYr3xqTxeRWSW32CY/s\nTBNZj4oIUPl8JvhVPJ1TKDPlNcuT4YphSt6t3yOmMvkdQbCj8broX6vijw==\n-----END PUBLIC KEY-----",
-							KMS:  "kms://key/path",
+							KMS:  "hashivault://key/path",
 						},
 					},
 				},
@@ -205,7 +205,7 @@ func TestKeyValidation(t *testing.T) {
 				Authorities: []Authority{
 					{
 						Key: &KeyRef{
-							KMS: "kms://key/path",
+							KMS: "hashivault://key/path",
 						},
 					},
 				},
@@ -667,7 +667,7 @@ func TestAuthoritiesValidation(t *testing.T) {
 				Images: []ImagePattern{{Glob: "gcr.io/*"}},
 				Authorities: []Authority{
 					{
-						Key:     &KeyRef{KMS: "kms://key/path"},
+						Key:     &KeyRef{KMS: "hashivault://key/path"},
 						Sources: []Source{{OCI: "registry.example.com"}},
 					},
 				},
@@ -675,7 +675,7 @@ func TestAuthoritiesValidation(t *testing.T) {
 		},
 	}, {
 		name:        "Should fail with invalid AWS KMS for Keyful",
-		errorString: "invalid value: awskms://localhost:8888/arn:butnotvalid: spec.authorities[0].key.kms\nfailed to parse either key or alias arn: arn: not enough sections",
+		errorString: "invalid value: awskms://localhost:8888/arn:butnotvalid: spec.authorities[0].key.kms\nkms key should be in the format awskms://[ENDPOINT]/[ID/ALIAS/ARN] (endpoint optional)",
 		policy: ClusterImagePolicy{
 			Spec: ClusterImagePolicySpec{
 				Images: []ImagePattern{{Glob: "gcr.io/*"}},
@@ -688,8 +688,22 @@ func TestAuthoritiesValidation(t *testing.T) {
 			},
 		},
 	}, {
+		name:        "Should fail with invalid kms prefix",
+		errorString: "invalid value: fookms://localhost:8888/xpa:butnotvalid: spec.authorities[0].key.kms\nmalformed KMS format, should be prefixed by any of the supported providers: [awskms:// azurekms:// hashivault:// gcpkms://]",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{{Glob: "gcr.io/*"}},
+				Authorities: []Authority{
+					{
+						Key:     &KeyRef{KMS: "fookms://localhost:8888/xpa:butnotvalid"},
+						Sources: []Source{{OCI: "registry.example.com"}},
+					},
+				},
+			},
+		},
+	}, {
 		name:        "Should fail with invalid AWS KMS for Keyful",
-		errorString: "invalid value: awskms://localhost:8888/arn:butnotvalid: spec.authorities[0].key.kms\nfailed to parse either key or alias arn: arn: not enough sections",
+		errorString: "invalid value: awskms://localhost:8888/arn:butnotvalid: spec.authorities[0].key.kms\nkms key should be in the format awskms://[ENDPOINT]/[ID/ALIAS/ARN] (endpoint optional)",
 		policy: ClusterImagePolicy{
 			Spec: ClusterImagePolicySpec{
 				Images: []ImagePattern{{Glob: "gcr.io/*"}},
@@ -709,7 +723,7 @@ func TestAuthoritiesValidation(t *testing.T) {
 				Images: []ImagePattern{{Glob: "gcr.io/*"}},
 				Authorities: []Authority{
 					{
-						Key:     &KeyRef{KMS: "kms://key/path"},
+						Key:     &KeyRef{KMS: "hashivault://key/path"},
 						Sources: []Source{{OCI: "registry.example.com/repo/*"}},
 					},
 				},
@@ -723,7 +737,7 @@ func TestAuthoritiesValidation(t *testing.T) {
 				Images: []ImagePattern{{Glob: "gcr.io/*"}},
 				Authorities: []Authority{
 					{
-						Key:     &KeyRef{KMS: "kms://key/path"},
+						Key:     &KeyRef{KMS: "hashivault://key/path"},
 						Sources: []Source{{OCI: "re@gistry/reponame"}},
 					},
 				},
@@ -736,7 +750,7 @@ func TestAuthoritiesValidation(t *testing.T) {
 				Images: []ImagePattern{{Glob: "gcr.io/*"}},
 				Authorities: []Authority{
 					{
-						Key:     &KeyRef{KMS: "kms://key/path"},
+						Key:     &KeyRef{KMS: "hashivault://key/path"},
 						Sources: []Source{{OCI: "gcr.io/google.com/project/hello-world"}},
 					},
 				},
@@ -749,7 +763,7 @@ func TestAuthoritiesValidation(t *testing.T) {
 				Images: []ImagePattern{{Glob: "gcr.io/*"}},
 				Authorities: []Authority{
 					{
-						Key:     &KeyRef{KMS: "kms://key/path"},
+						Key:     &KeyRef{KMS: "hashivault://key/path"},
 						Sources: []Source{{OCI: "registry.example.com/repository"}},
 					},
 				},
@@ -757,7 +771,7 @@ func TestAuthoritiesValidation(t *testing.T) {
 		},
 	}, {
 		name:        "Should fail with invalid AWS KMS for Keyless",
-		errorString: "invalid value: awskms://localhost:8888/arn:butnotvalid: spec.authorities[0].keyless.ca-cert.kms\nfailed to parse either key or alias arn: arn: not enough sections\nmissing field(s): spec.authorities[0].keyless.identities",
+		errorString: "invalid value: awskms://localhost:8888/arn:butnotvalid: spec.authorities[0].keyless.ca-cert.kms\nkms key should be in the format awskms://[ENDPOINT]/[ID/ALIAS/ARN] (endpoint optional)\nmissing field(s): spec.authorities[0].keyless.identities",
 		policy: ClusterImagePolicy{
 			Spec: ClusterImagePolicySpec{
 				Images: []ImagePattern{{Glob: "gcr.io/*"}},
@@ -775,7 +789,7 @@ func TestAuthoritiesValidation(t *testing.T) {
 				Images: []ImagePattern{{Glob: "gcr.io/*"}},
 				Authorities: []Authority{
 					{
-						Key: &KeyRef{KMS: "kms://key/path"},
+						Key: &KeyRef{KMS: "hashivault://key/path"},
 						Sources: []Source{
 							{OCI: "registry1"},
 							{OCI: "registry2"},
@@ -791,7 +805,7 @@ func TestAuthoritiesValidation(t *testing.T) {
 				Images: []ImagePattern{{Glob: "gcr.io/*"}},
 				Authorities: []Authority{
 					{
-						Key: &KeyRef{KMS: "kms://key/path"},
+						Key: &KeyRef{KMS: "hashivault://key/path"},
 						Attestations: []Attestation{
 							{Name: "first", PredicateType: "vuln"},
 							{Name: "second", PredicateType: "custom", Policy: &Policy{
@@ -811,7 +825,7 @@ func TestAuthoritiesValidation(t *testing.T) {
 				Images: []ImagePattern{{Glob: "gcr.io/*"}},
 				Authorities: []Authority{
 					{
-						Key: &KeyRef{KMS: "kms://key/path"},
+						Key: &KeyRef{KMS: "hashivault://key/path"},
 						Attestations: []Attestation{
 							{Name: "first", PredicateType: "vuln"},
 							{Name: "second", PredicateType: "custom", Policy: &Policy{
@@ -833,7 +847,7 @@ func TestAuthoritiesValidation(t *testing.T) {
 				Images: []ImagePattern{{Glob: "gcr.io/*"}},
 				Authorities: []Authority{
 					{
-						Key: &KeyRef{KMS: "kms://key/path"},
+						Key: &KeyRef{KMS: "hashivault://key/path"},
 						Attestations: []Attestation{
 							{Name: "first", PredicateType: "vuln"},
 							{Name: "second", PredicateType: "custom", Policy: &Policy{
@@ -855,7 +869,7 @@ func TestAuthoritiesValidation(t *testing.T) {
 				Images: []ImagePattern{{Glob: "gcr.io/*"}},
 				Authorities: []Authority{
 					{
-						Key: &KeyRef{KMS: "kms://key/path"},
+						Key: &KeyRef{KMS: "hashivault://key/path"},
 						Attestations: []Attestation{
 							{Name: "first", PredicateType: "vuln"},
 							{Name: "second", PredicateType: "custom", Policy: &Policy{
@@ -877,7 +891,7 @@ func TestAuthoritiesValidation(t *testing.T) {
 				Images: []ImagePattern{{Glob: "gcr.io/*"}},
 				Authorities: []Authority{
 					{
-						Key: &KeyRef{KMS: "kms://key/path"},
+						Key: &KeyRef{KMS: "hashivault://key/path"},
 						Attestations: []Attestation{
 							{Name: "first", PredicateType: "vuln"},
 							{Name: "second", PredicateType: "custom", Policy: &Policy{
@@ -900,7 +914,7 @@ func TestAuthoritiesValidation(t *testing.T) {
 				Images: []ImagePattern{{Glob: "gcr.io/*"}},
 				Authorities: []Authority{
 					{
-						Key: &KeyRef{KMS: "kms://key/path"},
+						Key: &KeyRef{KMS: "hashivault://key/path"},
 						Sources: []Source{
 							{
 								OCI: "registry1",
@@ -920,7 +934,7 @@ func TestAuthoritiesValidation(t *testing.T) {
 				Images: []ImagePattern{{Glob: "gcr.io/*"}},
 				Authorities: []Authority{
 					{
-						Key: &KeyRef{KMS: "kms://key/path"},
+						Key: &KeyRef{KMS: "hashivault://key/path"},
 						Sources: []Source{
 							{
 								OCI: "registry1",
@@ -940,7 +954,7 @@ func TestAuthoritiesValidation(t *testing.T) {
 				Images: []ImagePattern{{Glob: "gcr.io/*"}},
 				Authorities: []Authority{
 					{
-						Key:     &KeyRef{KMS: "kms://key/path"},
+						Key:     &KeyRef{KMS: "hashivault://key/path"},
 						Sources: []Source{{OCI: ""}},
 					},
 				},
@@ -1299,7 +1313,7 @@ func TestAWSKMSValidation(t *testing.T) {
 	}{{
 		name:        "malformed, only 2 slashes ",
 		expectErr:   true,
-		errorString: "invalid value: awskms://1234abcd-12ab-34cd-56ef-1234567890ab: KMSORCACERT\nmalformed AWS KMS format, should be: 'awskms://$ENDPOINT/$KEYID'",
+		errorString: "invalid value: awskms://1234abcd-12ab-34cd-56ef-1234567890ab: KMSORCACERT\nmalformed AWS KMS format 'awskms://$ENDPOINT/$KEYID', should be conformant with KMS standard documented here: https://docs.aws.amazon.com/kms/latest/developerguide/concepts.html#key-id",
 		kms:         "awskms://1234abcd-12ab-34cd-56ef-1234567890ab",
 	}, {
 		name:        "fails with invalid host",
@@ -1314,8 +1328,13 @@ func TestAWSKMSValidation(t *testing.T) {
 	}, {
 		name:        "Should fail when arn is invalid",
 		expectErr:   true,
-		errorString: "invalid value: awskms://localhost:4566/arn:sonotvalid: KMSORCACERT\nfailed to parse either key or alias arn: arn: not enough sections",
+		errorString: "invalid value: awskms://localhost:4566/arn:sonotvalid: KMSORCACERT\nkms key should be in the format awskms://[ENDPOINT]/[ID/ALIAS/ARN] (endpoint optional)",
 		kms:         "awskms://localhost:4566/arn:sonotvalid",
+	}, {
+		name:        "Should fail with key is invalid",
+		expectErr:   true,
+		errorString: "invalid value: awskms://arn:aws:kms:us-east-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab: KMSORCACERT\nkms key should be in the format awskms://[ENDPOINT]/[ID/ALIAS/ARN] (endpoint optional)",
+		kms:         "awskms://arn:aws:kms:us-east-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab",
 	}, {
 		name: "works with valid arn key and endpoint",
 		kms:  "awskms://localhost:4566/arn:aws:kms:us-east-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab",

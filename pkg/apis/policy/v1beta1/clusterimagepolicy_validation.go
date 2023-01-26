@@ -17,13 +17,10 @@ package v1beta1
 import (
 	"context"
 	"fmt"
-	"net"
 	"net/url"
 	"path/filepath"
 	"regexp"
-	"strings"
 
-	"github.com/aws/aws-sdk-go-v2/aws/arn"
 	"github.com/sigstore/policy-controller/pkg/apis/glob"
 	"github.com/sigstore/policy-controller/pkg/apis/policy/common"
 	"github.com/sigstore/policy-controller/pkg/apis/signaturealgo"
@@ -32,10 +29,6 @@ import (
 	"knative.dev/pkg/apis"
 
 	policycontrollerconfig "github.com/sigstore/policy-controller/pkg/config"
-)
-
-const (
-	awsKMSPrefix = "awskms://"
 )
 
 var (
@@ -194,9 +187,7 @@ func (key *KeyRef) Validate(ctx context.Context) *apis.FieldError {
 		errs = errs.Also(apis.ErrMultipleOneOf("data", "kms", "secretref"))
 	}
 	if key.KMS != "" {
-		if strings.HasPrefix(key.KMS, awsKMSPrefix) {
-			errs = errs.Also(validateAWSKMS(key.KMS).ViaField("kms"))
-		}
+		errs = errs.Also(common.ValidateKMS(key.KMS).ViaField("kms"))
 	}
 	return errs
 }
@@ -344,38 +335,5 @@ func ValidateRegex(regex string) *apis.FieldError {
 		return apis.ErrInvalidValue(regex, apis.CurrentField, fmt.Sprintf("regex is invalid: %v", err))
 	}
 
-	return nil
-}
-
-// validateAWSKMS validates that the KMS conforms to AWS
-// KMS format:
-// awskms://$ENDPOINT/$KEYID
-// Where:
-// $ENDPOINT is optional
-// $KEYID is either the key ARN or an alias ARN
-// Reasoning for only supporting these formats is that other
-// formats require additional configuration via ENV variables.
-func validateAWSKMS(kms string) *apis.FieldError {
-	parts := strings.Split(kms, "/")
-	if len(parts) < 4 {
-		return apis.ErrInvalidValue(kms, apis.CurrentField, "malformed AWS KMS format, should be: 'awskms://$ENDPOINT/$KEYID'")
-	}
-	endpoint := parts[2]
-	// missing endpoint is fine, only validate if not empty
-	if endpoint != "" {
-		_, _, err := net.SplitHostPort(endpoint)
-		if err != nil {
-			return apis.ErrInvalidValue(kms, apis.CurrentField, fmt.Sprintf("malformed endpoint: %s", err))
-		}
-	}
-	keyID := parts[3]
-	arn, err := arn.Parse(keyID)
-	if err != nil {
-		return apis.ErrInvalidValue(kms, apis.CurrentField, fmt.Sprintf("failed to parse either key or alias arn: %s", err))
-	}
-	// Only support key or alias ARN.
-	if arn.Resource != "key" && arn.Resource != "alias" {
-		return apis.ErrInvalidValue(kms, apis.CurrentField, fmt.Sprintf("Got ARN: %+v Resource: %s", arn, arn.Resource))
-	}
 	return nil
 }
