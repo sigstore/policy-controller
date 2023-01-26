@@ -25,4 +25,6 @@ spec:
   policy:
     fetchConfigFile: true
     type: "cue"
-    url: "https://gist.githubusercontent.com/hectorj2f/af0d32d4be4bf2710cff76c397a14751/raw/d4dd87fffdf9624a21e62b8719e3ce8d61334ab9/policy-controller-test-fail-cue"
+    remote:
+      url: "https://gist.githubusercontent.com/hectorj2f/af0d32d4be4bf2710cff76c397a14751/raw/d4dd87fffdf9624a21e62b8719e3ce8d61334ab9/policy-controller-test-fail-cue"
+      sha256sum: 291534e501184200a3933969277403acf50582fbe73509571a5b73017e49a957

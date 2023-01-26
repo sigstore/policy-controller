@@ -73,9 +73,9 @@ expected_error='failed evaluating cue policy for ClusterImagePolicy: failed to e
 assert_error ${expected_error}
 echo '::endgroup::'
 
-echo '::group:: Update policy url with passing cue values'
+echo '::group:: Update policy url and sha256sum with passing cue values'
 kubectl patch cip image-policy-url --type "json" \
--p '[{"op":"replace", "path":"/spec/policy/url", "value":"https://gist.githubusercontent.com/hectorj2f/af0d32d4be4bf2710cff76c397a14751/raw/d4dd87fffdf9624a21e62b8719e3ce8d61334ab9/policy-controller-test-success-cue"}]'
+-p '[{"op":"replace", "path":"/spec/policy/remote/url", "value":"https://gist.githubusercontent.com/hectorj2f/af0d32d4be4bf2710cff76c397a14751/raw/d4dd87fffdf9624a21e62b8719e3ce8d61334ab9/policy-controller-test-success-cue"},{"op":"replace", "path":"/spec/policy/remote/sha256sum", "value":"45eb2cce1c84418d615f3e56c701451b63d58b95f9559dfa1d5254cb851358d3"}]'
 # allow for propagation
 sleep 5
 echo '::endgroup::'
