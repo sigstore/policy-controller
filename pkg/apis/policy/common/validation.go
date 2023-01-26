@@ -34,6 +34,10 @@ const (
 	ociRepoDelimiter = "/"
 )
 
+var (
+	SupportedKMSProviders = []string{aws.ReferenceScheme, azure.ReferenceScheme, hashivault.ReferenceScheme, gcp.ReferenceScheme}
+)
+
 func ValidateOCI(oci string) error {
 	// We want to validate both registry uris only or registry with valid repository names
 	parts := strings.SplitN(oci, ociRepoDelimiter, 2)
@@ -106,6 +110,11 @@ func validateAWSKMS(kms string) *apis.FieldError {
 	}
 
 	endpoint := parts[2]
+	// Sometimes this logic assumes the endpoint is part of the KEY e.g. awskms://arn:...
+	// These examples are invalid, so we need to throw proper errors
+	if endpoint != "" && (strings.HasPrefix(endpoint, "arn") || strings.HasPrefix(endpoint, "alias")) {
+		return apis.ErrInvalidValue(kms, apis.CurrentField, errKMSReference.Error())
+	}
 	// Even if the reference is valid, the endpoint could NOT be, only validate if not empty
 	if endpoint != "" {
 		_, _, err := net.SplitHostPort(endpoint)
@@ -127,16 +136,15 @@ func validateAWSKMS(kms string) *apis.FieldError {
 
 func ValidateKMS(kms string) *apis.FieldError {
 	var errs *apis.FieldError
-	supportedProviders := []string{aws.ReferenceScheme, azure.ReferenceScheme, hashivault.ReferenceScheme, gcp.ReferenceScheme}
 	validPrefix := false
-	for _, prefix := range supportedProviders {
+	for _, prefix := range SupportedKMSProviders {
 		if strings.HasPrefix(kms, prefix) {
 			validPrefix = true
 			break
 		}
 	}
 	if !validPrefix {
-		return apis.ErrInvalidValue(kms, apis.CurrentField, fmt.Sprintf("malformed KMS format, should be prefixed by any of the supported providers: %v", supportedProviders))
+		return apis.ErrInvalidValue(kms, apis.CurrentField, fmt.Sprintf("malformed KMS format, should be prefixed by any of the supported providers: %v", SupportedKMSProviders))
 	}
 	if strings.HasPrefix(kms, aws.ReferenceScheme) {
 		errs = errs.Also(validateAWSKMS(kms))

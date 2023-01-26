@@ -1414,6 +1414,10 @@ func TestAWSKMSValidation(t *testing.T) {
 		errorString: "invalid value: awskms://localhost:4566/arn:sonotvalid: KMSORCACERT\nkms key should be in the format awskms://[ENDPOINT]/[ID/ALIAS/ARN] (endpoint optional)",
 		kms:         "awskms://localhost:4566/arn:sonotvalid",
 	}, {
+		name:        "Should fail with key is invalid",
+		errorString: "invalid value: awskms://arn:aws:kms:us-east-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab: KMSORCACERT\nkms key should be in the format awskms://[ENDPOINT]/[ID/ALIAS/ARN] (endpoint optional)",
+		kms:         "awskms://arn:aws:kms:us-east-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab",
+	}, {
 		name: "works with valid arn key and endpoint",
 		kms:  "awskms://localhost:4566/arn:aws:kms:us-east-2:111122223333:key/1234abcd-12ab-34cd-56ef-1234567890ab",
 	}, {
