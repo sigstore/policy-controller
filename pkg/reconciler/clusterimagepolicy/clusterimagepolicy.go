@@ -297,7 +297,7 @@ func (r *Reconciler) inlinePolicyURL(ctx context.Context, policyRef *v1alpha1.Po
 	// Chechking the sha256sum value in comparison with the one set in the policy
 	h := sha256.New()
 	_, _ = h.Write(data)
-	if string(h.Sum(nil)) != policyRef.Remote.Sha256sum {
+	if fmt.Sprintf("%x", h.Sum(nil)) != policyRef.Remote.Sha256sum {
 		return fmt.Errorf("failed to check sha256sum from policy remote: %s", policyRef.Remote.Sha256sum)
 	}
 	policyRef.Data = string(data)
