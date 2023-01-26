@@ -45,7 +45,7 @@ spec:
         TBNZj4oIUPl8JvhVPJ1TKDPlNcuT4YphSt6t3yOmMvkdQbCj8broX6vijw==
         -----END PUBLIC KEY-----
   - key:
-      kms: "kms://key/path"
+      kms: "hashivault://key/path"
   - key:
       secretRef:
         name: secret-name
