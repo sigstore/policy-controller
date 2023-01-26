@@ -675,7 +675,7 @@ func TestAuthoritiesValidation(t *testing.T) {
 		},
 	}, {
 		name:        "Should fail with invalid AWS KMS for Keyful",
-		errorString: "invalid value: awskms://localhost:8888/arn:butnotvalid: spec.authorities[0].key.kms\nfailed to parse either key or alias arn: arn: not enough sections",
+		errorString: "invalid value: awskms://localhost:8888/arn:butnotvalid: spec.authorities[0].key.kms\nkms key should be in the format awskms://[ENDPOINT]/[ID/ALIAS/ARN] (endpoint optional)",
 		policy: ClusterImagePolicy{
 			Spec: ClusterImagePolicySpec{
 				Images: []ImagePattern{{Glob: "gcr.io/*"}},
@@ -688,8 +688,22 @@ func TestAuthoritiesValidation(t *testing.T) {
 			},
 		},
 	}, {
+		name:        "Should fail with invalid kms prefix",
+		errorString: "invalid value: fookms://localhost:8888/xpa:butnotvalid: spec.authorities[0].key.kms\nkms key should be in the format awskms://[ENDPOINT]/[ID/ALIAS/ARN] (endpoint optional)",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{{Glob: "gcr.io/*"}},
+				Authorities: []Authority{
+					{
+						Key:     &KeyRef{KMS: "fookms://localhost:8888/xpa:butnotvalid"},
+						Sources: []Source{{OCI: "registry.example.com"}},
+					},
+				},
+			},
+		},
+	}, {
 		name:        "Should fail with invalid AWS KMS for Keyful",
-		errorString: "invalid value: awskms://localhost:8888/arn:butnotvalid: spec.authorities[0].key.kms\nfailed to parse either key or alias arn: arn: not enough sections",
+		errorString: "invalid value: awskms://localhost:8888/arn:butnotvalid: spec.authorities[0].key.kms\nkms key should be in the format awskms://[ENDPOINT]/[ID/ALIAS/ARN] (endpoint optional)",
 		policy: ClusterImagePolicy{
 			Spec: ClusterImagePolicySpec{
 				Images: []ImagePattern{{Glob: "gcr.io/*"}},
@@ -757,7 +771,7 @@ func TestAuthoritiesValidation(t *testing.T) {
 		},
 	}, {
 		name:        "Should fail with invalid AWS KMS for Keyless",
-		errorString: "invalid value: awskms://localhost:8888/arn:butnotvalid: spec.authorities[0].keyless.ca-cert.kms\nfailed to parse either key or alias arn: arn: not enough sections\nmissing field(s): spec.authorities[0].keyless.identities",
+		errorString: "invalid value: awskms://localhost:8888/arn:butnotvalid: spec.authorities[0].keyless.ca-cert.kms\nkms key should be in the format awskms://[ENDPOINT]/[ID/ALIAS/ARN] (endpoint optional)\nmissing field(s): spec.authorities[0].keyless.identities",
 		policy: ClusterImagePolicy{
 			Spec: ClusterImagePolicySpec{
 				Images: []ImagePattern{{Glob: "gcr.io/*"}},
@@ -1299,7 +1313,7 @@ func TestAWSKMSValidation(t *testing.T) {
 	}{{
 		name:        "malformed, only 2 slashes ",
 		expectErr:   true,
-		errorString: "invalid value: awskms://1234abcd-12ab-34cd-56ef-1234567890ab: KMSORCACERT\nmalformed AWS KMS format, should be: 'awskms://$ENDPOINT/$KEYID'",
+		errorString: "invalid value: awskms://1234abcd-12ab-34cd-56ef-1234567890ab: KMSORCACERT\nmalformed AWS KMS format awskms://$ENDPOINT/$KEYID, should be conformant with KMS standard documented here: https://docs.aws.amazon.com/kms/latest/developerguide/concepts.html#key-id",
 		kms:         "awskms://1234abcd-12ab-34cd-56ef-1234567890ab",
 	}, {
 		name:        "fails with invalid host",
@@ -1314,7 +1328,7 @@ func TestAWSKMSValidation(t *testing.T) {
 	}, {
 		name:        "Should fail when arn is invalid",
 		expectErr:   true,
-		errorString: "invalid value: awskms://localhost:4566/arn:sonotvalid: KMSORCACERT\nfailed to parse either key or alias arn: arn: not enough sections",
+		errorString: "invalid value: awskms://localhost:4566/arn:sonotvalid: KMSORCACERT\nkms key should be in the format awskms://[ENDPOINT]/[ID/ALIAS/ARN] (endpoint optional)",
 		kms:         "awskms://localhost:4566/arn:sonotvalid",
 	}, {
 		name: "works with valid arn key and endpoint",
