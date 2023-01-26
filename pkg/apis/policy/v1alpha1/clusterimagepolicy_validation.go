@@ -31,10 +31,6 @@ import (
 	policycontrollerconfig "github.com/sigstore/policy-controller/pkg/config"
 )
 
-const (
-	awsKMSPrefix = "awskms://"
-)
-
 var (
 	// TODO: create constants in to cosign?
 	validPredicateTypes = sets.NewString("custom", "slsaprovenance", "spdx", "spdxjson", "cyclonedx", "link", "vuln")

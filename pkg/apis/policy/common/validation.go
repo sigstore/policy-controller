@@ -97,7 +97,7 @@ func validateAWSKMS(kms string) *apis.FieldError {
 	parts := strings.Split(kms, "/")
 	// Either it is a key id reference or an endpoint, it should be composed of more than 4 parts.
 	if len(parts) < 4 {
-		return apis.ErrInvalidValue(kms, apis.CurrentField, "malformed AWS KMS format awskms://$ENDPOINT/$KEYID, should be conformant with KMS standard documented here: https://docs.aws.amazon.com/kms/latest/developerguide/concepts.html#key-id")
+		return apis.ErrInvalidValue(kms, apis.CurrentField, "malformed AWS KMS format 'awskms://$ENDPOINT/$KEYID', should be conformant with KMS standard documented here: https://docs.aws.amazon.com/kms/latest/developerguide/concepts.html#key-id")
 	}
 
 	// validate the awskms reference against valid regular expressions
@@ -139,7 +139,7 @@ func ValidateKMS(kms string) *apis.FieldError {
 		return apis.ErrInvalidValue(kms, apis.CurrentField, fmt.Sprintf("malformed KMS format, should be prefixed by any of the supported providers: %v", supportedProviders))
 	}
 	if strings.HasPrefix(kms, aws.ReferenceScheme) {
-		errs = errs.Also(validateAWSKMS(kms).ViaField("kms"))
+		errs = errs.Also(validateAWSKMS(kms))
 	}
 	return errs
 }
