@@ -57,6 +57,7 @@ var _ trustrootreconciler.Finalizer = (*Reconciler)(nil)
 
 // ReconcileKind implements Interface.ReconcileKind.
 func (r *Reconciler) ReconcileKind(ctx context.Context, trustroot *v1alpha1.TrustRoot) reconciler.Event {
+	trustroot.Status.InitializeConditions()
 	var sigstoreKeys *config.SigstoreKeys
 	var err error
 	switch {
@@ -68,14 +69,17 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, trustroot *v1alpha1.Trus
 		sigstoreKeys = &config.SigstoreKeys{}
 		sigstoreKeys.ConvertFrom(ctx, trustroot.Spec.SigstoreKeys)
 	default:
+		// This should not happen since the CRD has been validated.
 		err = fmt.Errorf("invalid TrustRoot entry: %s missing repository,remote, and sigstoreKeys", trustroot.Name)
 		logging.FromContext(ctx).Errorf("Invalid trustroot entry: %s missing repository,remote, and sigstoreKeys", trustroot.Name)
 	}
 
 	if err != nil {
 		logging.FromContext(ctx).Errorf("Failed to get Sigstore Keys: %v", err)
+		trustroot.Status.MarkInlineKeysFailed(err.Error())
 		return err
 	}
+	trustroot.Status.MarkInlineKeysOk()
 	// LogIDs for Rekor get created from the PublicKey, so we need to construct
 	// them before serializing.
 	// Note this is identical to what we do with CTLog PublicKeys, but they
@@ -106,28 +110,41 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, trustroot *v1alpha1.Trus
 	if err != nil {
 		if !apierrs.IsNotFound(err) {
 			logging.FromContext(ctx).Errorf("Failed to get configmap: %v", err)
+			trustroot.Status.MarkCMUpdateFailed(err.Error())
 			return err
 		}
 		// Does not exist, create it.
 		cm, err := resources.NewConfigMap(system.Namespace(), config.SigstoreKeysConfigName, trustroot.Name, sigstoreKeys)
 		if err != nil {
 			logging.FromContext(ctx).Errorf("Failed to construct configmap: %v", err)
+			trustroot.Status.MarkCMUpdateFailed(err.Error())
 			return err
 		}
 		_, err = r.kubeclient.CoreV1().ConfigMaps(system.Namespace()).Create(ctx, cm, metav1.CreateOptions{})
-		return err
+		if err != nil {
+			trustroot.Status.MarkCMUpdateFailed(err.Error())
+			return err
+		}
+		trustroot.Status.MarkCMUpdatedOK()
+		return nil
 	}
 
 	// Check if we need to update the configmap or not.
 	patchBytes, err := resources.CreatePatch(system.Namespace(), config.SigstoreKeysConfigName, trustroot.Name, existing.DeepCopy(), sigstoreKeys)
 	if err != nil {
-		logging.FromContext(ctx).Errorf("Failed to create patch: %v", err)
+		logging.FromContext(ctx).Errorf("Failed to construct patch: %v", err)
+		trustroot.Status.MarkCMUpdateFailed(err.Error())
 		return err
 	}
 	if len(patchBytes) > 0 {
 		_, err = r.kubeclient.CoreV1().ConfigMaps(system.Namespace()).Patch(ctx, config.SigstoreKeysConfigName, types.JSONPatchType, patchBytes, metav1.PatchOptions{})
-		return err
+		if err != nil {
+			logging.FromContext(ctx).Errorf("Failed to patch: %v", err)
+			trustroot.Status.MarkCMUpdateFailed(err.Error())
+			return err
+		}
 	}
+	trustroot.Status.MarkCMUpdatedOK()
 	return nil
 }
 

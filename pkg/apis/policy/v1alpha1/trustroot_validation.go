@@ -32,8 +32,12 @@ import (
 const DefaultTUFRepoPrefix = "/repository/"
 
 // Validate implements apis.Validatable
-func (c *TrustRoot) Validate(ctx context.Context) *apis.FieldError {
-	return c.Spec.Validate(ctx).ViaField("spec")
+func (tr *TrustRoot) Validate(ctx context.Context) *apis.FieldError {
+	// If we're doing status updates, do not validate the spec.
+	if apis.IsInStatusUpdate(ctx) {
+		return nil
+	}
+	return tr.Spec.Validate(ctx).ViaField("spec")
 }
 
 func (spec *TrustRootSpec) Validate(ctx context.Context) (errors *apis.FieldError) {

@@ -67,21 +67,28 @@ var _ clusterimagepolicyreconciler.Finalizer = (*Reconciler)(nil)
 
 // ReconcileKind implements Interface.ReconcileKind.
 func (r *Reconciler) ReconcileKind(ctx context.Context, cip *v1alpha1.ClusterImagePolicy) reconciler.Event {
+	cip.Status.InitializeConditions()
 	cipCopy, cipErr := r.inlinePublicKeys(ctx, cip)
 	if cipErr != nil {
 		r.handleCIPError(ctx, cip.Name)
+		// Update the status to reflect that we were unable to inline keys.
+		cip.Status.MarkInlineKeysFailed(cipErr.Error())
 		// Note that we return the error about the Invalid cip here to make
 		// sure that it's surfaced.
 		return cipErr
 	}
+	cip.Status.MarkInlineKeysOk()
 
 	cipErr = r.inlinePolicies(ctx, cipCopy)
 	if cipErr != nil {
 		r.handleCIPError(ctx, cip.Name)
+		// Update the status to reflect that we were unable to inline keys.
+		cip.Status.MarkInlinePoliciesFailed(cipErr.Error())
 		// Note that we return the error about the Invalid cip here to make
 		// sure that it's surfaced.
 		return cipErr
 	}
+	cip.Status.MarkInlinePoliciesOk()
 
 	webhookCIP := webhookcip.ConvertClusterImagePolicyV1alpha1ToWebhook(cipCopy)
 
@@ -90,15 +97,22 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, cip *v1alpha1.ClusterIma
 	if err != nil {
 		if !apierrs.IsNotFound(err) {
 			logging.FromContext(ctx).Errorf("Failed to get configmap: %v", err)
+			cip.Status.MarkCMUpdateFailed(err.Error())
 			return err
 		}
 		// Does not exist, create it.
 		cm, err := resources.NewConfigMap(system.Namespace(), config.ImagePoliciesConfigName, cip.Name, webhookCIP)
 		if err != nil {
 			logging.FromContext(ctx).Errorf("Failed to construct configmap: %v", err)
+			cip.Status.MarkCMUpdateFailed(err.Error())
 			return err
 		}
 		_, err = r.kubeclient.CoreV1().ConfigMaps(system.Namespace()).Create(ctx, cm, metav1.CreateOptions{})
+		if err != nil {
+			cip.Status.MarkCMUpdateFailed(err.Error())
+			return err
+		}
+		cip.Status.MarkCMUpdatedOK()
 		return err
 	}
 
@@ -106,12 +120,17 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, cip *v1alpha1.ClusterIma
 	patchBytes, err := resources.CreatePatch(system.Namespace(), config.ImagePoliciesConfigName, cip.Name, existing.DeepCopy(), webhookCIP)
 	if err != nil {
 		logging.FromContext(ctx).Errorf("Failed to create patch: %v", err)
+		cip.Status.MarkCMUpdateFailed(err.Error())
 		return err
 	}
 	if len(patchBytes) > 0 {
 		_, err = r.kubeclient.CoreV1().ConfigMaps(system.Namespace()).Patch(ctx, config.ImagePoliciesConfigName, types.JSONPatchType, patchBytes, metav1.PatchOptions{})
-		return err
+		if err != nil {
+			cip.Status.MarkCMUpdateFailed(err.Error())
+			return err
+		}
 	}
+	cip.Status.MarkCMUpdatedOK()
 	return nil
 }
 

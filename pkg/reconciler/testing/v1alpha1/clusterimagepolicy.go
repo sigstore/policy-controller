@@ -32,7 +32,8 @@ type ClusterImagePolicyOption func(*v1alpha1.ClusterImagePolicy)
 func NewClusterImagePolicy(name string, o ...ClusterImagePolicyOption) *v1alpha1.ClusterImagePolicy {
 	cip := &v1alpha1.ClusterImagePolicy{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
+			Name:       name,
+			Generation: 1,
 		},
 	}
 	for _, opt := range o {
@@ -91,4 +92,46 @@ func WithMode(m string) ClusterImagePolicyOption {
 
 func WithFinalizer(cip *v1alpha1.ClusterImagePolicy) {
 	cip.Finalizers = []string{finalizerName}
+}
+
+func WithInitConditions(cip *v1alpha1.ClusterImagePolicy) {
+	cip.Status.InitializeConditions()
+}
+func WithObservedGeneration(gen int64) ClusterImagePolicyOption {
+	return func(cip *v1alpha1.ClusterImagePolicy) {
+		cip.Status.ObservedGeneration = gen
+	}
+}
+
+func MarkReady(cip *v1alpha1.ClusterImagePolicy) {
+	WithInitConditions(cip)
+	cip.Status.MarkInlineKeysOk()
+	cip.Status.MarkInlinePoliciesOk()
+	cip.Status.MarkCMUpdatedOK()
+	cip.Status.ObservedGeneration = cip.Generation
+}
+
+func WithMarkInlineKeysOk(cip *v1alpha1.ClusterImagePolicy) {
+	cip.Status.MarkInlineKeysOk()
+}
+
+func WithMarkInlineKeysFailed(msg string) ClusterImagePolicyOption {
+	return func(cip *v1alpha1.ClusterImagePolicy) {
+		cip.Status.MarkInlineKeysFailed(msg)
+	}
+}
+
+func WithMarkInlinePoliciesOk(cip *v1alpha1.ClusterImagePolicy) {
+	cip.Status.MarkInlinePoliciesOk()
+}
+func WithMarkInlinePoliciesFailed(msg string) ClusterImagePolicyOption {
+	return func(cip *v1alpha1.ClusterImagePolicy) {
+		cip.Status.MarkInlinePoliciesFailed(msg)
+	}
+}
+
+func WithMarkCMUpdateFailed(msg string) ClusterImagePolicyOption {
+	return func(cip *v1alpha1.ClusterImagePolicy) {
+		cip.Status.MarkCMUpdateFailed(msg)
+	}
 }

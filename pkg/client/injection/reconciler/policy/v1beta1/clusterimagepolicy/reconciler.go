@@ -26,6 +26,7 @@ import (
 	policyv1beta1 "github.com/sigstore/policy-controller/pkg/client/listers/policy/v1beta1"
 	zap "go.uber.org/zap"
 	v1 "k8s.io/api/core/v1"
+	equality "k8s.io/apimachinery/pkg/api/equality"
 	errors "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
@@ -33,6 +34,7 @@ import (
 	sets "k8s.io/apimachinery/pkg/util/sets"
 	record "k8s.io/client-go/tools/record"
 	controller "knative.dev/pkg/controller"
+	kmp "knative.dev/pkg/kmp"
 	logging "knative.dev/pkg/logging"
 	reconciler "knative.dev/pkg/reconciler"
 )
@@ -95,6 +97,10 @@ type reconcilerImpl struct {
 
 	// finalizerName is the name of the finalizer to reconcile.
 	finalizerName string
+
+	// skipStatusUpdates configures whether or not this reconciler automatically updates
+	// the status of the reconciled resource.
+	skipStatusUpdates bool
 }
 
 // Check that our Reconciler implements controller.Reconciler.
@@ -145,6 +151,9 @@ func NewReconciler(ctx context.Context, logger *zap.SugaredLogger, client versio
 		}
 		if opts.FinalizerName != "" {
 			rec.finalizerName = opts.FinalizerName
+		}
+		if opts.SkipStatusUpdates {
+			rec.skipStatusUpdates = true
 		}
 		if opts.DemoteFunc != nil {
 			rec.DemoteFunc = opts.DemoteFunc
@@ -219,9 +228,17 @@ func (r *reconcilerImpl) Reconcile(ctx context.Context, key string) error {
 			return fmt.Errorf("failed to set finalizers: %w", err)
 		}
 
+		if !r.skipStatusUpdates {
+			reconciler.PreProcessReconcile(ctx, resource)
+		}
+
 		// Reconcile this copy of the resource and then write back any status
 		// updates regardless of whether the reconciliation errored out.
 		reconcileEvent = do(ctx, resource)
+
+		if !r.skipStatusUpdates {
+			reconciler.PostProcessReconcile(ctx, resource, original)
+		}
 
 	case reconciler.DoFinalizeKind:
 		// For finalizing reconcilers, if this resource being marked for deletion
@@ -236,6 +253,29 @@ func (r *reconcilerImpl) Reconcile(ctx context.Context, key string) error {
 		// Observe any changes to this resource, since we are not the leader.
 		reconcileEvent = do(ctx, resource)
 
+	}
+
+	// Synchronize the status.
+	switch {
+	case r.skipStatusUpdates:
+		// This reconciler implementation is configured to skip resource updates.
+		// This may mean this reconciler does not observe spec, but reconciles external changes.
+	case equality.Semantic.DeepEqual(original.Status, resource.Status):
+		// If we didn't change anything then don't call updateStatus.
+		// This is important because the copy we loaded from the injectionInformer's
+		// cache may be stale and we don't want to overwrite a prior update
+		// to status with this stale state.
+	case !s.isLeader:
+		// High-availability reconcilers may have many replicas watching the resource, but only
+		// the elected leader is expected to write modifications.
+		logger.Warn("Saw status changes when we aren't the leader!")
+	default:
+		if err = r.updateStatus(ctx, original, resource); err != nil {
+			logger.Warnw("Failed to update resource status", zap.Error(err))
+			r.Recorder.Eventf(resource, v1.EventTypeWarning, "UpdateFailed",
+				"Failed to update status for %q: %v", resource.Name, err)
+			return err
+		}
 	}
 
 	// Report the reconciler event, if any.
@@ -264,6 +304,38 @@ func (r *reconcilerImpl) Reconcile(ctx context.Context, key string) error {
 	}
 
 	return nil
+}
+
+func (r *reconcilerImpl) updateStatus(ctx context.Context, existing *v1beta1.ClusterImagePolicy, desired *v1beta1.ClusterImagePolicy) error {
+	existing = existing.DeepCopy()
+	return reconciler.RetryUpdateConflicts(func(attempts int) (err error) {
+		// The first iteration tries to use the injectionInformer's state, subsequent attempts fetch the latest state via API.
+		if attempts > 0 {
+
+			getter := r.Client.PolicyV1beta1().ClusterImagePolicies()
+
+			existing, err = getter.Get(ctx, desired.Name, metav1.GetOptions{})
+			if err != nil {
+				return err
+			}
+		}
+
+		// If there's nothing to update, just return.
+		if equality.Semantic.DeepEqual(existing.Status, desired.Status) {
+			return nil
+		}
+
+		if diff, err := kmp.SafeDiff(existing.Status, desired.Status); err == nil && diff != "" {
+			logging.FromContext(ctx).Debug("Updating status with: ", diff)
+		}
+
+		existing.Status = desired.Status
+
+		updater := r.Client.PolicyV1beta1().ClusterImagePolicies()
+
+		_, err = updater.UpdateStatus(ctx, existing, metav1.UpdateOptions{})
+		return err
+	})
 }
 
 // updateFinalizersFiltered will update the Finalizers of the resource.

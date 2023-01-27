@@ -1580,3 +1580,11 @@ func validateError(t *testing.T, wantErrStr, wantWarnStr string, fe *apis.FieldE
 		require.Nil(t, errFE)
 	}
 }
+
+func TestIgnoreStatusUpdates(t *testing.T) {
+	cip := &ClusterImagePolicy{Spec: ClusterImagePolicySpec{Images: []ImagePattern{{Glob: ""}}}}
+
+	if err := cip.Validate(apis.WithinSubResourceUpdate(context.Background(), &cip, "status")); err != nil {
+		t.Errorf("Failed to update status on invalid resource: %v", err)
+	}
+}

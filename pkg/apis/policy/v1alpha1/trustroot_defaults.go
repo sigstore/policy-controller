@@ -17,8 +17,8 @@ package v1alpha1
 import "context"
 
 // SetDefaults implements apis.Defaultable
-func (c *TrustRoot) SetDefaults(ctx context.Context) {
-	c.Spec.SetDefaults(ctx)
+func (tr *TrustRoot) SetDefaults(ctx context.Context) {
+	tr.Spec.SetDefaults(ctx)
 }
 
 func (spec *TrustRootSpec) SetDefaults(ctx context.Context) {

@@ -55,7 +55,6 @@ const (
 	keySecretName     = "publickey-key"
 	keylessSecretName = "publickey-keyless"
 	glob              = "ghcr.io/example/*"
-	kmsKey            = "azure-kms://foo/bar"
 	fakeKMSKey        = "fakekms://keycip"
 	policyCMName      = "policy-configmap"
 	policyCMKey       = "policy-configmap-key"
@@ -73,7 +72,7 @@ RCTfQ5s1kD+hGMSE1rH7s46hmXEeyhnlRnaGF8eMU/SBJE/2NKPnxE7WzQ==
 	replaceCIPPatch = `[{"op":"replace","path":"/data/test-cip","value":"{\"uid\":\"test-uid\",\"resourceVersion\":\"0123456789\",\"images\":[{\"glob\":\"ghcr.io/example/*\"}],\"authorities\":[{\"name\":\"authority-0\",\"key\":{\"data\":\"-----BEGIN PUBLIC KEY-----\\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAExB6+H6054/W1SJgs5JR6AJr6J35J\\nRCTfQ5s1kD+hGMSE1rH7s46hmXEeyhnlRnaGF8eMU/SBJE/2NKPnxE7WzQ==\\n-----END PUBLIC KEY-----\",\"hashAlgorithm\":\"sha256\"}}],\"mode\":\"enforce\"}"}]`
 
 	// This is the patch for adding an entry for non-existing KMS for cipName2
-	addCIP2Patch = `[{"op":"add","path":"/data/test-cip-2","value":"{\"uid\":\"test-uid\",\"resourceVersion\":\"0123456789\",\"images\":[{\"glob\":\"ghcr.io/example/*\"}],\"authorities\":[{\"name\":\"authority-0\",\"key\":{\"data\":\"azure-kms://foo/bar\",\"hashAlgorithm\":\"sha256\"}}],\"mode\":\"enforce\"}"}]`
+	addCIP2Patch = `[{"op":"add","path":"/data/test-cip-2","value":"{\"uid\":\"test-uid\",\"resourceVersion\":\"0123456789\",\"images\":[{\"glob\":\"ghcr.io/example/*\"}],\"authorities\":[{\"name\":\"authority-0\",\"key\":{\"data\":\"-----BEGIN PUBLIC KEY-----\\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAExB6+H6054/W1SJgs5JR6AJr6J35J\\nRCTfQ5s1kD+hGMSE1rH7s46hmXEeyhnlRnaGF8eMU/SBJE/2NKPnxE7WzQ==\\n-----END PUBLIC KEY-----\",\"hashAlgorithm\":\"sha256\"}}],\"mode\":\"enforce\"}"}]`
 
 	// This is the patch for removing the last entry, leaving just the
 	// configmap objectmeta, no data.
@@ -87,20 +86,17 @@ RCTfQ5s1kD+hGMSE1rH7s46hmXEeyhnlRnaGF8eMU/SBJE/2NKPnxE7WzQ==
 	// two entries but only one is being removed. For keyless entry.
 	removeSingleEntryKeylessPatch = `[{"op":"remove","path":"/data/test-cip-2"}]`
 
-	// This is the patch for inlined policy configmap ref.
-	inlinedPolicyPatch = `[{"op":"replace","path":"/data/test-cip","value":"{\"uid\":\"test-uid\",\"resourceVersion\":\"0123456789\",\"images\":[{\"glob\":\"ghcr.io/example/*\"}],\"authorities\":[{\"name\":\"authority-0\",\"static\":{\"action\":\"pass\"},\"attestations\":[{\"name\":\"\",\"predicateType\":\"\",\"data\":\"predicateType: \\\"cosign.sigstore.dev/attestation/v1\\\"\\n\\tpredicate: Data: \\\"foobar key e2e test\\\"\"}]}],\"mode\":\"enforce\"}"}]`
-
 	// This is the patch for inlined cip policy configmap ref.
-	inlinedCIPPolicyPatch = `[{"op":"replace","path":"/data/test-cip","value":"{\"uid\":\"test-uid\",\"resourceVersion\":\"0123456789\",\"images\":[{\"glob\":\"ghcr.io/example/*\"}],\"authorities\":[{\"name\":\"authority-0\",\"static\":{\"action\":\"pass\"}}],\"policy\":{\"name\":\"\",\"predicateType\":\"\",\"data\":\"predicateType: \\\"cosign.sigstore.dev/attestation/v1\\\"\\n\\tpredicate: Data: \\\"foobar key e2e test\\\"\"},\"mode\":\"enforce\"}"}]`
+	inlinedPolicyPatch = `[{"op":"replace","path":"/data/test-cip","value":"{\"uid\":\"test-uid\",\"resourceVersion\":\"0123456789\",\"images\":[{\"glob\":\"ghcr.io/example/*\"}],\"authorities\":[{\"name\":\"authority-0\",\"static\":{\"action\":\"pass\"}}],\"policy\":{\"name\":\"\",\"predicateType\":\"\",\"type\":\"cue\",\"data\":\"predicateType: \\\"cosign.sigstore.dev/attestation/v1\\\"\\n\\tpredicate: Data: \\\"foobar key e2e test\\\"\"},\"mode\":\"enforce\"}"}]`
 
 	// This is the patch for inlined secret for keyless cakey ref data
-	inlinedSecretKeylessPatch = `[{"op":"replace","path":"/data/test-cip-2","value":"{\"uid\":\"test-uid\",\"resourceVersion\":\"0123456789\",\"images\":[{\"glob\":\"ghcr.io/example/*\"}],\"authorities\":[{\"name\":\"authority-0\",\"keyless\":{\"ca-cert\":{\"data\":\"-----BEGIN PUBLIC KEY-----\\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAExB6+H6054/W1SJgs5JR6AJr6J35J\\nRCTfQ5s1kD+hGMSE1rH7s46hmXEeyhnlRnaGF8eMU/SBJE/2NKPnxE7WzQ==\\n-----END PUBLIC KEY-----\",\"hashAlgorithm\":\"sha256\"}}}],\"mode\":\"enforce\"}"}]`
+	inlinedSecretKeylessPatch = `[{"op":"replace","path":"/data/test-cip-2","value":"{\"uid\":\"test-uid\",\"resourceVersion\":\"0123456789\",\"images\":[{\"glob\":\"ghcr.io/example/*\"}],\"authorities\":[{\"name\":\"authority-0\",\"keyless\":{\"identities\":[{\"issuerRegExp\":\"iss.*\",\"subjectRegExp\":\"sub.*\"}],\"ca-cert\":{\"data\":\"-----BEGIN PUBLIC KEY-----\\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAExB6+H6054/W1SJgs5JR6AJr6J35J\\nRCTfQ5s1kD+hGMSE1rH7s46hmXEeyhnlRnaGF8eMU/SBJE/2NKPnxE7WzQ==\\n-----END PUBLIC KEY-----\",\"hashAlgorithm\":\"sha256\"}}}],\"mode\":\"enforce\"}"}]`
 
 	// This is the patch for inlined secret with matching resource, version and group
-	inlinedSecretKeylessMatchResourcePatch = `[{"op":"replace","path":"/data/test-cip-2","value":"{\"uid\":\"test-uid\",\"resourceVersion\":\"0123456789\",\"images\":[{\"glob\":\"ghcr.io/example/*\"}],\"authorities\":[{\"name\":\"authority-0\",\"keyless\":{\"ca-cert\":{\"data\":\"-----BEGIN PUBLIC KEY-----\\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAExB6+H6054/W1SJgs5JR6AJr6J35J\\nRCTfQ5s1kD+hGMSE1rH7s46hmXEeyhnlRnaGF8eMU/SBJE/2NKPnxE7WzQ==\\n-----END PUBLIC KEY-----\",\"hashAlgorithm\":\"sha256\"}}}],\"mode\":\"enforce\",\"match\":[{\"group\":\"apps\",\"version\":\"v1\",\"resource\":\"deployments\"}]}"}]`
+	inlinedSecretKeylessMatchResourcePatch = `[{"op":"replace","path":"/data/test-cip-2","value":"{\"uid\":\"test-uid\",\"resourceVersion\":\"0123456789\",\"images\":[{\"glob\":\"ghcr.io/example/*\"}],\"authorities\":[{\"name\":\"authority-0\",\"keyless\":{\"identities\":[{\"issuerRegExp\":\"iss.*\",\"subjectRegExp\":\"sub.*\"}],\"ca-cert\":{\"data\":\"-----BEGIN PUBLIC KEY-----\\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAExB6+H6054/W1SJgs5JR6AJr6J35J\\nRCTfQ5s1kD+hGMSE1rH7s46hmXEeyhnlRnaGF8eMU/SBJE/2NKPnxE7WzQ==\\n-----END PUBLIC KEY-----\",\"hashAlgorithm\":\"sha256\"}}}],\"mode\":\"enforce\",\"match\":[{\"group\":\"apps\",\"version\":\"v1\",\"resource\":\"deployments\"}]}"}]`
 
 	// This is the patch for inlined secret with matching labels
-	inlinedSecretKeylessMatchLabelsPatch = `[{"op":"replace","path":"/data/test-cip-2","value":"{\"uid\":\"test-uid\",\"resourceVersion\":\"0123456789\",\"images\":[{\"glob\":\"ghcr.io/example/*\"}],\"authorities\":[{\"name\":\"authority-0\",\"keyless\":{\"ca-cert\":{\"data\":\"-----BEGIN PUBLIC KEY-----\\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAExB6+H6054/W1SJgs5JR6AJr6J35J\\nRCTfQ5s1kD+hGMSE1rH7s46hmXEeyhnlRnaGF8eMU/SBJE/2NKPnxE7WzQ==\\n-----END PUBLIC KEY-----\",\"hashAlgorithm\":\"sha256\"}}}],\"mode\":\"enforce\",\"match\":[{\"group\":\"apps\",\"version\":\"v1\",\"resource\":\"replicasets\",\"selector\":{\"matchLabels\":{\"match\":\"match\"}}}]}"}]`
+	inlinedSecretKeylessMatchLabelsPatch = `[{"op":"replace","path":"/data/test-cip-2","value":"{\"uid\":\"test-uid\",\"resourceVersion\":\"0123456789\",\"images\":[{\"glob\":\"ghcr.io/example/*\"}],\"authorities\":[{\"name\":\"authority-0\",\"keyless\":{\"identities\":[{\"issuerRegExp\":\"iss.*\",\"subjectRegExp\":\"sub.*\"}],\"ca-cert\":{\"data\":\"-----BEGIN PUBLIC KEY-----\\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAExB6+H6054/W1SJgs5JR6AJr6J35J\\nRCTfQ5s1kD+hGMSE1rH7s46hmXEeyhnlRnaGF8eMU/SBJE/2NKPnxE7WzQ==\\n-----END PUBLIC KEY-----\",\"hashAlgorithm\":\"sha256\"}}}],\"mode\":\"enforce\",\"match\":[{\"group\":\"apps\",\"version\":\"v1\",\"resource\":\"replicasets\",\"selector\":{\"matchLabels\":{\"match\":\"match\"}}}]}"}]`
 
 	replaceCIPKeySourcePatch = `[{"op":"replace","path":"/data/test-cip","value":"{\"uid\":\"test-uid\",\"resourceVersion\":\"0123456789\",\"images\":[{\"glob\":\"ghcr.io/example/*\"}],\"authorities\":[{\"name\":\"authority-0\",\"key\":{\"data\":\"-----BEGIN PUBLIC KEY-----\\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAExB6+H6054/W1SJgs5JR6AJr6J35J\\nRCTfQ5s1kD+hGMSE1rH7s46hmXEeyhnlRnaGF8eMU/SBJE/2NKPnxE7WzQ==\\n-----END PUBLIC KEY-----\",\"hashAlgorithm\":\"sha256\"},\"source\":[{\"oci\":\"example.com/alternative/signature\",\"signaturePullSecrets\":[{\"name\":\"signaturePullSecretName\"}]}]}],\"mode\":\"enforce\"}"}]`
 
@@ -108,6 +104,12 @@ RCTfQ5s1kD+hGMSE1rH7s46hmXEeyhnlRnaGF8eMU/SBJE/2NKPnxE7WzQ==
 
 	resourceVersion = "0123456789"
 	uid             = "test-uid"
+)
+
+var (
+	// Just define these here so that we can use them in various identity
+	// places where we just need a placeholder.
+	placeholderIdentities = []v1alpha1.Identity{{SubjectRegExp: "sub.*", IssuerRegExp: "iss.*"}}
 )
 
 func TestReconcile(t *testing.T) {
@@ -161,8 +163,22 @@ func TestReconcile(t *testing.T) {
 		WantEvents: []string{
 			Eventf(corev1.EventTypeNormal, "FinalizerUpdate", `Updated "test-cip" finalizers`),
 		},
+		WantStatusUpdates: []clientgotesting.UpdateActionImpl{{
+			Object: NewClusterImagePolicy(cipName,
+				WithUID(uid),
+				WithResourceVersion(resourceVersion),
+				WithMode("warn"),
+				WithImagePattern(v1alpha1.ImagePattern{
+					Glob: glob,
+				}),
+				WithAuthority(v1alpha1.Authority{
+					Key: &v1alpha1.KeyRef{
+						Data: validPublicKeyData,
+					}}),
+				MarkReady),
+		}},
 	}, {
-		Name: "ClusterImagePolicy with glob and inline key data, already exists, no patch",
+		Name: "ClusterImagePolicy with glob and inline key data, already exists, no patch, no status update",
 		Key:  testKey,
 
 		SkipNamespaceValidation: true, // Cluster scoped
@@ -178,7 +194,8 @@ func TestReconcile(t *testing.T) {
 				WithAuthority(v1alpha1.Authority{
 					Key: &v1alpha1.KeyRef{
 						Data: validPublicKeyData,
-					}})),
+					}}),
+				MarkReady),
 			makeConfigMap(),
 		},
 	}, {
@@ -203,6 +220,68 @@ func TestReconcile(t *testing.T) {
 		WantPatches: []clientgotesting.PatchActionImpl{
 			makePatch(replaceCIPPatch),
 		},
+		WantStatusUpdates: []clientgotesting.UpdateActionImpl{{
+			Object: NewClusterImagePolicy(cipName,
+				WithUID(uid),
+				WithResourceVersion(resourceVersion),
+				WithFinalizer,
+				WithImagePattern(v1alpha1.ImagePattern{
+					Glob: glob,
+				}),
+				WithAuthority(v1alpha1.Authority{
+					Key: &v1alpha1.KeyRef{
+						Data: validPublicKeyData,
+					}}),
+				MarkReady),
+		}},
+	}, {
+		Name: "ClusterImagePolicy with glob and inline key data, needs a patch but fails",
+		Key:  testKey,
+
+		SkipNamespaceValidation: true, // Cluster scoped
+		Objects: []runtime.Object{
+			NewClusterImagePolicy(cipName,
+				WithUID(uid),
+				WithResourceVersion(resourceVersion),
+				WithFinalizer,
+				WithImagePattern(v1alpha1.ImagePattern{
+					Glob: glob,
+				}),
+				WithAuthority(v1alpha1.Authority{
+					Key: &v1alpha1.KeyRef{
+						Data: validPublicKeyData,
+					}})),
+			makeDifferentConfigMap(),
+		},
+		WantPatches: []clientgotesting.PatchActionImpl{
+			makePatch(replaceCIPPatch),
+		},
+		WithReactors: []clientgotesting.ReactionFunc{
+			InduceFailure("patch", "configmaps"),
+		},
+		WantErr: true,
+		WantEvents: []string{
+			Eventf(corev1.EventTypeWarning, "InternalError", "inducing failure for patch configmaps"),
+		},
+		WantStatusUpdates: []clientgotesting.UpdateActionImpl{{
+			Object: NewClusterImagePolicy(cipName,
+				WithUID(uid),
+				WithResourceVersion(resourceVersion),
+				WithFinalizer,
+				WithImagePattern(v1alpha1.ImagePattern{
+					Glob: glob,
+				}),
+				WithAuthority(v1alpha1.Authority{
+					Key: &v1alpha1.KeyRef{
+						Data: validPublicKeyData,
+					}}),
+				WithInitConditions,
+				WithObservedGeneration(1),
+				WithMarkInlineKeysOk,
+				WithMarkInlinePoliciesOk,
+				WithMarkCMUpdateFailed("inducing failure for patch configmaps"),
+			),
+		}},
 	}, {
 		Name: "ClusterImagePolicy with glob and KMS key data, added as a patch",
 		Key:  testKey2,
@@ -218,13 +297,27 @@ func TestReconcile(t *testing.T) {
 				}),
 				WithAuthority(v1alpha1.Authority{
 					Key: &v1alpha1.KeyRef{
-						Data: kmsKey,
+						Data: validPublicKeyData,
 					}})),
 			makeConfigMap(), // Make the existing configmap
 		},
 		WantPatches: []clientgotesting.PatchActionImpl{
 			makePatch(addCIP2Patch),
 		},
+		WantStatusUpdates: []clientgotesting.UpdateActionImpl{{
+			Object: NewClusterImagePolicy(cipName2,
+				WithUID(uid),
+				WithResourceVersion(resourceVersion),
+				WithFinalizer,
+				WithImagePattern(v1alpha1.ImagePattern{
+					Glob: glob,
+				}),
+				WithAuthority(v1alpha1.Authority{
+					Key: &v1alpha1.KeyRef{
+						Data: validPublicKeyData,
+					}}),
+				MarkReady),
+		}},
 	},
 		{
 			Name: "ClusterImagePolicy with glob and inline key data, already exists, deleted",
@@ -306,6 +399,25 @@ func TestReconcile(t *testing.T) {
 			WantEvents: []string{
 				Eventf(corev1.EventTypeWarning, "InternalError", `secret "publickey-key" not found`),
 			},
+			WantStatusUpdates: []clientgotesting.UpdateActionImpl{{
+				Object: NewClusterImagePolicy(cipName,
+					WithUID(uid),
+					WithResourceVersion(resourceVersion),
+					WithFinalizer,
+					WithImagePattern(v1alpha1.ImagePattern{
+						Glob: glob,
+					}),
+					WithAuthority(v1alpha1.Authority{
+						Key: &v1alpha1.KeyRef{
+							SecretRef: &corev1.SecretReference{
+								Name: keySecretName,
+							},
+						}}),
+					WithInitConditions,
+					WithObservedGeneration(1),
+					WithMarkInlineKeysFailed(`secret "publickey-key" not found`)),
+			}},
+
 			PostConditions: []func(*testing.T, *TableRow){
 				AssertTrackingSecret(system.Namespace(), keySecretName),
 			},
@@ -338,6 +450,24 @@ func TestReconcile(t *testing.T) {
 			WantPatches: []clientgotesting.PatchActionImpl{
 				makePatch(removeSingleEntryKeyPatch),
 			},
+			WantStatusUpdates: []clientgotesting.UpdateActionImpl{{
+				Object: NewClusterImagePolicy(cipName,
+					WithUID(uid),
+					WithResourceVersion(resourceVersion),
+					WithFinalizer,
+					WithImagePattern(v1alpha1.ImagePattern{
+						Glob: glob,
+					}),
+					WithAuthority(v1alpha1.Authority{
+						Key: &v1alpha1.KeyRef{
+							SecretRef: &corev1.SecretReference{
+								Name: keySecretName,
+							},
+						}}),
+					WithInitConditions,
+					WithObservedGeneration(1),
+					WithMarkInlineKeysFailed(`secret "publickey-key" not found`)),
+			}},
 			PostConditions: []func(*testing.T, *TableRow){
 				AssertTrackingSecret(system.Namespace(), keySecretName),
 			},
@@ -366,6 +496,24 @@ func TestReconcile(t *testing.T) {
 			WantEvents: []string{
 				Eventf(corev1.EventTypeWarning, "InternalError", `secret "publickey-key" not found`),
 			},
+			WantStatusUpdates: []clientgotesting.UpdateActionImpl{{
+				Object: NewClusterImagePolicy(cipName,
+					WithUID(uid),
+					WithResourceVersion(resourceVersion),
+					WithFinalizer,
+					WithImagePattern(v1alpha1.ImagePattern{
+						Glob: glob,
+					}),
+					WithAuthority(v1alpha1.Authority{
+						Key: &v1alpha1.KeyRef{
+							SecretRef: &corev1.SecretReference{
+								Name: keySecretName,
+							},
+						}}),
+					WithInitConditions,
+					WithObservedGeneration(1),
+					WithMarkInlineKeysFailed(`secret "publickey-key" not found`)),
+			}},
 			PostConditions: []func(*testing.T, *TableRow){
 				AssertTrackingSecret(system.Namespace(), keySecretName),
 			},
@@ -389,6 +537,7 @@ func TestReconcile(t *testing.T) {
 									Name: keylessSecretName,
 								},
 							},
+							Identities: placeholderIdentities,
 						}}),
 				),
 				makeConfigMapWithTwoEntries(),
@@ -400,6 +549,28 @@ func TestReconcile(t *testing.T) {
 			WantPatches: []clientgotesting.PatchActionImpl{
 				makePatch(removeSingleEntryKeyPatch),
 			},
+			WantStatusUpdates: []clientgotesting.UpdateActionImpl{{
+				Object: NewClusterImagePolicy(cipName,
+					WithUID(uid),
+					WithResourceVersion(resourceVersion),
+					WithFinalizer,
+					WithImagePattern(v1alpha1.ImagePattern{
+						Glob: glob,
+					}),
+					WithAuthority(v1alpha1.Authority{
+						Keyless: &v1alpha1.KeylessRef{
+							CACert: &v1alpha1.KeyRef{
+								SecretRef: &corev1.SecretReference{
+									Name: keylessSecretName,
+								},
+							},
+							Identities: placeholderIdentities,
+						}}),
+					WithInitConditions,
+					WithObservedGeneration(1),
+					WithMarkInlineKeysFailed(`secret "publickey-keyless" not found`)),
+			}},
+
 			PostConditions: []func(*testing.T, *TableRow){
 				AssertTrackingSecret(system.Namespace(), keylessSecretName),
 			},
@@ -435,6 +606,24 @@ func TestReconcile(t *testing.T) {
 			WantEvents: []string{
 				Eventf(corev1.EventTypeWarning, "InternalError", `secret "publickey-key" contains no data`),
 			},
+			WantStatusUpdates: []clientgotesting.UpdateActionImpl{{
+				Object: NewClusterImagePolicy(cipName,
+					WithUID(uid),
+					WithResourceVersion(resourceVersion),
+					WithFinalizer,
+					WithImagePattern(v1alpha1.ImagePattern{
+						Glob: glob,
+					}),
+					WithAuthority(v1alpha1.Authority{
+						Key: &v1alpha1.KeyRef{
+							SecretRef: &corev1.SecretReference{
+								Name: keySecretName,
+							},
+						}}),
+					WithInitConditions,
+					WithObservedGeneration(1),
+					WithMarkInlineKeysFailed(`secret "publickey-key" contains no data`)),
+			}},
 			PostConditions: []func(*testing.T, *TableRow){
 				AssertTrackingSecret(system.Namespace(), keySecretName),
 			},
@@ -474,6 +663,24 @@ func TestReconcile(t *testing.T) {
 			WantEvents: []string{
 				Eventf(corev1.EventTypeWarning, "InternalError", `secret "publickey-key" contains multiple data entries, only one is supported`),
 			},
+			WantStatusUpdates: []clientgotesting.UpdateActionImpl{{
+				Object: NewClusterImagePolicy(cipName,
+					WithUID(uid),
+					WithResourceVersion(resourceVersion),
+					WithFinalizer,
+					WithImagePattern(v1alpha1.ImagePattern{
+						Glob: glob,
+					}),
+					WithAuthority(v1alpha1.Authority{
+						Key: &v1alpha1.KeyRef{
+							SecretRef: &corev1.SecretReference{
+								Name: keySecretName,
+							},
+						}}),
+					WithInitConditions,
+					WithObservedGeneration(1),
+					WithMarkInlineKeysFailed(`secret "publickey-key" contains multiple data entries, only one is supported`)),
+			}},
 			PostConditions: []func(*testing.T, *TableRow){
 				AssertTrackingSecret(system.Namespace(), keySecretName),
 			},
@@ -504,6 +711,24 @@ func TestReconcile(t *testing.T) {
 			WantEvents: []string{
 				Eventf(corev1.EventTypeWarning, "InternalError", `secret "publickey-key" contains an invalid public key: PEM decoding failed`),
 			},
+			WantStatusUpdates: []clientgotesting.UpdateActionImpl{{
+				Object: NewClusterImagePolicy(cipName,
+					WithUID(uid),
+					WithResourceVersion(resourceVersion),
+					WithFinalizer,
+					WithImagePattern(v1alpha1.ImagePattern{
+						Glob: glob,
+					}),
+					WithAuthority(v1alpha1.Authority{
+						Key: &v1alpha1.KeyRef{
+							SecretRef: &corev1.SecretReference{
+								Name: keySecretName,
+							},
+						}}),
+					WithInitConditions,
+					WithObservedGeneration(1),
+					WithMarkInlineKeysFailed(`secret "publickey-key" contains an invalid public key: PEM decoding failed`)),
+			}},
 			PostConditions: []func(*testing.T, *TableRow){
 				AssertTrackingSecret(system.Namespace(), keySecretName),
 			},
@@ -532,6 +757,23 @@ func TestReconcile(t *testing.T) {
 			WantCreates: []runtime.Object{
 				makeConfigMap(),
 			},
+			WantStatusUpdates: []clientgotesting.UpdateActionImpl{{
+				Object: NewClusterImagePolicy(cipName,
+					WithUID(uid),
+					WithResourceVersion(resourceVersion),
+					WithFinalizer,
+					WithImagePattern(v1alpha1.ImagePattern{
+						Glob: glob,
+					}),
+					WithAuthority(v1alpha1.Authority{
+						Key: &v1alpha1.KeyRef{
+							SecretRef: &corev1.SecretReference{
+								Name: keySecretName,
+							},
+						}}),
+					MarkReady),
+			}},
+
 			PostConditions: []func(*testing.T, *TableRow){
 				AssertTrackingSecret(system.Namespace(), keySecretName),
 			},
@@ -554,6 +796,7 @@ func TestReconcile(t *testing.T) {
 								SecretRef: &corev1.SecretReference{
 									Name: keylessSecretName,
 								}},
+							Identities: placeholderIdentities,
 						}}),
 				),
 				makeConfigMapWithTwoEntries(),
@@ -562,6 +805,24 @@ func TestReconcile(t *testing.T) {
 			WantPatches: []clientgotesting.PatchActionImpl{
 				makePatch(inlinedSecretKeylessPatch),
 			},
+			WantStatusUpdates: []clientgotesting.UpdateActionImpl{{
+				Object: NewClusterImagePolicy(cipName2,
+					WithUID(uid),
+					WithResourceVersion(resourceVersion),
+					WithFinalizer,
+					WithImagePattern(v1alpha1.ImagePattern{
+						Glob: glob,
+					}),
+					WithAuthority(v1alpha1.Authority{
+						Keyless: &v1alpha1.KeylessRef{
+							CACert: &v1alpha1.KeyRef{
+								SecretRef: &corev1.SecretReference{
+									Name: keylessSecretName,
+								}},
+							Identities: placeholderIdentities,
+						}}),
+					MarkReady),
+			}},
 			PostConditions: []func(*testing.T, *TableRow){
 				AssertTrackingSecret(system.Namespace(), keylessSecretName),
 			},
@@ -588,6 +849,21 @@ func TestReconcile(t *testing.T) {
 			WantPatches: []clientgotesting.PatchActionImpl{
 				patchKMS(mainContext, t, fakeKMSKey, signaturealgo.DefaultSignatureAlgorithm),
 			},
+			WantStatusUpdates: []clientgotesting.UpdateActionImpl{{
+				Object: NewClusterImagePolicy(cipKMSName,
+					WithUID(uid),
+					WithResourceVersion(resourceVersion),
+					WithFinalizer,
+					WithImagePattern(v1alpha1.ImagePattern{
+						Glob: glob,
+					}),
+					WithAuthority(v1alpha1.Authority{
+						Key: &v1alpha1.KeyRef{
+							KMS:           fakeKMSKey,
+							HashAlgorithm: signaturealgo.DefaultSignatureAlgorithm,
+						}}),
+					MarkReady),
+			}},
 		}, {
 			Name: "Key with data, source, and signature pull secrets",
 			Key:  testKey,
@@ -615,6 +891,26 @@ func TestReconcile(t *testing.T) {
 				),
 				makeConfigMap(),
 			},
+			WantStatusUpdates: []clientgotesting.UpdateActionImpl{{
+				Object: NewClusterImagePolicy(cipName,
+					WithUID(uid),
+					WithResourceVersion(resourceVersion),
+					WithFinalizer,
+					WithImagePattern(v1alpha1.ImagePattern{
+						Glob: glob,
+					}),
+					WithAuthority(v1alpha1.Authority{
+						Key: &v1alpha1.KeyRef{
+							Data: validPublicKeyData,
+						},
+						Sources: []v1alpha1.Source{{
+							OCI: "example.com/alternative/signature",
+							SignaturePullSecrets: []corev1.LocalObjectReference{
+								{Name: "signaturePullSecretName"},
+							},
+						}}}),
+					MarkReady),
+			}},
 			WantPatches: []clientgotesting.PatchActionImpl{
 				makePatch(replaceCIPKeySourcePatch),
 			},
@@ -644,6 +940,26 @@ func TestReconcile(t *testing.T) {
 				),
 				makeConfigMap(),
 			},
+			WantStatusUpdates: []clientgotesting.UpdateActionImpl{{
+				Object: NewClusterImagePolicy(cipName,
+					WithUID(uid),
+					WithResourceVersion(resourceVersion),
+					WithFinalizer,
+					WithImagePattern(v1alpha1.ImagePattern{
+						Glob: glob,
+					}),
+					WithAuthority(v1alpha1.Authority{
+						Key: &v1alpha1.KeyRef{
+							Data: validPublicKeyData,
+						},
+						Sources: []v1alpha1.Source{{
+							SignaturePullSecrets: []corev1.LocalObjectReference{
+								{Name: "signaturePullSecretName"},
+							},
+						}},
+					}),
+					MarkReady),
+			}},
 			WantPatches: []clientgotesting.PatchActionImpl{
 				makePatch(replaceCIPKeySourceWithoutOCIPatch),
 			},
@@ -674,6 +990,22 @@ func TestReconcile(t *testing.T) {
 				Eventf(corev1.EventTypeNormal, "FinalizerUpdate", `Updated "test-kms-cip" finalizers`),
 				Eventf(corev1.EventTypeWarning, "InternalError", `kms specification should be in the format gcpkms://projects/[PROJECT_ID]/locations/[LOCATION]/keyRings/[KEY_RING]/cryptoKeys/[KEY]/cryptoKeyVersions/[VERSION]`),
 			},
+			WantStatusUpdates: []clientgotesting.UpdateActionImpl{{
+				Object: NewClusterImagePolicy(cipKMSName,
+					WithUID(uid),
+					WithResourceVersion(resourceVersion),
+					WithImagePattern(v1alpha1.ImagePattern{
+						Glob: glob,
+					}),
+					WithAuthority(v1alpha1.Authority{
+						Key: &v1alpha1.KeyRef{
+							KMS: "gcpkms://blah",
+						}},
+					),
+					WithInitConditions,
+					WithObservedGeneration(1),
+					WithMarkInlineKeysFailed(`no kms provider found for key reference: gcpkms://blah`)),
+			}},
 		}, {
 			Name: "Keyless with match label selector",
 			Key:  testKey2,
@@ -703,6 +1035,7 @@ func TestReconcile(t *testing.T) {
 								SecretRef: &corev1.SecretReference{
 									Name: keylessSecretName,
 								}},
+							Identities: placeholderIdentities,
 						}}),
 				),
 				makeConfigMapWithTwoEntries(),
@@ -711,6 +1044,34 @@ func TestReconcile(t *testing.T) {
 			WantPatches: []clientgotesting.PatchActionImpl{
 				makePatch(inlinedSecretKeylessMatchLabelsPatch),
 			},
+			WantStatusUpdates: []clientgotesting.UpdateActionImpl{{
+				Object: NewClusterImagePolicy(cipName2,
+					WithUID(uid),
+					WithResourceVersion(resourceVersion),
+					WithFinalizer,
+					WithImagePattern(v1alpha1.ImagePattern{
+						Glob: glob,
+					}),
+					WithMatch(v1alpha1.MatchResource{
+						GroupVersionResource: metav1.GroupVersionResource{
+							Group:    "apps",
+							Version:  "v1",
+							Resource: "replicasets",
+						},
+						ResourceSelector: &metav1.LabelSelector{
+							MatchLabels: map[string]string{"match": "match"},
+						},
+					}),
+					WithAuthority(v1alpha1.Authority{
+						Keyless: &v1alpha1.KeylessRef{
+							CACert: &v1alpha1.KeyRef{
+								SecretRef: &corev1.SecretReference{
+									Name: keylessSecretName,
+								}},
+							Identities: placeholderIdentities,
+						}}),
+					MarkReady),
+			}},
 			PostConditions: []func(*testing.T, *TableRow){
 				AssertTrackingSecret(system.Namespace(), keylessSecretName),
 			},
@@ -740,6 +1101,7 @@ func TestReconcile(t *testing.T) {
 								SecretRef: &corev1.SecretReference{
 									Name: keylessSecretName,
 								}},
+							Identities: placeholderIdentities,
 						}}),
 				),
 				makeConfigMapWithTwoEntries(),
@@ -748,43 +1110,33 @@ func TestReconcile(t *testing.T) {
 			WantPatches: []clientgotesting.PatchActionImpl{
 				makePatch(inlinedSecretKeylessMatchResourcePatch),
 			},
-			PostConditions: []func(*testing.T, *TableRow){
-				AssertTrackingSecret(system.Namespace(), keylessSecretName),
-			},
-		}, {
-			Name: "Static with attestation policy, configmapref exists, inlined",
-			Key:  testKey,
-
-			SkipNamespaceValidation: true, // Cluster scoped
-			Objects: []runtime.Object{
-				NewClusterImagePolicy(cipName,
+			WantStatusUpdates: []clientgotesting.UpdateActionImpl{{
+				Object: NewClusterImagePolicy(cipName2,
 					WithUID(uid),
 					WithResourceVersion(resourceVersion),
 					WithFinalizer,
 					WithImagePattern(v1alpha1.ImagePattern{
 						Glob: glob,
 					}),
-					WithAuthority(v1alpha1.Authority{
-						Static: &v1alpha1.StaticRef{
-							Action: "pass",
+					WithMatch(v1alpha1.MatchResource{
+						GroupVersionResource: metav1.GroupVersionResource{
+							Group:    "apps",
+							Version:  "v1",
+							Resource: "deployments",
 						},
-						Attestations: []v1alpha1.Attestation{{
-							Policy: &v1alpha1.Policy{
-								ConfigMapRef: &v1alpha1.ConfigMapReference{
-									Name: policyCMName,
-									Key:  policyCMKey,
-								},
-							},
-						}}}),
-				),
-				makeConfigMap(),
-				makePolicyConfigMap(policyCMName, map[string]string{policyCMKey: testPolicy}),
-			},
-			WantPatches: []clientgotesting.PatchActionImpl{
-				makePatch(inlinedPolicyPatch),
-			},
+					}),
+					WithAuthority(v1alpha1.Authority{
+						Keyless: &v1alpha1.KeylessRef{
+							CACert: &v1alpha1.KeyRef{
+								SecretRef: &corev1.SecretReference{
+									Name: keylessSecretName,
+								}},
+							Identities: placeholderIdentities,
+						}}),
+					MarkReady),
+			}},
 			PostConditions: []func(*testing.T, *TableRow){
-				AssertTrackingConfigMap(system.Namespace(), policyCMName),
+				AssertTrackingSecret(system.Namespace(), keylessSecretName),
 			},
 		}, {
 			Name: "Static with CIP level policy, configmapref exists, inlined",
@@ -804,6 +1156,7 @@ func TestReconcile(t *testing.T) {
 							Action: "pass",
 						}}),
 					WithPolicy(&v1alpha1.Policy{
+						Type: "cue",
 						ConfigMapRef: &v1alpha1.ConfigMapReference{
 							Name: policyCMName,
 							Key:  policyCMKey,
@@ -814,8 +1167,93 @@ func TestReconcile(t *testing.T) {
 				makePolicyConfigMap(policyCMName, map[string]string{policyCMKey: testPolicy}),
 			},
 			WantPatches: []clientgotesting.PatchActionImpl{
-				makePatch(inlinedCIPPolicyPatch),
+				makePatch(inlinedPolicyPatch),
 			},
+			WantStatusUpdates: []clientgotesting.UpdateActionImpl{{
+				Object: NewClusterImagePolicy(cipName,
+					WithUID(uid),
+					WithResourceVersion(resourceVersion),
+					WithFinalizer,
+					WithImagePattern(v1alpha1.ImagePattern{
+						Glob: glob,
+					}),
+					WithAuthority(v1alpha1.Authority{
+						Static: &v1alpha1.StaticRef{
+							Action: "pass",
+						}}),
+					WithPolicy(&v1alpha1.Policy{
+						Type: "cue",
+						ConfigMapRef: &v1alpha1.ConfigMapReference{
+							Name: policyCMName,
+							Key:  policyCMKey,
+						},
+					}),
+					MarkReady),
+			}},
+
+			PostConditions: []func(*testing.T, *TableRow){
+				AssertTrackingConfigMap(system.Namespace(), policyCMName),
+			},
+		}, {
+			Name: "Static with CIP level policy, configmapref does not exist",
+			Key:  testKey,
+
+			SkipNamespaceValidation: true, // Cluster scoped
+			Objects: []runtime.Object{
+				NewClusterImagePolicy(cipName,
+					WithUID(uid),
+					WithResourceVersion(resourceVersion),
+					WithFinalizer,
+					WithImagePattern(v1alpha1.ImagePattern{
+						Glob: glob,
+					}),
+					WithAuthority(v1alpha1.Authority{
+						Static: &v1alpha1.StaticRef{
+							Action: "pass",
+						}}),
+					WithPolicy(&v1alpha1.Policy{
+						Type: "cue",
+						ConfigMapRef: &v1alpha1.ConfigMapReference{
+							Name: policyCMName,
+							Key:  policyCMKey,
+						},
+					}),
+				),
+				makeConfigMap(),
+			},
+			WantErr: true,
+			WantPatches: []clientgotesting.PatchActionImpl{
+				makePatch(removeDataPatch),
+			},
+			WantEvents: []string{
+				Eventf(corev1.EventTypeWarning, "InternalError", `configmap "policy-configmap" not found`),
+			},
+			WantStatusUpdates: []clientgotesting.UpdateActionImpl{{
+				Object: NewClusterImagePolicy(cipName,
+					WithUID(uid),
+					WithResourceVersion(resourceVersion),
+					WithFinalizer,
+					WithImagePattern(v1alpha1.ImagePattern{
+						Glob: glob,
+					}),
+					WithAuthority(v1alpha1.Authority{
+						Static: &v1alpha1.StaticRef{
+							Action: "pass",
+						}}),
+					WithPolicy(&v1alpha1.Policy{
+						Type: "cue",
+						ConfigMapRef: &v1alpha1.ConfigMapReference{
+							Name: policyCMName,
+							Key:  policyCMKey,
+						},
+					}),
+					WithInitConditions,
+					WithObservedGeneration(1),
+					WithMarkInlineKeysOk,
+					WithMarkInlinePoliciesFailed(`configmap "policy-configmap" not found`),
+				),
+			}},
+
 			PostConditions: []func(*testing.T, *TableRow){
 				AssertTrackingConfigMap(system.Namespace(), policyCMName),
 			},

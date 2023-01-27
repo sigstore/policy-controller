@@ -94,6 +94,17 @@ func (c *FakeClusterImagePolicies) Update(ctx context.Context, clusterImagePolic
 	return obj.(*v1alpha1.ClusterImagePolicy), err
 }
 
+// UpdateStatus was generated because the type contains a Status member.
+// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
+func (c *FakeClusterImagePolicies) UpdateStatus(ctx context.Context, clusterImagePolicy *v1alpha1.ClusterImagePolicy, opts v1.UpdateOptions) (*v1alpha1.ClusterImagePolicy, error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewRootUpdateSubresourceAction(clusterimagepoliciesResource, "status", clusterImagePolicy), &v1alpha1.ClusterImagePolicy{})
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*v1alpha1.ClusterImagePolicy), err
+}
+
 // Delete takes name of the clusterImagePolicy and deletes it. Returns an error if one occurs.
 func (c *FakeClusterImagePolicies) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.

@@ -19,6 +19,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"knative.dev/pkg/apis"
+	duckv1 "knative.dev/pkg/apis/duck/v1"
 	"knative.dev/pkg/kmeta"
 )
 
@@ -27,9 +28,7 @@ import (
 //
 // +genclient
 // +genclient:nonNamespaced
-// +genclient:noStatus
-// +genreconciler:krshapedlogic=false
-
+// +genreconciler:krshapedlogic=true
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type ClusterImagePolicy struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -37,12 +36,29 @@ type ClusterImagePolicy struct {
 
 	// Spec holds the desired state of the ClusterImagePolicy (from the client).
 	Spec ClusterImagePolicySpec `json:"spec"`
+
+	// Status represents the current state of the ClusterImagePolicy.
+	// This data may be out of date.
+	// +optional
+	Status ClusterImagePolicyStatus `json:"status,omitempty"`
 }
 
 var (
 	_ apis.Validatable   = (*ClusterImagePolicy)(nil)
 	_ apis.Defaultable   = (*ClusterImagePolicy)(nil)
 	_ kmeta.OwnerRefable = (*ClusterImagePolicy)(nil)
+	// Check that the type conforms to the duck Knative Resource shape.
+	_ duckv1.KRShaped = (*ClusterImagePolicy)(nil)
+)
+
+const (
+	// ClusterImagePolicyReady is set when the ClusterImagePolicy has been
+	// compiled into the underlying ConfigMap properly.
+	ClusterImagePolicyConditionReady = apis.ConditionReady
+
+	ClusterImagePolicyConditionKeysInlined     apis.ConditionType = "KeysInlined"
+	ClusterImagePolicyConditionPoliciesInlined apis.ConditionType = "PoliciesInlined"
+	ClusterImagePolicyConditionCMUpdated       apis.ConditionType = "ConfigMapUpdated"
 )
 
 // GetGroupVersionKind implements kmeta.OwnerRefable
@@ -305,6 +321,21 @@ type RFC3161Timestamp struct {
 	// Use the Certificate Chain from the referred TrustRoot.TimeStampAuthorities
 	// +optional
 	TrustRootRef string `json:"trustRootRef,omitempty"`
+}
+
+// ClusterImagePolicyStatus represents the current state of a
+// ClusterImagePolicy.
+type ClusterImagePolicyStatus struct {
+	// inherits duck/v1 Status, which currently provides:
+	// * ObservedGeneration - the 'Generation' of the Broker that was last processed by the controller.
+	// * Conditions - the latest available observations of a resource's current state.
+	duckv1.Status `json:",inline"`
+}
+
+// GetStatus retrieves the status of the ClusterImagePolicy.
+// Implements the KRShaped interface.
+func (c *ClusterImagePolicy) GetStatus() *duckv1.Status {
+	return &c.Status.Status
 }
 
 // ClusterImagePolicyList is a list of ClusterImagePolicy resources

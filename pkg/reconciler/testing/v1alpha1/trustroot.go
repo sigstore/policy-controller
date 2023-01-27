@@ -31,37 +31,38 @@ type TrustRootOption func(*v1alpha1.TrustRoot)
 
 // NewTrustRoot creates a TrustRoot with TrustRootOptions.
 func NewTrustRoot(name string, o ...TrustRootOption) *v1alpha1.TrustRoot {
-	cip := &v1alpha1.TrustRoot{
+	tr := &v1alpha1.TrustRoot{
 		ObjectMeta: metav1.ObjectMeta{
-			Name: name,
+			Name:       name,
+			Generation: 1,
 		},
 	}
 	for _, opt := range o {
-		opt(cip)
+		opt(tr)
 	}
-	cip.SetDefaults(context.Background())
-	return cip
+	tr.SetDefaults(context.Background())
+	return tr
 }
 
 func WithTrustRootUID(uid string) TrustRootOption {
-	return func(tk *v1alpha1.TrustRoot) {
-		tk.UID = types.UID(uid)
+	return func(tr *v1alpha1.TrustRoot) {
+		tr.UID = types.UID(uid)
 	}
 }
 
 func WithTrustRootResourceVersion(resourceVersion string) TrustRootOption {
-	return func(tk *v1alpha1.TrustRoot) {
-		tk.ResourceVersion = resourceVersion
+	return func(tr *v1alpha1.TrustRoot) {
+		tr.ResourceVersion = resourceVersion
 	}
 }
 
-func WithTrustRootDeletionTimestamp(tk *v1alpha1.TrustRoot) {
+func WithTrustRootDeletionTimestamp(tr *v1alpha1.TrustRoot) {
 	t := metav1.NewTime(time.Unix(1e9, 0))
-	tk.ObjectMeta.SetDeletionTimestamp(&t)
+	tr.ObjectMeta.SetDeletionTimestamp(&t)
 }
 
-func WithTrustRootFinalizer(tk *v1alpha1.TrustRoot) {
-	tk.Finalizers = []string{finalizerNameTrustRoot}
+func WithTrustRootFinalizer(tr *v1alpha1.TrustRoot) {
+	tr.Finalizers = []string{finalizerNameTrustRoot}
 }
 
 // WithSigstoreKeys constructs a TrustRootOption which is suitable
@@ -69,8 +70,8 @@ func WithTrustRootFinalizer(tk *v1alpha1.TrustRoot) {
 // organizations/common names, and URI/BaseURLs with predictable
 // values.
 func WithSigstoreKeys(sk map[string]string) TrustRootOption {
-	return func(tk *v1alpha1.TrustRoot) {
-		tk.Spec.SigstoreKeys = &v1alpha1.SigstoreKeys{
+	return func(tr *v1alpha1.TrustRoot) {
+		tr.Spec.SigstoreKeys = &v1alpha1.SigstoreKeys{
 			CertificateAuthorities: []v1alpha1.CertificateAuthority{{
 				Subject: v1alpha1.DistinguishedName{
 					Organization: "fulcio-organization",
@@ -104,11 +105,43 @@ func WithSigstoreKeys(sk map[string]string) TrustRootOption {
 // WithRepository constructs a TrustRootOption which is suitable
 // for reconciler table driven testing.
 func WithRepository(targets string, root, repository []byte) TrustRootOption {
-	return func(tk *v1alpha1.TrustRoot) {
-		tk.Spec.Repository = &v1alpha1.Repository{
+	return func(tr *v1alpha1.TrustRoot) {
+		tr.Spec.Repository = &v1alpha1.Repository{
 			Root:     root,
 			Targets:  targets,
 			MirrorFS: repository,
 		}
+	}
+}
+
+func WithInitConditionsTrustRoot(tr *v1alpha1.TrustRoot) {
+	tr.Status.InitializeConditions()
+}
+func WithObservedGenerationTrustRoot(gen int64) TrustRootOption {
+	return func(tr *v1alpha1.TrustRoot) {
+		tr.Status.ObservedGeneration = gen
+	}
+}
+
+func MarkReadyTrustRoot(tr *v1alpha1.TrustRoot) {
+	WithInitConditionsTrustRoot(tr)
+	tr.Status.MarkInlineKeysOk()
+	tr.Status.MarkCMUpdatedOK()
+	tr.Status.ObservedGeneration = tr.Generation
+}
+
+func WithMarkInlineKeysOkTrustRoot(tr *v1alpha1.TrustRoot) {
+	tr.Status.MarkInlineKeysOk()
+}
+
+func WithMarkInlineKeysFailedTrustRoot(msg string) TrustRootOption {
+	return func(tr *v1alpha1.TrustRoot) {
+		tr.Status.MarkInlineKeysFailed(msg)
+	}
+}
+
+func WithMarkCMUpdateFailedTrustRoot(msg string) TrustRootOption {
+	return func(tr *v1alpha1.TrustRoot) {
+		tr.Status.MarkCMUpdateFailed(msg)
 	}
 }

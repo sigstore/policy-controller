@@ -31,6 +31,7 @@ func (c *ClusterImagePolicy) ConvertTo(ctx context.Context, obj apis.Convertible
 	switch sink := obj.(type) {
 	case *v1beta1.ClusterImagePolicy:
 		sink.ObjectMeta = c.ObjectMeta
+		sink.Status.Status = c.Status.DeepCopy().Status
 		return c.Spec.ConvertTo(ctx, &sink.Spec)
 	default:
 		return fmt.Errorf("unknown version, got: %T", sink)
@@ -42,6 +43,7 @@ func (c *ClusterImagePolicy) ConvertFrom(ctx context.Context, obj apis.Convertib
 	switch source := obj.(type) {
 	case *v1beta1.ClusterImagePolicy:
 		c.ObjectMeta = source.ObjectMeta
+		c.Status.Status = source.Status.DeepCopy().Status
 		return c.Spec.ConvertFrom(ctx, &source.Spec)
 	default:
 		return fmt.Errorf("unknown version, got: %T", c)
