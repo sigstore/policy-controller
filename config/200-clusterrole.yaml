@@ -62,10 +62,10 @@ rules:
 
   # Allow reconciliation of the ClusterImagePolicy and TrustRoot CRDs.
   - apiGroups: ["policy.sigstore.dev"]
-    resources: ["clusterimagepolicies"]
+    resources: ["clusterimagepolicies", "clusterimagepolicies/status"]
     verbs: ["get", "list", "update", "watch", "patch"]
   - apiGroups: ["policy.sigstore.dev"]
-    resources: ["trustroots"]
+    resources: ["trustroots", "trustroots/status"]
     verbs: ["get", "list", "update", "watch", "patch"]
 
   # This is needed by k8schain to support fetching pull secrets attached to pod specs
