@@ -94,11 +94,18 @@ spec:
                                 includeTypeMeta:
                                   description: IncludeTypeMeta controls whether the TypeMeta will be included and made available for CIP level policy evalutation. Note that this only gets evaluated iff at least one authority matches.
                                   type: boolean
+                                remote:
+                                  description: Remote defines the url to a policy.
+                                  type: object
+                                  properties:
+                                    sha256sum:
+                                      description: Sha256sum defines the exact sha256sum computed out of the 'body' of the http response.
+                                      type: string
+                                    url:
+                                      description: URL to the policy data.
+                                      type: string
                                 type:
                                   description: Which kind of policy this is, currently only rego or cue are supported. Furthermore, only cue is tested :)
-                                  type: string
-                                url:
-                                  description: URL to the policy data.
                                   type: string
                             predicateType:
                               description: PredicateType defines which predicate type to verify. Matches cosign verify-attestation options.
@@ -305,11 +312,18 @@ spec:
                     includeTypeMeta:
                       description: IncludeTypeMeta controls whether the TypeMeta will be included and made available for CIP level policy evalutation. Note that this only gets evaluated iff at least one authority matches.
                       type: boolean
+                    remote:
+                      description: Remote defines the url to a policy.
+                      type: object
+                      properties:
+                        sha256sum:
+                          description: Sha256sum defines the exact sha256sum computed out of the 'body' of the http response.
+                          type: string
+                        url:
+                          description: URL to the policy data.
+                          type: string
                     type:
                       description: Which kind of policy this is, currently only rego or cue are supported. Furthermore, only cue is tested :)
-                      type: string
-                    url:
-                      description: URL to the policy data.
                       type: string
     - name: v1beta1
       served: true
@@ -369,11 +383,18 @@ spec:
                                 includeTypeMeta:
                                   description: IncludeTypeMeta controls whether the TypeMeta will be included and made available for CIP level policy evalutation. Note that this only gets evaluated iff at least one authority matches.
                                   type: boolean
+                                remote:
+                                  description: Remote defines the url to a policy.
+                                  type: object
+                                  properties:
+                                    sha256sum:
+                                      description: Sha256sum defines the exact sha256sum computed out of the 'body' of the http response.
+                                      type: string
+                                    url:
+                                      description: URL to the policy data.
+                                      type: string
                                 type:
                                   description: Which kind of policy this is, currently only rego or cue are supported. Furthermore, only cue is tested :)
-                                  type: string
-                                url:
-                                  description: URL to the policy data.
                                   type: string
                             predicateType:
                               description: PredicateType defines which predicate type to verify. Matches cosign verify-attestation options.
@@ -580,9 +601,16 @@ spec:
                     includeTypeMeta:
                       description: IncludeTypeMeta controls whether the TypeMeta will be included and made available for CIP level policy evalutation. Note that this only gets evaluated iff at least one authority matches.
                       type: boolean
+                    remote:
+                      description: Remote defines the url to a policy.
+                      type: object
+                      properties:
+                        sha256sum:
+                          description: Sha256sum defines the exact sha256sum computed out of the 'body' of the http response.
+                          type: string
+                        url:
+                          description: URL to the policy data.
+                          type: string
                     type:
                       description: Which kind of policy this is, currently only rego or cue are supported. Furthermore, only cue is tested :)
-                      type: string
-                    url:
-                      description: URL to the policy data.
                       type: string

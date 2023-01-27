@@ -27,6 +27,7 @@
 * [MatchResource](#matchresource)
 * [Policy](#policy)
 * [RFC3161Timestamp](#rfc3161timestamp)
+* [RemotePolicy](#remotepolicy)
 * [Source](#source)
 * [StaticRef](#staticref)
 * [TLog](#tlog)
@@ -282,7 +283,7 @@ Policy specifies a policy to use for Attestation or the CIP validation (iff at l
 | ----- | ----------- | ------ | -------- |
 | type | Which kind of policy this is, currently only rego or cue are supported. Furthermore, only cue is tested :) | string | true |
 | data | Data contains the policy definition. | string | false |
-| url | URL to the policy data. | apis.URL | false |
+| remote | Remote defines the url to a policy. | [RemotePolicy](#remotepolicy) | false |
 | configMapRef | ConfigMapRef defines the reference to a configMap with the policy definition. | [ConfigMapReference](#configmapreference) | false |
 | fetchConfigFile | FetchConfigFile controls whether ConfigFile will be fetched and made available for CIP level policy evaluation. Note that this only gets evaluated (and hence fetched) iff at least one authority matches. The ConfigFile will then be available in this format: https://github.com/opencontainers/image-spec/blob/main/config.md | bool | false |
 | includeSpec | IncludeSpec controls whether resource `Spec` will be included and made available for CIP level policy evaluation. Note that this only gets evaluated iff at least one authority matches. Also note that because Spec may be of a different shape depending on the resource being evaluatied (see MatchResource for filtering) you might want to configure these to match the policy file to ensure the shape of the Spec is what you expect when evaling the policy. | bool | false |
@@ -298,6 +299,17 @@ RFC3161Timestamp specifies the URL to a RFC3161 time-stamping server that holds 
 | Field | Description | Scheme | Required |
 | ----- | ----------- | ------ | -------- |
 | trustRootRef | Use the Certificate Chain from the referred TrustRoot.TimeStampAuthorities | string | false |
+
+[Back to TOC](#table-of-contents)
+
+## RemotePolicy
+
+RemotePolicy defines all the properties to fetch a remote policy
+
+| Field | Description | Scheme | Required |
+| ----- | ----------- | ------ | -------- |
+| url | URL to the policy data. | apis.URL | false |
+| sha256sum | Sha256sum defines the exact sha256sum computed out of the 'body' of the http response. | string | false |
 
 [Back to TOC](#table-of-contents)
 
