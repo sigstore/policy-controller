@@ -261,7 +261,7 @@ func (cmr *ConfigMapReference) Validate(ctx context.Context) *apis.FieldError {
 	return errs
 }
 
-func (r *URL) Validate(ctx context.Context) *apis.FieldError {
+func (r *RemotePolicy) Validate(ctx context.Context) *apis.FieldError {
 	var errs *apis.FieldError
 	urlObj := r.URL
 	u, err := url.Parse(urlObj.String())

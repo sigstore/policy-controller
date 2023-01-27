@@ -214,11 +214,11 @@ type MatchResource struct {
 	ResourceSelector *metav1.LabelSelector `json:"selector,omitempty"`
 }
 
-// URL defines all the propierties to fetch a remote policy
-type URL struct {
+// RemotePolicy defines all the properties to fetch a remote policy
+type RemotePolicy struct {
 	// URL to the policy data.
 	URL apis.URL `json:"url,omitempty"`
-	// Sha256sum defines the shasum of the policy hosted in the url.
+	// Sha256sum defines the exact sha256sum computed out of the 'body' of the http response.
 	Sha256sum string `json:"sha256sum,omitempty"`
 }
 
@@ -234,7 +234,7 @@ type Policy struct {
 	Data string `json:"data,omitempty"`
 	// Remote defines the url to a policy.
 	// +optional
-	Remote *URL `json:"remote,omitempty"`
+	Remote *RemotePolicy `json:"remote,omitempty"`
 	// ConfigMapRef defines the reference to a configMap with the policy definition.
 	// +optional
 	ConfigMapRef *ConfigMapReference `json:"configMapRef,omitempty"`

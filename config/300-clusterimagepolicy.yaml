@@ -99,7 +99,7 @@ spec:
                                   type: object
                                   properties:
                                     sha256sum:
-                                      description: Sha256sum defines the shasum of the policy hosted in the url.
+                                      description: Sha256sum defines the exact sha256sum computed out of the 'body' of the http response.
                                       type: string
                                     url:
                                       description: URL to the policy data.
@@ -317,7 +317,7 @@ spec:
                       type: object
                       properties:
                         sha256sum:
-                          description: Sha256sum defines the shasum of the policy hosted in the url.
+                          description: Sha256sum defines the exact sha256sum computed out of the 'body' of the http response.
                           type: string
                         url:
                           description: URL to the policy data.
@@ -388,7 +388,7 @@ spec:
                                   type: object
                                   properties:
                                     sha256sum:
-                                      description: Sha256sum defines the shasum of the policy hosted in the url.
+                                      description: Sha256sum defines the exact sha256sum computed out of the 'body' of the http response.
                                       type: string
                                     url:
                                       description: URL to the policy data.
@@ -606,7 +606,7 @@ spec:
                       type: object
                       properties:
                         sha256sum:
-                          description: Sha256sum defines the shasum of the policy hosted in the url.
+                          description: Sha256sum defines the exact sha256sum computed out of the 'body' of the http response.
                           type: string
                         url:
                           description: URL to the policy data.

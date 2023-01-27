@@ -1034,7 +1034,7 @@ func TestAttestationsValidation(t *testing.T) {
 					Name: "cmname",
 					Key:  "keyname",
 				},
-				Remote: &URL{
+				Remote: &RemotePolicy{
 					URL:       *apis.HTTPS("example.com"),
 					Sha256sum: "123123123",
 				},
@@ -1046,7 +1046,7 @@ func TestAttestationsValidation(t *testing.T) {
 		attestation: Attestation{Name: "second", PredicateType: "custom",
 			Policy: &Policy{
 				Type: "cue",
-				Remote: &URL{
+				Remote: &RemotePolicy{
 					URL:       *apis.HTTPS("example.com"),
 					Sha256sum: "123123123",
 				},
@@ -1057,7 +1057,7 @@ func TestAttestationsValidation(t *testing.T) {
 		attestation: Attestation{Name: "second", PredicateType: "custom",
 			Policy: &Policy{
 				Type: "cue",
-				Remote: &URL{
+				Remote: &RemotePolicy{
 					URL:       *apis.HTTP("example.com"),
 					Sha256sum: "123123123",
 				},

@@ -144,7 +144,7 @@ func (p *Policy) ConvertTo(ctx context.Context, sink *v1beta1.Policy) {
 	sink.Type = p.Type
 	sink.Data = p.Data
 	if p.Remote != nil {
-		sink.Remote = &v1beta1.URL{
+		sink.Remote = &v1beta1.RemotePolicy{
 			URL:       p.Remote.URL,
 			Sha256sum: p.Remote.Sha256sum,
 		}
@@ -174,7 +174,7 @@ func (p *Policy) ConvertFrom(ctx context.Context, source *v1beta1.Policy) {
 	p.Type = source.Type
 	p.Data = source.Data
 	if source.Remote != nil {
-		p.Remote = &URL{
+		p.Remote = &RemotePolicy{
 			URL:       source.Remote.URL,
 			Sha256sum: source.Remote.Sha256sum,
 		}
