@@ -106,12 +106,13 @@ TransparencyLogInstance describes the immutable parameters from a transparency l
 
 ## TrustRoot
 
-
+TrustRoot defines the keys and certificates that are trusted for validating against. These can be specified as TUF Roots, serialized TUF repository (for air-gap scenarios), as well as serialized keys/certificates, for bring your own keys/certs.
 
 | Field | Description | Scheme | Required |
 | ----- | ----------- | ------ | -------- |
 | metadata |  | [metav1.ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#objectmeta-v1-meta) | true |
 | spec | Spec is the definition for a trust root. This is either a TUF root and remote or local repository. You can also bring your own keys/certs here. | [TrustRootSpec](#trustrootspec) | true |
+| status | Status represents the current state of the TrustRoot. This data may be out of date. | [TrustRootStatus](#trustrootstatus) | false |
 
 [Back to TOC](#table-of-contents)
 
@@ -137,6 +138,11 @@ TrustRootSpec defines a trusted Root. This is typically either a TUF Root or a b
 | sigstoreKeys | SigstoreKeys contains the serialized keys. | [SigstoreKeys](#sigstorekeys) | false |
 
 [Back to TOC](#table-of-contents)
+
+## TrustRootStatus
+
+TrustRootStatus represents the current state of a TrustRoot.
+
 
 ## Attestation
 
@@ -169,12 +175,13 @@ Attestation defines the type of attestation to validate and optionally apply a p
 
 ## ClusterImagePolicy
 
-
+ClusterImagePolicy defines the images that go through verification and the authorities used for verification
 
 | Field | Description | Scheme | Required |
 | ----- | ----------- | ------ | -------- |
 | metadata |  | [metav1.ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#objectmeta-v1-meta) | true |
 | spec | Spec holds the desired state of the ClusterImagePolicy (from the client). | [ClusterImagePolicySpec](#clusterimagepolicyspec) | true |
+| status | Status represents the current state of the ClusterImagePolicy. This data may be out of date. | [ClusterImagePolicyStatus](#clusterimagepolicystatus) | false |
 
 [Back to TOC](#table-of-contents)
 
@@ -202,6 +209,11 @@ ClusterImagePolicySpec defines a list of images that should be verified
 | match | Match allows selecting resources based on their properties. | [][MatchResource](#matchresource) | false |
 
 [Back to TOC](#table-of-contents)
+
+## ClusterImagePolicyStatus
+
+ClusterImagePolicyStatus represents the current state of a ClusterImagePolicy.
+
 
 ## ConfigMapReference
 

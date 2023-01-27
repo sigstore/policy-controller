@@ -849,6 +849,18 @@ func TestReconcile(t *testing.T) {
 			WantPatches: []clientgotesting.PatchActionImpl{
 				patchKMS(mainContext, t, fakeKMSKey, signaturealgo.DefaultSignatureAlgorithm),
 			},
+			// TODO(vaikas): We have to do some upstream work here. Doing
+			// status updates does not behave correctly by setting the
+			// IsInStatusUpdate in Table Driven tests.
+			// This means, that even though we're sending a valid request to
+			// only patch the status subResource, the validate logic is still
+			// ran and results in an error that's not an error in real
+			// reconciler.
+			WantEvents: []string{
+				Eventf(corev1.EventTypeWarning, "UpdateFailed", `Failed to update status for "test-kms-cip": invalid value: fakekms://keycip: spec.authorities[0].key.kms
+malformed KMS format, should be prefixed by any of the supported providers: [awskms:// azurekms:// hashivault:// gcpkms://]`),
+			},
+			WantErr: true,
 			WantStatusUpdates: []clientgotesting.UpdateActionImpl{{
 				Object: NewClusterImagePolicy(cipKMSName,
 					WithUID(uid),
@@ -1004,7 +1016,7 @@ func TestReconcile(t *testing.T) {
 					),
 					WithInitConditions,
 					WithObservedGeneration(1),
-					WithMarkInlineKeysFailed(`no kms provider found for key reference: gcpkms://blah`)),
+					WithMarkInlineKeysFailed(`kms specification should be in the format gcpkms://projects/[PROJECT_ID]/locations/[LOCATION]/keyRings/[KEY_RING]/cryptoKeys/[KEY]/cryptoKeyVersions/[VERSION]`)),
 			}},
 		}, {
 			Name: "Keyless with match label selector",
