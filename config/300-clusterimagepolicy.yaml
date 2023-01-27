@@ -327,9 +327,6 @@ spec:
                     type:
                       description: Which kind of policy this is, currently only rego or cue are supported. Furthermore, only cue is tested :)
                       type: string
-                    url:
-                      description: URL to the policy data.
-                      type: string
             status:
               description: Status represents the current state of the ClusterImagePolicy. This data may be out of date.
               type: object
@@ -659,9 +656,6 @@ spec:
                           type: string
                     type:
                       description: Which kind of policy this is, currently only rego or cue are supported. Furthermore, only cue is tested :)
-                      type: string
-                    url:
-                      description: URL to the policy data.
                       type: string
             status:
               description: Status represents the current state of the ClusterImagePolicy. This data may be out of date.
