@@ -37,7 +37,7 @@ jobs:
 
       - uses: sigstore/cosign-installer@4079ad3567a89f68395480299c77e40170430341
         with:
-          cosign-release: 'v2.0.0-rc.1' # optional
+          cosign-release: 'v2.0.0-rc.1' 
 
       - uses: actions/setup-go@6edd4406fa81c3da01a34fa6f6343087c207a568 # v3.5.0
         with:
