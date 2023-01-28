@@ -139,7 +139,7 @@ echo '::group:: Create one keyless attestation with incorrect data and verify it
 echo -n 'barfoo e2e test' > ./predicate-file-custom-fails
 COSIGN_EXPERIMENTAL=1 cosign attest --predicate ./predicate-file-custom-fails --fulcio-url ${FULCIO_URL} --rekor-url ${REKOR_URL} --allow-insecure-registry --yes ${demoimage} --identity-token ${OIDC_TOKEN}
 
-COSIGN_EXPERIMENTAL=1 cosign verify-attestation --type=custom --rekor-url ${REKOR_URL} --allow-insecure-registry ${demoimage}
+COSIGN_EXPERIMENTAL=1 cosign verify-attestation --type=custom --rekor-url ${REKOR_URL} --allow-insecure-registry --certificate-identity-regexp='.*'  --certificate-oidc-issuer-regexp='.*' ${demoimage}
 echo '::endgroup::'
 
 # This image has been signed, and has attestation, but data is not right
@@ -153,7 +153,7 @@ echo '::group:: Create another keyless attestation with correct data and verify 
 echo -n 'foobar e2e test' > ./predicate-file-custom-works
 COSIGN_EXPERIMENTAL=1 cosign attest --predicate ./predicate-file-custom-works --fulcio-url ${FULCIO_URL} --rekor-url ${REKOR_URL} --allow-insecure-registry --yes ${demoimage} --identity-token ${OIDC_TOKEN}
 
-COSIGN_EXPERIMENTAL=1 cosign verify-attestation --type=custom --rekor-url ${REKOR_URL} --allow-insecure-registry ${demoimage}
+COSIGN_EXPERIMENTAL=1 cosign verify-attestation --type=custom --rekor-url ${REKOR_URL} --allow-insecure-registry --certificate-identity-regexp='.*'  --certificate-oidc-issuer-regexp='.*' ${demoimage}
 echo '::endgroup::'
 
 echo '::group:: test job success'
@@ -197,7 +197,7 @@ COSIGN_EXPERIMENTAL=1 COSIGN_PASSWORD="" cosign sign --key cosign.key --yes --al
 echo '::endgroup::'
 
 echo '::group:: Verify demoimage with cosign key'
-COSIGN_EXPERIMENTAL=1 cosign verify --key cosign.pub --rekor-url ${REKOR_URL} --allow-insecure-registry ${demoimage}
+COSIGN_EXPERIMENTAL=1 cosign verify --key cosign.pub --rekor-url ${REKOR_URL} --allow-insecure-registry --certificate-identity-regexp='.*' --certificate-oidc-issuer-regexp='.*' ${demoimage}
 echo '::endgroup::'
 
 # Ok, so now we have satisfied the keyless requirements, one signature, one
@@ -223,7 +223,7 @@ echo '::group:: create keyful attestation, add add to rekor'
 echo -n 'foobar key e2e test' > ./predicate-file-key-custom
 COSIGN_EXPERIMENTAL=1 COSIGN_PASSWORD="" cosign attest --predicate ./predicate-file-key-custom --rekor-url ${REKOR_URL} --key ./cosign.key --allow-insecure-registry --yes ${demoimage}
 
-COSIGN_EXPERIMENTAL=1 cosign verify-attestation --key ./cosign.pub --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage}
+COSIGN_EXPERIMENTAL=1 cosign verify-attestation --key ./cosign.pub --allow-insecure-registry --rekor-url ${REKOR_URL} --certificate-identity-regexp='.*'  --certificate-oidc-issuer-regexp='.*' ${demoimage}
 echo '::endgroup::'
 
 echo '::group:: test job success with key / keyless'
