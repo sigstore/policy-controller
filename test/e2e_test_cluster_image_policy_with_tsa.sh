@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright 2022 The Sigstore Authors.
+# Copyright 2023 The Sigstore Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -113,7 +113,7 @@ echo '::endgroup::'
 # Sign it with key
 echo '::group:: Sign demoimage with key, and add to rekor and TSA'
 export TSA_URL=`kubectl -n tsa-system get ksvc tsa -ojsonpath='{.status.url}'`
-COSIGN_EXPERIMENTAL=1 COSIGN_PASSWORD="" cosign sign --key cosign.key --allow-insecure-registry --rekor-url ${REKOR_URL} --timestamp-server-url ${TSA_URL} ${demoimage}
+COSIGN_EXPERIMENTAL=1 COSIGN_YES="true" COSIGN_PASSWORD="" cosign sign --key cosign.key --allow-insecure-registry --rekor-url ${REKOR_URL} --timestamp-server-url ${TSA_URL} ${demoimage}
 echo '::endgroup::'
 
 echo '::group:: Verify demoimage with cosign key and TSA'
@@ -171,7 +171,7 @@ echo '::endgroup::'
 # Sign it with key
 echo '::group:: Sign demoimage2 with key, and add to rekor and TSA'
 export TSA_URL=`kubectl -n tsa-system get ksvc tsa -ojsonpath='{.status.url}'`
-COSIGN_EXPERIMENTAL=1 COSIGN_PASSWORD="" cosign sign --key cosign.key --allow-insecure-registry --rekor-url ${REKOR_URL} --timestamp-server-url ${TSA_URL} ${demoimage2}
+COSIGN_EXPERIMENTAL=1 COSIGN_YES="true" COSIGN_PASSWORD="" cosign sign --key cosign.key --allow-insecure-registry --rekor-url ${REKOR_URL} --timestamp-server-url ${TSA_URL} ${demoimage2}
 echo '::endgroup::'
 
 echo '::group:: Verify demoimage2 with cosign key and TSA'
