@@ -51,7 +51,7 @@ jobs:
 
     - uses: sigstore/cosign-installer@4079ad3567a89f68395480299c77e40170430341
       with:
-        cosign-release: 'v2.0.0-rc.0'
+        cosign-release: 'v2.0.0-rc.1' # optional
 
     - name: Setup local registry
       run: |
