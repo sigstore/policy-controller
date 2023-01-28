@@ -131,7 +131,7 @@ fi
 echo '::endgroup::'
 
 echo '::group:: Verify demo image'
-if ! cosign verify --rekor-url ${REKOR_URL} --allow-insecure-registry ${demoimage} ; then
+if ! cosign verify --rekor-url ${REKOR_URL} --allow-insecure-registry --certificate-identity-regexp='.*'  --certificate-oidc-issuer-regexp='.*' ${demoimage} ; then
   echo "failed to verify with keyless"
 fi
 echo '::endgroup::'
@@ -267,7 +267,7 @@ fi
 echo '::endgroup::'
 
 echo '::group:: Verify demoimage with cosign key'
-if ! cosign verify --key cosign-colocated-signing.pub --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage} ; then
+if ! cosign verify --key cosign-colocated-signing.pub --allow-insecure-registry --rekor-url ${REKOR_URL} --certificate-identity-regexp='.*'  --certificate-oidc-issuer-regexp='.*' ${demoimage} ; then
   echo failed to verify demo image with cosign key
   exit 1
 fi
@@ -374,7 +374,7 @@ fi
 echo '::endgroup::'
 
 echo '::group:: Verify demoimage with cosign key secret'
-if ! cosign verify --key cosign-secret.pub --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage} ; then
+if ! cosign verify --key cosign-secret.pub --allow-insecure-registry --rekor-url ${REKOR_URL} --certificate-identity-regexp='.*'  --certificate-oidc-issuer-regexp='.*' ${demoimage} ; then
   echo failed to verify demo image with cosign key
   exit 1
 fi
@@ -415,12 +415,12 @@ fi
 echo '::endgroup::'
 
 echo '::group:: Verify demoimage with cosign remote key'
-if cosign verify --key cosign-remote-signing.pub --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage}; then
+if cosign verify --key cosign-remote-signing.pub --allow-insecure-registry --rekor-url ${REKOR_URL} --certificate-identity-regexp='.*'  --certificate-oidc-issuer-regexp='.*' ${demoimage}; then
   echo "Signature should not have been verified unless COSIGN_REPOSITORY was defined"
   exit 1
 fi
 
-if ! COSIGN_REPOSITORY="${KO_DOCKER_REPO}/remote-signature" cosign verify --key cosign-remote-signing.pub --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage}; then
+if ! COSIGN_REPOSITORY="${KO_DOCKER_REPO}/remote-signature" cosign verify --key cosign-remote-signing.pub --allow-insecure-registry --rekor-url ${REKOR_URL} --certificate-identity-regexp='.*'  --certificate-oidc-issuer-regexp='.*' ${demoimage}; then
   echo "Signature should have been verified when COSIGN_REPOSITORY was defined"
   exit 1
 fi
@@ -526,7 +526,7 @@ fi
 echo '::endgroup::'
 
 echo '::group:: Verify demoimage with cosign key'
-if ! cosign verify --key cosign-match-signing.pub --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage} ; then
+if ! cosign verify --key cosign-match-signing.pub --allow-insecure-registry --rekor-url ${REKOR_URL} --certificate-identity-regexp='.*'  --certificate-oidc-issuer-regexp='.*' ${demoimage} ; then
   echo failed to verify demo image with cosign key
   exit 1
 fi
@@ -616,7 +616,7 @@ fi
 echo '::endgroup::'
 
 echo '::group:: Verify demo image'
-if ! cosign verify --rekor-url ${REKOR_URL} --allow-insecure-registry ${demoEphemeralImage} ; then
+if ! cosign verify --rekor-url ${REKOR_URL} --allow-insecure-registry --certificate-identity-regexp='.*'  --certificate-oidc-issuer-regexp='.*' ${demoEphemeralImage} ; then
   echo "failed to verify with keyless"
 fi
 echo '::endgroup::'

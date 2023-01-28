@@ -113,13 +113,13 @@ echo '::endgroup::'
 # Sign it with key
 echo '::group:: Sign demoimage with key, and add to rekor and TSA'
 export TSA_URL=`kubectl -n tsa-system get ksvc tsa -ojsonpath='{.status.url}'`
-COSIGN_EXPERIMENTAL=1 COSIGN_PASSWORD="" cosign sign --key cosign.key --allow-insecure-registry --rekor-url ${REKOR_URL} --timestamp-server-url ${TSA_URL} ${demoimage}
+COSIGN_EXPERIMENTAL=1 COSIGN_YES="true" COSIGN_PASSWORD="" cosign sign --key cosign.key --allow-insecure-registry --rekor-url ${REKOR_URL} --timestamp-server-url ${TSA_URL} ${demoimage}
 echo '::endgroup::'
 
 echo '::group:: Verify demoimage with cosign key and TSA'
 export TSA_CERT_CHAIN=`kubectl -n tsa-system get secrets tsa-cert-chain -ojsonpath='{.data.cert-chain}'`
 echo "$TSA_CERT_CHAIN" | base64 -d > tsa-cert-chain.pem
-COSIGN_EXPERIMENTAL=1 cosign verify --key cosign.pub --timestamp-cert-chain tsa-cert-chain.pem --insecure-skip-tlog-verify --rekor-url ${REKOR_URL} --allow-insecure-registry ${demoimage}
+COSIGN_EXPERIMENTAL=1 cosign verify --key cosign.pub --timestamp-certificate-chain tsa-cert-chain.pem --insecure-ignore-tlog --rekor-url ${REKOR_URL} --allow-insecure-registry --certificate-identity-regexp='.*'  --certificate-oidc-issuer-regexp='.*' ${demoimage}
 echo '::endgroup::'
 
 echo '::group:: Create TrustRoot that specifies TSA'
@@ -171,13 +171,13 @@ echo '::endgroup::'
 # Sign it with key
 echo '::group:: Sign demoimage2 with key, and add to rekor and TSA'
 export TSA_URL=`kubectl -n tsa-system get ksvc tsa -ojsonpath='{.status.url}'`
-COSIGN_EXPERIMENTAL=1 COSIGN_PASSWORD="" cosign sign --key cosign.key --allow-insecure-registry --rekor-url ${REKOR_URL} --timestamp-server-url ${TSA_URL} ${demoimage2}
+COSIGN_EXPERIMENTAL=1 COSIGN_YES="true" COSIGN_PASSWORD="" cosign sign --key cosign.key --allow-insecure-registry --rekor-url ${REKOR_URL} --timestamp-server-url ${TSA_URL} ${demoimage2}
 echo '::endgroup::'
 
 echo '::group:: Verify demoimage2 with cosign key and TSA'
 export TSA_CERT_CHAIN=`kubectl -n tsa-system get secrets tsa-cert-chain -ojsonpath='{.data.cert-chain}'`
 echo "$TSA_CERT_CHAIN" | base64 -d > tsa-cert-chain.pem
-COSIGN_EXPERIMENTAL=1 cosign verify --key cosign.pub --timestamp-cert-chain tsa-cert-chain.pem --insecure-skip-tlog-verify --allow-insecure-registry ${demoimage2}
+COSIGN_EXPERIMENTAL=1 cosign verify --key cosign.pub --timestamp-certificate-chain tsa-cert-chain.pem --insecure-ignore-tlog --allow-insecure-registry --certificate-identity-regexp='.*'  --certificate-oidc-issuer-regexp='.*' ${demoimage2}
 echo '::endgroup::'
 
 echo '::group:: Change Certificate chain of TrustRoot to a wrong one for our TSA'
