@@ -58,8 +58,6 @@ else
   export TIMESTAMP="TIMESTAMP"
 fi
 
-export COSIGN_EXPERIMENTAL="true"
-
 # Initialize cosign with our TUF root
 cosign initialize --mirror ${TUF_MIRROR} --root ${TUF_ROOT_FILE}
 

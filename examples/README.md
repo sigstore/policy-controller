@@ -82,7 +82,6 @@ For example purposes, you can use
 Then attach it to your image using [cosign attest](https://github.com/sigstore/cosign/blob/main/doc/cosign_attest.md)
 with the flag `--type spdxjson`, signing "keyless" against the public Fulcio root:
 ```
-export COSIGN_EXPERIMENTAL=1
 
 cosign attest --yes --type spdxjson \
   --predicate sboms/example.spdx.json \
@@ -201,8 +200,7 @@ jobs:
 
       - name: Sign the images with GitHub OIDC Token
         run: cosign sign ${IMAGE}
-        env:
-          COSIGN_EXPERIMENTAL: true
+
 ```
 
 To satisfy the policy, ensure that the path and branch of the workflow match
