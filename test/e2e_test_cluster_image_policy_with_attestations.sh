@@ -224,11 +224,6 @@ else
 fi
 echo '::endgroup::'
 
-# We have to fix this bug, so bail for now so we get passing tests.
-# https://github.com/sigstore/policy-controller/issues/130
-echo "***********Exiting early due to bug 130*********"
-exit 0
-
 # So at this point, we have two CIP, one that requires keyless/key sig
 # and attestations with both. Let's take it up a notch.
 # Let's create a policy that requires both a keyless and keyful
@@ -265,6 +260,7 @@ if ! kubectl create -n ${NS} job demo3 --image=${demoimage} 2> ${KUBECTL_SUCCESS
   exit 1
 fi
 echo '::endgroup::'
+
 
 echo '::group::' Cleanup
 kubectl delete cip --all
