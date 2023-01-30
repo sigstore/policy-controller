@@ -25,7 +25,6 @@ GOFILES ?= $(shell find . -type f -name '*.go' -not -path "./vendor/*")
 # Set version variables for LDFLAGS
 PROJECT_ID ?= projectsigstore
 RUNTIME_IMAGE ?= gcr.io/distroless/static
-GIT_TAG ?= dirty-tag
 GIT_VERSION ?= $(shell git describe --tags --always --dirty)
 GIT_HASH ?= $(shell git rev-parse HEAD)
 DATE_FMT = +%Y-%m-%dT%H:%M:%SZ
@@ -56,7 +55,7 @@ GOLANGCI_LINT_BIN = $(GOLANGCI_LINT_DIR)/golangci-lint
 KO_PREFIX ?= gcr.io/projectsigstore
 export KO_DOCKER_REPO=$(KO_PREFIX)
 GHCR_PREFIX ?= ghcr.io/sigstore/policy-controller
-POLICY_CONTROLLER_YAML ?= policy-controller-$(GIT_TAG).yaml
+POLICY_CONTROLLER_YAML ?= policy-controller-$(GIT_VERSION).yaml
 LATEST_TAG ?=
 
 .PHONY: all lint test clean policy-controller cross docs
