@@ -180,3 +180,11 @@ func TestTimeStampAuthorityValidation(t *testing.T) {
 		})
 	}
 }
+
+func TestIgnoreStatusUpdatesTrustRoot(t *testing.T) {
+	tr := &TrustRoot{Spec: TrustRootSpec{}}
+
+	if err := tr.Validate(apis.WithinSubResourceUpdate(context.Background(), &tr, "status")); err != nil {
+		t.Errorf("Failed to update status on invalid resource: %v", err)
+	}
+}

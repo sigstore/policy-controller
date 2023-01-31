@@ -18,6 +18,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"knative.dev/pkg/apis"
+	duckv1 "knative.dev/pkg/apis/duck/v1"
 	"knative.dev/pkg/kmeta"
 )
 
@@ -28,9 +29,7 @@ import (
 //
 // +genclient
 // +genclient:nonNamespaced
-// +genclient:noStatus
-// +genreconciler:krshapedlogic=false
-
+// +genreconciler:krshapedlogic=true
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type TrustRoot struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -39,16 +38,36 @@ type TrustRoot struct {
 	// Spec is the definition for a trust root. This is either a TUF root and
 	// remote or local repository. You can also bring your own keys/certs here.
 	Spec TrustRootSpec `json:"spec"`
+
+	// Status represents the current state of the TrustRoot.
+	// This data may be out of date.
+	// +optional
+	Status TrustRootStatus `json:"status,omitempty"`
 }
 
 var (
 	_ apis.Validatable   = (*TrustRoot)(nil)
 	_ apis.Defaultable   = (*TrustRoot)(nil)
 	_ kmeta.OwnerRefable = (*TrustRoot)(nil)
+	// Check that the type conforms to the duck Knative Resource shape.
+	_ duckv1.KRShaped = (*TrustRoot)(nil)
+)
+
+const (
+	// TrustRootConditionReady is set when the TrustRoot has been
+	// compiled into the underlying ConfigMap properly.
+	TrustRootConditionReady = apis.ConditionReady
+	// TrustRootConditionKeysInlined is set to True when keys have been either
+	// verified, fetched and verified and inlined into the intermediate
+	// representation usable for validation.
+	TrustRootConditionKeysInlined apis.ConditionType = "KeysInlined"
+	// TrustRootConditionCMUpdated is set to True when the inline representation
+	// has been successfully added to the ConfigMap holding all the TrustRoots.
+	TrustRootConditionCMUpdated apis.ConditionType = "ConfigMapUpdated"
 )
 
 // GetGroupVersionKind implements kmeta.OwnerRefable
-func (c *TrustRoot) GetGroupVersionKind() schema.GroupVersionKind {
+func (tr *TrustRoot) GetGroupVersionKind() schema.GroupVersionKind {
 	return SchemeGroupVersion.WithKind("TrustRoot")
 }
 
@@ -168,6 +187,20 @@ type SigstoreKeys struct {
 	// Trusted timestamping authorities
 	// +optional
 	TimeStampAuthorities []CertificateAuthority `json:"timestampAuthorities,omitempty"`
+}
+
+// TrustRootStatus represents the current state of a TrustRoot.
+type TrustRootStatus struct {
+	// inherits duck/v1 Status, which currently provides:
+	// * ObservedGeneration - the 'Generation' of the Broker that was last processed by the controller.
+	// * Conditions - the latest available observations of a resource's current state.
+	duckv1.Status `json:",inline"`
+}
+
+// GetStatus retrieves the status of the TrustRoot.
+// Implements the KRShaped interface.
+func (tr *TrustRoot) GetStatus() *duckv1.Status {
+	return &tr.Status.Status
 }
 
 // TrustRootList is a list of TrustRoot resources

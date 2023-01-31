@@ -54,12 +54,13 @@ The authorities block defines the rules for discovering and validating signature
 
 ## ClusterImagePolicy
 
-
+ClusterImagePolicy defines the images that go through verification and the authorities used for verification
 
 | Field | Description | Scheme | Required |
 | ----- | ----------- | ------ | -------- |
 | metadata |  | [metav1.ObjectMeta](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#objectmeta-v1-meta) | true |
 | spec | Spec holds the desired state of the ClusterImagePolicy (from the client). | [ClusterImagePolicySpec](#clusterimagepolicyspec) | true |
+| status | Status represents the current state of the ClusterImagePolicy. This data may be out of date. | [ClusterImagePolicyStatus](#clusterimagepolicystatus) | false |
 
 [Back to TOC](#table-of-contents)
 
@@ -87,6 +88,11 @@ ClusterImagePolicySpec defines a list of images that should be verified
 | match | Match allows selecting resources based on their properties. | [][MatchResource](#matchresource) | false |
 
 [Back to TOC](#table-of-contents)
+
+## ClusterImagePolicyStatus
+
+ClusterImagePolicyStatus represents the current state of a ClusterImagePolicy.
+
 
 ## ConfigMapReference
 

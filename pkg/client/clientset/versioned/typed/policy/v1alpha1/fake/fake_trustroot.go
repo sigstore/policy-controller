@@ -94,6 +94,17 @@ func (c *FakeTrustRoots) Update(ctx context.Context, trustRoot *v1alpha1.TrustRo
 	return obj.(*v1alpha1.TrustRoot), err
 }
 
+// UpdateStatus was generated because the type contains a Status member.
+// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
+func (c *FakeTrustRoots) UpdateStatus(ctx context.Context, trustRoot *v1alpha1.TrustRoot, opts v1.UpdateOptions) (*v1alpha1.TrustRoot, error) {
+	obj, err := c.Fake.
+		Invokes(testing.NewRootUpdateSubresourceAction(trustrootsResource, "status", trustRoot), &v1alpha1.TrustRoot{})
+	if obj == nil {
+		return nil, err
+	}
+	return obj.(*v1alpha1.TrustRoot), err
+}
+
 // Delete takes name of the trustRoot and deletes it. Returns an error if one occurs.
 func (c *FakeTrustRoots) Delete(ctx context.Context, name string, opts v1.DeleteOptions) error {
 	_, err := c.Fake.

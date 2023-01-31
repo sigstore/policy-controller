@@ -1663,3 +1663,11 @@ func TestMatchValidation(t *testing.T) {
 		})
 	}
 }
+
+func TestIgnoreStatusUpdates(t *testing.T) {
+	cip := &ClusterImagePolicy{Spec: ClusterImagePolicySpec{Images: []ImagePattern{{Glob: ""}}}}
+
+	if err := cip.Validate(apis.WithinSubResourceUpdate(context.Background(), &cip, "status")); err != nil {
+		t.Errorf("Failed to update status on invalid resource: %v", err)
+	}
+}

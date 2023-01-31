@@ -38,6 +38,7 @@ type ClusterImagePoliciesGetter interface {
 type ClusterImagePolicyInterface interface {
 	Create(ctx context.Context, clusterImagePolicy *v1beta1.ClusterImagePolicy, opts v1.CreateOptions) (*v1beta1.ClusterImagePolicy, error)
 	Update(ctx context.Context, clusterImagePolicy *v1beta1.ClusterImagePolicy, opts v1.UpdateOptions) (*v1beta1.ClusterImagePolicy, error)
+	UpdateStatus(ctx context.Context, clusterImagePolicy *v1beta1.ClusterImagePolicy, opts v1.UpdateOptions) (*v1beta1.ClusterImagePolicy, error)
 	Delete(ctx context.Context, name string, opts v1.DeleteOptions) error
 	DeleteCollection(ctx context.Context, opts v1.DeleteOptions, listOpts v1.ListOptions) error
 	Get(ctx context.Context, name string, opts v1.GetOptions) (*v1beta1.ClusterImagePolicy, error)
@@ -119,6 +120,21 @@ func (c *clusterImagePolicies) Update(ctx context.Context, clusterImagePolicy *v
 	err = c.client.Put().
 		Resource("clusterimagepolicies").
 		Name(clusterImagePolicy.Name).
+		VersionedParams(&opts, scheme.ParameterCodec).
+		Body(clusterImagePolicy).
+		Do(ctx).
+		Into(result)
+	return
+}
+
+// UpdateStatus was generated because the type contains a Status member.
+// Add a +genclient:noStatus comment above the type to avoid generating UpdateStatus().
+func (c *clusterImagePolicies) UpdateStatus(ctx context.Context, clusterImagePolicy *v1beta1.ClusterImagePolicy, opts v1.UpdateOptions) (result *v1beta1.ClusterImagePolicy, err error) {
+	result = &v1beta1.ClusterImagePolicy{}
+	err = c.client.Put().
+		Resource("clusterimagepolicies").
+		Name(clusterImagePolicy.Name).
+		SubResource("status").
 		VersionedParams(&opts, scheme.ParameterCodec).
 		Body(clusterImagePolicy).
 		Do(ctx).

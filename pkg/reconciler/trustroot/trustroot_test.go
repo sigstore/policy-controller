@@ -268,6 +268,13 @@ func TestReconcile(t *testing.T) {
 		WantEvents: []string{
 			Eventf(corev1.EventTypeNormal, "FinalizerUpdate", `Updated "test-trustroot" finalizers`),
 		},
+		WantStatusUpdates: []clientgotesting.UpdateActionImpl{{
+			Object: NewTrustRoot(trName,
+				WithTrustRootUID(uid),
+				WithTrustRootResourceVersion(resourceVersion),
+				WithSigstoreKeys(sigstoreKeys),
+				MarkReadyTrustRoot,
+			)}},
 	}, {
 		Name: "TrustRoot with SigstoreKeys, cm exists with entry, no changes",
 		Key:  testKey,
@@ -287,6 +294,13 @@ func TestReconcile(t *testing.T) {
 		WantEvents: []string{
 			Eventf(corev1.EventTypeNormal, "FinalizerUpdate", `Updated "test-trustroot" finalizers`),
 		},
+		WantStatusUpdates: []clientgotesting.UpdateActionImpl{{
+			Object: NewTrustRoot(trName,
+				WithTrustRootUID(uid),
+				WithTrustRootResourceVersion(resourceVersion),
+				WithSigstoreKeys(sigstoreKeys),
+				MarkReadyTrustRoot,
+			)}},
 	}, {
 		Name: "TrustRoot with SigstoreKeys, cm exists with different, replace patched",
 		Key:  testKey,
@@ -304,6 +318,49 @@ func TestReconcile(t *testing.T) {
 		WantPatches: []clientgotesting.PatchActionImpl{
 			makePatch(replacePatchFmtString, trName, marshalledEntry),
 		},
+		WantStatusUpdates: []clientgotesting.UpdateActionImpl{{
+			Object: NewTrustRoot(trName,
+				WithTrustRootUID(uid),
+				WithTrustRootResourceVersion(resourceVersion),
+				WithSigstoreKeys(sigstoreKeys),
+				WithTrustRootFinalizer,
+				MarkReadyTrustRoot,
+			)}},
+	}, {
+		Name: "TrustRoot with SigstoreKeys, cm exists with different, replace patched but fails",
+		Key:  testKey,
+
+		SkipNamespaceValidation: true, // Cluster scoped
+		Objects: []runtime.Object{
+			NewTrustRoot(trName,
+				WithTrustRootUID(uid),
+				WithTrustRootResourceVersion(resourceVersion),
+				WithSigstoreKeys(sigstoreKeys),
+				WithTrustRootFinalizer,
+			),
+			makeDifferentConfigMap(),
+		},
+		WantPatches: []clientgotesting.PatchActionImpl{
+			makePatch(replacePatchFmtString, trName, marshalledEntry),
+		},
+		WithReactors: []clientgotesting.ReactionFunc{
+			InduceFailure("patch", "configmaps"),
+		},
+		WantErr: true,
+		WantEvents: []string{
+			Eventf(corev1.EventTypeWarning, "InternalError", "inducing failure for patch configmaps"),
+		},
+		WantStatusUpdates: []clientgotesting.UpdateActionImpl{{
+			Object: NewTrustRoot(trName,
+				WithTrustRootUID(uid),
+				WithTrustRootResourceVersion(resourceVersion),
+				WithSigstoreKeys(sigstoreKeys),
+				WithTrustRootFinalizer,
+				WithInitConditionsTrustRoot,
+				WithObservedGenerationTrustRoot(1),
+				WithMarkInlineKeysOkTrustRoot,
+				WithMarkCMUpdateFailedTrustRoot("inducing failure for patch configmaps"),
+			)}},
 	}, {
 		Name: "Two SigstoreKeys, one deleted, verify it is removed",
 		Key:  testKey2,
@@ -348,6 +405,14 @@ func TestReconcile(t *testing.T) {
 		WantCreates: []runtime.Object{
 			makeConfigMapWithMirrorFS(),
 		},
+		WantStatusUpdates: []clientgotesting.UpdateActionImpl{{
+			Object: NewTrustRoot(trName,
+				WithTrustRootUID(uid),
+				WithTrustRootResourceVersion(resourceVersion),
+				WithRepository("targets", rootJSONDecoded, validRepositoryDecoded),
+				WithTrustRootFinalizer,
+				MarkReadyTrustRoot,
+			)}},
 	}}
 
 	logger := logtesting.TestLogger(t)

@@ -47,6 +47,10 @@ var (
 
 // Validate implements apis.Validatable
 func (c *ClusterImagePolicy) Validate(ctx context.Context) *apis.FieldError {
+	// If we're doing status updates, do not validate the spec.
+	if apis.IsInStatusUpdate(ctx) {
+		return nil
+	}
 	return c.Spec.Validate(ctx).ViaField("spec")
 }
 

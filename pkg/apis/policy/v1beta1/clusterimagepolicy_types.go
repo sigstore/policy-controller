@@ -19,6 +19,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"knative.dev/pkg/apis"
+	duckv1 "knative.dev/pkg/apis/duck/v1"
 	"knative.dev/pkg/kmeta"
 )
 
@@ -27,9 +28,7 @@ import (
 //
 // +genclient
 // +genclient:nonNamespaced
-// +genclient:noStatus
-// +genreconciler:krshapedlogic=false
-
+// +genreconciler:krshapedlogic=true
 // +k8s:deepcopy-gen:interfaces=k8s.io/apimachinery/pkg/runtime.Object
 type ClusterImagePolicy struct {
 	metav1.TypeMeta   `json:",inline"`
@@ -37,12 +36,39 @@ type ClusterImagePolicy struct {
 
 	// Spec holds the desired state of the ClusterImagePolicy (from the client).
 	Spec ClusterImagePolicySpec `json:"spec"`
+
+	// Status represents the current state of the ClusterImagePolicy.
+	// This data may be out of date.
+	// +optional
+	Status ClusterImagePolicyStatus `json:"status,omitempty"`
 }
 
 var (
 	_ apis.Validatable   = (*ClusterImagePolicy)(nil)
 	_ apis.Defaultable   = (*ClusterImagePolicy)(nil)
 	_ kmeta.OwnerRefable = (*ClusterImagePolicy)(nil)
+	// Check that the type conforms to the duck Knative Resource shape.
+	_ duckv1.KRShaped = (*ClusterImagePolicy)(nil)
+)
+
+const (
+	// ClusterImagePolicyReady is set when the ClusterImagePolicy has been
+	// compiled into the underlying ConfigMap properly.
+	ClusterImagePolicyConditionReady = apis.ConditionReady
+	// ClusterImagePolicyConditionKeysInlined is set to True when all the Keys
+	// have been (Secrets, KMS, etc.) resolved, fetched, validated, and inlined
+	// into the compiled representation.
+	// In failure cases, the Condition will describe the errors in detail.
+	ClusterImagePolicyConditionKeysInlined apis.ConditionType = "KeysInlined"
+	// ClusterImagePolicyConditionPoliciesInlined is set to True when all the
+	// policies have been resolved, fetched, validated, and inlined into the
+	// compiled representation.
+	// In failure cases, the Condition will describe the errors in detail.
+	ClusterImagePolicyConditionPoliciesInlined apis.ConditionType = "PoliciesInlined"
+	// ClusterImagePolicyConditionCMUpdated	is set to True when the CIP has been
+	// successfully added into the ConfigMap holding all the compiled CIPs.
+	// In failure cases, the Condition will describe the errors in detail.
+	ClusterImagePolicyConditionCMUpdated apis.ConditionType = "ConfigMapUpdated"
 )
 
 // GetGroupVersionKind implements kmeta.OwnerRefable
@@ -304,6 +330,21 @@ type RFC3161Timestamp struct {
 	// Use the Certificate Chain from the referred TrustRoot.TimeStampAuthorities
 	// +optional
 	TrustRootRef string `json:"trustRootRef,omitempty"`
+}
+
+// ClusterImagePolicyStatus represents the current state of a
+// ClusterImagePolicy.
+type ClusterImagePolicyStatus struct {
+	// inherits duck/v1 Status, which currently provides:
+	// * ObservedGeneration - the 'Generation' of the Broker that was last processed by the controller.
+	// * Conditions - the latest available observations of a resource's current state.
+	duckv1.Status `json:",inline"`
+}
+
+// GetStatus retrieves the status of the ClusterImagePolicy.
+// Implements the KRShaped interface.
+func (c *ClusterImagePolicy) GetStatus() *duckv1.Status {
+	return &c.Status.Status
 }
 
 // ClusterImagePolicyList is a list of ClusterImagePolicy resources
