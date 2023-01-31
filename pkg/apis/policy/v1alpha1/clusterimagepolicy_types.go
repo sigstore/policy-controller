@@ -52,13 +52,23 @@ var (
 )
 
 const (
-	// ClusterImagePolicyReady is set when the ClusterImagePolicy has been
-	// compiled into the underlying ConfigMap properly.
+	// ClusterImagePolicyConditionReady is set when the ClusterImagePolicy has
+	// been compiled into the underlying ConfigMap properly.
 	ClusterImagePolicyConditionReady = apis.ConditionReady
-
-	ClusterImagePolicyConditionKeysInlined     apis.ConditionType = "KeysInlined"
+	// ClusterImagePolicyConditionKeysInlined is set to True when all the Keys
+	// have been (Secrets, KMS, etc.) resolved, fetched, validated, and inlined
+	// into the compiled representation.
+	// In failure cases, the Condition will describe the errors in detail.
+	ClusterImagePolicyConditionKeysInlined apis.ConditionType = "KeysInlined"
+	// ClusterImagePolicyConditionPoliciesInlined is set to True when all the
+	// policies have been resolved, fetched, validated, and inlined into the
+	// compiled representation.
+	// In failure cases, the Condition will describe the errors in detail.
 	ClusterImagePolicyConditionPoliciesInlined apis.ConditionType = "PoliciesInlined"
-	ClusterImagePolicyConditionCMUpdated       apis.ConditionType = "ConfigMapUpdated"
+	// ClusterImagePolicyConditionCMUpdated	is set to True when the CIP has been
+	// successfully added into the ConfigMap holding all the compiled CIPs.
+	// In failure cases, the Condition will describe the errors in detail.
+	ClusterImagePolicyConditionCMUpdated apis.ConditionType = "ConfigMapUpdated"
 )
 
 // GetGroupVersionKind implements kmeta.OwnerRefable

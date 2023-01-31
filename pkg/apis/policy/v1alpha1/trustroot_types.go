@@ -57,9 +57,13 @@ const (
 	// TrustRootConditionReady is set when the TrustRoot has been
 	// compiled into the underlying ConfigMap properly.
 	TrustRootConditionReady = apis.ConditionReady
-
+	// TrustRootConditionKeysInlined is set to True when keys have been either
+	// verified, fetched and verified and inlined into the intermediate
+	// representation usable for validation.
 	TrustRootConditionKeysInlined apis.ConditionType = "KeysInlined"
-	TrustRootConditionCMUpdated   apis.ConditionType = "ConfigMapUpdated"
+	// TrustRootConditionCMUpdated is set to True when the inline representation
+	// has been successfully added to the ConfigMap holding all the TrustRoots.
+	TrustRootConditionCMUpdated apis.ConditionType = "ConfigMapUpdated"
 )
 
 // GetGroupVersionKind implements kmeta.OwnerRefable

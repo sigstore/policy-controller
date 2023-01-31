@@ -82,7 +82,7 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, cip *v1alpha1.ClusterIma
 	cipErr = r.inlinePolicies(ctx, cipCopy)
 	if cipErr != nil {
 		r.handleCIPError(ctx, cip.Name)
-		// Update the status to reflect that we were unable to inline keys.
+		// Update the status to reflect that we were unable to inline policies.
 		cip.Status.MarkInlinePoliciesFailed(cipErr.Error())
 		// Note that we return the error about the Invalid cip here to make
 		// sure that it's surfaced.
