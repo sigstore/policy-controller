@@ -19,6 +19,9 @@ import (
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rand"
+	"fmt"
+	"net/http"
+	"net/http/httptest"
 	"strings"
 	"testing"
 
@@ -33,6 +36,7 @@ import (
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	clientgotesting "k8s.io/client-go/testing"
+	"knative.dev/pkg/apis"
 	fakekubeclient "knative.dev/pkg/client/injection/kube/client/fake"
 	"knative.dev/pkg/configmap"
 	"knative.dev/pkg/controller"
@@ -60,7 +64,14 @@ const (
 	policyCMKey       = "policy-configmap-key"
 
 	testPolicy = `predicateType: "cosign.sigstore.dev/attestation/v1"
-	predicate: Data: "foobar key e2e test"`
+predicate: Data: "foobar key e2e test"`
+
+	// This is above ran through shasum -a 256. Note that there's no trailing
+	// newline.
+	testPolicySHA256 = "c694cc08146070e84751ce7416d4befd70ea779071f457df8127586a29ac6580"
+
+	// Same as above with one change just to make it fail
+	testPolicySHA256Bad = "c694cc08146070e84751ce7416d4befd70ea779071f457df8107586a29ac6580"
 
 	// Just some public key that was laying around, only format matters.
 	validPublicKeyData = `-----BEGIN PUBLIC KEY-----
@@ -87,7 +98,7 @@ RCTfQ5s1kD+hGMSE1rH7s46hmXEeyhnlRnaGF8eMU/SBJE/2NKPnxE7WzQ==
 	removeSingleEntryKeylessPatch = `[{"op":"remove","path":"/data/test-cip-2"}]`
 
 	// This is the patch for inlined cip policy configmap ref.
-	inlinedPolicyPatch = `[{"op":"replace","path":"/data/test-cip","value":"{\"uid\":\"test-uid\",\"resourceVersion\":\"0123456789\",\"images\":[{\"glob\":\"ghcr.io/example/*\"}],\"authorities\":[{\"name\":\"authority-0\",\"static\":{\"action\":\"pass\"}}],\"policy\":{\"name\":\"\",\"predicateType\":\"\",\"type\":\"cue\",\"data\":\"predicateType: \\\"cosign.sigstore.dev/attestation/v1\\\"\\n\\tpredicate: Data: \\\"foobar key e2e test\\\"\"},\"mode\":\"enforce\"}"}]`
+	inlinedPolicyPatch = `[{"op":"replace","path":"/data/test-cip","value":"{\"uid\":\"test-uid\",\"resourceVersion\":\"0123456789\",\"images\":[{\"glob\":\"ghcr.io/example/*\"}],\"authorities\":[{\"name\":\"authority-0\",\"static\":{\"action\":\"pass\"}}],\"policy\":{\"name\":\"\",\"predicateType\":\"\",\"type\":\"cue\",\"data\":\"predicateType: \\\"cosign.sigstore.dev/attestation/v1\\\"\\npredicate: Data: \\\"foobar key e2e test\\\"\"},\"mode\":\"enforce\"}"}]`
 
 	// This is the patch for inlined secret for keyless cakey ref data
 	inlinedSecretKeylessPatch = `[{"op":"replace","path":"/data/test-cip-2","value":"{\"uid\":\"test-uid\",\"resourceVersion\":\"0123456789\",\"images\":[{\"glob\":\"ghcr.io/example/*\"}],\"authorities\":[{\"name\":\"authority-0\",\"keyless\":{\"identities\":[{\"issuerRegExp\":\"iss.*\",\"subjectRegExp\":\"sub.*\"}],\"ca-cert\":{\"data\":\"-----BEGIN PUBLIC KEY-----\\nMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAExB6+H6054/W1SJgs5JR6AJr6J35J\\nRCTfQ5s1kD+hGMSE1rH7s46hmXEeyhnlRnaGF8eMU/SBJE/2NKPnxE7WzQ==\\n-----END PUBLIC KEY-----\",\"hashAlgorithm\":\"sha256\"}}}],\"mode\":\"enforce\"}"}]`
@@ -104,6 +115,11 @@ RCTfQ5s1kD+hGMSE1rH7s46hmXEeyhnlRnaGF8eMU/SBJE/2NKPnxE7WzQ==
 
 	resourceVersion = "0123456789"
 	uid             = "test-uid"
+
+	statusUpdateFailureFmt = `Failed to update status for "test-cip": invalid value: %s: spec.remote.url
+url valid is invalid. host and https scheme are expected`
+
+	invalidSHAMsg = "failed to check sha256sum from policy remote: c694cc08146070e84751ce7416d4befd70ea779071f457df8107586a29ac6580 got c694cc08146070e84751ce7416d4befd70ea779071f457df8127586a29ac6580"
 )
 
 var (
@@ -118,6 +134,21 @@ func TestReconcile(t *testing.T) {
 		t.Fatalf("error generating ecdsa private key: %v", err)
 	}
 	mainContext := context.WithValue(context.Background(), fake.KmsCtxKey{}, privKMSKey)
+
+	// Note that this is just an HTTP server, so it will cause a problem
+	// after the Status update because of the upstream does not appear to set
+	// the apis.IsInStatusUpdate correctly in the tests. So it validates the
+	// status update even though it shouldn't. This is tested elsewhere, so
+	// we just work around it here by expecting that benign error.
+	policyServerGood := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+		rw.Write([]byte(testPolicy))
+	}))
+	t.Cleanup(policyServerGood.Close)
+	policyURLGood, err := apis.ParseURL(policyServerGood.URL)
+	if err != nil {
+		t.Fatalf("Failed to parse the URL: %v", err)
+	}
+	statusUpdateFailureMsg := fmt.Sprintf(statusUpdateFailureFmt, policyURLGood.String())
 
 	table := TableTest{{
 		Name: "bad workqueue key",
@@ -1269,6 +1300,121 @@ malformed KMS format, should be prefixed by any of the supported providers: [aws
 			PostConditions: []func(*testing.T, *TableRow){
 				AssertTrackingConfigMap(system.Namespace(), policyCMName),
 			},
+		}, {
+			Name: "Static with CIP level URL policy, works",
+			Key:  testKey,
+
+			SkipNamespaceValidation: true, // Cluster scoped
+			Objects: []runtime.Object{
+				NewClusterImagePolicy(cipName,
+					WithUID(uid),
+					WithResourceVersion(resourceVersion),
+					WithFinalizer,
+					WithImagePattern(v1alpha1.ImagePattern{
+						Glob: glob,
+					}),
+					WithAuthority(v1alpha1.Authority{
+						Static: &v1alpha1.StaticRef{
+							Action: "pass",
+						}}),
+					WithPolicy(&v1alpha1.Policy{
+						Type: "cue",
+						Remote: &v1alpha1.RemotePolicy{
+							URL:       *policyURLGood,
+							Sha256sum: testPolicySHA256,
+						},
+					}),
+				),
+				makeConfigMap(),
+			},
+			WantErr: true,
+			WantPatches: []clientgotesting.PatchActionImpl{
+				makePatch(inlinedPolicyPatch),
+			},
+			WantEvents: []string{
+				Eventf(corev1.EventTypeWarning, "UpdateFailed", statusUpdateFailureMsg),
+			},
+			WantStatusUpdates: []clientgotesting.UpdateActionImpl{{
+				Object: NewClusterImagePolicy(cipName,
+					WithUID(uid),
+					WithResourceVersion(resourceVersion),
+					WithFinalizer,
+					WithImagePattern(v1alpha1.ImagePattern{
+						Glob: glob,
+					}),
+					WithAuthority(v1alpha1.Authority{
+						Static: &v1alpha1.StaticRef{
+							Action: "pass",
+						}}),
+					WithPolicy(&v1alpha1.Policy{
+						Type: "cue",
+						Remote: &v1alpha1.RemotePolicy{
+							URL:       *policyURLGood,
+							Sha256sum: testPolicySHA256,
+						},
+					}),
+					MarkReady,
+				),
+			}},
+		}, {
+			Name: "Static with CIP level URL policy, SHA does not match",
+			Key:  testKey,
+
+			SkipNamespaceValidation: true, // Cluster scoped
+			Objects: []runtime.Object{
+				NewClusterImagePolicy(cipName,
+					WithUID(uid),
+					WithResourceVersion(resourceVersion),
+					WithFinalizer,
+					WithImagePattern(v1alpha1.ImagePattern{
+						Glob: glob,
+					}),
+					WithAuthority(v1alpha1.Authority{
+						Static: &v1alpha1.StaticRef{
+							Action: "pass",
+						}}),
+					WithPolicy(&v1alpha1.Policy{
+						Type: "cue",
+						Remote: &v1alpha1.RemotePolicy{
+							URL:       *policyURLGood,
+							Sha256sum: testPolicySHA256Bad,
+						},
+					}),
+				),
+				makeConfigMap(),
+			},
+			WantErr: true,
+			WantPatches: []clientgotesting.PatchActionImpl{
+				makePatch(removeDataPatch),
+			},
+			WantEvents: []string{
+				Eventf(corev1.EventTypeWarning, "UpdateFailed", statusUpdateFailureMsg),
+			},
+			WantStatusUpdates: []clientgotesting.UpdateActionImpl{{
+				Object: NewClusterImagePolicy(cipName,
+					WithUID(uid),
+					WithResourceVersion(resourceVersion),
+					WithFinalizer,
+					WithImagePattern(v1alpha1.ImagePattern{
+						Glob: glob,
+					}),
+					WithAuthority(v1alpha1.Authority{
+						Static: &v1alpha1.StaticRef{
+							Action: "pass",
+						}}),
+					WithPolicy(&v1alpha1.Policy{
+						Type: "cue",
+						Remote: &v1alpha1.RemotePolicy{
+							URL:       *policyURLGood,
+							Sha256sum: testPolicySHA256Bad,
+						},
+					}),
+					WithInitConditions,
+					WithObservedGeneration(1),
+					WithMarkInlineKeysOk,
+					WithMarkInlinePoliciesFailed(invalidSHAMsg),
+				),
+			}},
 		}}
 
 	logger := logtesting.TestLogger(t)
