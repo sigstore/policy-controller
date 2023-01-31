@@ -163,7 +163,7 @@ func (r *Reconciler) handleCIPError(ctx context.Context, cipName string) {
 			logging.FromContext(ctx).Errorf("Failed to get configmap: %v", err)
 		}
 	} else if err := r.removeCIPEntry(ctx, existing, cipName); err != nil {
-		logging.FromContext(ctx).Errorf("Failed to get configmap: %v", err)
+		logging.FromContext(ctx).Errorf("Failed to remove CIP entry from configmap: %v", err)
 	}
 }
 
@@ -313,11 +313,10 @@ func (r *Reconciler) inlinePolicyURL(ctx context.Context, policyRef *v1alpha1.Po
 	if err != nil {
 		return fmt.Errorf("failed to read policy url response: %w", err)
 	}
-	// Chechking the sha256sum value in comparison with the one set in the policy
-	h := sha256.New()
-	_, _ = h.Write(data)
-	if fmt.Sprintf("%x", h.Sum(nil)) != policyRef.Remote.Sha256sum {
-		return fmt.Errorf("failed to check sha256sum from policy remote: %s", policyRef.Remote.Sha256sum)
+	// Checking the sha256sum value in comparison with the one set in the policy
+	sha256Sum := fmt.Sprintf("%x", sha256.Sum256(data))
+	if sha256Sum != policyRef.Remote.Sha256sum {
+		return fmt.Errorf("failed to check sha256sum from policy remote: %s got %s", policyRef.Remote.Sha256sum, sha256Sum)
 	}
 	policyRef.Data = string(data)
 	policyRef.Remote = nil
