@@ -291,6 +291,23 @@ func TestConversionRoundTripV1beta1(t *testing.T) {
 				},
 			},
 		},
+	}, {name: "key, keyless, and rfc3161timestamp, regexp",
+		in: &v1beta1.ClusterImagePolicy{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "test-cip",
+			},
+			Spec: v1beta1.ClusterImagePolicySpec{
+				Images: []v1beta1.ImagePattern{{Glob: "*"}},
+				Authorities: []v1beta1.Authority{
+					{Keyless: &v1beta1.KeylessRef{
+						Identities:        []v1beta1.Identity{{SubjectRegExp: "subjectregexp", IssuerRegExp: "issuerregexp"}},
+						CACert:            &v1beta1.KeyRef{KMS: "kms", Data: "data", SecretRef: &v1.SecretReference{Name: "secret"}},
+						InsecureIgnoreSCT: ptr.Bool(true),
+					},
+					},
+				},
+			},
+		},
 	}}
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
