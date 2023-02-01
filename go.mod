@@ -5,7 +5,7 @@ go 1.19
 require (
 	github.com/armon/go-metrics v0.4.1
 	github.com/armon/go-radix v1.0.0
-	github.com/aws/aws-sdk-go v1.44.190
+	github.com/aws/aws-sdk-go v1.44.191
 	github.com/aws/aws-sdk-go-v2 v1.17.3 // indirect
 	github.com/cenkalti/backoff/v3 v3.2.2
 	github.com/golang/protobuf v1.5.2
