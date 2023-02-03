@@ -131,6 +131,9 @@ func (authority *Authority) ConvertTo(ctx context.Context, sink *v1beta1.Authori
 			sink.Keyless.CACert = &v1beta1.KeyRef{}
 			authority.Keyless.CACert.ConvertTo(ctx, sink.Keyless.CACert)
 		}
+		if authority.Keyless.InsecureIgnoreSCT != nil {
+			sink.Keyless.InsecureIgnoreSCT = authority.Keyless.InsecureIgnoreSCT
+		}
 	}
 	if authority.Static != nil {
 		sink.Static = &v1beta1.StaticRef{
@@ -280,6 +283,9 @@ func (authority *Authority) ConvertFrom(ctx context.Context, source *v1beta1.Aut
 		if source.Keyless.CACert != nil {
 			authority.Keyless.CACert = &KeyRef{}
 			authority.Keyless.CACert.ConvertFrom(ctx, source.Keyless.CACert)
+		}
+		if source.Keyless.InsecureIgnoreSCT != nil {
+			authority.Keyless.InsecureIgnoreSCT = source.Keyless.InsecureIgnoreSCT
 		}
 	}
 	if source.Static != nil {
