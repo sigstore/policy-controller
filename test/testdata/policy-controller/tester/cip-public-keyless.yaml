@@ -18,7 +18,10 @@ metadata:
   name: demo
 spec:
   images:
-    - glob: ghcr.io/sigstore/cosign/cosign:v1.9.0
+    - glob: ghcr.io/sigstore/cosign/cosign:v1.12.1
   authorities:
   - keyless:
       url: https://fulcio.sigstore.dev
+      identities:
+      - issuerRegExp: .*accounts.google.com.*
+        subjectRegExp: .*projectsigstore.iam.gserviceaccount.com
