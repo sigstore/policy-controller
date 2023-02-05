@@ -104,17 +104,16 @@ func (matchResource *MatchResource) Validate(ctx context.Context) *apis.FieldErr
 
 func (authority *Authority) Validate(ctx context.Context) *apis.FieldError {
 	var errs *apis.FieldError
-	if authority.Key == nil && authority.Keyless == nil && authority.RFC3161Timestamp == nil && authority.Static == nil {
-		errs = errs.Also(apis.ErrMissingOneOf("key", "keyless", "rfc3161timestamp", "static"))
+	if authority.Key == nil && authority.Keyless == nil && authority.Static == nil {
+		errs = errs.Also(apis.ErrMissingOneOf("key", "keyless", "static"))
 		// Instead of returning all the missing subfields, just return here
 		// to give a more concise and arguably a more meaningful error message.
 		return errs
 	}
 	if (authority.Key != nil && authority.Keyless != nil) ||
 		(authority.Key != nil && authority.Static != nil) ||
-		(authority.RFC3161Timestamp != nil && authority.Static != nil) ||
 		(authority.Keyless != nil && authority.Static != nil) {
-		errs = errs.Also(apis.ErrMultipleOneOf("key", "keyless", "rfc3161timestamp", "static"))
+		errs = errs.Also(apis.ErrMultipleOneOf("key", "keyless", "static"))
 		// Instead of returning all the missing subfields, just return here
 		// to give a more concise and arguably a more meaningful error message.
 		return errs
