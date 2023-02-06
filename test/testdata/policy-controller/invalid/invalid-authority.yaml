@@ -12,17 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 ---
-# ERROR:expected exactly one, got both: spec.authorities[0].key, spec.authorities[0].keyless, spec.authorities[0].static
+# ERROR: expected exactly one, got neither: spec.authorities[0].key, spec.authorities[0].keyless, spec.authorities[0].static
 apiVersion: policy.sigstore.dev/v1beta1
 kind: ClusterImagePolicy
 metadata:
-  name: image-policy
+  name: invalid-authority
 spec:
   images:
   - glob: image*
   authorities:
-  - keyless:
-      identities:
-      - issuer: "issue-details"
-    key:
-      kms: "hashivault://url"
+  - rfc3161timestamp:
+      trustRootRef: my-sigstore-keys
