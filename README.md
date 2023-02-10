@@ -216,6 +216,41 @@ spec:
         url: https://rekor.example.com
 ```
 
+#### Configuring Timestamp Authorities
+
+Timestamp authorities specifies the reference to a TrustRoot CR where a timestamp authority has been defined.
+
+```yaml
+apiVersion: policy.sigstore.dev/v1alpha1
+kind: TrustRoot
+metadata:
+  name: my-tsa-keys
+spec:
+  sigstoreKeys:
+    certificateAuthorities: []
+    timestampAuthorities:
+    - subject:
+        organization: example.dev
+        commonName: example-tsa
+      uri: https://tsa.example.dev
+      certChain: |-
+        CERTIFICATE_CHAIN_IN_BASE64
+```
+
+When setting `rfc3161timestamp`, `key` or `keyless` are required.
+
+```yaml
+spec:
+  authorities:
+    - keyless:
+        url: https://fulcio.example.com
+      identities:
+        - issuer: 'https://issuer/'
+          subject: 'foo@example.dev'
+      rfc3161timestamp:
+        trustRootRef: my-tsa-keys
+```
+
 #### Configuring policy that validates attestations
 
 Just like with `cosign` CLI you can verify attestations (using `verify-attestation`),
