@@ -30,7 +30,7 @@ require (
 	github.com/hashicorp/go-version v1.6.0
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/hashicorp/hcl v1.0.0
-	github.com/hashicorp/vault/sdk v0.7.0
+	github.com/hashicorp/vault/sdk v0.8.0
 	github.com/hashicorp/yamux v0.1.1
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/letsencrypt/boulder v0.0.0-20221109233200-85aa52084eaf
@@ -179,6 +179,7 @@ require (
 	github.com/googleapis/enterprise-certificate-proxy v0.2.1 // indirect
 	github.com/googleapis/gax-go/v2 v2.7.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.12.0 // indirect
+	github.com/hashicorp/go-kms-wrapping/v2 v2.0.7 // indirect
 	github.com/hashicorp/vault/api v1.8.2 // indirect
 	github.com/imdario/mergo v0.3.13 // indirect
 	github.com/in-toto/in-toto-golang v0.6.0 // indirect
