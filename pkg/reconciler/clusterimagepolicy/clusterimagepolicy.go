@@ -43,7 +43,7 @@ import (
 	"knative.dev/pkg/system"
 	"knative.dev/pkg/tracker"
 
-	sigs "github.com/sigstore/cosign/pkg/signature"
+	sigs "github.com/sigstore/cosign/v2/pkg/signature"
 	"github.com/sigstore/sigstore/pkg/signature/kms"
 	signatureoptions "github.com/sigstore/sigstore/pkg/signature/options"
 )

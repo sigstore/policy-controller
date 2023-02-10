@@ -487,8 +487,6 @@ github.com/google/go-containerregistry/pkg/authn/k8schain v0.0.0-20221114162634-
 github.com/google/go-containerregistry/pkg/authn/k8schain v0.0.0-20221114162634-781782aa2757/go.mod h1:7QLaBZxN+nMCx82XO5R7qPHq0m61liEg8yca68zymHo=
 github.com/google/go-containerregistry/pkg/authn/kubernetes v0.0.0-20221114162634-781782aa2757 h1:FsE9anmDCfnvZBx/PxdW8JDVJrAtx8zkWkQyHoxA3Jc=
 github.com/google/go-containerregistry/pkg/authn/kubernetes v0.0.0-20221114162634-781782aa2757/go.mod h1:T6IXbpoY0IGBh0cyHZsIi/zmMBI5yInMr7ob1b+SCz0=
-github.com/google/go-github/v45 v45.2.0 h1:5oRLszbrkvxDDqBCNj2hjDZMKmvexaZ1xw/FCD+K3FI=
-github.com/google/go-github/v45 v45.2.0/go.mod h1:FObaZJEDSTa/WGCzZ2Z3eoCDXWJKMenWWTrd8jrta28=
 github.com/google/go-github/v50 v50.0.0 h1:gdO1AeuSZZK4iYWwVbjni7zg8PIQhp7QfmPunr016Jk=
 github.com/google/go-github/v50 v50.0.0/go.mod h1:Ev4Tre8QoKiolvbpOSG3FIi4Mlon3S2Nt9W5JYqKiwA=
 github.com/google/go-querystring v1.1.0 h1:AnCroh3fv4ZBgVIf1Iwtovgjaw/GiKJo8M8yD/fhyJ8=
@@ -828,8 +826,6 @@ github.com/secure-systems-lab/go-securesystemslib v0.4.0/go.mod h1:FGBZgq2tXWICs
 github.com/shibumi/go-pathspec v1.3.0 h1:QUyMZhFo0Md5B8zV8x2tesohbb5kfbpTi9rBnKh5dkI=
 github.com/shibumi/go-pathspec v1.3.0/go.mod h1:Xutfslp817l2I1cZvgcfeMQJG5QnU2lh5tVaaMCl3jE=
 github.com/shurcooL/sanitized_anchor_name v1.0.0/go.mod h1:1NzhyTcUVG4SuEtjjoZeVRXNmyL/1OwPU0+IJeTBvfc=
-github.com/sigstore/cosign v1.13.1 h1:+5oF8jisEcDw2TuXxCADC1u5//HfdnJhGbpv9Isiwu4=
-github.com/sigstore/cosign v1.13.1/go.mod h1:PlfJODkovUOKsLrGI7Su57Ie/Eb/Ks7hRHw3tn5hQS4=
 github.com/sigstore/cosign/v2 v2.0.0-rc.2 h1:LDSSQYzThg7uKHJqFBp03kaObTDuWfifJqBiAK1elUU=
 github.com/sigstore/cosign/v2 v2.0.0-rc.2/go.mod h1:oKIsv9cCwtfakSd64Rzief3Izk/cPSkougoWU/F3OBI=
 github.com/sigstore/rekor v1.0.1 h1:rcESXSNkAPRWFYZel9rarspdvneET60F2ngNkadi89c=
