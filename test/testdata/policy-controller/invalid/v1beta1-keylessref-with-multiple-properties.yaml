@@ -28,5 +28,4 @@ spec:
       ca-cert:
         secretRef:
           name: ca-cert-secret
-          namespace: some-namespace
       url: http://example.com

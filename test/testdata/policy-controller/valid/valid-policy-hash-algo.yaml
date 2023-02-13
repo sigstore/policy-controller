@@ -29,7 +29,7 @@ spec:
       ca-cert:
         secretRef:
           name: ca-cert-secret
-          namespace: some-namespacemak
+          namespace: cosign-system
   - name: "keyless signatures"
     keyless:
       identities:
@@ -95,4 +95,4 @@ spec:
   - key:
       secretRef:
         name: secret-name
-        namespace: secret-namespce
+        namespace: cosign-system

@@ -29,7 +29,6 @@ spec:
       ca-cert:
         secretRef:
           name: ca-cert-secret
-          namespace: some-namespacemak
   - keyless:
       identities:
       - issuer: "issue-details"
@@ -49,4 +48,3 @@ spec:
   - key:
       secretRef:
         name: secret-name
-        namespace: secret-namespce
