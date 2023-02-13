@@ -27,7 +27,6 @@ spec:
       ca-cert:
         secretRef:
           name: ca-cert-secret
-          namespace: some-namespacemak
     source:
       - signaturePullSecrets:
         - name: examplePullSecret

@@ -34,4 +34,4 @@ spec:
   - key:
       secretRef:
         name: secret-name
-        namespace: secret-namespce
+        namespace: cosign-system

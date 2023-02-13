@@ -27,6 +27,7 @@ import (
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"k8s.io/apimachinery/pkg/util/sets"
 	"knative.dev/pkg/apis"
+	"knative.dev/pkg/system"
 
 	policycontrollerconfig "github.com/sigstore/policy-controller/pkg/config"
 )
@@ -191,6 +192,9 @@ func (key *KeyRef) Validate(ctx context.Context) *apis.FieldError {
 	}
 	if key.KMS != "" {
 		errs = errs.Also(common.ValidateKMS(key.KMS).ViaField("kms"))
+	}
+	if key.SecretRef != nil && key.SecretRef.Namespace != "" && key.SecretRef.Namespace != system.Namespace() {
+		errs = errs.Also(apis.ErrInvalidValue(key.SecretRef.Namespace, "secretref.namespace", "secretref.namespace is invalid. If set, it should use the same namespace where the policy-controller was deployed"))
 	}
 	return errs
 }
