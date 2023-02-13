@@ -16,6 +16,7 @@ package v1alpha1
 
 import (
 	"context"
+	"os"
 	"strings"
 	"testing"
 
@@ -133,6 +134,7 @@ func TestImagePatternValidation(t *testing.T) {
 }
 
 func TestKeyValidation(t *testing.T) {
+	os.Setenv("SYSTEM_NAMESPACE", "cosign-system")
 	tests := []struct {
 		name        string
 		errorString string
@@ -171,6 +173,28 @@ func TestKeyValidation(t *testing.T) {
 					{
 						Key: &KeyRef{
 							Data: "---some key data----",
+						},
+					},
+				},
+			},
+		},
+	}, {
+		name:        "Should fail when key secretref has an invalid value for the namespace",
+		errorString: "invalid value: invalid: spec.authorities[0].key.secretref.namespace\nsecretref.namespace is invalid. If set, it should use the same namespace where the policy-controller was deployed",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{
+					{
+						Glob: "myglob",
+					},
+				},
+				Authorities: []Authority{
+					{
+						Key: &KeyRef{
+							SecretRef: &v1.SecretReference{
+								Name:      "test",
+								Namespace: "invalid",
+							},
 						},
 					},
 				},
