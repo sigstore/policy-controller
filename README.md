@@ -179,7 +179,7 @@ spec:
 
 If the signatures / attestations are in a different repo or they use different
 PullSecrets, you can configure `source` to point to a `secret` which must live
-in the same namespace as `policy-controller` webhook (by default `cosign-system`).
+in the same namespace of the deployed Pod.
 
 ```yaml
 spec:
