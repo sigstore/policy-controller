@@ -26,7 +26,6 @@ spec:
       - issuerRegExp: .*kubernetes.default.*
         subjectRegExp: .*kubernetes.io/namespaces/default/serviceaccounts/default
     source:
-    # DO NOT CHECK THIS CHANGE IN.
-    - oci: registry.local:5001/policy-controller/demo
+    - oci: registry.local:5000/policy-controller/demo
     ctlog:
       url: http://rekor.rekor-system.svc
