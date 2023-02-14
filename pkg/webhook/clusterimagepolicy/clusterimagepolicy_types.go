@@ -221,6 +221,10 @@ func (a *Authority) UnmarshalJSON(data []byte) error {
 					rawAuthority.RemoteOpts = append(rawAuthority.RemoteOpts, ociremote.WithTargetRepository(targetRepoOverride))
 				}
 			}
+			if source.TagPrefix != nil && *source.TagPrefix != "" {
+				rawAuthority.RemoteOpts = append(rawAuthority.RemoteOpts,
+					ociremote.WithPrefix(*source.TagPrefix))
+			}
 		}
 	}
 

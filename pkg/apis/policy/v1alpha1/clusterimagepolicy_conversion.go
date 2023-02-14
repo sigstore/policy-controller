@@ -102,6 +102,7 @@ func (authority *Authority) ConvertTo(ctx context.Context, sink *v1beta1.Authori
 	for _, source := range authority.Sources {
 		v1beta1Source := v1beta1.Source{}
 		v1beta1Source.OCI = source.OCI
+		v1beta1Source.TagPrefix = source.TagPrefix
 		for _, sps := range source.SignaturePullSecrets {
 			v1beta1Source.SignaturePullSecrets = append(v1beta1Source.SignaturePullSecrets, v1.LocalObjectReference{Name: sps.Name})
 		}
@@ -255,6 +256,7 @@ func (authority *Authority) ConvertFrom(ctx context.Context, source *v1beta1.Aut
 	for _, s := range source.Sources {
 		src := Source{}
 		src.OCI = s.OCI
+		src.TagPrefix = s.TagPrefix
 		for _, sps := range s.SignaturePullSecrets {
 			src.SignaturePullSecrets = append(src.SignaturePullSecrets, v1.LocalObjectReference{Name: sps.Name})
 		}

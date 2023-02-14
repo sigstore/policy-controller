@@ -96,6 +96,7 @@ func TestConversionRoundTripV1alpha1(t *testing.T) {
 						SecretRef: &v1.SecretReference{Name: "mysecret"}}},
 					{Sources: []Source{{
 						OCI:                  "registry.example.com",
+						TagPrefix:            ptr.String("sbom"),
 						SignaturePullSecrets: []v1.LocalObjectReference{{Name: "sps-secret"}}}}},
 					{Attestations: []Attestation{{
 						Name:          "attestation-0",
@@ -272,7 +273,7 @@ func TestConversionRoundTripV1beta1(t *testing.T) {
 				},
 			},
 		},
-	}, {name: "key, keyless, and rfc3161timestamp, regexp",
+	}, {name: "key, keyless, source, and rfc3161timestamp, regexp",
 		in: &v1beta1.ClusterImagePolicy{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "test-cip",
@@ -288,6 +289,10 @@ func TestConversionRoundTripV1beta1(t *testing.T) {
 					},
 						RFC3161Timestamp: &v1beta1.RFC3161Timestamp{TrustRootRef: "trust-root-tsa-ref"},
 					},
+					{Sources: []v1beta1.Source{{
+						OCI:                  "registry.example.com",
+						TagPrefix:            ptr.String("sbom"),
+						SignaturePullSecrets: []v1.LocalObjectReference{{Name: "sps-secret"}}}}},
 				},
 			},
 		},

@@ -140,6 +140,39 @@ expected_error='no matching signatures'
 assert_error ${expected_error}
 echo '::endgroup::'
 
+echo '::group:: Remove the old CIP and create CIP that uses attestation with prefixes'
+kubectl delete cip --all
+kubectl apply -f ./test/testdata/policy-controller/e2e/cip-keyless-with-source-prefix-tag.yaml
+# allow for propagation
+sleep 5
+echo '::endgroup::'
+
+echo '::group:: Create an attestation without prefix, make sure it fails'
+echo -n 'foobar prefix e2e test' > ./predicate-file-prefix-custom
+cosign attest --predicate ./predicate-file-prefix-custom --rekor-url ${REKOR_URL} --key ./cosign.key --allow-insecure-registry --yes ${demoimage}
+cosign verify-attestation --allow-insecure-registry --rekor-url ${REKOR_URL} --certificate-identity-regexp='.*'  --certificate-oidc-issuer-regexp='.*' ${demoimage}
+echo '::endgroup::'
+
+echo '::group:: test job rejection using an OCI source to a wrong repository without signatures'
+expected_error='no matching attestations'
+assert_error ${expected_error}
+echo '::endgroup::'
+
+echo '::group:: Create an attestation with prefix, make sure it fails'
+cosign attest --predicate ./predicate-file-prefix-custom --rekor-url ${REKOR_URL} --key ./cosign.key --allow-insecure-registry --yes ${demoimage} --attachment-tag-prefix=sigprefix
+cosign verify-attestation --allow-insecure-registry --rekor-url ${REKOR_URL} --certificate-identity-regexp='.*'  --certificate-oidc-issuer-regexp='.*' ${demoimage} --attachment-tag-prefix=sigprefix
+echo '::endgroup::'
+
+echo '::group:: test job success since we have attestation with prefix'
+# We signed this above, this should work
+if ! kubectl create -n demo-keyless-source job demo --image=${demoimage} ; then
+  echo Failed to create Job in namespace with matching attestation with prefix!
+  exit 1
+else
+  echo Succcessfully created Job with attestation with prefix
+fi
+echo '::endgroup::'
+
 echo '::group::' Cleanup
 kubectl delete cip --all
 kubectl delete ns ${NS}

@@ -26,7 +26,15 @@ spec:
       - issuerRegExp: .*kubernetes.default.*
         subjectRegExp: .*kubernetes.io/namespaces/default/serviceaccounts/default
     source:
-    # DO NOT CHECK THIS CHANGE IN.
-    - oci: registry.local:5001/policy-controller/demo
+    - prefixTag: sigprefix
     ctlog:
       url: http://rekor.rekor-system.svc
+    attestations:
+    - name: custom-match-predicate
+      predicateType: custom
+      policy:
+        type: cue
+        data: |
+          predicateType: "cosign.sigstore.dev/attestation/v1"
+          predicate: Data: "foobar prefix e2e test"
+

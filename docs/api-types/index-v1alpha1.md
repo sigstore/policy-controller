@@ -166,7 +166,7 @@ Attestation defines the type of attestation to validate and optionally apply a p
 | key | Key defines the type of key to validate the image. | [KeyRef](#keyref) | false |
 | keyless | Keyless sets the configuration to verify the authority against a Fulcio instance. | [KeylessRef](#keylessref) | false |
 | static | Static specifies that signatures / attestations are not validated but instead a static policy is applied against matching images. | [StaticRef](#staticref) | false |
-| source | Sources sets the configuration to specify the sources from where to consume the signatures. | [][Source](#source) | false |
+| source | Sources sets the configuration to specify the sources from where to consume the signature and attestations. | [][Source](#source) | false |
 | ctlog | CTLog sets the configuration to verify the authority against a Rekor instance. | [TLog](#tlog) | false |
 | attestations | Attestations is a list of individual attestations for this authority, once the signature for this authority has been verified. | [][Attestation](#attestation) | false |
 | rfc3161timestamp | RFC3161Timestamp sets the configuration to verify the signature timestamp against a RFC3161 time-stamping instance. | [RFC3161Timestamp](#rfc3161timestamp) | false |
@@ -327,12 +327,13 @@ RemotePolicy defines all the properties to fetch a remote policy
 
 ## Source
 
-Source specifies the location of the signature
+Source specifies the location of the signature / attestations.
 
 | Field | Description | Scheme | Required |
 | ----- | ----------- | ------ | -------- |
-| oci | OCI defines the registry from where to pull the signatures. | string | false |
+| oci | OCI defines the registry from where to pull the signature / attestations. | string | false |
 | signaturePullSecrets | SignaturePullSecrets is an optional list of references to secrets in the same namespace as the deploying resource for pulling any of the signatures used by this Source. | [][v1.LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#localobjectreference-v1-core) | false |
+| tagPrefix | TagPrefix is an optional prefix that signature and attestations have. This is the 'tag based discovery' and in the future once references are fully supported that should likely be the preferred way to handle these. | string | false |
 
 [Back to TOC](#table-of-contents)
 
