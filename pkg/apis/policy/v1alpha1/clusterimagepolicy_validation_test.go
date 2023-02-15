@@ -807,7 +807,22 @@ func TestAuthoritiesValidation(t *testing.T) {
 			},
 		},
 	}, {
-		name: "Should pass with multiple source oci is present",
+		name: "Should pass with single source oci is present",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{{Glob: "gcr.io/*"}},
+				Authorities: []Authority{
+					{
+						Key: &KeyRef{KMS: "hashivault://key/path"},
+						Sources: []Source{
+							{OCI: "registry1"},
+						},
+					},
+				},
+			},
+		},
+	}, {
+		name: "Should fail with multiple source oci is present",
 		policy: ClusterImagePolicy{
 			Spec: ClusterImagePolicySpec{
 				Images: []ImagePattern{{Glob: "gcr.io/*"}},
@@ -822,6 +837,7 @@ func TestAuthoritiesValidation(t *testing.T) {
 				},
 			},
 		},
+		errorString: "invalid value: source: spec.authorities[0].source\nonly single source is supported",
 	}, {
 		name: "Should pass with attestations present",
 		policy: ClusterImagePolicy{

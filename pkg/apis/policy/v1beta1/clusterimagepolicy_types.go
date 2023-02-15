@@ -171,9 +171,9 @@ type StaticRef struct {
 	Action string `json:"action"`
 }
 
-// Source specifies the location of the signature
+// Source specifies the location of the signature / attestations.
 type Source struct {
-	// OCI defines the registry from where to pull the signatures.
+	// OCI defines the registry from where to pull the signature / attestations.
 	// +optional
 	OCI string `json:"oci,omitempty"`
 	// SignaturePullSecrets is an optional list of references to secrets in the
@@ -181,6 +181,11 @@ type Source struct {
 	// used by this Source.
 	// +optional
 	SignaturePullSecrets []v1.LocalObjectReference `json:"signaturePullSecrets,omitempty"`
+	// TagPrefix is an optional prefix that signature and attestations have.
+	// This is the 'tag based discovery' and in the future once references are
+	// fully supported that should likely be the preferred way to handle these.
+	// +optional
+	TagPrefix *string `json:"tagPrefix,omitempty"`
 }
 
 // TLog specifies the URL to a transparency log that holds

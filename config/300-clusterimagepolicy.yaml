@@ -216,7 +216,7 @@ spec:
                           type: object
                           properties:
                             oci:
-                              description: OCI defines the registry from where to pull the signatures.
+                              description: OCI defines the registry from where to pull the signature / attestations.
                               type: string
                             signaturePullSecrets:
                               description: SignaturePullSecrets is an optional list of references to secrets in the same namespace as the deploying resource for pulling any of the signatures used by this Source.
@@ -227,6 +227,9 @@ spec:
                                   name:
                                     description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
                                     type: string
+                            tagPrefix:
+                              description: TagPrefix is an optional prefix that signature and attestations have. This is the 'tag based discovery' and in the future once references are fully supported that should likely be the preferred way to handle these.
+                              type: string
                       static:
                         description: Static specifies that signatures / attestations are not validated but instead a static policy is applied against matching images.
                         type: object
@@ -546,7 +549,7 @@ spec:
                           type: object
                           properties:
                             oci:
-                              description: OCI defines the registry from where to pull the signatures.
+                              description: OCI defines the registry from where to pull the signature / attestations.
                               type: string
                             signaturePullSecrets:
                               description: SignaturePullSecrets is an optional list of references to secrets in the same namespace as the deploying resource for pulling any of the signatures used by this Source.
@@ -557,6 +560,9 @@ spec:
                                   name:
                                     description: 'Name of the referent. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names'
                                     type: string
+                            tagPrefix:
+                              description: TagPrefix is an optional prefix that signature and attestations have. This is the 'tag based discovery' and in the future once references are fully supported that should likely be the preferred way to handle these.
+                              type: string
                       static:
                         description: Static specifies that signatures / attestations are not validated but instead a static policy is applied against matching images.
                         type: object

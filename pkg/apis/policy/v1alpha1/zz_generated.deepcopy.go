@@ -565,6 +565,11 @@ func (in *Source) DeepCopyInto(out *Source) {
 		*out = make([]v1.LocalObjectReference, len(*in))
 		copy(*out, *in)
 	}
+	if in.TagPrefix != nil {
+		in, out := &in.TagPrefix, &out.TagPrefix
+		*out = new(string)
+		**out = **in
+	}
 	return
 }
 

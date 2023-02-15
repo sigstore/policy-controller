@@ -206,12 +206,13 @@ RemotePolicy defines all the properties to fetch a remote policy
 
 ## Source
 
-Source specifies the location of the signature
+Source specifies the location of the signature / attestations.
 
 | Field | Description | Scheme | Required |
 | ----- | ----------- | ------ | -------- |
-| oci | OCI defines the registry from where to pull the signatures. | string | false |
+| oci | OCI defines the registry from where to pull the signature / attestations. | string | false |
 | signaturePullSecrets | SignaturePullSecrets is an optional list of references to secrets in the same namespace as the deploying resource for pulling any of the signatures used by this Source. | [][v1.LocalObjectReference](https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#localobjectreference-v1-core) | false |
+| tagPrefix | TagPrefix is an optional prefix that signature and attestations have. This is the 'tag based discovery' and in the future once references are fully supported that should likely be the preferred way to handle these. | string | false |
 
 [Back to TOC](#table-of-contents)
 

@@ -796,12 +796,28 @@ func TestAuthoritiesValidation(t *testing.T) {
 						Key: &KeyRef{KMS: "hashivault://key/path"},
 						Sources: []Source{
 							{OCI: "registry1"},
+						},
+					},
+				},
+			},
+		},
+	}, {
+		name: "Should fail with multiple source oci is present",
+		policy: ClusterImagePolicy{
+			Spec: ClusterImagePolicySpec{
+				Images: []ImagePattern{{Glob: "gcr.io/*"}},
+				Authorities: []Authority{
+					{
+						Key: &KeyRef{KMS: "hashivault://key/path"},
+						Sources: []Source{
+							{OCI: "registry1"},
 							{OCI: "registry2"},
 						},
 					},
 				},
 			},
 		},
+		errorString: "invalid value: source: spec.authorities[0].source\nonly single source is supported",
 	}, {
 		name:        "Should fail with invalid AWS KMS for Keyful",
 		errorString: "invalid value: awskms://localhost:8888/arn:butnotvalid: spec.authorities[0].key.kms\nkms key should be in the format awskms://[ENDPOINT]/[ID/ALIAS/ARN] (endpoint optional)",

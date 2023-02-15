@@ -143,8 +143,13 @@ func (authority *Authority) Validate(ctx context.Context) *apis.FieldError {
 		}
 	}
 
-	for i, source := range authority.Sources {
-		errs = errs.Also(source.Validate(ctx).ViaFieldIndex("source", i))
+	if len(authority.Sources) > 1 {
+		errs = errs.Also(apis.ErrInvalidValue("source", "source", "only single source is supported"))
+	} else {
+		// If there are multiple sources, don't complain about each of them.
+		for i, source := range authority.Sources {
+			errs = errs.Also(source.Validate(ctx).ViaFieldIndex("source", i))
+		}
 	}
 
 	for _, att := range authority.Attestations {
