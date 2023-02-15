@@ -26,7 +26,7 @@ spec:
       - issuerRegExp: .*kubernetes.default.*
         subjectRegExp: .*kubernetes.io/namespaces/default/serviceaccounts/default
     source:
-    - prefixTag: sigprefix
+    - tagPrefix: sigprefix
     ctlog:
       url: http://rekor.rekor-system.svc
     attestations:
