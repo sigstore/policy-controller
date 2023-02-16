@@ -69,7 +69,7 @@ require (
 	sigs.k8s.io/yaml v1.3.0
 )
 
-require github.com/hashicorp/go-kms-wrapping/v2 v2.0.7
+require github.com/hashicorp/go-kms-wrapping/v2 v2.0.8
 
 require (
 	cloud.google.com/go/compute v1.15.1 // indirect
