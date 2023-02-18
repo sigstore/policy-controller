@@ -25,25 +25,10 @@ import (
 	"github.com/sigstore/policy-controller/pkg/apis/policy/common"
 	"github.com/sigstore/policy-controller/pkg/apis/signaturealgo"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
-	"k8s.io/apimachinery/pkg/util/sets"
 	"knative.dev/pkg/apis"
 	"knative.dev/pkg/system"
 
 	policycontrollerconfig "github.com/sigstore/policy-controller/pkg/config"
-)
-
-var (
-	// TODO: create constants in to cosign?
-	validPredicateTypes = sets.NewString("custom", "slsaprovenance", "spdx", "spdxjson", "cyclonedx", "link", "vuln")
-
-	// If a static matches, define the behaviour for it.
-	validStaticRefTypes = sets.NewString("fail", "pass")
-
-	// Valid modes for a policy
-	validModes = sets.NewString("enforce", "warn")
-
-	// ValidResourceNames for a policy match selector
-	validResourceNames = sets.NewString("replicasets", "deployments", "pods", "cronjobs", "jobs", "statefulsets", "daemonsets")
 )
 
 // Validate implements apis.Validatable
@@ -72,7 +57,7 @@ func (spec *ClusterImagePolicySpec) Validate(ctx context.Context) (errors *apis.
 	for i, authority := range spec.Authorities {
 		errors = errors.Also(authority.Validate(ctx).ViaFieldIndex("authorities", i))
 	}
-	if spec.Mode != "" && !validModes.Has(spec.Mode) {
+	if spec.Mode != "" && !common.ValidModes.Has(spec.Mode) {
 		errors = errors.Also(apis.ErrInvalidValue(spec.Mode, "mode", "unsupported mode"))
 	}
 	for i, m := range spec.Match {
@@ -93,7 +78,8 @@ func (image *ImagePattern) Validate(ctx context.Context) *apis.FieldError {
 
 func (matchResource *MatchResource) Validate(ctx context.Context) *apis.FieldError {
 	var errs *apis.FieldError
-	if matchResource.Resource != "" && !validResourceNames.Has(matchResource.Resource) {
+	if matchResource.Resource != "" && common.ValidResourceNames.Len() > 0 &&
+		!common.ValidResourceNames.Has(matchResource.Resource) {
 		errs = errs.Also(apis.ErrInvalidValue(matchResource.Resource, "resource", "unsupported resource name"))
 	}
 
@@ -164,7 +150,7 @@ func (s *StaticRef) Validate(ctx context.Context) *apis.FieldError {
 
 	if s.Action == "" {
 		errs = errs.Also(apis.ErrMissingField("action"))
-	} else if !validStaticRefTypes.Has(s.Action) {
+	} else if !common.ValidStaticRefTypes.Has(s.Action) {
 		errs = errs.Also(apis.ErrInvalidValue(s.Action, "action", "unsupported action"))
 	}
 	return errs
@@ -253,7 +239,7 @@ func (a *Attestation) Validate(ctx context.Context) *apis.FieldError {
 	}
 	if a.PredicateType == "" {
 		errs = errs.Also(apis.ErrMissingField("predicateType"))
-	} else if !validPredicateTypes.Has(a.PredicateType) {
+	} else if !common.ValidPredicateTypes.Has(a.PredicateType) {
 		// This could be a fully specified URL, so check for that here.
 		if _, err := url.ParseRequestURI(a.PredicateType); err != nil {
 			errs = errs.Also(apis.ErrInvalidValue(a.PredicateType, "predicateType", "unsupported predicate type"))

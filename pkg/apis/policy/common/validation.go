@@ -27,6 +27,7 @@ import (
 	"github.com/sigstore/sigstore/pkg/signature/kms/azure"
 	"github.com/sigstore/sigstore/pkg/signature/kms/gcp"
 	"github.com/sigstore/sigstore/pkg/signature/kms/hashivault"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"knative.dev/pkg/apis"
 )
 
@@ -36,6 +37,22 @@ const (
 
 var (
 	SupportedKMSProviders = []string{aws.ReferenceScheme, azure.ReferenceScheme, hashivault.ReferenceScheme, gcp.ReferenceScheme}
+
+	// TODO: create constants in to cosign?
+	ValidPredicateTypes = sets.NewString("custom", "slsaprovenance", "spdx",
+		"spdxjson", "cyclonedx", "link", "vuln")
+
+	// If a static matches, define the behaviour for it.
+	ValidStaticRefTypes = sets.NewString("fail", "pass")
+
+	// Valid modes for a policy
+	ValidModes = sets.NewString("enforce", "warn")
+
+	// ValidResourceNames for a policy match selector.
+	// By default, this is empty, which should allow any resource name, however,
+	// this can be populated with the set of resources to allow in the validating
+	// webhook, which should match the set of resources.
+	ValidResourceNames = sets.NewString()
 )
 
 func ValidateOCI(oci string) error {

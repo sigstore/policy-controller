@@ -20,6 +20,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/sigstore/policy-controller/pkg/apis/policy/common"
 	"github.com/sigstore/policy-controller/pkg/apis/signaturealgo"
 	"github.com/stretchr/testify/require"
 	v1 "k8s.io/api/core/v1"
@@ -1556,6 +1557,9 @@ func validateError(t *testing.T, wantErrStr, wantWarnStr string, fe *apis.FieldE
 }
 
 func TestMatchValidation(t *testing.T) {
+	// Add a "supported" resource name that we'll use to test things.
+	common.ValidResourceNames.Insert("supported")
+
 	tests := []struct {
 		name        string
 		errorString string
@@ -1595,7 +1599,7 @@ func TestMatchValidation(t *testing.T) {
 						GroupVersionResource: metav1.GroupVersionResource{
 							Group:    "apps",
 							Version:  "v1",
-							Resource: "replicasets",
+							Resource: "supported",
 						},
 						ResourceSelector: &metav1.LabelSelector{
 							MatchLabels: map[string]string{"a": "b", "c": "d"},
@@ -1634,7 +1638,7 @@ func TestMatchValidation(t *testing.T) {
 						GroupVersionResource: metav1.GroupVersionResource{
 							Group:    "apps",
 							Version:  "v1",
-							Resource: "replicasets",
+							Resource: "supported",
 						},
 					},
 				},
