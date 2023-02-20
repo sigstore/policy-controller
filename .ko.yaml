@@ -13,7 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-defaultBaseImage: ghcr.io/chainguard-images/static:latest
+defaultBaseImage: cgr.dev/chainguard/static:latest
 
 builds:
   - id: policy-controller
