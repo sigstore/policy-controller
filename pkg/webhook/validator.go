@@ -832,7 +832,7 @@ func ValidatePolicyAttestationsForAuthority(ctx context.Context, ref name.Refere
 	// path, then error out
 	if len(verifiedAttestations) == 0 {
 		logging.FromContext(ctx).Errorf("no valid attestations found for authority %s for %s", name, ref.Name())
-		return nil, fmt.Errorf("%w for authority %s for %s", cosign.ErrNoMatchingAttestations, name, ref.Name())
+		return nil, fmt.Errorf("%s for authority %s for %s", cosign.ErrNoMatchingAttestationsMessage, name, ref.Name())
 	}
 	logging.FromContext(ctx).Debugf("Found %d valid attestations, validating policies for them", len(verifiedAttestations))
 
@@ -894,7 +894,7 @@ func ValidatePolicyAttestationsForAuthority(ctx context.Context, ref name.Refere
 				// generic 'no matching attestations'.
 				return nil, reterror
 			}
-			return nil, fmt.Errorf("%w with type %s", cosign.ErrNoMatchingAttestations, wantedAttestation.PredicateType)
+			return nil, fmt.Errorf("%s with type %s", cosign.ErrNoMatchingAttestationsMessage, wantedAttestation.PredicateType)
 		}
 		ret[wantedAttestation.Name] = attestationToPolicyAttestations(ctx, checkedAttestations)
 	}
