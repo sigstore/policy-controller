@@ -113,6 +113,7 @@ echo '::endgroup::'
 # Sign it with key
 echo '::group:: Sign demoimage with key, and add to rekor and TSA'
 export TSA_URL=`kubectl -n tsa-system get ksvc tsa -ojsonpath='{.status.url}'`
+export TSA_URL="${TSA_URL}/api/v1/timestamp"
 COSIGN_YES="true" COSIGN_PASSWORD="" cosign sign --key cosign.key --allow-insecure-registry --rekor-url ${REKOR_URL} --timestamp-server-url ${TSA_URL} ${demoimage}
 echo '::endgroup::'
 
