@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/sets"
 	"knative.dev/pkg/configmap"
 	"knative.dev/pkg/controller"
 	"knative.dev/pkg/injection/sharedmain"
@@ -36,6 +37,7 @@ import (
 	"sigs.k8s.io/release-utils/version"
 
 	"github.com/sigstore/policy-controller/pkg/apis/policy"
+	"github.com/sigstore/policy-controller/pkg/apis/policy/common"
 	"github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
 	"github.com/sigstore/policy-controller/pkg/apis/policy/v1beta1"
 	"github.com/sigstore/policy-controller/pkg/config"
@@ -98,6 +100,11 @@ func main() {
 	} else {
 		ctx = clusterimagepolicy.ToContext(ctx, duration)
 	}
+
+	// This must match the set of resources we configure in
+	// cmd/webhook/main.go in the "types" map.
+	common.ValidResourceNames = sets.NewString("replicasets", "deployments",
+		"pods", "cronjobs", "jobs", "statefulsets", "daemonsets")
 
 	v := version.GetVersionInfo()
 	vJSON, _ := v.JSONString()
