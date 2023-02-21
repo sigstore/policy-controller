@@ -1771,6 +1771,23 @@ func TestValidatePolicy(t *testing.T) {
 			},
 		},
 		cva: passKeyless,
+	}, {
+		name: "simple, wrong predicate keyless attestation, error",
+		policy: webhookcip.ClusterImagePolicy{
+			Authorities: []webhookcip.Authority{{
+				Name: "authority-0",
+				Keyless: &webhookcip.KeylessRef{
+					URL: fulcioURL,
+				},
+				Attestations: []webhookcip.AttestationPolicy{{
+					Name:          "test-att",
+					PredicateType: "custom", // attestation with predicate type vuln
+				}},
+			},
+			},
+		},
+		wantErrs: []string{"no matching attestations with type custom"},
+		cva:      passKeyless,
 	}}
 
 	for _, test := range tests {
