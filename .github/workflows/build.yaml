@@ -59,4 +59,4 @@ jobs:
         run: gcloud auth configure-docker --quiet
 
       - name: policy-controller
-        run: KO_PREFIX=gcr.io/projectsigstore/policy-controller/ci make build-sign-containers
+        run: COSIGN_YES="true" KO_PREFIX=gcr.io/projectsigstore/policy-controller/ci make build-sign-containers
