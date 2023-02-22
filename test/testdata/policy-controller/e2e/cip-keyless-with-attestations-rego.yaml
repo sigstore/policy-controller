@@ -37,7 +37,7 @@ spec:
           package sigstore
           default isCompliant = false
           isCompliant {
-            input.predicateType == "cosign.sigstore.dev/attestation/v1"
+            input.predicateType == "https://cosign.sigstore.dev/attestation/v1"
             input.predicate.Data == "foobar e2e test"
           }
 

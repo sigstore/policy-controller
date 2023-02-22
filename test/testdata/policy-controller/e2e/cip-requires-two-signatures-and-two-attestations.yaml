@@ -36,7 +36,7 @@ spec:
         data: |
           import "time"
           before: time.Parse(time.RFC3339, "2049-10-09T17:10:27Z")
-          predicateType: "cosign.sigstore.dev/attestation/v1"
+          predicateType: "https://cosign.sigstore.dev/attestation/v1"
           predicate: {
             Data: "foobar e2e test"
             Timestamp: <before
@@ -49,7 +49,7 @@ spec:
           import "time"
           before: time.Parse(time.RFC3339, "2022-04-15T17:10:27Z")
           after: time.Parse(time.RFC3339, "2022-03-09T17:10:27Z")
-          predicateType: "cosign.sigstore.dev/attestation/vuln/v1"
+          predicateType: "https://cosign.sigstore.dev/attestation/vuln/v1"
           predicate: {
             invocation: {
               uri: "invocation.example.com/cosign-testing"
@@ -79,7 +79,7 @@ spec:
       policy:
         type: cue
         data: |
-          predicateType: "cosign.sigstore.dev/attestation/v1"
+          predicateType: "https://cosign.sigstore.dev/attestation/v1"
           predicate: Data: "foobar key e2e test"
   - name: keylesssignature
     keyless:

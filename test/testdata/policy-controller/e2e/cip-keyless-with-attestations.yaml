@@ -34,5 +34,5 @@ spec:
       policy:
         type: cue
         data: |
-          predicateType: "cosign.sigstore.dev/attestation/v1"
+          predicateType: "https://cosign.sigstore.dev/attestation/v1"
           predicate: Data: "foobar e2e test"
