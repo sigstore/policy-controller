@@ -604,6 +604,7 @@ func TestAuthoritiesValidation(t *testing.T) {
 	tests := []struct {
 		name        string
 		errorString string
+		warnString  string
 		policy      ClusterImagePolicy
 	}{{
 		name:        "Should fail when authority is empty",
@@ -694,8 +695,9 @@ func TestAuthoritiesValidation(t *testing.T) {
 			},
 		},
 	}, {
-		name:        "Should fail when static and sources,attestations, and ctlog is specified",
+		name:        "Should fail when static and sources,attestations, and ctlog is specified, warn about legacy short predicate type",
 		errorString: "expected exactly one, got both: spec.authorities[0].attestations, spec.authorities[0].ctlog, spec.authorities[0].source, spec.authorities[0].static",
+		warnString:  "invalid value: vuln: spec.authorities[0].attestations.predicateType\ndeprecated value, please use RFC 3986 conformant values",
 		policy: ClusterImagePolicy{
 			Spec: ClusterImagePolicySpec{
 				Images: []ImagePattern{
@@ -747,7 +749,7 @@ func TestAuthoritiesValidation(t *testing.T) {
 				Authorities: []Authority{
 					{
 						Static:       &StaticRef{Action: "fail"},
-						Attestations: []Attestation{{Name: "first", PredicateType: "vuln"}},
+						Attestations: []Attestation{{Name: "first", PredicateType: "https://cosign.sigstore.dev/attestation/vuln/v1"}},
 						Sources: []Source{
 							{
 								OCI: "registry1",
@@ -855,8 +857,8 @@ func TestAuthoritiesValidation(t *testing.T) {
 					{
 						Key: &KeyRef{KMS: "hashivault://key/path"},
 						Attestations: []Attestation{
-							{Name: "first", PredicateType: "vuln"},
-							{Name: "second", PredicateType: "custom", Policy: &Policy{
+							{Name: "first", PredicateType: "https://cosign.sigstore.dev/attestation/vuln/v1"},
+							{Name: "second", PredicateType: "https://cosign.sigstore.dev/attestation/v1", Policy: &Policy{
 								Type: "cue",
 								Data: `predicateType: "cosign.sigstore.dev/attestation/vuln/v1"`,
 							},
@@ -875,8 +877,8 @@ func TestAuthoritiesValidation(t *testing.T) {
 					{
 						Key: &KeyRef{KMS: "hashivault://key/path"},
 						Attestations: []Attestation{
-							{Name: "first", PredicateType: "vuln"},
-							{Name: "second", PredicateType: "custom", Policy: &Policy{
+							{Name: "first", PredicateType: "https://cosign.sigstore.dev/attestation/vuln/v1"},
+							{Name: "second", PredicateType: "https://cosign.sigstore.dev/attestation/v1", Policy: &Policy{
 								Type:            "cue",
 								Data:            `predicateType: "cosign.sigstore.dev/attestation/vuln/v1"`,
 								FetchConfigFile: ptr.Bool(true),
@@ -897,8 +899,8 @@ func TestAuthoritiesValidation(t *testing.T) {
 					{
 						Key: &KeyRef{KMS: "hashivault://key/path"},
 						Attestations: []Attestation{
-							{Name: "first", PredicateType: "vuln"},
-							{Name: "second", PredicateType: "custom", Policy: &Policy{
+							{Name: "first", PredicateType: "https://cosign.sigstore.dev/attestation/vuln/v1"},
+							{Name: "second", PredicateType: "https://cosign.sigstore.dev/attestation/v1", Policy: &Policy{
 								Type:        "cue",
 								Data:        `predicateType: "cosign.sigstore.dev/attestation/vuln/v1"`,
 								IncludeSpec: ptr.Bool(true),
@@ -919,8 +921,8 @@ func TestAuthoritiesValidation(t *testing.T) {
 					{
 						Key: &KeyRef{KMS: "hashivault://key/path"},
 						Attestations: []Attestation{
-							{Name: "first", PredicateType: "vuln"},
-							{Name: "second", PredicateType: "custom", Policy: &Policy{
+							{Name: "first", PredicateType: "https://cosign.sigstore.dev/attestation/vuln/v1"},
+							{Name: "second", PredicateType: "https://cosign.sigstore.dev/attestation/v1", Policy: &Policy{
 								Type:              "cue",
 								Data:              `predicateType: "cosign.sigstore.dev/attestation/vuln/v1"`,
 								IncludeObjectMeta: ptr.Bool(true),
@@ -941,8 +943,8 @@ func TestAuthoritiesValidation(t *testing.T) {
 					{
 						Key: &KeyRef{KMS: "hashivault://key/path"},
 						Attestations: []Attestation{
-							{Name: "first", PredicateType: "vuln"},
-							{Name: "second", PredicateType: "custom", Policy: &Policy{
+							{Name: "first", PredicateType: "https://cosign.sigstore.dev/attestation/vuln/v1"},
+							{Name: "second", PredicateType: "https://cosign.sigstore.dev/attestation/v1", Policy: &Policy{
 								Type:            "cue",
 								Data:            `predicateType: "cosign.sigstore.dev/attestation/vuln/v1"`,
 								IncludeTypeMeta: ptr.Bool(true),
@@ -1069,7 +1071,7 @@ func TestAuthoritiesValidation(t *testing.T) {
 			testContext := policycontrollerconfig.ToContext(context.TODO(), &policycontrollerconfig.PolicyControllerConfig{NoMatchPolicy: policycontrollerconfig.AllowAll, FailOnEmptyAuthorities: true})
 
 			err := test.policy.Validate(testContext)
-			validateError(t, test.errorString, "", err)
+			validateError(t, test.errorString, test.warnString, err)
 		})
 	}
 }
@@ -1104,16 +1106,17 @@ func TestAttestationsValidation(t *testing.T) {
 	tests := []struct {
 		name        string
 		errorString string
+		warnString  string
 		attestation Attestation
 	}{{
-		name:        "vuln",
-		attestation: Attestation{Name: "first", PredicateType: "vuln"},
+		name:        "https://cosign.sigstore.dev/attestation/vuln/v1",
+		attestation: Attestation{Name: "first", PredicateType: "https://cosign.sigstore.dev/attestation/vuln/v1"},
 	}, {
 		name:        "fully specified URL",
 		attestation: Attestation{Name: "fullyspecified", PredicateType: "https://cyclonedx.org/schema"},
 	}, {
 		name:        "missing name",
-		attestation: Attestation{PredicateType: "vuln"},
+		attestation: Attestation{PredicateType: "https://cosign.sigstore.dev/attestation/vuln/v1"},
 		errorString: "missing field(s): name",
 	}, {
 		name:        "missing predicatetype",
@@ -1122,10 +1125,10 @@ func TestAttestationsValidation(t *testing.T) {
 	}, {
 		name:        "invalid predicatetype",
 		attestation: Attestation{Name: "first", PredicateType: "notsupported"},
-		errorString: "invalid value: notsupported: predicateType\nunsupported predicate type",
+		warnString:  "invalid value: notsupported: predicateType\ndeprecated value, please use RFC 3986 conformant values",
 	}, {
 		name: "custom with invalid policy type",
-		attestation: Attestation{Name: "second", PredicateType: "custom",
+		attestation: Attestation{Name: "second", PredicateType: "https://cosign.sigstore.dev/attestation/v1",
 			Policy: &Policy{
 				Type: "not-cue",
 				Data: `predicateType: "cosign.sigstore.dev/attestation/vuln/v1"`,
@@ -1134,7 +1137,7 @@ func TestAttestationsValidation(t *testing.T) {
 		errorString: "invalid value: not-cue: policy.type\nonly [cue,rego] are supported at the moment",
 	}, {
 		name: "custom with missing policy data, url and configMapRef",
-		attestation: Attestation{Name: "second", PredicateType: "custom",
+		attestation: Attestation{Name: "second", PredicateType: "https://cosign.sigstore.dev/attestation/v1",
 			Policy: &Policy{
 				Type: "cue",
 			},
@@ -1142,7 +1145,7 @@ func TestAttestationsValidation(t *testing.T) {
 		errorString: "missing field(s): policy.configMapRef, policy.data, policy.remote",
 	}, {
 		name: "custom with both policy data and configMapRef",
-		attestation: Attestation{Name: "second", PredicateType: "custom",
+		attestation: Attestation{Name: "second", PredicateType: "https://cosign.sigstore.dev/attestation/v1",
 			Policy: &Policy{
 				Type: "cue",
 				Data: `predicateType: "cosign.sigstore.dev/attestation/vuln/v1"`,
@@ -1155,7 +1158,7 @@ func TestAttestationsValidation(t *testing.T) {
 		errorString: "expected exactly one, got both: policy.configMapRef, policy.data, policy.remote",
 	}, {
 		name: "custom with both policy data, url and configMapRef",
-		attestation: Attestation{Name: "second", PredicateType: "custom",
+		attestation: Attestation{Name: "second", PredicateType: "https://cosign.sigstore.dev/attestation/v1",
 			Policy: &Policy{
 				Type: "cue",
 				Data: `predicateType: "cosign.sigstore.dev/attestation/vuln/v1"`,
@@ -1172,7 +1175,7 @@ func TestAttestationsValidation(t *testing.T) {
 		errorString: "expected exactly one, got both: policy.configMapRef, policy.data, policy.remote",
 	}, {
 		name: "custom with both policy url",
-		attestation: Attestation{Name: "second", PredicateType: "custom",
+		attestation: Attestation{Name: "second", PredicateType: "https://cosign.sigstore.dev/attestation/v1",
 			Policy: &Policy{
 				Type: "cue",
 				Remote: &RemotePolicy{
@@ -1183,7 +1186,7 @@ func TestAttestationsValidation(t *testing.T) {
 		},
 	}, {
 		name: "custom with invalid policy url scheme",
-		attestation: Attestation{Name: "second", PredicateType: "custom",
+		attestation: Attestation{Name: "second", PredicateType: "https://cosign.sigstore.dev/attestation/v1",
 			Policy: &Policy{
 				Type: "cue",
 				Remote: &RemotePolicy{
@@ -1195,7 +1198,7 @@ func TestAttestationsValidation(t *testing.T) {
 		errorString: "invalid value: http://example.com: policy.remote.url\nurl valid is invalid. host and https scheme are expected",
 	}, {
 		name: "custom with invalid configMapRef, missing key",
-		attestation: Attestation{Name: "second", PredicateType: "custom",
+		attestation: Attestation{Name: "second", PredicateType: "https://cosign.sigstore.dev/attestation/v1",
 			Policy: &Policy{
 				Type: "cue",
 				ConfigMapRef: &ConfigMapReference{
@@ -1206,7 +1209,7 @@ func TestAttestationsValidation(t *testing.T) {
 		errorString: "missing field(s): policy.configMapRef.key",
 	}, {
 		name: "custom with policy",
-		attestation: Attestation{Name: "second", PredicateType: "custom",
+		attestation: Attestation{Name: "second", PredicateType: "https://cosign.sigstore.dev/attestation/v1",
 			Policy: &Policy{
 				Type: "cue",
 				Data: `predicateType: "cosign.sigstore.dev/attestation/vuln/v1"`,
@@ -1218,7 +1221,7 @@ func TestAttestationsValidation(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			err := test.attestation.Validate(context.TODO())
-			validateError(t, test.errorString, "", err)
+			validateError(t, test.errorString, test.warnString, err)
 		})
 	}
 }

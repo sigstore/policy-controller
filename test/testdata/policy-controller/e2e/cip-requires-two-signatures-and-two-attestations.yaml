@@ -29,7 +29,7 @@ spec:
     ctlog:
       url: http://rekor.rekor-system.svc
     attestations:
-    - predicateType: custom
+    - predicateType: "https://cosign.sigstore.dev/attestation/v1"
       name: customkeyless
       policy:
         type: cue
@@ -41,7 +41,7 @@ spec:
             Data: "foobar e2e test"
             Timestamp: <before
           }
-    - predicateType: vuln
+    - predicateType: "https://cosign.sigstore.dev/attestation/vuln/v1"
       name: vulnkeyless
       policy:
         type: cue
@@ -75,7 +75,7 @@ spec:
       url: http://rekor.rekor-system.svc
     attestations:
     - name: custom-match-predicate
-      predicateType: custom
+      predicateType: "https://cosign.sigstore.dev/attestation/v1"
       policy:
         type: cue
         data: |
