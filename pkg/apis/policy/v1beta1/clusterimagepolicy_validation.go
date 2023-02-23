@@ -237,12 +237,20 @@ func (a *Attestation) Validate(ctx context.Context) *apis.FieldError {
 	if a.Name == "" {
 		errs = errs.Also(apis.ErrMissingField("name"))
 	}
-	if a.PredicateType == "" {
+	switch {
+	case a.PredicateType == "":
+		// This is just straight up missing, so error out.
 		errs = errs.Also(apis.ErrMissingField("predicateType"))
-	} else if !common.ValidPredicateTypes.Has(a.PredicateType) {
+	case common.ValidPredicateTypes.Has(a.PredicateType):
+		// Ok, it's a valid, deprecated short form. It's fine for now, but
+		// should remove it soon because it is very error prone, so warn.
+		errs = errs.Also(apis.ErrInvalidValue(a.PredicateType, "predicateType", "deprecated value, please use RFC 3986 conformant values").At(apis.WarningLevel))
+	default:
 		// This could be a fully specified URL, so check for that here.
 		if _, err := url.ParseRequestURI(a.PredicateType); err != nil {
-			errs = errs.Also(apis.ErrInvalidValue(a.PredicateType, "predicateType", "unsupported predicate type"))
+			// This is fine for now, but should remove it soon because it is
+			// very error prone.
+			errs = errs.Also(apis.ErrInvalidValue(a.PredicateType, "predicateType", "deprecated value, please use RFC 3986 conformant values").At(apis.WarningLevel))
 		}
 	}
 	errs = errs.Also(a.Policy.Validate(ctx).ViaField("policy"))

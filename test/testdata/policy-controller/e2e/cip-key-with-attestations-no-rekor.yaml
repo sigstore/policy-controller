@@ -29,7 +29,7 @@ spec:
         -----END PUBLIC KEY-----
     attestations:
     - name: custom-match-predicate
-      predicateType: custom
+      predicateType: "https://cosign.sigstore.dev/attestation/v1"
       policy:
         type: cue
         data: |
