@@ -1786,7 +1786,7 @@ func TestValidatePolicy(t *testing.T) {
 			},
 			},
 		},
-		wantErrs: []string{"no matching attestations with type custom, checked the following predicateTypes: https://cosign.sigstore.dev/attestation/vuln/v1"},
+		wantErrs: []string{"no matching attestations with type custom, checked the following predicateTypes: \"https://cosign.sigstore.dev/attestation/vuln/v1\""},
 		cva:      passKeyless,
 	}}
 
