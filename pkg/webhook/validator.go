@@ -859,6 +859,10 @@ func ValidatePolicyAttestationsForAuthority(ctx context.Context, ref name.Refere
 		// There's a particular type, so we need to go through all the verified
 		// attestations and make sure that our particular one is satisfied.
 		checkedAttestations := make([]attestation, 0, len(verifiedAttestations))
+		// To aid in determining if there's a mismatch in what predicateType
+		// we're looking for and what we checked, keep track of them here so
+		// that we can help the user figure out if there's a typo, etc.
+		checkedPredicateTypes := []string{}
 		for _, va := range verifiedAttestations {
 			attBytes, gotPredicateType, err := policy.AttestationToPayloadJSON(ctx, wantedAttestation.PredicateType, va)
 			if gotPredicateType != "" {
@@ -872,6 +876,7 @@ func ValidatePolicyAttestationsForAuthority(ctx context.Context, ref name.Refere
 				logging.FromContext(ctx).Warnf("failed to convert attestation payload to json: %v", err)
 				continue
 			}
+			checkedPredicateTypes = append(checkedPredicateTypes, gotPredicateType)
 			if attBytes == nil {
 				// This happens when we ask for a predicate type that this
 				// attestation is not for. It's not an error, so we skip it.
