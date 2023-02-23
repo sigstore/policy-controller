@@ -28,7 +28,7 @@ require (
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/ryanuber/go-glob v1.0.0
-	github.com/sigstore/cosign/v2 v2.0.0-rc.3
+	github.com/sigstore/cosign/v2 v2.0.0
 	github.com/sigstore/rekor v1.0.1
 	github.com/sigstore/sigstore v1.5.2
 	github.com/stretchr/testify v1.8.1
