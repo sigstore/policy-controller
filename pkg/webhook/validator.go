@@ -23,6 +23,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/google/go-containerregistry/pkg/authn"
@@ -842,6 +843,13 @@ func ValidatePolicyAttestationsForAuthority(ctx context.Context, ref name.Refere
 	// possible.
 	ret := make(map[string][]PolicyAttestation, len(authority.Attestations))
 
+	// Keep track of all the predicate types that we checked so that we can
+	// provide the user with a helpful error message in cases where the
+	// precicateType specified is not found (typoed, using different than
+	// expected, etc.).
+	// We keep these in the map since there can be duplicates, so just use
+	// map as uniquifier.
+	checkedPredicateTypes := map[string]struct{}{}
 	for _, wantedAttestation := range authority.Attestations {
 		// Since there can be multiple verified attestations that matched, for
 		// example multiple 'custom' attestations. We keep the first error that
@@ -852,7 +860,10 @@ func ValidatePolicyAttestationsForAuthority(ctx context.Context, ref name.Refere
 		// attestations and make sure that our particular one is satisfied.
 		checkedAttestations := make([]attestation, 0, len(verifiedAttestations))
 		for _, va := range verifiedAttestations {
-			attBytes, err := policy.AttestationToPayloadJSON(ctx, wantedAttestation.PredicateType, va)
+			attBytes, gotPredicateType, err := policy.AttestationToPayloadJSON(ctx, wantedAttestation.PredicateType, va)
+			if gotPredicateType != "" {
+				checkedPredicateTypes[gotPredicateType] = struct{}{}
+			}
 			if err != nil {
 				if reterror == nil {
 					// Only stash the first error
@@ -894,7 +905,11 @@ func ValidatePolicyAttestationsForAuthority(ctx context.Context, ref name.Refere
 				// generic 'no matching attestations'.
 				return nil, reterror
 			}
-			return nil, fmt.Errorf("%s with type %s", cosign.ErrNoMatchingAttestationsMessage, wantedAttestation.PredicateType)
+			cpt := make([]string, 0, len(checkedPredicateTypes))
+			for pt := range checkedPredicateTypes {
+				cpt = append(cpt, pt)
+			}
+			return nil, fmt.Errorf("%s with type %s, checked the following predicateTypes: %q", cosign.ErrNoMatchingAttestationsMessage, wantedAttestation.PredicateType, strings.Join(cpt, ","))
 		}
 		ret[wantedAttestation.Name] = attestationToPolicyAttestations(ctx, checkedAttestations)
 	}
