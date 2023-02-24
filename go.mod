@@ -255,6 +255,3 @@ require (
 // TODO: this dependency causes issues on webhook startup due
 // to conflicting "log_dir" flags between this and klog (knative)
 replace github.com/golang/glog => github.com/jdolitsky/glog v0.0.0-20220729172235-78744e90d087
-
-// DO NOT MERGE!!! Update to cosign releave v2.0 before merge
-replace github.com/sigstore/cosign/v2 => github.com/sigstore/cosign/v2 v2.0.0-rc.3.0.20230223192635-d6b9001f8e6e
