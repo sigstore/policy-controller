@@ -35,7 +35,7 @@ jobs:
     steps:
       - uses: actions/checkout@ac593985615ec2ede58e132d2e21d2b1cbd6127c # v3.3.0
 
-      - uses: sigstore/cosign-installer@4079ad3567a89f68395480299c77e40170430341
+      - uses: sigstore/cosign-installer@77560e399fb1b0d50a89024c16dd3a908f8d44b5
         with:
           cosign-release: 'v2.0.0'
 
