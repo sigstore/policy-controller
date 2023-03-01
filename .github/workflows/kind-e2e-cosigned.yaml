@@ -57,7 +57,7 @@ jobs:
     - name: Install yq
       uses: mikefarah/yq@9949a237245595739c363f0c165e7d8df32b0d85 # v4.27.3
 
-    - uses: sigstore/cosign-installer@4079ad3567a89f68395480299c77e40170430341
+    - uses: sigstore/cosign-installer@77560e399fb1b0d50a89024c16dd3a908f8d44b5
       with:
         cosign-release: 'v2.0.0'
 
