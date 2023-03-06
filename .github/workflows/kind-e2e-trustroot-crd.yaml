@@ -58,8 +58,6 @@ jobs:
       uses: mikefarah/yq@47f4f8c7939f887e851b35f14def6741b8f5396e # v4.27.3
 
     - uses: sigstore/cosign-installer@c3667d99424e7e6047999fb6246c0da843953c65
-      with:
-        cosign-release: 'v2.0.0'
 
     - name: Setup mirror
       uses: chainguard-dev/actions/setup-mirror@main
