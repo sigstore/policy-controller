@@ -237,6 +237,9 @@ spec:
                           action:
                             description: Action defines how to handle a matching policy.
                             type: string
+                          message:
+                            description: For fail actions, emit an optional custom message
+                            type: string
                 images:
                   description: Images defines the patterns of image names that should be subject to this policy.
                   type: array
@@ -569,6 +572,9 @@ spec:
                         properties:
                           action:
                             description: Action defines how to handle a matching policy.
+                            type: string
+                          message:
+                            description: For fail actions, emit an optional custom message
                             type: string
                 images:
                   description: Images defines the patterns of image names that should be subject to this policy.

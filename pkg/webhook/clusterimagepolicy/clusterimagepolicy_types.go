@@ -122,7 +122,8 @@ type KeylessRef struct {
 }
 
 type StaticRef struct {
-	Action string `json:"action"`
+	Action  string `json:"action"`
+	Message string `json:"message,omitempty"`
 }
 
 type AttestationPolicy struct {
@@ -406,6 +407,7 @@ func convertStaticRefV1Alpha1ToWebhook(in *v1alpha1.StaticRef) *StaticRef {
 	}
 
 	return &StaticRef{
-		Action: in.Action,
+		Action:  in.Action,
+		Message: in.Message,
 	}
 }
