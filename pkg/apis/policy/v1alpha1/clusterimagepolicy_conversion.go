@@ -140,7 +140,8 @@ func (authority *Authority) ConvertTo(ctx context.Context, sink *v1beta1.Authori
 	}
 	if authority.Static != nil {
 		sink.Static = &v1beta1.StaticRef{
-			Action: authority.Static.Action,
+			Action:  authority.Static.Action,
+			Message: authority.Static.Message,
 		}
 	}
 	return nil
@@ -293,7 +294,10 @@ func (authority *Authority) ConvertFrom(ctx context.Context, source *v1beta1.Aut
 		}
 	}
 	if source.Static != nil {
-		authority.Static = &StaticRef{Action: source.Static.Action}
+		authority.Static = &StaticRef{
+			Action:  source.Static.Action,
+			Message: source.Static.Message,
+		}
 	}
 	return nil
 }

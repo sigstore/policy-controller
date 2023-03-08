@@ -344,6 +344,7 @@ StaticRef specifies that signatures / attestations are not validated but instead
 | Field | Description | Scheme | Required |
 | ----- | ----------- | ------ | -------- |
 | action | Action defines how to handle a matching policy. | string | true |
+| message | For fail actions, emit an optional custom message. This only makes sense for 'fail' action because on 'pass' there's no place to jot down the message. | string | false |
 
 [Back to TOC](#table-of-contents)
 

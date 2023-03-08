@@ -1710,6 +1710,18 @@ func TestValidatePolicy(t *testing.T) {
 		},
 		wantErrs: []string{"disallowed by static policy"},
 	}, {
+		name: "simple, static set to fail with custom message",
+		policy: webhookcip.ClusterImagePolicy{
+			Authorities: []webhookcip.Authority{{
+				Name: "authority-0",
+				Static: &webhookcip.StaticRef{
+					Action:  "fail",
+					Message: "test custom message here",
+				},
+			}},
+		},
+		wantErrs: []string{"disallowed by static policy: test custom message here"},
+	}, {
 		name: "simple, public key, no error",
 		policy: webhookcip.ClusterImagePolicy{
 			Authorities: []webhookcip.Authority{{

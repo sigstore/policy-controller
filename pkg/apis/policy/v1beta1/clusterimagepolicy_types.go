@@ -169,6 +169,8 @@ type KeyRef struct {
 type StaticRef struct {
 	// Action defines how to handle a matching policy.
 	Action string `json:"action"`
+	// For fail actions, emit an optional custom message
+	Message string `json:"message,omitempty"`
 }
 
 // Source specifies the location of the signature / attestations.
