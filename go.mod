@@ -44,9 +44,9 @@ require (
 	google.golang.org/protobuf v1.30.0
 	gopkg.in/square/go-jose.v2 v2.6.0
 	gopkg.in/yaml.v3 v3.0.1
-	k8s.io/api v0.26.2
-	k8s.io/apimachinery v0.26.2
-	k8s.io/client-go v0.25.4
+	k8s.io/api v0.26.3
+	k8s.io/apimachinery v0.26.3
+	k8s.io/client-go v0.26.3
 	k8s.io/code-generator v0.25.4
 	k8s.io/kube-openapi v0.0.0-20221012153701-172d655c2280
 	knative.dev/hack v0.0.0-20221104013908-8f3c7050408b
