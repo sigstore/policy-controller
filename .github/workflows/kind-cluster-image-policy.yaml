@@ -32,7 +32,6 @@ jobs:
     strategy:
       matrix:
         k8s-version:
-        - v1.22.x
         - v1.23.x
         - v1.24.x
         - v1.25.x
@@ -45,7 +44,7 @@ jobs:
 
     env:
       KO_DOCKER_REPO: "registry.local:5000/policy-controller"
-      SCAFFOLDING_RELEASE_VERSION: "v0.4.12"
+      SCAFFOLDING_RELEASE_VERSION: "v0.4.13"
       GO111MODULE: on
       GOFLAGS: -ldflags=-s -ldflags=-w
       KOCACHE: ~/ko
