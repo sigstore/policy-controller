@@ -46,7 +46,7 @@ spec:
                   type: object
                   properties:
                     mirror:
-                      description: 'Mirror is the remote mirror, for example: https://sigstore-tuf-root.storage.googleapis.com'
+                      description: 'Mirror is the remote mirror, for example: https://tuf-repo-cdn.sigstore.dev'
                       type: string
                     root:
                       description: Root is the base64 encoded, json trusted initial root.

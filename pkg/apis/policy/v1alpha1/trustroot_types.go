@@ -100,7 +100,7 @@ type Remote struct {
 	Root []byte `json:"root"`
 
 	// Mirror is the remote mirror, for example:
-	// https://sigstore-tuf-root.storage.googleapis.com
+	// https://tuf-repo-cdn.sigstore.dev
 	Mirror apis.URL `json:"mirror"`
 
 	// Targets is where the targets live off of the root of the Remote
