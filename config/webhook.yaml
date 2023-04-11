@@ -55,11 +55,11 @@ spec:
         ]
         resources:
           requests:
-            cpu: 20m
-            memory: 20Mi
+            cpu: 40m
+            memory: 40Mi
           limits:
-            cpu: 200m
-            memory: 200Mi
+            cpu: 400m
+            memory: 400Mi
         env:
         - name: SYSTEM_NAMESPACE
           valueFrom:

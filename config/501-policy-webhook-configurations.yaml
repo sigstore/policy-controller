@@ -42,5 +42,4 @@ webhooks:
     matchPolicy: Equivalent
     name: validating.clusterimagepolicy.sigstore.dev
     sideEffects: None
-
 ---

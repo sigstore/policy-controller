@@ -206,7 +206,9 @@ var types = map[schema.GroupVersionKind]resourcesemantics.GenericCRD{
 
 	batchv1.SchemeGroupVersion.WithKind("CronJob"):      &crdNoStatusUpdatesOrDeletes{GenericCRD: &duckv1.CronJob{}},
 	batchv1beta1.SchemeGroupVersion.WithKind("CronJob"): &crdNoStatusUpdatesOrDeletes{GenericCRD: &duckv1.CronJob{}},
+}
 
+var typesCIP = map[schema.GroupVersionKind]resourcesemantics.GenericCRD{
 	// v1alpha1
 	v1alpha1.SchemeGroupVersion.WithKind("ClusterImagePolicy"): &v1alpha1.ClusterImagePolicy{},
 	v1alpha1.SchemeGroupVersion.WithKind("TrustRoot"):          &v1alpha1.TrustRoot{},
@@ -295,7 +297,7 @@ func NewPolicyValidatingAdmissionController(ctx context.Context, cmw configmap.W
 		ctx,
 		*validatingCIPWebhookName,
 		"/validating",
-		types,
+		typesCIP,
 		func(ctx context.Context) context.Context {
 			ctx = policyControllerConfigStore.ToContext(ctx)
 			return ctx
@@ -309,7 +311,7 @@ func NewPolicyMutatingAdmissionController(ctx context.Context, cmw configmap.Wat
 		ctx,
 		*mutatingCIPWebhookName,
 		"/defaulting",
-		types,
+		typesCIP,
 		func(ctx context.Context) context.Context {
 			return ctx
 		},

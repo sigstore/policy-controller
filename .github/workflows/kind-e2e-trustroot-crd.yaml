@@ -84,6 +84,7 @@ jobs:
 
         # Wait for the webhook to come up and become Ready
         kubectl rollout status --timeout 5m --namespace cosign-system deployments/webhook
+        
         kubectl wait deployment -n cosign-system --for condition=Available=True --timeout=90s --all
 
     - name: Run TrustRoot CRD e2e tests
