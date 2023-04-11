@@ -96,7 +96,7 @@ jobs:
         sleep 30
 
         # And make sure a panic occurred
-        kubectl -n cosign-system logs deployment/policy-webhook | grep "panic: Failed to parse --policy-resync-period '1d' : time: unknown unit \"d\" in duration \"1d\""
+        kubectl -n cosign-system logs deployment/webhook | grep "panic: Failed to parse --policy-resync-period '1d' : time: unknown unit \"d\" in duration \"1d\""
 
         sleep 10
 
@@ -114,7 +114,6 @@ jobs:
 
         # Wait for the webhook to come up and become Ready
         kubectl rollout status --timeout 5m --namespace cosign-system deployments/webhook
-        kubectl rollout status --timeout 5m --namespace cosign-system deployments/policy-webhook
         sleep 10
 
     - name: Collect diagnostics
