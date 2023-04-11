@@ -43,3 +43,4 @@ webhooks:
     name: validating.clusterimagepolicy.sigstore.dev
     sideEffects: None
 
+---
