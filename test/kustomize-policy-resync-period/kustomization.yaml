@@ -25,4 +25,4 @@ patches:
 
   target:
     kind: Deployment
-    name: policy-webhook
+    name: webhook
