@@ -50,6 +50,8 @@ spec:
           # TUF roots.
           #"--tuf-mirror", "http://tuf.tuf-system.svc",
           #"--tuf-root", "/var/run/tuf/root.json",
+          # Uncomment to customize ClusterImagePolicy resync period
+          # "--policy-resync-period", "10h",
         ]
         resources:
           requests:
