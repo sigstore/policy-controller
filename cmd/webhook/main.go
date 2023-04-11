@@ -20,14 +20,22 @@ import (
 	"flag"
 	"log"
 	"os"
+	"time"
 
 	policyduckv1beta1 "github.com/sigstore/policy-controller/pkg/apis/duck/v1beta1"
+	"github.com/sigstore/policy-controller/pkg/apis/policy"
+	"github.com/sigstore/policy-controller/pkg/apis/policy/common"
+	"github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
+	"github.com/sigstore/policy-controller/pkg/apis/policy/v1beta1"
+	"github.com/sigstore/policy-controller/pkg/reconciler/clusterimagepolicy"
+	"github.com/sigstore/policy-controller/pkg/reconciler/trustroot"
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
 	appsv1 "k8s.io/api/apps/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	batchv1beta1 "k8s.io/api/batch/v1beta1"
 	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/apimachinery/pkg/util/sets"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
 	kubeclient "knative.dev/pkg/client/injection/kube/client"
 	"knative.dev/pkg/configmap"
@@ -38,6 +46,7 @@ import (
 	"knative.dev/pkg/webhook"
 	"knative.dev/pkg/webhook/certificates"
 	"knative.dev/pkg/webhook/resourcesemantics"
+	"knative.dev/pkg/webhook/resourcesemantics/conversion"
 	"knative.dev/pkg/webhook/resourcesemantics/defaulting"
 	"knative.dev/pkg/webhook/resourcesemantics/validation"
 	"sigs.k8s.io/release-utils/version"
@@ -49,23 +58,46 @@ import (
 	cwebhook "github.com/sigstore/policy-controller/pkg/webhook"
 )
 
-// webhookName holds the name of the validating and mutating webhook
-// configuration resources dispatching admission requests to policy-controller.
-// It is also the name of the webhook which is injected by the controller
-// with the resource types, namespace selectors, CABundle and service path.
-// If this changes, you must also change:
-//
-//	./config/500-webhook-configuration.yaml
-//	https://github.com/sigstore/helm-charts/blob/main/charts/policy-controller/templates/webhook/webhook_mutating.yaml
-//	https://github.com/sigstore/helm-charts/blob/main/charts/policy-controller/templates/webhook/webhook_validating.yaml
-var webhookName = flag.String("webhook-name", "policy.sigstore.dev", "The name of the validating and mutating webhook configurations as well as the webhook name that is automatically configured, if exists, with different rules and client settings setting how the admission requests to be dispatched to policy-controller.")
+var (
+	// webhookName holds the name of the validating and mutating webhook
+	// configuration resources dispatching admission requests to policy-controller.
+	// It is also the name of the webhook which is injected by the controller
+	// with the resource types, namespace selectors, CABundle and service path.
+	// If this changes, you must also change:
+	//
+	//	./config/500-webhook-configuration.yaml
+	//	https://github.com/sigstore/helm-charts/blob/main/charts/policy-controller/templates/webhook/webhook_mutating.yaml
+	//	https://github.com/sigstore/helm-charts/blob/main/charts/policy-controller/templates/webhook/webhook_validating.yaml
+	webhookName = flag.String("webhook-name", "policy.sigstore.dev", "The name of the validating and mutating webhook configurations as well as the webhook name that is automatically configured, if exists, with different rules and client settings setting how the admission requests to be dispatched to policy-controller.")
 
-var tufMirror = flag.String("tuf-mirror", tuf.DefaultRemoteRoot, "Alternate TUF mirror. If left blank, public sigstore one is used")
-var tufRoot = flag.String("tuf-root", "", "Alternate TUF root.json. If left blank, public sigstore one is used")
+	tufMirror = flag.String("tuf-mirror", tuf.DefaultRemoteRoot, "Alternate TUF mirror. If left blank, public sigstore one is used")
+	tufRoot   = flag.String("tuf-root", "", "Alternate TUF root.json. If left blank, public sigstore one is used")
 
-// Do not initialize TUF at all.
-// https://github.com/sigstore/policy-controller/issues/354
-var disableTUF = flag.Bool("disable-tuf", false, "Disable TUF support.")
+	// Do not initialize TUF at all.
+	// https://github.com/sigstore/policy-controller/issues/354
+	disableTUF = flag.Bool("disable-tuf", false, "Disable TUF support.")
+
+	// mutatingCIPWebhookName holds the name of the mutating webhook configuration
+	// resource dispatching admission requests to policy-webhook.
+	// It is also the name of the webhook which is injected by the controller
+	// with the resource types, namespace selectors, CABindle and service path.
+	// If this changes, you must also change:
+	//    ./config/501-policy-webhook-configurations.yaml
+	//    https://github.com/sigstore/helm-charts/blob/main/charts/policy-controller/templates/policy-webhook/policy_webhook_configurations.yaml
+	mutatingCIPWebhookName = flag.String("mutating-webhook-name", "defaulting.clusterimagepolicy.sigstore.dev", "The name of the mutating webhook configuration as well as the webhook name that is automatically configured, if exists, with different rules and client settings setting how the admission requests to be dispatched to policy-webhook.")
+	// validatingCIPWebhookName holds the name of the validating webhook configuration
+	// resource dispatching admission requests to policy-webhook.
+	// It is also the name of the webhook which is injected by the controller
+	// with the resource types, namespace selectors, CABindle and service path.
+	// If this changes, you must also change:
+	//    ./config/501-policy-webhook-configurations.yaml
+	//    https://github.com/sigstore/helm-charts/blob/main/charts/policy-controller/templates/policy-webhook/policy_webhook_configurations.yaml
+	validatingCIPWebhookName = flag.String("validating-webhook-name", "validating.clusterimagepolicy.sigstore.dev", "The name of the validating webhook configuration as well as the webhook name that is automatically configured, if exists, with different rules and client settings setting how the admission requests to be dispatched to policy-webhook.")
+
+	// policyResyncPeriod holds the interval which ClusterImagePolicies will resync
+	// This is essential for triggering a reconcile update for potentially stale KMS authorities.
+	policyResyncPeriod = flag.String("policy-resync-period", "10h", "The resync period for ClusterImagePolicies. The default is 10h.")
+)
 
 func main() {
 	opts := webhook.Options{
@@ -97,6 +129,17 @@ func main() {
 		}
 	}
 
+	if duration, err := time.ParseDuration(*policyResyncPeriod); err != nil {
+		logging.FromContext(ctx).Panicf("Failed to parse --policy-resync-period '%s' : %v", *policyResyncPeriod, err)
+	} else {
+		ctx = clusterimagepolicy.ToContext(ctx, duration)
+	}
+
+	// This must match the set of resources we configure in
+	// cmd/webhook/main.go in the "types" map.
+	common.ValidResourceNames = sets.NewString("replicasets", "deployments",
+		"pods", "cronjobs", "jobs", "statefulsets", "daemonsets")
+
 	v := version.GetVersionInfo()
 	vJSON, _ := v.JSONString()
 	log.Printf("%v", vJSON)
@@ -105,6 +148,11 @@ func main() {
 		certificates.NewController,
 		NewValidatingAdmissionController,
 		NewMutatingAdmissionController,
+		trustroot.NewController,
+		clusterimagepolicy.NewController,
+		NewPolicyValidatingAdmissionController,
+		NewPolicyMutatingAdmissionController,
+		newConversionController,
 	)
 }
 
@@ -158,6 +206,12 @@ var types = map[schema.GroupVersionKind]resourcesemantics.GenericCRD{
 
 	batchv1.SchemeGroupVersion.WithKind("CronJob"):      &crdNoStatusUpdatesOrDeletes{GenericCRD: &duckv1.CronJob{}},
 	batchv1beta1.SchemeGroupVersion.WithKind("CronJob"): &crdNoStatusUpdatesOrDeletes{GenericCRD: &duckv1.CronJob{}},
+
+	// v1alpha1
+	v1alpha1.SchemeGroupVersion.WithKind("ClusterImagePolicy"): &v1alpha1.ClusterImagePolicy{},
+	v1alpha1.SchemeGroupVersion.WithKind("TrustRoot"):          &v1alpha1.TrustRoot{},
+	// v1beta1
+	v1beta1.SchemeGroupVersion.WithKind("ClusterImagePolicy"): &v1beta1.ClusterImagePolicy{},
 }
 
 func NewValidatingAdmissionController(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
@@ -228,5 +282,67 @@ func NewMutatingAdmissionController(ctx context.Context, _ configmap.Watcher) *c
 		// Whether to disallow unknown fields.
 		// We pass false because we're using partial schemas.
 		false,
+	)
+}
+
+func NewPolicyValidatingAdmissionController(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
+	store := config.NewStore(logging.FromContext(ctx).Named("config-store"))
+	store.WatchConfigs(cmw)
+	policyControllerConfigStore := config.NewStore(logging.FromContext(ctx).Named("config-policy-controller"))
+	policyControllerConfigStore.WatchConfigs(cmw)
+
+	return validation.NewAdmissionController(
+		ctx,
+		*validatingCIPWebhookName,
+		"/validating",
+		types,
+		func(ctx context.Context) context.Context {
+			ctx = policyControllerConfigStore.ToContext(ctx)
+			return ctx
+		},
+		true,
+	)
+}
+
+func NewPolicyMutatingAdmissionController(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
+	return defaulting.NewAdmissionController(
+		ctx,
+		*mutatingCIPWebhookName,
+		"/defaulting",
+		types,
+		func(ctx context.Context) context.Context {
+			return ctx
+		},
+		true,
+	)
+}
+
+func newConversionController(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
+	// nolint: revive
+	var (
+		v1alpha1GroupVersion = v1alpha1.SchemeGroupVersion.Version
+		v1beta1GroupVersion  = v1beta1.SchemeGroupVersion.Version
+	)
+
+	return conversion.NewConversionController(ctx,
+		// The path on which to serve the webhook
+		"/resource-conversion",
+
+		// Specify the types of custom resource definitions that should be converted
+		map[schema.GroupKind]conversion.GroupKindConversion{
+			v1beta1.Kind("ClusterImagePolicy"): {
+				DefinitionName: policy.ClusterImagePolicyResource.String(),
+				HubVersion:     v1alpha1GroupVersion,
+				Zygotes: map[string]conversion.ConvertibleObject{
+					v1alpha1GroupVersion: &v1alpha1.ClusterImagePolicy{},
+					v1beta1GroupVersion:  &v1beta1.ClusterImagePolicy{},
+				},
+			},
+		},
+
+		// A function that infuses the context passed to ConvertTo/ConvertFrom/SetDefaults with custom metadata
+		func(ctx context.Context) context.Context {
+			return ctx
+		},
 	)
 }
