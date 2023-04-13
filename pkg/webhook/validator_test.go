@@ -4062,14 +4062,14 @@ func annotationsMatch(t *testing.T, name, got, want string) bool {
 	var wantParsed ResultAnnotations
 	err := json.Unmarshal([]byte(got), &gotParsed)
 
-	//Checks whether the error is nil or not
+	// Checks whether the error is nil or not
 	if err != nil {
 		t.Errorf("Failed to parse received JSON in %s = %s", name, got)
 	}
 
 	err = json.Unmarshal([]byte(want), &wantParsed)
 
-	//Checks whether the error is nil or not
+	// Checks whether the error is nil or not
 	if err != nil {
 		t.Errorf("Failed to parse wanted JSON in %s = %s", name, want)
 	}

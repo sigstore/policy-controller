@@ -1250,10 +1250,8 @@ func (v *Validator) annotatePodSpec(ctx context.Context, namespace, kind, apiVer
 			case result, ok := <-results:
 				if !ok {
 					logging.FromContext(ctx).Warnf("Annotation results channel failed to produce a result")
-				} else {
-					if result != nil {
-						annotations = append(annotations, result)
-					}
+				} else if result != nil {
+					annotations = append(annotations, result)
 				}
 			}
 		}
@@ -1298,10 +1296,8 @@ func (v *Validator) annotatePodSpec(ctx context.Context, namespace, kind, apiVer
 			case result, ok := <-results:
 				if !ok {
 					logging.FromContext(ctx).Warnf("Annotation results channel failed to produce a result")
-				} else {
-					if result != nil {
-						annotations = append(annotations, result)
-					}
+				} else if result != nil {
+					annotations = append(annotations, result)
 				}
 			}
 		}
