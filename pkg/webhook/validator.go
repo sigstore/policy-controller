@@ -961,6 +961,30 @@ func (v *Validator) ResolvePodSpecable(ctx context.Context, wp *duckv1.WithPod) 
 	v.resolvePodSpec(ctx, &wp.Spec.Template.Spec, opt)
 }
 
+// PodDefaulter implements duckv1.PodValidator
+func (v *Validator) PodDefaulter(ctx context.Context, p *duckv1.Pod) {
+	v.ResolvePod(ctx, p)
+	v.AnnotatePod(ctx, p)
+}
+
+// PodSpecableDefaulter implements duckv1.PodSpecValidator
+func (v *Validator) PodSpecableDefaulter(ctx context.Context, wp *duckv1.WithPod) {
+	v.ResolvePodSpecable(ctx, wp)
+	v.AnnotatePodSpecable(ctx, wp)
+}
+
+// PodScalableDefaulter implements policyduckv1beta1.PodScalableValidator
+func (v *Validator) PodScalableDefaulter(ctx context.Context, ps *policyduckv1beta1.PodScalable) {
+	v.ResolvePodScalable(ctx, ps)
+	v.AnnotatePodScalable(ctx, ps)
+}
+
+// CronJobDefaulter implements duckv1.CronJobValidator
+func (v *Validator) CronJobDefaulter(ctx context.Context, c *duckv1.CronJob) {
+	v.ResolveCronJob(ctx, c)
+	v.AnnotateCronJob(ctx, c)
+}
+
 // ResolvePod implements duckv1.PodValidator
 func (v *Validator) ResolvePod(ctx context.Context, p *duckv1.Pod) {
 	// Don't mess with things that are being deleted or already deleted or
@@ -1061,6 +1085,330 @@ func (v *Validator) resolvePodSpec(ctx context.Context, ps *corev1.PodSpec, opt 
 	resolveContainers(ps.InitContainers)
 	resolveContainers(ps.Containers)
 	resolveEphemeralContainers(ps.EphemeralContainers)
+}
+
+const ResultsAnnotationKey = "policy.sigstore.dev/policy-controller-results"
+
+// AnnotatePod implements duckv1.PodValidator
+func (v *Validator) AnnotatePod(ctx context.Context, p *duckv1.Pod) {
+	// Don't mess with things that are being deleted or already deleted or
+	// status update.
+	if isDeletedOrStatusUpdate(ctx, p.DeletionTimestamp) {
+		return
+	}
+
+	// Attach the spec/metadata for down the line to be attached if it's
+	// required by policy to be included in the PolicyResult.
+	ctx = IncludeSpec(ctx, p.Spec)
+	ctx = IncludeObjectMeta(ctx, p.ObjectMeta)
+
+	imagePullSecrets := make([]string, 0, len(p.Spec.ImagePullSecrets))
+	for _, s := range p.Spec.ImagePullSecrets {
+		imagePullSecrets = append(imagePullSecrets, s.Name)
+	}
+
+	ns := getNamespace(ctx, p.Namespace)
+	opt := k8schain.Options{
+		Namespace:          ns,
+		ServiceAccountName: p.Spec.ServiceAccountName,
+		ImagePullSecrets:   imagePullSecrets,
+	}
+
+	v.annotatePodSpec(ctx, ns, p.Kind, p.APIVersion, &p.ObjectMeta, &p.Spec, opt)
+}
+
+func (v *Validator) AnnotatePodSpecable(ctx context.Context, wp *duckv1.WithPod) {
+	// Don't mess with things that are being deleted or already deleted or
+	// status update.
+	if isDeletedOrStatusUpdate(ctx, wp.DeletionTimestamp) {
+		return
+	}
+
+	// Attach the spec/metadata for down the line to be attached if it's
+	// required by policy to be included in the PolicyResult.
+	ctx = IncludeSpec(ctx, wp.Spec)
+	ctx = IncludeObjectMeta(ctx, wp.ObjectMeta)
+	ctx = IncludeTypeMeta(ctx, wp.TypeMeta)
+
+	imagePullSecrets := make([]string, 0, len(wp.Spec.Template.Spec.ImagePullSecrets))
+	for _, s := range wp.Spec.Template.Spec.ImagePullSecrets {
+		imagePullSecrets = append(imagePullSecrets, s.Name)
+	}
+	ns := getNamespace(ctx, wp.Namespace)
+	opt := k8schain.Options{
+		Namespace:          ns,
+		ServiceAccountName: wp.Spec.Template.Spec.ServiceAccountName,
+		ImagePullSecrets:   imagePullSecrets,
+	}
+
+	v.annotatePodSpec(ctx, ns, wp.Kind, wp.APIVersion, &wp.ObjectMeta, &wp.Spec.Template.Spec, opt)
+}
+
+func (v *Validator) AnnotatePodScalable(ctx context.Context, ps *policyduckv1beta1.PodScalable) {
+	// If we are deleting (or already deleted) or updating status, don't block.
+	if isDeletedOrStatusUpdate(ctx, ps.DeletionTimestamp) {
+		return
+	}
+
+	// If we are being scaled down don't block it.
+	if ps.IsScalingDown(ctx) {
+		logging.FromContext(ctx).Debugf("Skipping annotations due to scale down request %s/%s", &ps.ObjectMeta.Name, &ps.ObjectMeta.Namespace)
+		return
+	}
+
+	// Attach the spec for down the line to be attached if it's required by
+	// policy to be included in the PolicyResult.
+	ctx = IncludeSpec(ctx, ps.Spec)
+	ctx = IncludeObjectMeta(ctx, ps.ObjectMeta)
+	ctx = IncludeTypeMeta(ctx, ps.TypeMeta)
+
+	imagePullSecrets := make([]string, 0, len(ps.Spec.Template.Spec.ImagePullSecrets))
+	for _, s := range ps.Spec.Template.Spec.ImagePullSecrets {
+		imagePullSecrets = append(imagePullSecrets, s.Name)
+	}
+	ns := getNamespace(ctx, ps.Namespace)
+	opt := k8schain.Options{
+		Namespace:          ns,
+		ServiceAccountName: ps.Spec.Template.Spec.ServiceAccountName,
+		ImagePullSecrets:   imagePullSecrets,
+	}
+
+	v.annotatePodSpec(ctx, ns, ps.Kind, ps.APIVersion, &ps.ObjectMeta, &ps.Spec.Template.Spec, opt)
+}
+
+func (v *Validator) AnnotateCronJob(ctx context.Context, c *duckv1.CronJob) {
+	// If we are deleting (or already deleted) or updating status, don't block.
+	if isDeletedOrStatusUpdate(ctx, c.DeletionTimestamp) {
+		return
+	}
+
+	// Attach the spec/metadata for down the line to be attached if it's
+	// required by policy to be included in the PolicyResult.
+	ctx = IncludeSpec(ctx, c.Spec)
+	ctx = IncludeObjectMeta(ctx, c.ObjectMeta)
+	ctx = IncludeTypeMeta(ctx, c.TypeMeta)
+
+	imagePullSecrets := make([]string, 0, len(c.Spec.JobTemplate.Spec.Template.Spec.ImagePullSecrets))
+	for _, s := range c.Spec.JobTemplate.Spec.Template.Spec.ImagePullSecrets {
+		imagePullSecrets = append(imagePullSecrets, s.Name)
+	}
+	ns := getNamespace(ctx, c.Namespace)
+	opt := k8schain.Options{
+		Namespace:          ns,
+		ServiceAccountName: c.Spec.JobTemplate.Spec.Template.Spec.ServiceAccountName,
+		ImagePullSecrets:   imagePullSecrets,
+	}
+
+	v.annotatePodSpec(ctx, ns, c.Kind, c.APIVersion, &c.ObjectMeta, &c.Spec.JobTemplate.Spec.Template.Spec, opt)
+}
+
+func (v *Validator) annotatePodSpec(ctx context.Context, namespace, kind, apiVersion string, objectMeta *metav1.ObjectMeta, ps *corev1.PodSpec, opt k8schain.Options) {
+	kc, err := k8schain.New(ctx, kubeclient.Get(ctx), opt)
+	if err != nil {
+		logging.FromContext(ctx).Warnf("Unable to build k8schain: %v", err)
+		return
+	}
+
+	labels := objectMeta.Labels
+	annotations := make([]*ContainerAnnotation, 0)
+
+	checkContainers := func(cs []corev1.Container, field string) {
+		results := make(chan *ContainerAnnotation, len(cs))
+		wg := new(sync.WaitGroup)
+		for i, c := range cs {
+			i := i
+			c := c
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+
+				// Require digests, otherwise the validation is meaningless
+				// since the tag can move.
+				fe := refOrFieldError(c.Image, field, i)
+				if fe != nil {
+					results <- &ContainerAnnotation{
+												Index: i,
+												Name: c.Name,
+												Image: c.Image,
+												Field: field,
+												Result: fe.Message,
+											}
+					return
+				}
+
+				containerAnnotation := v.generateContainerImageAnnotation(ctx, c.Image, namespace, c.Name, field, i, kind, apiVersion, labels, kc, ociremote.WithRemoteOptions(
+					remote.WithContext(ctx),
+					remote.WithAuthFromKeychain(kc),
+				))
+				results <- containerAnnotation
+			}()
+		}
+		for i := 0; i < len(cs); i++ {
+			select {
+			case <-ctx.Done():
+				logging.FromContext(ctx).Warnf("context was canceled before annotations completed")
+			case result, ok := <-results:
+				if !ok {
+					logging.FromContext(ctx).Warnf("Annotation results channel failed to produce a result")
+				} else {
+					if result != nil {
+						annotations = append(annotations, result)
+					}
+				}
+			}
+		}
+		wg.Wait()
+	}
+
+	checkEphemeralContainers := func(cs []corev1.EphemeralContainer, field string) {
+		results := make(chan *ContainerAnnotation, len(cs))
+		wg := new(sync.WaitGroup)
+		for i, c := range cs {
+			i := i
+			c := c
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+
+				// Require digests, otherwise the validation is meaningless
+				// since the tag can move.
+				fe := refOrFieldError(c.Image, field, i)
+				if fe != nil {
+					results <- &ContainerAnnotation{
+											Index: i,
+											Name: c.Name,
+											Image: c.Image,
+											Field: field,
+											Result: fe.Message,
+										}
+					return
+				}
+
+				containerAnnotation := v.generateContainerImageAnnotation(ctx, c.Image, namespace, c.Name, field, i, kind, apiVersion, labels, kc, ociremote.WithRemoteOptions(
+					remote.WithContext(ctx),
+					remote.WithAuthFromKeychain(kc),
+				))
+				results <- containerAnnotation
+			}()
+		}
+		for i := 0; i < len(cs); i++ {
+			select {
+			case <-ctx.Done():
+				logging.FromContext(ctx).Warnf("context was canceled before annotations completed")
+			case result, ok := <-results:
+				if !ok {
+					logging.FromContext(ctx).Warnf("Annotation results channel failed to produce a result")
+				} else {
+					if result != nil {
+						annotations = append(annotations, result)
+					}
+				}
+			}
+		}
+		wg.Wait()
+	}
+
+	checkContainers(ps.InitContainers, "initContainers")
+	checkContainers(ps.Containers, "containers")
+	checkEphemeralContainers(ps.EphemeralContainers, "ephemeralContainers")
+	resultAnnotations := ResultAnnotations{
+		ContainerResults: annotations,
+	}
+
+	annotationBytes, err := json.Marshal(resultAnnotations)
+	if err != nil {
+		logging.FromContext(ctx).Warnf("Unable to marshal annotatios: %v", err)
+		return
+	}
+	if objectMeta.Annotations == nil {
+		objectMeta.Annotations = make(map[string]string)
+	}
+	objectMeta.Annotations[ResultsAnnotationKey] = string(annotationBytes)
+}
+
+// ResultAnnotations is a list of ContainerAnnotations that will be added to
+// the resource during the mutation phase
+type ResultAnnotations struct {
+	ContainerResults	[]*ContainerAnnotation `json:"containerResults"`
+}
+
+// ContainerAnnotation stores the results of the validations so the
+// users can see which policies were evaluated for each container
+type ContainerAnnotation struct {
+	Index   int `json:"index"`
+	Name		string `json:"name"`
+	Image   string `json:"image"`
+	Field   string	`json:"field"`
+	Result  string `json:"result"`
+	ResultMsg  string `json:"resultMsg"`
+	PolicyResults	map[string]*PolicyResult `json:"policyResults,omitempty"`
+	PolicyErrors	map[string][]string `json:"policyErrors,omitempty"`
+}
+
+func (v *Validator) generateContainerImageAnnotation(ctx context.Context, containerImage string, namespace, containerName string, field string, index int, kind, apiVersion string, labels map[string]string, kc authn.Keychain, ociRemoteOpts ...ociremote.Option) *ContainerAnnotation {
+	annotation := &ContainerAnnotation{
+		Index: index,
+		Name: containerName,
+		Image: containerImage,
+		Field: field,
+		Result: "deny",
+		PolicyResults: make(map[string]*PolicyResult),
+		PolicyErrors: make(map[string][]string),
+	}
+	ref, err := name.ParseReference(containerImage)
+	if err != nil {
+		annotation.ResultMsg = err.Error()
+		return annotation
+	}
+	config := config.FromContext(ctx)
+
+	if config != nil {
+		policies, err := config.ImagePolicyConfig.GetMatchingPolicies(ref.Name(), kind, apiVersion, labels)
+		if err != nil {
+			annotation.ResultMsg = err.Error()
+			return annotation
+		}
+
+		// If there is at least one policy that matches, that means it
+		// has to be satisfied.
+		if len(policies) > 0 {
+			signatures, fieldErrors := validatePolicies(ctx, namespace, ref, policies, kc, ociRemoteOpts...)
+			annotation.PolicyResults = signatures
+			for failingPolicy, policyErrs := range fieldErrors {
+				for _, policyErr := range policyErrs{
+					var fe *apis.FieldError
+					if errors.As(policyErr, &fe) {
+						if fe.Filter(apis.WarningLevel) != nil {
+							annotation.Result = "warn"
+						}
+						annotation.PolicyErrors[failingPolicy] = append(annotation.PolicyErrors[failingPolicy], strings.Trim(fe.Message, "\n"))
+					} else {
+						annotation.PolicyErrors[failingPolicy] = append(annotation.PolicyErrors[failingPolicy], strings.Trim(policyErr.Error(), "\n"))
+					}
+				}
+			}
+			if len(signatures) != len(policies) {
+				annotation.ResultMsg = fmt.Sprintf("Failed to validate at least one policy for %s wanted %d policies, only validated %d", ref.Name(), len(policies), len(signatures))
+			} else {
+				annotation.ResultMsg = fmt.Sprintf("Validated %d policies for image %s", len(signatures), containerImage)
+				annotation.Result = "allow"
+			}
+			return annotation
+		}
+
+		// Container matched no policies
+		noMatchingError := setNoMatchingPoliciesError(ctx, containerImage, field, index)
+		if noMatchingError != nil {
+			annotation.ResultMsg = noMatchingError.Message
+		} else{
+			annotation.ResultMsg = fmt.Sprintf("No matching policies for %s", containerImage)
+			annotation.Result = "allow"
+		}
+
+		return annotation
+	}
+
+	return nil
 }
 
 // getNamespace tries to extract the namespace from the HTTPRequest
