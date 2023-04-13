@@ -1227,12 +1227,12 @@ func (v *Validator) annotatePodSpec(ctx context.Context, namespace, kind, apiVer
 				fe := refOrFieldError(c.Image, field, i)
 				if fe != nil {
 					results <- &ContainerAnnotation{
-												Index: i,
-												Name: c.Name,
-												Image: c.Image,
-												Field: field,
-												Result: fe.Message,
-											}
+						Index:  i,
+						Name:   c.Name,
+						Image:  c.Image,
+						Field:  field,
+						Result: fe.Message,
+					}
 					return
 				}
 
@@ -1275,12 +1275,12 @@ func (v *Validator) annotatePodSpec(ctx context.Context, namespace, kind, apiVer
 				fe := refOrFieldError(c.Image, field, i)
 				if fe != nil {
 					results <- &ContainerAnnotation{
-											Index: i,
-											Name: c.Name,
-											Image: c.Image,
-											Field: field,
-											Result: fe.Message,
-										}
+						Index:  i,
+						Name:   c.Name,
+						Image:  c.Image,
+						Field:  field,
+						Result: fe.Message,
+					}
 					return
 				}
 
@@ -1329,31 +1329,31 @@ func (v *Validator) annotatePodSpec(ctx context.Context, namespace, kind, apiVer
 // ResultAnnotations is a list of ContainerAnnotations that will be added to
 // the resource during the mutation phase
 type ResultAnnotations struct {
-	ContainerResults	[]*ContainerAnnotation `json:"containerResults"`
+	ContainerResults []*ContainerAnnotation `json:"containerResults"`
 }
 
 // ContainerAnnotation stores the results of the validations so the
 // users can see which policies were evaluated for each container
 type ContainerAnnotation struct {
-	Index   int `json:"index"`
-	Name		string `json:"name"`
-	Image   string `json:"image"`
-	Field   string	`json:"field"`
-	Result  string `json:"result"`
-	ResultMsg  string `json:"resultMsg"`
-	PolicyResults	map[string]*PolicyResult `json:"policyResults,omitempty"`
-	PolicyErrors	map[string][]string `json:"policyErrors,omitempty"`
+	Index         int                      `json:"index"`
+	Name          string                   `json:"name"`
+	Image         string                   `json:"image"`
+	Field         string                   `json:"field"`
+	Result        string                   `json:"result"`
+	ResultMsg     string                   `json:"resultMsg"`
+	PolicyResults map[string]*PolicyResult `json:"policyResults,omitempty"`
+	PolicyErrors  map[string][]string      `json:"policyErrors,omitempty"`
 }
 
 func (v *Validator) generateContainerImageAnnotation(ctx context.Context, containerImage string, namespace, containerName string, field string, index int, kind, apiVersion string, labels map[string]string, kc authn.Keychain, ociRemoteOpts ...ociremote.Option) *ContainerAnnotation {
 	annotation := &ContainerAnnotation{
-		Index: index,
-		Name: containerName,
-		Image: containerImage,
-		Field: field,
-		Result: "deny",
+		Index:         index,
+		Name:          containerName,
+		Image:         containerImage,
+		Field:         field,
+		Result:        "deny",
 		PolicyResults: make(map[string]*PolicyResult),
-		PolicyErrors: make(map[string][]string),
+		PolicyErrors:  make(map[string][]string),
 	}
 	ref, err := name.ParseReference(containerImage)
 	if err != nil {
@@ -1375,7 +1375,7 @@ func (v *Validator) generateContainerImageAnnotation(ctx context.Context, contai
 			signatures, fieldErrors := validatePolicies(ctx, namespace, ref, policies, kc, ociRemoteOpts...)
 			annotation.PolicyResults = signatures
 			for failingPolicy, policyErrs := range fieldErrors {
-				for _, policyErr := range policyErrs{
+				for _, policyErr := range policyErrs {
 					var fe *apis.FieldError
 					if errors.As(policyErr, &fe) {
 						if fe.Filter(apis.WarningLevel) != nil {
@@ -1400,7 +1400,7 @@ func (v *Validator) generateContainerImageAnnotation(ctx context.Context, contai
 		noMatchingError := setNoMatchingPoliciesError(ctx, containerImage, field, index)
 		if noMatchingError != nil {
 			annotation.ResultMsg = noMatchingError.Message
-		} else{
+		} else {
 			annotation.ResultMsg = fmt.Sprintf("No matching policies for %s", containerImage)
 			annotation.Result = "allow"
 		}

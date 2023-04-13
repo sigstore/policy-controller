@@ -3382,7 +3382,7 @@ func TestAnnotatePod(t *testing.T) {
 			}},
 		},
 		want: `{"containerResults":[{"index":0,"name":"setup-stuff","image":"gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4","field":"initContainers","result":"allow","resultMsg":"Validated 1 policies for image gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4","policyResults":{"cluster-image-policy":{"authorityMatches":{"":{"signatures":[{"id":"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}]}}}}},{"index":0,"name":"user-container","image":"gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4","field":"containers","result":"allow","resultMsg":"Validated 1 policies for image gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4","policyResults":{"cluster-image-policy":{"authorityMatches":{"":{"signatures":[{"id":"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}]}}}}}]}`,
-		cvs: pass,
+		cvs:  pass,
 		customContext: config.ToContext(context.Background(),
 			&config.Config{
 				ImagePolicyConfig: &config.ImagePolicyConfig{
@@ -3415,7 +3415,7 @@ func TestAnnotatePod(t *testing.T) {
 			}},
 		},
 		want: `{"containerResults":[{"index":0,"name":"user-container","image":"in@valid","field":"containers","result":"could not parse reference: in@valid","resultMsg":""}]}`,
-		cvs: fail,
+		cvs:  fail,
 	}, {
 		name: "not digest",
 		ps: &corev1.PodSpec{
@@ -3425,7 +3425,7 @@ func TestAnnotatePod(t *testing.T) {
 			}},
 		},
 		want: `{"containerResults":[{"index":0,"name":"user-container","image":"gcr.io/distroless/static:nonroot","field":"containers","result":"invalid value: gcr.io/distroless/static:nonroot must be an image digest","resultMsg":""}]}`,
-		cvs: fail,
+		cvs:  fail,
 	}, {
 		name: "simple, no error, authority key",
 		ps: &corev1.PodSpec{
@@ -4001,7 +4001,7 @@ func TestAnnotateCronJob(t *testing.T) {
 			},
 		},
 		want: `{"containerResults":[{"index":0,"name":"user-container","image":"in@valid","field":"containers","result":"could not parse reference: in@valid","resultMsg":""}]}`,
-		cvs: fail,
+		cvs:  fail,
 	}, {
 		name: "not digest",
 		c: &duckv1.CronJob{
@@ -4021,7 +4021,7 @@ func TestAnnotateCronJob(t *testing.T) {
 			},
 		},
 		want: `{"containerResults":[{"index":0,"name":"user-container","image":"gcr.io/distroless/static:nonroot","field":"containers","result":"invalid value: gcr.io/distroless/static:nonroot must be an image digest","resultMsg":""}]}`,
-		cvs: fail,
+		cvs:  fail,
 	}}
 
 	for _, test := range tests {
@@ -4052,6 +4052,7 @@ func TestAnnotateCronJob(t *testing.T) {
 		})
 	}
 }
+
 // Results are returned in different order due to race conditions
 func annotationsMatch(t *testing.T, name, got, want string) bool {
 	if cmp.Equal(got, want) {
