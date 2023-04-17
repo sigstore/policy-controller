@@ -43,6 +43,8 @@ const (
 	NoMatchPolicyKey = "no-match-policy"
 
 	FailOnEmptyAuthorities = "fail-on-empty-authorities"
+
+	AnnotateResultsKey = "annotate-validation-results"
 )
 
 // PolicyControllerConfig controls the behaviour of policy-controller that needs
@@ -56,10 +58,12 @@ type PolicyControllerConfig struct {
 	NoMatchPolicy string `json:"no-match-policy"`
 	// FailOnEmptyAuthorities configures the validating webhook to allow creating CIP without a list authorities
 	FailOnEmptyAuthorities bool `json:"fail-on-empty-authorities"`
+	// AnnotateResults configures writing the validation results as an annotation in the resource
+	AnnotateResults bool `json:"annotate-validation-results"`
 }
 
 func NewPolicyControllerConfigFromMap(data map[string]string) (*PolicyControllerConfig, error) {
-	ret := &PolicyControllerConfig{NoMatchPolicy: "deny", FailOnEmptyAuthorities: true}
+	ret := &PolicyControllerConfig{NoMatchPolicy: "deny", FailOnEmptyAuthorities: true, AnnotateResults: false}
 	switch data[NoMatchPolicyKey] {
 	case DenyAll:
 		ret.NoMatchPolicy = DenyAll
@@ -76,6 +80,14 @@ func NewPolicyControllerConfigFromMap(data map[string]string) (*PolicyController
 		return ret, err
 	}
 	ret.FailOnEmptyAuthorities = true
+
+	if val, ok := data[AnnotateResultsKey]; ok {
+		var err error
+		ret.AnnotateResults, err = strconv.ParseBool(val)
+		return ret, err
+	}
+	ret.AnnotateResults = false
+
 	return ret, nil
 }
 
@@ -102,6 +114,7 @@ func FromContextOrDefaults(ctx context.Context) *PolicyControllerConfig {
 	return &PolicyControllerConfig{
 		NoMatchPolicy:          DenyAll,
 		FailOnEmptyAuthorities: true,
+		AnnotateResults:        false,
 	}
 }
 

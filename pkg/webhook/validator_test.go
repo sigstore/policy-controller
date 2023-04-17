@@ -3798,8 +3798,19 @@ func TestAnnotatePod(t *testing.T) {
 					config.ToContext(testContext, cfg)
 				}
 
-				testContext = context.WithValue(testContext, kubeclient.Key{}, kc)
+				// Check disabled annotations
+				noAnnotationsContext := context.WithValue(testContext, kubeclient.Key{}, kc)
 				got := &metav1.ObjectMeta{}
+				v.annotatePodSpec(noAnnotationsContext, system.Namespace(), "Pod", "v1", got, test.ps, k8schain.Options{})
+
+				if got.Annotations != nil {
+					t.Errorf("annotatePodSpec() = %v, wanted nil", got.Annotations)
+				}
+
+				testContext = context.WithValue(testContext, kubeclient.Key{}, kc)
+				testContext = policycontrollerconfig.ToContext(testContext, &policycontrollerconfig.PolicyControllerConfig{AnnotateResults: true})
+
+				got = &metav1.ObjectMeta{}
 				// Check the core mechanics
 				v.annotatePodSpec(testContext, system.Namespace(), "Pod", "v1", got, test.ps, k8schain.Options{})
 				want := test.want
@@ -4028,14 +4039,23 @@ func TestAnnotateCronJob(t *testing.T) {
 		t.Run(test.name, func(t *testing.T) {
 			cosignVerifySignatures = test.cvs
 
+			// Check disabled annotations
 			testContext := context.WithValue(context.Background(), kubeclient.Key{}, kc)
+			cronJob := test.c.DeepCopy()
+			v.AnnotateCronJob(testContext, cronJob)
+			if cronJob.Annotations != nil {
+				t.Errorf("AnnotateCronJob() = %v, wanted nil", cronJob.Annotations)
+			}
+
+			// Enable annotations
+			testContext = policycontrollerconfig.ToContext(testContext, &policycontrollerconfig.PolicyControllerConfig{AnnotateResults: true})
 
 			// Check the core mechanics
-			cronJob := test.c.DeepCopy()
+			cronJob = test.c.DeepCopy()
 			want := test.want
 			v.AnnotateCronJob(testContext, cronJob)
 			if !annotationsMatch(t, test.name, cronJob.Annotations[ResultsAnnotationKey], want) {
-				t.Errorf("AnnotateCronJob = %s", cmp.Diff(cronJob.Annotations[ResultsAnnotationKey], want))
+				t.Errorf("AnnotateCronJob() = %s", cmp.Diff(cronJob.Annotations[ResultsAnnotationKey], want))
 			}
 
 			// Check that we don't block things being deleted.
