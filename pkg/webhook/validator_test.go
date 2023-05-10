@@ -3808,7 +3808,7 @@ func TestAnnotatePod(t *testing.T) {
 				}
 
 				testContext = context.WithValue(testContext, kubeclient.Key{}, kc)
-				testContext = policycontrollerconfig.ToContext(testContext, &policycontrollerconfig.PolicyControllerConfig{AnnotateResults: true})
+				testContext = policycontrollerconfig.ToContext(testContext, &policycontrollerconfig.PolicyControllerConfig{AnnotateValidationResults: true})
 
 				got = &metav1.ObjectMeta{}
 				// Check the core mechanics
@@ -4048,7 +4048,7 @@ func TestAnnotateCronJob(t *testing.T) {
 			}
 
 			// Enable annotations
-			testContext = policycontrollerconfig.ToContext(testContext, &policycontrollerconfig.PolicyControllerConfig{AnnotateResults: true})
+			testContext = policycontrollerconfig.ToContext(testContext, &policycontrollerconfig.PolicyControllerConfig{AnnotateValidationResults: true})
 
 			// Check the core mechanics
 			cronJob = test.c.DeepCopy()

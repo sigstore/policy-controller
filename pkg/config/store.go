@@ -44,7 +44,7 @@ const (
 
 	FailOnEmptyAuthorities = "fail-on-empty-authorities"
 
-	AnnotateResultsKey = "annotate-validation-results"
+	AnnotateValidationResultsKey = "annotate-validation-results"
 )
 
 // PolicyControllerConfig controls the behaviour of policy-controller that needs
@@ -58,12 +58,12 @@ type PolicyControllerConfig struct {
 	NoMatchPolicy string `json:"no-match-policy"`
 	// FailOnEmptyAuthorities configures the validating webhook to allow creating CIP without a list authorities
 	FailOnEmptyAuthorities bool `json:"fail-on-empty-authorities"`
-	// AnnotateResults configures writing the validation results as an annotation in the resource
-	AnnotateResults bool `json:"annotate-validation-results"`
+	// AnnotateValidationResults configures writing the validation results as an annotation in the resource
+	AnnotateValidationResults bool `json:"annotate-validation-results"`
 }
 
 func NewPolicyControllerConfigFromMap(data map[string]string) (*PolicyControllerConfig, error) {
-	ret := &PolicyControllerConfig{NoMatchPolicy: "deny", FailOnEmptyAuthorities: true, AnnotateResults: false}
+	ret := &PolicyControllerConfig{NoMatchPolicy: "deny", FailOnEmptyAuthorities: true, AnnotateValidationResults: false}
 	switch data[NoMatchPolicyKey] {
 	case DenyAll:
 		ret.NoMatchPolicy = DenyAll
@@ -81,12 +81,12 @@ func NewPolicyControllerConfigFromMap(data map[string]string) (*PolicyController
 	}
 	ret.FailOnEmptyAuthorities = true
 
-	if val, ok := data[AnnotateResultsKey]; ok {
+	if val, ok := data[AnnotateValidationResultsKey]; ok {
 		var err error
-		ret.AnnotateResults, err = strconv.ParseBool(val)
+		ret.AnnotateValidationResults, err = strconv.ParseBool(val)
 		return ret, err
 	}
-	ret.AnnotateResults = false
+	ret.AnnotateValidationResults = false
 
 	return ret, nil
 }
@@ -112,9 +112,9 @@ func FromContextOrDefaults(ctx context.Context) *PolicyControllerConfig {
 		return cfg
 	}
 	return &PolicyControllerConfig{
-		NoMatchPolicy:          DenyAll,
-		FailOnEmptyAuthorities: true,
-		AnnotateResults:        false,
+		NoMatchPolicy:             DenyAll,
+		FailOnEmptyAuthorities:    true,
+		AnnotateValidationResults: false,
 	}
 }
 

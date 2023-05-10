@@ -1204,7 +1204,7 @@ func (v *Validator) AnnotateCronJob(ctx context.Context, c *duckv1.CronJob) {
 
 func (v *Validator) annotatePodSpec(ctx context.Context, namespace, kind, apiVersion string, objectMeta *metav1.ObjectMeta, ps *corev1.PodSpec, opt k8schain.Options) {
 	pcConfig := policycontrollerconfig.FromContextOrDefaults(ctx)
-	if !pcConfig.AnnotateResults {
+	if !pcConfig.AnnotateValidationResults {
 		// Annotation is disabled
 		return
 	}
