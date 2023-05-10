@@ -166,7 +166,7 @@ assert_annotation ${expected_annotation}
 echo '::endgroup::'
 
 # Change to an image that does not match any policies
-demoimage2="quay.io/jetstack/cert-manager-acmesolver:v1.9.1"
+demoimage="quay.io/jetstack/cert-manager-acmesolver:v1.9.1"
 
 echo '::group:: Change no-match policy to warn'
 kubectl patch configmap/config-policy-controller \
