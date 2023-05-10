@@ -136,7 +136,7 @@ sleep 5
 echo '::endgroup::'
 
 echo '::group:: test job rejection using an OCI source to a wrong repository without signatures'
-expected_error='no matching signatures'
+expected_error='no signatures found for image'
 assert_error ${expected_error}
 echo '::endgroup::'
 

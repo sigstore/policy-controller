@@ -33,6 +33,8 @@ import (
 	"sigs.k8s.io/release-utils/version"
 	"sigs.k8s.io/yaml"
 
+	"github.com/sigstore/policy-controller/pkg/apis/config"
+	"github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
 	"github.com/sigstore/policy-controller/pkg/policy"
 	"github.com/sigstore/policy-controller/pkg/webhook"
 )
@@ -54,6 +56,7 @@ func main() {
 	versionFlag := flag.Bool("version", false, "return the policy-controller tester version")
 	image := flag.String("image", "", "image to compare against policy")
 	resourceFilePath := flag.String("resource", "", "path to a kubernetes resource to use with includeSpec, includeObjectMeta")
+	trustRootFilePath := flag.String("trustroot", "", "path to a kubernetes TrustRoot resource to use with the ClusterImagePolicy")
 	flag.Parse()
 
 	if *versionFlag {
@@ -138,6 +141,27 @@ func main() {
 		typeMeta["kind"] = kind
 		typeMeta["apiVersion"] = apiVersion
 		ctx = webhook.IncludeTypeMeta(ctx, typeMeta)
+	}
+
+	if *trustRootFilePath != "" {
+		configCtx := config.FromContextOrDefaults(ctx)
+		raw, err := os.ReadFile(*trustRootFilePath)
+		if err != nil {
+			log.Fatal(err)
+		}
+		tr := &v1alpha1.TrustRoot{}
+		if err := yaml.Unmarshal(raw, tr); err != nil {
+			log.Fatal(err)
+		}
+
+		c := &config.SigstoreKeys{}
+		c.ConvertFrom(context.Background(), tr.Spec.SigstoreKeys)
+		maps := make(map[string]config.SigstoreKeys, 0)
+
+		maps[tr.Name] = *c
+		configCtx.SigstoreKeysConfig = &config.SigstoreKeysMap{SigstoreKeys: maps}
+
+		ctx = config.ToContext(ctx, configCtx)
 	}
 
 	errStrings := []string{}
