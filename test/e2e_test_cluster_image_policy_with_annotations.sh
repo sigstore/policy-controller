@@ -68,7 +68,7 @@ assert_annotation() {
   match="$@"
   echo looking for ${match}
   kubectl delete job job-that-warns -n ${NS} --ignore-not-found=true
-  if ! kubectl create -n ${NS} job job-that-warns --image=${demoimage} -o yaml 2> ${KUBECTL_OUT_FILE} ; then
+  if ! kubectl create -n ${NS} job job-that-warns --image=${demoimage} -o yaml > ${KUBECTL_OUT_FILE} ; then
     echo Failed to create Job when expected to annotate!
     exit 1
   else
