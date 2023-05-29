@@ -19,15 +19,8 @@ package trustroot
 import (
 	context "context"
 
-	apispolicyv1alpha1 "github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
-	versioned "github.com/sigstore/policy-controller/pkg/client/clientset/versioned"
 	v1alpha1 "github.com/sigstore/policy-controller/pkg/client/informers/externalversions/policy/v1alpha1"
-	client "github.com/sigstore/policy-controller/pkg/client/injection/client"
 	factory "github.com/sigstore/policy-controller/pkg/client/injection/informers/factory"
-	policyv1alpha1 "github.com/sigstore/policy-controller/pkg/client/listers/policy/v1alpha1"
-	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
-	labels "k8s.io/apimachinery/pkg/labels"
-	cache "k8s.io/client-go/tools/cache"
 	controller "knative.dev/pkg/controller"
 	injection "knative.dev/pkg/injection"
 	logging "knative.dev/pkg/logging"
@@ -35,7 +28,6 @@ import (
 
 func init() {
 	injection.Default.RegisterInformer(withInformer)
-	injection.Dynamic.RegisterDynamicInformer(withDynamicInformer)
 }
 
 // Key is used for associating the Informer inside the context.Context.
@@ -47,11 +39,6 @@ func withInformer(ctx context.Context) (context.Context, controller.Informer) {
 	return context.WithValue(ctx, Key{}, inf), inf.Informer()
 }
 
-func withDynamicInformer(ctx context.Context) context.Context {
-	inf := &wrapper{client: client.Get(ctx), resourceVersion: injection.GetResourceVersion(ctx)}
-	return context.WithValue(ctx, Key{}, inf)
-}
-
 // Get extracts the typed informer from the context.
 func Get(ctx context.Context) v1alpha1.TrustRootInformer {
 	untyped := ctx.Value(Key{})
@@ -60,49 +47,4 @@ func Get(ctx context.Context) v1alpha1.TrustRootInformer {
 			"Unable to fetch github.com/sigstore/policy-controller/pkg/client/informers/externalversions/policy/v1alpha1.TrustRootInformer from context.")
 	}
 	return untyped.(v1alpha1.TrustRootInformer)
-}
-
-type wrapper struct {
-	client versioned.Interface
-
-	resourceVersion string
-}
-
-var _ v1alpha1.TrustRootInformer = (*wrapper)(nil)
-var _ policyv1alpha1.TrustRootLister = (*wrapper)(nil)
-
-func (w *wrapper) Informer() cache.SharedIndexInformer {
-	return cache.NewSharedIndexInformer(nil, &apispolicyv1alpha1.TrustRoot{}, 0, nil)
-}
-
-func (w *wrapper) Lister() policyv1alpha1.TrustRootLister {
-	return w
-}
-
-// SetResourceVersion allows consumers to adjust the minimum resourceVersion
-// used by the underlying client.  It is not accessible via the standard
-// lister interface, but can be accessed through a user-defined interface and
-// an implementation check e.g. rvs, ok := foo.(ResourceVersionSetter)
-func (w *wrapper) SetResourceVersion(resourceVersion string) {
-	w.resourceVersion = resourceVersion
-}
-
-func (w *wrapper) List(selector labels.Selector) (ret []*apispolicyv1alpha1.TrustRoot, err error) {
-	lo, err := w.client.PolicyV1alpha1().TrustRoots().List(context.TODO(), v1.ListOptions{
-		LabelSelector:   selector.String(),
-		ResourceVersion: w.resourceVersion,
-	})
-	if err != nil {
-		return nil, err
-	}
-	for idx := range lo.Items {
-		ret = append(ret, &lo.Items[idx])
-	}
-	return ret, nil
-}
-
-func (w *wrapper) Get(name string) (*apispolicyv1alpha1.TrustRoot, error) {
-	return w.client.PolicyV1alpha1().TrustRoots().Get(context.TODO(), name, v1.GetOptions{
-		ResourceVersion: w.resourceVersion,
-	})
 }
