@@ -64,9 +64,11 @@ func NewController(
 	})
 	r.tracker = impl.Tracker
 
-	clusterimagepolicyInformer.Informer().AddEventHandler(controller.HandleAll(impl.Enqueue))
+	if _, err := clusterimagepolicyInformer.Informer().AddEventHandler(controller.HandleAll(impl.Enqueue)); err != nil {
+		logging.FromContext(ctx).Warnf("Failed clusterimagepolicyInformer AddEventHandler() %v", err)
+	}
 
-	secretInformer.Informer().AddEventHandler(controller.HandleAll(
+	if _, err := secretInformer.Informer().AddEventHandler(controller.HandleAll(
 		// Call the tracker's OnChanged method, but we've seen the objects
 		// coming through this path missing TypeMeta, so ensure it is properly
 		// populated.
@@ -74,9 +76,11 @@ func NewController(
 			r.tracker.OnChanged,
 			corev1.SchemeGroupVersion.WithKind("Secret"),
 		),
-	))
+	)); err != nil {
+		logging.FromContext(ctx).Warnf("Failed secretInformer AddEventHandler() %v", err)
+	}
 
-	configMapInformer.Informer().AddEventHandler(controller.HandleAll(
+	if _, err := configMapInformer.Informer().AddEventHandler(controller.HandleAll(
 		// Call the tracker's OnChanged method, but we've seen the objects
 		// coming through this path missing TypeMeta, so ensure it is properly
 		// populated.
@@ -84,7 +88,9 @@ func NewController(
 			r.tracker.OnChanged,
 			corev1.SchemeGroupVersion.WithKind("ConfigMap"),
 		),
-	))
+	)); err != nil {
+		logging.FromContext(ctx).Warnf("Failed configMapInformer AddEventHandler() %v", err)
+	}
 
 	// When the underlying ConfigMap changes,perform a global resync on
 	// ClusterImagePolicies to make sure their state is correctly reflected
@@ -101,12 +107,14 @@ func NewController(
 	// We could also fetch/construct the store and use CM watcher for it, but
 	// since we need a lister for it anyways in the reconciler, just set up
 	// the watch here.
-	configMapInformer.Informer().AddEventHandlerWithResyncPeriod(cache.FilteringResourceEventHandler{
+	if _, err := configMapInformer.Informer().AddEventHandlerWithResyncPeriod(cache.FilteringResourceEventHandler{
 		FilterFunc: pkgreconciler.ChainFilterFuncs(
 			pkgreconciler.NamespaceFilterFunc(system.Namespace()),
 			pkgreconciler.NameFilterFunc(config.ImagePoliciesConfigName)),
 		Handler: controller.HandleAll(grCb),
-	}, FromContextOrDefaults(ctx))
+	}, FromContextOrDefaults(ctx)); err != nil {
+		logging.FromContext(ctx).Warnf("Failed configMapInformer AddEventHandlerWithResyncPeriod() %v", err)
+	}
 
 	return impl
 }
