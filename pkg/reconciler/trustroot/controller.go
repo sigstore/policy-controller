@@ -52,7 +52,9 @@ func NewController(
 		return controller.Options{FinalizerName: FinalizerName}
 	})
 
-	trustrootInformer.Informer().AddEventHandler(controller.HandleAll(impl.Enqueue))
+	if _, err := trustrootInformer.Informer().AddEventHandler(controller.HandleAll(impl.Enqueue)); err != nil {
+		logging.FromContext(ctx).Warnf("Failed trustrootInformer AddEventHandler() %v", err)
+	}
 
 	// When the underlying ConfigMap changes,perform a global resync on
 	// TrustRoot to make sure their state is correctly reflected
@@ -68,11 +70,13 @@ func NewController(
 	// We could also fetch/construct the store and use CM watcher for it, but
 	// since we need a lister for it anyways in the reconciler, just set up
 	// the watch here.
-	configMapInformer.Informer().AddEventHandler(cache.FilteringResourceEventHandler{
+	if _, err := configMapInformer.Informer().AddEventHandler(cache.FilteringResourceEventHandler{
 		FilterFunc: pkgreconciler.ChainFilterFuncs(
 			pkgreconciler.NamespaceFilterFunc(system.Namespace()),
 			pkgreconciler.NameFilterFunc(config.SigstoreKeysConfigName)),
 		Handler: controller.HandleAll(grCb),
-	})
+	}); err != nil {
+		logging.FromContext(ctx).Warnf("Failed configMapInformer AddEventHandler() %v", err)
+	}
 	return impl
 }
