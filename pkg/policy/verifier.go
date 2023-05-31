@@ -157,18 +157,23 @@ func (i *impl) Verify(ctx context.Context, ref name.Reference, kc authn.Keychain
 	opts = append(opts, ociremote.WithRemoteOptions(remote.WithAuthFromKeychain(kc)))
 
 	for _, p := range matches {
-		_, errs := webhook.ValidatePolicy(ctx, "" /* namespace */, ref, p, kc, opts...)
-		for _, err := range errs {
-			var fe *apis.FieldError
-			if errors.As(err, &fe) {
-				if warnFE := fe.Filter(apis.WarningLevel); warnFE != nil {
-					i.ww("%v", warnFE)
+		res, errs := webhook.ValidatePolicy(ctx, "" /* namespace */, ref, p, kc, opts...)
+		if res != nil {
+			// Ignore the errors for other authorities if we got a policy result.
+		} else {
+			// If we didn't get a policy result, then surface any errors.
+			for _, err := range errs {
+				var fe *apis.FieldError
+				if errors.As(err, &fe) {
+					if warnFE := fe.Filter(apis.WarningLevel); warnFE != nil {
+						i.ww("%v", warnFE)
+					}
+					if errorFE := fe.Filter(apis.ErrorLevel); errorFE != nil {
+						return errorFE
+					}
+				} else {
+					return err
 				}
-				if errorFE := fe.Filter(apis.ErrorLevel); errorFE != nil {
-					return errorFE
-				}
-			} else {
-				return err
 			}
 		}
 	}
