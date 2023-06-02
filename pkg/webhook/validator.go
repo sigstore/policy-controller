@@ -1386,11 +1386,11 @@ func sigstoreKeysFromContext(ctx context.Context, trustRootRef string) (*config.
 func fulcioCertsFromAuthority(ctx context.Context, keylessRef *webhookcip.KeylessRef) (*x509.CertPool, *x509.CertPool, *cosign.TrustedTransparencyLogPubKeys, error) {
 	// If this is not Keyless, there's no Fulcio, so just return
 	if keylessRef.TrustRootRef == "" {
-		roots, err := fulcioroots.Get()
+		roots, err := fulcioroots.Get(ctx)
 		if err != nil {
 			return nil, nil, nil, fmt.Errorf("failed to fetch Fulcio roots: %w", err)
 		}
-		intermediates, err := fulcioroots.GetIntermediates()
+		intermediates, err := fulcioroots.GetIntermediates(ctx)
 		if err != nil {
 			return nil, nil, nil, fmt.Errorf("failed to fetch Fulcio intermediates: %w", err)
 		}
