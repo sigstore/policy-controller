@@ -18,6 +18,7 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"log"
 	"os"
 	"time"
@@ -223,6 +224,14 @@ func NewValidatingAdmissionController(ctx context.Context, cmw configmap.Watcher
 	policyControllerConfigStore := policycontrollerconfig.NewStore(logging.FromContext(ctx).Named("config-policy-controller"))
 	policyControllerConfigStore.WatchConfigs(cmw)
 
+	logger := logging.FromContext(ctx)
+	woptions := webhook.GetOptions(ctx)
+	woptions.ControllerOptions = &controller.ControllerOptions{
+		WorkQueueName: fmt.Sprintf("%s-%s", *webhookName, "validating"),
+		Logger:        logger.Named(*webhookName),
+	}
+	ctx = webhook.WithOptions(ctx, *woptions)
+
 	kc := kubeclient.Get(ctx)
 	validator := cwebhook.NewValidator(ctx)
 
@@ -259,6 +268,13 @@ func NewValidatingAdmissionController(ctx context.Context, cmw configmap.Watcher
 
 func NewMutatingAdmissionController(ctx context.Context, _ configmap.Watcher) *controller.Impl {
 	kc := kubeclient.Get(ctx)
+	logger := logging.FromContext(ctx)
+	woptions := webhook.GetOptions(ctx)
+	woptions.ControllerOptions = &controller.ControllerOptions{
+		WorkQueueName: fmt.Sprintf("%s-%s", *webhookName, "mutating"),
+		Logger:        logger.Named(*webhookName),
+	}
+	ctx = webhook.WithOptions(ctx, *woptions)
 	validator := cwebhook.NewValidator(ctx)
 
 	return defaulting.NewAdmissionController(ctx,
@@ -292,6 +308,14 @@ func NewPolicyValidatingAdmissionController(ctx context.Context, cmw configmap.W
 	store.WatchConfigs(cmw)
 	policyControllerConfigStore := config.NewStore(logging.FromContext(ctx).Named("config-policy-controller"))
 	policyControllerConfigStore.WatchConfigs(cmw)
+	logger := logging.FromContext(ctx)
+
+	woptions := webhook.GetOptions(ctx)
+	woptions.ControllerOptions = &controller.ControllerOptions{
+		WorkQueueName: *validatingCIPWebhookName,
+		Logger:        logger.Named(*validatingCIPWebhookName),
+	}
+	ctx = webhook.WithOptions(ctx, *woptions)
 
 	return validation.NewAdmissionController(
 		ctx,
@@ -307,6 +331,14 @@ func NewPolicyValidatingAdmissionController(ctx context.Context, cmw configmap.W
 }
 
 func NewPolicyMutatingAdmissionController(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
+	woptions := webhook.GetOptions(ctx)
+	logger := logging.FromContext(ctx)
+	woptions.ControllerOptions = &controller.ControllerOptions{
+		WorkQueueName: *mutatingCIPWebhookName,
+		Logger:        logger.Named(*mutatingCIPWebhookName),
+	}
+	ctx = webhook.WithOptions(ctx, *woptions)
+
 	return defaulting.NewAdmissionController(
 		ctx,
 		*mutatingCIPWebhookName,
