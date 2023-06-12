@@ -52,7 +52,13 @@ const (
 	resourceVersion = "0123456789"
 	uid             = "test-uid"
 	uid2            = "test-uid-2"
-	ctfePublicKey   = `-----BEGIN PUBLIC KEY-----
+
+	// NOTE: To generate these values, I deployed the scaffolding bits on a kind clusters
+	// using the setup-kind.sh and setup-scaffolding-from-release.sh scripts.
+	// Then I extracted the root.json from the tuf-system secrets 'tuf-root' and 'tuf-secrets'.
+	// Finally I extracted the rest of public keys from other secrets (ctlog-public-key, fulcio-pub-key)
+	// located in the cluster under the tuf-system namespace.
+	ctfePublicKey = `-----BEGIN PUBLIC KEY-----
 MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEW6UV/LgW13DHe71namu5SYPI6ov5
 0Yv7BF6K4Mz18TzYc0yaaEV20ZHKvnWrtnRZC2rvQ7RfSIFuXw6BECdMJg==
 -----END PUBLIC KEY-----
