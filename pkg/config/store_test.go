@@ -25,8 +25,9 @@ import (
 )
 
 type testData struct {
-	noMatchPolicy          string
-	failOnEmptyAuthorities bool
+	noMatchPolicy             string
+	failOnEmptyAuthorities    bool
+	AnnotateValidationResults bool
 }
 
 var testfiles = map[string]testData{
@@ -35,6 +36,7 @@ var testfiles = map[string]testData{
 	"warn-all":                {noMatchPolicy: WarnAll, failOnEmptyAuthorities: true},
 	"deny-all-default":        {noMatchPolicy: DenyAll, failOnEmptyAuthorities: true},
 	"allow-empty-authorities": {noMatchPolicy: DenyAll, failOnEmptyAuthorities: false},
+	"annotate-results":        {noMatchPolicy: AllowAll, failOnEmptyAuthorities: true, AnnotateValidationResults: true},
 }
 
 func TestStoreLoadWithContext(t *testing.T) {
@@ -55,6 +57,9 @@ func TestStoreLoadWithContext(t *testing.T) {
 			if diff := cmp.Diff(want.failOnEmptyAuthorities, expected.FailOnEmptyAuthorities); diff != "" {
 				t.Error("Unexpected defaults config (-want, +got):", diff)
 			}
+			if diff := cmp.Diff(want.AnnotateValidationResults, expected.AnnotateValidationResults); diff != "" {
+				t.Error("Unexpected defaults config (-want, +got):", diff)
+			}
 			if diff := cmp.Diff(expected, config); diff != "" {
 				t.Error("Unexpected defaults config (-want, +got):", diff)
 			}
@@ -72,6 +77,9 @@ func TestStoreLoadWithContextOrDefaults(t *testing.T) {
 			// These all should have the default, because we don't parse the
 			// _example in these tests.
 			if diff := cmp.Diff(DenyAll, expected.NoMatchPolicy); diff != "" {
+				t.Error("Unexpected defaults config (-want, +got):", diff)
+			}
+			if diff := cmp.Diff(false, expected.AnnotateValidationResults); diff != "" {
 				t.Error("Unexpected defaults config (-want, +got):", diff)
 			}
 			if diff := cmp.Diff(expected, config); diff != "" {

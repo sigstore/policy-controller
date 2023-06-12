@@ -34,6 +34,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/google/go-containerregistry/pkg/authn/k8schain"
 	"github.com/google/go-containerregistry/pkg/name"
 	"github.com/sigstore/cosign/v2/pkg/cosign"
@@ -3270,4 +3271,837 @@ func TestCheckOptsFromAuthority(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestAnnotatePod(t *testing.T) {
+	tag := name.MustParseReference("gcr.io/distroless/static:nonroot")
+	// Resolved via crane digest on 2021/09/25
+	digest := name.MustParseReference("gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4")
+
+	// Resolved via crane digest on 2022/09/29
+	digestNewer := name.MustParseReference("gcr.io/distroless/static:nonroot@sha256:2a9e2b4fa771d31fe3346a873be845bfc2159695b9f90ca08e950497006ccc2e")
+
+	ctx, _ := rtesting.SetupFakeContext(t)
+
+	// Non-existent URL for testing complete failure
+	badURL := apis.HTTP("http://example.com/")
+
+	fulcioURL, err := apis.ParseURL("https://fulcio.sigstore.dev")
+	if err != nil {
+		t.Fatalf("Failed to parse fake Fulcio URL")
+	}
+
+	rekorServer := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+		rw.Write([]byte(rekorResponse))
+	}))
+	t.Cleanup(rekorServer.Close)
+	rekorURL, err := apis.ParseURL(rekorServer.URL)
+	if err != nil {
+		t.Fatalf("Failed to parse fake Rekor URL")
+	}
+
+	var authorityKeyCosignPub *ecdsa.PublicKey
+
+	pems := parsePems([]byte(authorityKeyCosignPubString))
+	if len(pems) > 0 {
+		key, _ := x509.ParsePKIXPublicKey(pems[0].Bytes)
+		authorityKeyCosignPub = key.(*ecdsa.PublicKey)
+	} else {
+		t.Errorf("Error parsing authority key from string")
+	}
+
+	kc := fakekube.Get(ctx)
+	// Setup service acc and fakeSignaturePullSecrets for "default" and "cosign-system" namespace
+	for _, ns := range []string{"default", system.Namespace()} {
+		kc.CoreV1().ServiceAccounts(ns).Create(ctx, &corev1.ServiceAccount{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "default",
+			},
+		}, metav1.CreateOptions{})
+
+		kc.CoreV1().Secrets(ns).Create(ctx, &corev1.Secret{
+			ObjectMeta: metav1.ObjectMeta{
+				Name: "fakeSignaturePullSecrets",
+			},
+			Data: map[string][]byte{
+				"dockerconfigjson": []byte(`{"auths":{"https://index.docker.io/v1/":{"username":"username","password":"password","auth":"dXNlcm5hbWU6cGFzc3dvcmQ="}}`),
+			},
+		}, metav1.CreateOptions{})
+	}
+
+	v := NewValidator(ctx)
+
+	cvs := cosignVerifySignatures
+	defer func() {
+		cosignVerifySignatures = cvs
+	}()
+	// Let's just say that everything is verified.
+	pass := func(_ context.Context, _ name.Reference, _ *cosign.CheckOpts) (checkedSignatures []oci.Signature, bundleVerified bool, err error) {
+		sig, err := static.NewSignature(nil, "")
+		if err != nil {
+			return nil, false, err
+		}
+		return []oci.Signature{sig}, true, nil
+	}
+	// Let's just say that everything is not verified.
+	fail := func(_ context.Context, _ name.Reference, _ *cosign.CheckOpts) (checkedSignatures []oci.Signature, bundleVerified bool, err error) {
+		return nil, false, errors.New("bad signature")
+	}
+
+	// Let's say it is verified if it is the expected Public Key
+	authorityPublicKeyCVS := func(ctx context.Context, signedImgRef name.Reference, co *cosign.CheckOpts) (checkedSignatures []oci.Signature, bundleVerified bool, err error) {
+		actualPublicKey, _ := co.SigVerifier.PublicKey()
+		actualECDSAPubkey := actualPublicKey.(*ecdsa.PublicKey)
+		actualKeyData := elliptic.Marshal(actualECDSAPubkey, actualECDSAPubkey.X, actualECDSAPubkey.Y)
+
+		expectedKeyData := elliptic.Marshal(authorityKeyCosignPub, authorityKeyCosignPub.X, authorityKeyCosignPub.Y)
+
+		if bytes.Equal(actualKeyData, expectedKeyData) {
+			return pass(ctx, signedImgRef, co)
+		}
+
+		return fail(ctx, signedImgRef, co)
+	}
+
+	tests := []struct {
+		name          string
+		ps            *corev1.PodSpec
+		want          string
+		cvs           func(context.Context, name.Reference, *cosign.CheckOpts) ([]oci.Signature, bool, error)
+		customContext context.Context
+	}{{
+		name: "simple, no error",
+		ps: &corev1.PodSpec{
+			InitContainers: []corev1.Container{{
+				Name:  "setup-stuff",
+				Image: digest.String(),
+			}},
+			Containers: []corev1.Container{{
+				Name:  "user-container",
+				Image: digest.String(),
+			}},
+		},
+		want: `{"containerResults":[{"index":0,"name":"setup-stuff","image":"gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4","field":"initContainers","result":"allow","resultMsg":"Validated 1 policies for image gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4","policyResults":{"cluster-image-policy":{"authorityMatches":{"":{"signatures":[{"id":"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}]}}}}},{"index":0,"name":"user-container","image":"gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4","field":"containers","result":"allow","resultMsg":"Validated 1 policies for image gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4","policyResults":{"cluster-image-policy":{"authorityMatches":{"":{"signatures":[{"id":"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}]}}}}}]}`,
+		cvs:  pass,
+		customContext: config.ToContext(context.Background(),
+			&config.Config{
+				ImagePolicyConfig: &config.ImagePolicyConfig{
+					Policies: map[string]webhookcip.ClusterImagePolicy{
+						"cluster-image-policy": {
+							Images: []v1alpha1.ImagePattern{{
+								Glob: "gcr.io/*/*",
+							}},
+							Authorities: []webhookcip.Authority{
+								{
+									Key: &webhookcip.KeyRef{
+										Data:              authorityKeyCosignPubString,
+										PublicKeys:        []crypto.PublicKey{authorityKeyCosignPub},
+										HashAlgorithm:     signaturealgo.DefaultSignatureAlgorithm,
+										HashAlgorithmCode: crypto.SHA256,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		),
+	}, {
+		name: "bad reference",
+		ps: &corev1.PodSpec{
+			Containers: []corev1.Container{{
+				Name:  "user-container",
+				Image: "in@valid",
+			}},
+		},
+		want: `{"containerResults":[{"index":0,"name":"user-container","image":"in@valid","field":"containers","result":"could not parse reference: in@valid","resultMsg":""}]}`,
+		cvs:  fail,
+	}, {
+		name: "not digest",
+		ps: &corev1.PodSpec{
+			Containers: []corev1.Container{{
+				Name:  "user-container",
+				Image: tag.String(),
+			}},
+		},
+		want: `{"containerResults":[{"index":0,"name":"user-container","image":"gcr.io/distroless/static:nonroot","field":"containers","result":"invalid value: gcr.io/distroless/static:nonroot must be an image digest","resultMsg":""}]}`,
+		cvs:  fail,
+	}, {
+		name: "simple, no error, authority key",
+		ps: &corev1.PodSpec{
+			InitContainers: []corev1.Container{{
+				Name:  "setup-stuff",
+				Image: digest.String(),
+			}},
+			Containers: []corev1.Container{{
+				Name:  "user-container",
+				Image: digest.String(),
+			}},
+		},
+		want: `{"containerResults":[{"index":0,"name":"setup-stuff","image":"gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4","field":"initContainers","result":"allow","resultMsg":"Validated 1 policies for image gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4","policyResults":{"cluster-image-policy":{"authorityMatches":{"":{"signatures":[{"id":"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}]}}}}},{"index":0,"name":"user-container","image":"gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4","field":"containers","result":"allow","resultMsg":"Validated 1 policies for image gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4","policyResults":{"cluster-image-policy":{"authorityMatches":{"":{"signatures":[{"id":"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}]}}}}}]}`,
+		customContext: config.ToContext(context.Background(),
+			&config.Config{
+				ImagePolicyConfig: &config.ImagePolicyConfig{
+					Policies: map[string]webhookcip.ClusterImagePolicy{
+						"cluster-image-policy": {
+							Images: []v1alpha1.ImagePattern{{
+								Glob: "gcr.io/*/*",
+							}},
+							Authorities: []webhookcip.Authority{
+								{
+									Key: &webhookcip.KeyRef{
+										Data:              authorityKeyCosignPubString,
+										PublicKeys:        []crypto.PublicKey{authorityKeyCosignPub},
+										HashAlgorithm:     signaturealgo.DefaultSignatureAlgorithm,
+										HashAlgorithmCode: crypto.SHA256,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		),
+		cvs: authorityPublicKeyCVS,
+	}, {
+		name: "simple, error, authority keyless, bad fulcio",
+		ps: &corev1.PodSpec{
+			InitContainers: []corev1.Container{{
+				Name:  "setup-stuff",
+				Image: digest.String(),
+			}},
+			Containers: []corev1.Container{{
+				Name:  "user-container",
+				Image: digest.String(),
+			}},
+		},
+		want: `{"containerResults":[{"index":0,"name":"setup-stuff","image":"gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4","field":"initContainers","result":"deny","resultMsg":"Failed to validate at least one policy for gcr.io/distroless/static@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4 wanted 1 policies, only validated 0","policyErrors":{"cluster-image-policy-keyless":["signature keyless validation failed for authority  for gcr.io/distroless/static@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4: bad signature"]}},{"index":0,"name":"user-container","image":"gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4","field":"containers","result":"deny","resultMsg":"Failed to validate at least one policy for gcr.io/distroless/static@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4 wanted 1 policies, only validated 0","policyErrors":{"cluster-image-policy-keyless":["signature keyless validation failed for authority  for gcr.io/distroless/static@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4: bad signature"]}}]}`,
+		customContext: config.ToContext(context.Background(),
+			&config.Config{
+				ImagePolicyConfig: &config.ImagePolicyConfig{
+					Policies: map[string]webhookcip.ClusterImagePolicy{
+						"cluster-image-policy-keyless": {
+							Images: []v1alpha1.ImagePattern{{
+								Glob: "gcr.io/*/*",
+							}},
+							Authorities: []webhookcip.Authority{
+								{
+									Keyless: &webhookcip.KeylessRef{
+										URL: badURL,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		),
+		cvs: fail,
+	}, {
+		name: "simple, error, authority keyless, good fulcio, no rekor",
+		ps: &corev1.PodSpec{
+			InitContainers: []corev1.Container{{
+				Name:  "setup-stuff",
+				Image: digest.String(),
+			}},
+			Containers: []corev1.Container{{
+				Name:  "user-container",
+				Image: digest.String(),
+			}},
+		},
+		want: `{"containerResults":[{"index":0,"name":"setup-stuff","image":"gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4","field":"initContainers","result":"deny","resultMsg":"Failed to validate at least one policy for gcr.io/distroless/static@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4 wanted 1 policies, only validated 0","policyErrors":{"cluster-image-policy-keyless":["signature keyless validation failed for authority  for gcr.io/distroless/static@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4: bad signature"]}},{"index":0,"name":"user-container","image":"gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4","field":"containers","result":"deny","resultMsg":"Failed to validate at least one policy for gcr.io/distroless/static@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4 wanted 1 policies, only validated 0","policyErrors":{"cluster-image-policy-keyless":["signature keyless validation failed for authority  for gcr.io/distroless/static@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4: bad signature"]}}]}`,
+		customContext: config.ToContext(context.Background(),
+			&config.Config{
+				ImagePolicyConfig: &config.ImagePolicyConfig{
+					Policies: map[string]webhookcip.ClusterImagePolicy{
+						"cluster-image-policy-keyless": {
+							Images: []v1alpha1.ImagePattern{{
+								Glob: "gcr.io/*/*",
+							}},
+							Authorities: []webhookcip.Authority{
+								{
+									Keyless: &webhookcip.KeylessRef{
+										URL: fulcioURL,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		),
+		cvs: fail,
+	}, {
+		name: "simple, authority keyless checks out, good fulcio, bad cip policy",
+		ps: &corev1.PodSpec{
+			InitContainers: []corev1.Container{{
+				Name:  "setup-stuff",
+				Image: digest.String(),
+			}},
+			Containers: []corev1.Container{{
+				Name:  "user-container",
+				Image: digest.String(),
+			}},
+		},
+		want: `{"containerResults":[{"index":0,"name":"setup-stuff","image":"gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4","field":"initContainers","result":"deny","resultMsg":"Failed to validate at least one policy for gcr.io/distroless/static@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4 wanted 1 policies, only validated 0","policyErrors":{"cluster-image-policy-keyless-bad-cip":["failed evaluating cue policy for ClusterImagePolicy: failed to compile the cue policy with error: string literal not terminated"]}},{"index":0,"name":"user-container","image":"gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4","field":"containers","result":"deny","resultMsg":"Failed to validate at least one policy for gcr.io/distroless/static@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4 wanted 1 policies, only validated 0","policyErrors":{"cluster-image-policy-keyless-bad-cip":["failed evaluating cue policy for ClusterImagePolicy: failed to compile the cue policy with error: string literal not terminated"]}}]}`,
+		customContext: config.ToContext(context.Background(),
+			&config.Config{
+				ImagePolicyConfig: &config.ImagePolicyConfig{
+					Policies: map[string]webhookcip.ClusterImagePolicy{
+						"cluster-image-policy-keyless-bad-cip": {
+							Images: []v1alpha1.ImagePattern{{
+								Glob: "gcr.io/*/*",
+							}},
+							Authorities: []webhookcip.Authority{
+								{
+									Keyless: &webhookcip.KeylessRef{
+										URL: fulcioURL,
+									},
+								},
+							},
+							Policy: &webhookcip.AttestationPolicy{
+								Name: "invalid json policy",
+								Type: "cue",
+								Data: `{"wontgo`,
+							},
+						},
+					},
+				},
+			},
+		),
+		cvs: pass,
+	}, {
+		name: "simple, no error, authority keyless, good fulcio",
+		ps: &corev1.PodSpec{
+			InitContainers: []corev1.Container{{
+				Name:  "setup-stuff",
+				Image: digest.String(),
+			}},
+			Containers: []corev1.Container{{
+				Name:  "user-container",
+				Image: digest.String(),
+			}},
+		},
+		want: `{"containerResults":[{"index":0,"name":"setup-stuff","image":"gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4","field":"initContainers","result":"allow","resultMsg":"Validated 1 policies for image gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4","policyResults":{"cluster-image-policy-keyless":{"authorityMatches":{"":{"signatures":[{"id":"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}]}}}}},{"index":0,"name":"user-container","image":"gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4","field":"containers","result":"allow","resultMsg":"Validated 1 policies for image gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4","policyResults":{"cluster-image-policy-keyless":{"authorityMatches":{"":{"signatures":[{"id":"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}]}}}}}]}`,
+		customContext: config.ToContext(context.Background(),
+			&config.Config{
+				ImagePolicyConfig: &config.ImagePolicyConfig{
+					Policies: map[string]webhookcip.ClusterImagePolicy{
+						"cluster-image-policy-keyless": {
+							Images: []v1alpha1.ImagePattern{{
+								Glob: "gcr.io/*/*",
+							}},
+							Authorities: []webhookcip.Authority{
+								{
+									Keyless: &webhookcip.KeylessRef{
+										URL: fulcioURL,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		),
+		cvs: pass,
+	}, {
+		name: "simple, error, authority keyless, good fulcio, bad rekor",
+		ps: &corev1.PodSpec{
+			InitContainers: []corev1.Container{{
+				Name:  "setup-stuff",
+				Image: digest.String(),
+			}},
+			Containers: []corev1.Container{{
+				Name:  "user-container",
+				Image: digest.String(),
+			}},
+		},
+		want: `{"containerResults":[{"index":0,"name":"setup-stuff","image":"gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4","field":"initContainers","result":"deny","resultMsg":"Failed to validate at least one policy for gcr.io/distroless/static@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4 wanted 1 policies, only validated 0","policyErrors":{"cluster-image-policy-keyless":["signature keyless validation failed for authority  for gcr.io/distroless/static@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4: bad signature"]}},{"index":0,"name":"user-container","image":"gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4","field":"containers","result":"deny","resultMsg":"Failed to validate at least one policy for gcr.io/distroless/static@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4 wanted 1 policies, only validated 0","policyErrors":{"cluster-image-policy-keyless":["signature keyless validation failed for authority  for gcr.io/distroless/static@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4: bad signature"]}}]}`,
+		customContext: config.ToContext(context.Background(),
+			&config.Config{
+				ImagePolicyConfig: &config.ImagePolicyConfig{
+					Policies: map[string]webhookcip.ClusterImagePolicy{
+						"cluster-image-policy-keyless": {
+							Images: []v1alpha1.ImagePattern{{
+								Glob: "gcr.io/*/*",
+							}},
+							Authorities: []webhookcip.Authority{
+								{
+									Keyless: &webhookcip.KeylessRef{
+										URL: fulcioURL,
+									},
+									CTLog: &v1alpha1.TLog{
+										URL: rekorURL,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		),
+		cvs: fail,
+	}, {
+		name: "simple with 2 containers, error, authority keyless, good fulcio, bad rekor",
+		ps: &corev1.PodSpec{
+			InitContainers: []corev1.Container{{
+				Name:  "setup-stuff",
+				Image: digest.String(),
+			}},
+			Containers: []corev1.Container{{
+				Name:  "user-container",
+				Image: digest.String(),
+			}, {
+				Name:  "user-container-2",
+				Image: digestNewer.String(),
+			}},
+		},
+		want: `{"containerResults":[{"index":0,"name":"setup-stuff","image":"gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4","field":"initContainers","result":"deny","resultMsg":"Failed to validate at least one policy for gcr.io/distroless/static@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4 wanted 1 policies, only validated 0","policyErrors":{"cluster-image-policy-keyless":["signature keyless validation failed for authority  for gcr.io/distroless/static@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4: bad signature"]}},{"index":1,"name":"user-container-2","image":"gcr.io/distroless/static:nonroot@sha256:2a9e2b4fa771d31fe3346a873be845bfc2159695b9f90ca08e950497006ccc2e","field":"containers","result":"deny","resultMsg":"Failed to validate at least one policy for gcr.io/distroless/static@sha256:2a9e2b4fa771d31fe3346a873be845bfc2159695b9f90ca08e950497006ccc2e wanted 1 policies, only validated 0","policyErrors":{"cluster-image-policy-keyless":["signature keyless validation failed for authority  for gcr.io/distroless/static@sha256:2a9e2b4fa771d31fe3346a873be845bfc2159695b9f90ca08e950497006ccc2e: bad signature"]}},{"index":0,"name":"user-container","image":"gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4","field":"containers","result":"deny","resultMsg":"Failed to validate at least one policy for gcr.io/distroless/static@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4 wanted 1 policies, only validated 0","policyErrors":{"cluster-image-policy-keyless":["signature keyless validation failed for authority  for gcr.io/distroless/static@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4: bad signature"]}}]}`,
+		customContext: config.ToContext(context.Background(),
+			&config.Config{
+				ImagePolicyConfig: &config.ImagePolicyConfig{
+					Policies: map[string]webhookcip.ClusterImagePolicy{
+						"cluster-image-policy-keyless": {
+							Images: []v1alpha1.ImagePattern{{
+								Glob: "gcr.io/*/*",
+							}},
+							Authorities: []webhookcip.Authority{
+								{
+									Keyless: &webhookcip.KeylessRef{
+										URL: fulcioURL,
+									},
+									CTLog: &v1alpha1.TLog{
+										URL: rekorURL,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		),
+		cvs: fail,
+	}, {
+		name: "simple, no error, authority source signaturePullSecrets, non existing secret",
+		ps: &corev1.PodSpec{
+			InitContainers: []corev1.Container{{
+				Name:  "setup-stuff",
+				Image: digest.String(),
+			}},
+			Containers: []corev1.Container{{
+				Name:  "user-container",
+				Image: digest.String(),
+			}},
+		},
+		want: `{"containerResults":[{"index":0,"name":"setup-stuff","image":"gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4","field":"initContainers","result":"allow","resultMsg":"Validated 1 policies for image gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4","policyResults":{"cluster-image-policy":{"authorityMatches":{"":{"signatures":[{"id":"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}]}}}}},{"index":0,"name":"user-container","image":"gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4","field":"containers","result":"allow","resultMsg":"Validated 1 policies for image gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4","policyResults":{"cluster-image-policy":{"authorityMatches":{"":{"signatures":[{"id":"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}]}}}}}]}`,
+		customContext: config.ToContext(ctx,
+			&config.Config{
+				ImagePolicyConfig: &config.ImagePolicyConfig{
+					Policies: map[string]webhookcip.ClusterImagePolicy{
+						"cluster-image-policy": {
+							Images: []v1alpha1.ImagePattern{{
+								Glob: "gcr.io/*/*",
+							}},
+							Authorities: []webhookcip.Authority{
+								{
+									Key: &webhookcip.KeyRef{
+										Data:              authorityKeyCosignPubString,
+										PublicKeys:        []crypto.PublicKey{authorityKeyCosignPub},
+										HashAlgorithmCode: crypto.SHA256,
+										HashAlgorithm:     signaturealgo.DefaultSignatureAlgorithm,
+									},
+									Sources: []v1alpha1.Source{{
+										OCI: "example.com/alternative/signature",
+										SignaturePullSecrets: []corev1.LocalObjectReference{{
+											Name: "non-existing-secret",
+										}},
+									}},
+								},
+							},
+						},
+					},
+				},
+			},
+		),
+		cvs: pass,
+	}, {
+		name: "simple, no error, authority source signaturePullSecrets, valid secret",
+		ps: &corev1.PodSpec{
+			InitContainers: []corev1.Container{{
+				Name:  "setup-stuff",
+				Image: digest.String(),
+			}},
+			Containers: []corev1.Container{{
+				Name:  "user-container",
+				Image: digest.String(),
+			}, {
+				Name:  "user-container-2",
+				Image: digestNewer.String(),
+			}},
+		},
+		want: `{"containerResults":[{"index":0,"name":"setup-stuff","image":"gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4","field":"initContainers","result":"allow","resultMsg":"Validated 1 policies for image gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4","policyResults":{"cluster-image-policy":{"authorityMatches":{"":{"signatures":[{"id":"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}]}}}}},{"index":1,"name":"user-container-2","image":"gcr.io/distroless/static:nonroot@sha256:2a9e2b4fa771d31fe3346a873be845bfc2159695b9f90ca08e950497006ccc2e","field":"containers","result":"allow","resultMsg":"Validated 1 policies for image gcr.io/distroless/static:nonroot@sha256:2a9e2b4fa771d31fe3346a873be845bfc2159695b9f90ca08e950497006ccc2e","policyResults":{"cluster-image-policy":{"authorityMatches":{"":{"signatures":[{"id":"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}]}}}}},{"index":0,"name":"user-container","image":"gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4","field":"containers","result":"allow","resultMsg":"Validated 1 policies for image gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4","policyResults":{"cluster-image-policy":{"authorityMatches":{"":{"signatures":[{"id":"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"}]}}}}}]}`,
+		customContext: config.ToContext(ctx,
+			&config.Config{
+				ImagePolicyConfig: &config.ImagePolicyConfig{
+					Policies: map[string]webhookcip.ClusterImagePolicy{
+						"cluster-image-policy": {
+							Images: []v1alpha1.ImagePattern{{
+								Glob: "gcr.io/*/*",
+							}},
+							Authorities: []webhookcip.Authority{
+								{
+									Key: &webhookcip.KeyRef{
+										Data:              authorityKeyCosignPubString,
+										PublicKeys:        []crypto.PublicKey{authorityKeyCosignPub},
+										HashAlgorithm:     signaturealgo.DefaultSignatureAlgorithm,
+										HashAlgorithmCode: crypto.SHA256,
+									},
+									Sources: []v1alpha1.Source{{
+										OCI: "example.com/alternative/signature",
+										SignaturePullSecrets: []corev1.LocalObjectReference{{
+											Name: "fakeSignaturePullSecrets",
+										}},
+									}},
+								},
+							},
+						},
+					},
+				},
+			},
+		),
+		cvs: authorityPublicKeyCVS,
+	}}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			for _, mode := range []string{"", "enforce", "warn"} {
+				cosignVerifySignatures = test.cvs
+				testContext := context.Background()
+				// By default we want errors. However, iff the mode above is
+				// warn, and we're using a custom context and therefore
+				// triggering the CIP.mode twiddling below, check for warnings.
+				if test.customContext != nil {
+					// If we are testing with custom context, loop through
+					// all the modes here. It's a bit silly that we spin through
+					// all the tests 3 times, but for now this is better than
+					// duplicating all the CIPs with just different modes.
+					testContext = test.customContext
+
+					// Twiddle the mode for tests.
+					cfg := config.FromContext(testContext)
+					newPolicies := make(map[string]webhookcip.ClusterImagePolicy, len(cfg.ImagePolicyConfig.Policies))
+					for k, v := range cfg.ImagePolicyConfig.Policies {
+						v.Mode = mode
+						newPolicies[k] = v
+					}
+					cfg.ImagePolicyConfig.Policies = newPolicies
+					config.ToContext(testContext, cfg)
+				}
+
+				// Check disabled annotations
+				noAnnotationsContext := context.WithValue(testContext, kubeclient.Key{}, kc)
+				got := &metav1.ObjectMeta{}
+				v.annotatePodSpec(noAnnotationsContext, system.Namespace(), "Pod", "v1", got, test.ps, k8schain.Options{})
+
+				if got.Annotations != nil {
+					t.Errorf("annotatePodSpec() = %v, wanted nil", got.Annotations)
+				}
+
+				testContext = context.WithValue(testContext, kubeclient.Key{}, kc)
+				testContext = policycontrollerconfig.ToContext(testContext, &policycontrollerconfig.PolicyControllerConfig{AnnotateValidationResults: true})
+
+				got = &metav1.ObjectMeta{}
+				// Check the core mechanics
+				v.annotatePodSpec(testContext, system.Namespace(), "Pod", "v1", got, test.ps, k8schain.Options{})
+				want := test.want
+				if mode == "warn" {
+					want = strings.ReplaceAll(test.want, `"result":"deny"`, `"result":"warn"`)
+				}
+				if !annotationsMatch(t, test.name, got.Annotations[ResultsAnnotationKey], want) {
+					t.Errorf("annotatePodSpec = %s", cmp.Diff(got.Annotations[ResultsAnnotationKey], want))
+				}
+
+				// Check wrapped in a Pod
+				pod := &duckv1.Pod{
+					Spec: *test.ps.DeepCopy(),
+				}
+				v.AnnotatePod(testContext, pod)
+
+				if !annotationsMatch(t, test.name, pod.Annotations[ResultsAnnotationKey], want) {
+					t.Errorf("AnnotatePod = %s", cmp.Diff(pod.Annotations[ResultsAnnotationKey], want))
+				}
+
+				// Check that we don't block things being deleted.
+				pod = &duckv1.Pod{
+					Spec: *test.ps.DeepCopy(),
+				}
+				if v.AnnotatePod(apis.WithinDelete(testContext), pod); pod.Annotations != nil {
+					t.Errorf("AnnotatePod() = %v, wanted nil", pod.Annotations)
+				}
+
+				// Check wrapped in a WithPod
+				withPod := &duckv1.WithPod{
+					Spec: duckv1.WithPodSpec{
+						Template: duckv1.PodSpecable{
+							Spec: *test.ps,
+						},
+					},
+				}
+				v.AnnotatePodSpecable(testContext, withPod)
+
+				if !annotationsMatch(t, test.name, withPod.Annotations[ResultsAnnotationKey], want) {
+					t.Errorf("AnnotatePodSpecable = %s", cmp.Diff(withPod.Annotations[ResultsAnnotationKey], want))
+				}
+
+				// Check that we don't block things being deleted.
+				withPod = &duckv1.WithPod{
+					Spec: duckv1.WithPodSpec{
+						Template: duckv1.PodSpecable{
+							Spec: *test.ps,
+						},
+					},
+				}
+				if v.AnnotatePodSpecable(apis.WithinDelete(testContext), withPod); withPod.Annotations != nil {
+					t.Errorf("AnnotatePodSpecable() = %v, wanted nil", withPod.Annotations)
+				}
+
+				// Check wrapped in a podScalable
+				podScalable := &policyduckv1beta1.PodScalable{
+					Spec: policyduckv1beta1.PodScalableSpec{
+						Replicas: ptr.Int32(3),
+						Template: corev1.PodTemplateSpec{
+							Spec: *test.ps,
+						},
+					},
+				}
+				v.AnnotatePodScalable(testContext, podScalable)
+
+				if !annotationsMatch(t, test.name, podScalable.Annotations[ResultsAnnotationKey], want) {
+					t.Errorf("AnnotatePodScalable = %s", cmp.Diff(podScalable.Annotations[ResultsAnnotationKey], want))
+				}
+
+				// Check that we don't block things being deleted.
+				podScalable = &policyduckv1beta1.PodScalable{
+					Spec: policyduckv1beta1.PodScalableSpec{
+						Replicas: ptr.Int32(3),
+						Template: corev1.PodTemplateSpec{
+							Spec: *test.ps,
+						},
+					},
+				}
+				if v.AnnotatePodScalable(apis.WithinDelete(testContext), podScalable); podScalable.Annotations != nil {
+					t.Errorf("AnnotatePodScalable() = %v, wanted nil", podScalable.Annotations)
+				}
+
+				// Check that we don't block things being scaled down.
+				original := podScalable.DeepCopy()
+				original.Spec.Replicas = ptr.Int32(4)
+				v.AnnotatePodScalable(apis.WithinUpdate(testContext, original), podScalable)
+				if !annotationsMatch(t, test.name, podScalable.Annotations[ResultsAnnotationKey], original.Annotations[ResultsAnnotationKey]) {
+					t.Errorf("AnnotatePodScalable() scaling down = %v", cmp.Diff(podScalable.Annotations[ResultsAnnotationKey], original))
+				}
+
+				// Check that we fail as expected if being scaled up.
+				original.Spec.Replicas = ptr.Int32(2)
+				v.ValidatePodScalable(apis.WithinUpdate(testContext, original), podScalable)
+				if !annotationsMatch(t, test.name, podScalable.Annotations[ResultsAnnotationKey], original.Annotations[ResultsAnnotationKey]) {
+					t.Errorf("AnnotatePodScalable() scaling up = %s", cmp.Diff(podScalable.Annotations[ResultsAnnotationKey], original.Annotations[ResultsAnnotationKey]))
+				}
+			}
+		})
+	}
+}
+
+func TestAnnotateCronJob(t *testing.T) {
+	tag := name.MustParseReference("gcr.io/distroless/static:nonroot")
+	// Resolved via crane digest on 2021/09/25
+	digest := name.MustParseReference("gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4")
+
+	ctx, _ := rtesting.SetupFakeContext(t)
+
+	kc := fakekube.Get(ctx)
+	kc.CoreV1().ServiceAccounts("default").Create(ctx, &corev1.ServiceAccount{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: "default",
+		},
+	}, metav1.CreateOptions{})
+
+	v := NewValidator(ctx)
+
+	cvs := cosignVerifySignatures
+	defer func() {
+		cosignVerifySignatures = cvs
+	}()
+
+	// Let's just say that everything is not verified.
+	fail := func(ctx context.Context, signedImgRef name.Reference, co *cosign.CheckOpts) (checkedSignatures []oci.Signature, bundleVerified bool, err error) {
+		return nil, false, errors.New("bad signature")
+	}
+
+	tests := []struct {
+		name string
+		c    *duckv1.CronJob
+		want string
+		cvs  func(context.Context, name.Reference, *cosign.CheckOpts) ([]oci.Signature, bool, error)
+	}{{
+		name: "k8schain ignore (bad service account)",
+		c: &duckv1.CronJob{
+			Spec: batchv1.CronJobSpec{
+				JobTemplate: batchv1.JobTemplateSpec{
+					Spec: batchv1.JobSpec{
+						Template: corev1.PodTemplateSpec{
+							Spec: corev1.PodSpec{
+								ServiceAccountName: "not-found",
+								InitContainers: []corev1.Container{{
+									Name:  "setup-stuff",
+									Image: digest.String(),
+								}},
+								Containers: []corev1.Container{{
+									Name:  "user-container",
+									Image: digest.String(),
+								}},
+							},
+						},
+					},
+				},
+			},
+		},
+		want: `{"containerResults":[]}`,
+	}, {
+		name: "k8schain ignore (bad pull secret)",
+		c: &duckv1.CronJob{
+			Spec: batchv1.CronJobSpec{
+				JobTemplate: batchv1.JobTemplateSpec{
+					Spec: batchv1.JobSpec{
+						Template: corev1.PodTemplateSpec{
+							Spec: corev1.PodSpec{
+								ImagePullSecrets: []corev1.LocalObjectReference{{
+									Name: "not-found",
+								}},
+								InitContainers: []corev1.Container{{
+									Name:  "setup-stuff",
+									Image: digest.String(),
+								}},
+								Containers: []corev1.Container{{
+									Name:  "user-container",
+									Image: digest.String(),
+								}},
+							},
+						},
+					},
+				},
+			},
+		},
+		want: `{"containerResults":[]}`,
+	}, {
+		name: "bad reference",
+		c: &duckv1.CronJob{
+			Spec: batchv1.CronJobSpec{
+				JobTemplate: batchv1.JobTemplateSpec{
+					Spec: batchv1.JobSpec{
+						Template: corev1.PodTemplateSpec{
+							Spec: corev1.PodSpec{
+								Containers: []corev1.Container{{
+									Name:  "user-container",
+									Image: "in@valid",
+								}},
+							},
+						},
+					},
+				},
+			},
+		},
+		want: `{"containerResults":[{"index":0,"name":"user-container","image":"in@valid","field":"containers","result":"could not parse reference: in@valid","resultMsg":""}]}`,
+		cvs:  fail,
+	}, {
+		name: "not digest",
+		c: &duckv1.CronJob{
+			Spec: batchv1.CronJobSpec{
+				JobTemplate: batchv1.JobTemplateSpec{
+					Spec: batchv1.JobSpec{
+						Template: corev1.PodTemplateSpec{
+							Spec: corev1.PodSpec{
+								Containers: []corev1.Container{{
+									Name:  "user-container",
+									Image: tag.String(),
+								}},
+							},
+						},
+					},
+				},
+			},
+		},
+		want: `{"containerResults":[{"index":0,"name":"user-container","image":"gcr.io/distroless/static:nonroot","field":"containers","result":"invalid value: gcr.io/distroless/static:nonroot must be an image digest","resultMsg":""}]}`,
+		cvs:  fail,
+	}}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			cosignVerifySignatures = test.cvs
+
+			// Check disabled annotations
+			testContext := context.WithValue(context.Background(), kubeclient.Key{}, kc)
+			cronJob := test.c.DeepCopy()
+			v.AnnotateCronJob(testContext, cronJob)
+			if cronJob.Annotations != nil {
+				t.Errorf("AnnotateCronJob() = %v, wanted nil", cronJob.Annotations)
+			}
+
+			// Enable annotations
+			testContext = policycontrollerconfig.ToContext(testContext, &policycontrollerconfig.PolicyControllerConfig{AnnotateValidationResults: true})
+
+			// Check the core mechanics
+			cronJob = test.c.DeepCopy()
+			want := test.want
+			v.AnnotateCronJob(testContext, cronJob)
+			if !annotationsMatch(t, test.name, cronJob.Annotations[ResultsAnnotationKey], want) {
+				t.Errorf("AnnotateCronJob() = %s", cmp.Diff(cronJob.Annotations[ResultsAnnotationKey], want))
+			}
+
+			// Check that we don't block things being deleted.
+			cronJob = test.c.DeepCopy()
+			if v.AnnotateCronJob(apis.WithinDelete(testContext), cronJob); cronJob.Annotations != nil {
+				t.Errorf("AnnotateCronJob() = %v, wanted nil", cronJob.Annotations)
+			}
+			// Check that we don't block things already deleted.
+			cronJob = test.c.DeepCopy()
+			cronJob.DeletionTimestamp = &metav1.Time{Time: time.Now()}
+			if v.AnnotateCronJob(context.Background(), cronJob); cronJob.Annotations != nil {
+				t.Errorf("AnnotateCronJob() = %v, wanted nil", cronJob.Annotations)
+			}
+		})
+	}
+}
+
+// Results are returned in different order due to race conditions
+func annotationsMatch(t *testing.T, name, got, want string) bool {
+	if cmp.Equal(got, want) {
+		return true
+	}
+	var gotParsed ResultAnnotations
+	var wantParsed ResultAnnotations
+	err := json.Unmarshal([]byte(got), &gotParsed)
+
+	// Checks whether the error is nil or not
+	if err != nil {
+		t.Errorf("Failed to parse received JSON in %s = %s", name, got)
+	}
+
+	err = json.Unmarshal([]byte(want), &wantParsed)
+
+	// Checks whether the error is nil or not
+	if err != nil {
+		t.Errorf("Failed to parse wanted JSON in %s = %s", name, want)
+	}
+
+	if len(gotParsed.ContainerResults) != len(wantParsed.ContainerResults) {
+		return false
+	}
+
+	// Sort Container results by Index to compare them
+	sortFunc := cmpopts.SortSlices(func(a, b *ContainerAnnotation) bool {
+		return a.Index < b.Index
+	})
+
+	return cmp.Equal(gotParsed.ContainerResults, wantParsed.ContainerResults, sortFunc)
 }
