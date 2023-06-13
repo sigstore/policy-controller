@@ -153,14 +153,14 @@ ko-policy-webhook:
 .PHONY: ko-local
 ko-local:
 	LDFLAGS="$(LDFLAGS)" GIT_HASH=$(GIT_HASH) GIT_VERSION=$(GIT_VERSION) \
-	KOCACHE=$(KOCACHE_PATH) ko build --base-import-paths \
-		--tags $(GIT_VERSION) --tags $(GIT_HASH) --local \
+	KOCACHE=$(KOCACHE_PATH) KO_DOCKER_REPO=ko.local ko build --base-import-paths \
+		--tags $(GIT_VERSION) --tags $(GIT_HASH) \
 		$(ARTIFACT_HUB_LABELS) \
 		github.com/sigstore/policy-controller/cmd/webhook
 
 	LDFLAGS="$(LDFLAGS)" GIT_HASH=$(GIT_HASH) GIT_VERSION=$(GIT_VERSION) \
-	KOCACHE=$(KOCACHE_PATH) ko build --base-import-paths \
-		--tags $(GIT_VERSION) --tags $(GIT_HASH) --local \
+	KOCACHE=$(KOCACHE_PATH) KO_DOCKER_REPO=ko.local ko build --base-import-paths \
+		--tags $(GIT_VERSION) --tags $(GIT_HASH) \
 		$(ARTIFACT_HUB_LABELS) \
 		github.com/sigstore/policy-controller/cmd/policy_webhook
 
