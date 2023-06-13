@@ -30,7 +30,7 @@ import (
 
 // Parse decodes a provided YAML document containing zero or more objects into
 // a collection of unstructured.Unstructured objects.
-func Parse(ctx context.Context, document string) ([]*unstructured.Unstructured, error) {
+func Parse(_ context.Context, document string) ([]*unstructured.Unstructured, error) {
 	docs := strings.Split(document, "\n---\n")
 
 	objs := make([]*unstructured.Unstructured, 0, len(docs))

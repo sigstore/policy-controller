@@ -158,7 +158,7 @@ func (i *impl) Verify(ctx context.Context, ref name.Reference, kc authn.Keychain
 
 	for _, p := range matches {
 		res, errs := webhook.ValidatePolicy(ctx, "" /* namespace */, ref, p, kc, opts...)
-		if res != nil {
+		if res != nil { //nolint: revive
 			// Ignore the errors for other authorities if we got a policy result.
 		} else {
 			// If we didn't get a policy result, then surface any errors.

@@ -48,7 +48,7 @@ type policyResyncPeriodKey struct{}
 // NewController creates a Reconciler and returns the result of NewImpl.
 func NewController(
 	ctx context.Context,
-	cmw configmap.Watcher,
+	_ configmap.Watcher,
 ) *controller.Impl {
 	clusterimagepolicyInformer := clusterimagepolicyinformer.Get(ctx)
 	secretInformer := secretinformer.Get(ctx)

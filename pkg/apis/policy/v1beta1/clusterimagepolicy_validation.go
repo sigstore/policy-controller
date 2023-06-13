@@ -69,14 +69,14 @@ func (spec *ClusterImagePolicySpec) Validate(ctx context.Context) (errors *apis.
 	return
 }
 
-func (image *ImagePattern) Validate(ctx context.Context) *apis.FieldError {
+func (image *ImagePattern) Validate(_ context.Context) *apis.FieldError {
 	if image.Glob == "" {
 		return apis.ErrMissingField("glob")
 	}
 	return ValidateGlob(image.Glob).ViaField("glob")
 }
 
-func (matchResource *MatchResource) Validate(ctx context.Context) *apis.FieldError {
+func (matchResource *MatchResource) Validate(_ context.Context) *apis.FieldError {
 	var errs *apis.FieldError
 	if matchResource.Resource != "" && common.ValidResourceNames.Len() > 0 &&
 		!common.ValidResourceNames.Has(matchResource.Resource) {
@@ -145,7 +145,7 @@ func (authority *Authority) Validate(ctx context.Context) *apis.FieldError {
 	return errs
 }
 
-func (s *StaticRef) Validate(ctx context.Context) *apis.FieldError {
+func (s *StaticRef) Validate(_ context.Context) *apis.FieldError {
 	var errs *apis.FieldError
 
 	if s.Action == "" {
@@ -156,7 +156,7 @@ func (s *StaticRef) Validate(ctx context.Context) *apis.FieldError {
 	return errs
 }
 
-func (key *KeyRef) Validate(ctx context.Context) *apis.FieldError {
+func (key *KeyRef) Validate(_ context.Context) *apis.FieldError {
 	var errs *apis.FieldError
 
 	if key.Data == "" && key.KMS == "" && key.SecretRef == nil {
@@ -214,7 +214,7 @@ func (keyless *KeylessRef) Validate(ctx context.Context) *apis.FieldError {
 	return errs
 }
 
-func (source *Source) Validate(ctx context.Context) *apis.FieldError {
+func (source *Source) Validate(_ context.Context) *apis.FieldError {
 	var errs *apis.FieldError
 	if source.OCI != "" {
 		if err := common.ValidateOCI(source.OCI); err != nil {
@@ -257,7 +257,7 @@ func (a *Attestation) Validate(ctx context.Context) *apis.FieldError {
 	return errs
 }
 
-func (cmr *ConfigMapReference) Validate(ctx context.Context) *apis.FieldError {
+func (cmr *ConfigMapReference) Validate(_ context.Context) *apis.FieldError {
 	var errs *apis.FieldError
 	if cmr.Name == "" {
 		errs = errs.Also(apis.ErrMissingField("name"))
@@ -268,7 +268,7 @@ func (cmr *ConfigMapReference) Validate(ctx context.Context) *apis.FieldError {
 	return errs
 }
 
-func (r *RemotePolicy) Validate(ctx context.Context) *apis.FieldError {
+func (r *RemotePolicy) Validate(_ context.Context) *apis.FieldError {
 	var errs *apis.FieldError
 	urlObj := r.URL
 	u, err := url.Parse(urlObj.String())
@@ -322,7 +322,7 @@ func (p *Policy) Validate(ctx context.Context) *apis.FieldError {
 	return errs
 }
 
-func (identity *Identity) Validate(ctx context.Context) *apis.FieldError {
+func (identity *Identity) Validate(_ context.Context) *apis.FieldError {
 	var errs *apis.FieldError
 	if identity.Issuer != "" && identity.IssuerRegExp != "" {
 		errs = errs.Also(apis.ErrMultipleOneOf("issuer", "issuerRegExp"))

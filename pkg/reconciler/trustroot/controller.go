@@ -39,7 +39,7 @@ const FinalizerName = "trustroots.policy.sigstore.dev"
 // NewController creates a Reconciler and returns the result of NewImpl.
 func NewController(
 	ctx context.Context,
-	cmw configmap.Watcher,
+	_ configmap.Watcher,
 ) *controller.Impl {
 	trustrootInformer := trustrootinformer.Get(ctx)
 	configMapInformer := cminformer.Get(ctx)

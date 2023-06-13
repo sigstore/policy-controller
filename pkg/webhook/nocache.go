@@ -23,9 +23,9 @@ import "context"
 type NoCache struct {
 }
 
-func (nc *NoCache) Get(ctx context.Context, image, uid, resourceVersion string) *CacheResult {
+func (nc *NoCache) Get(ctx context.Context, image, uid, resourceVersion string) *CacheResult { //nolint: revive
 	return nil
 }
 
-func (nc *NoCache) Set(ctx context.Context, image, name, uid, resourceVersion string, cacheResult *CacheResult) {
+func (nc *NoCache) Set(ctx context.Context, image, name, uid, resourceVersion string, cacheResult *CacheResult) { //nolint: revive
 }

@@ -26,7 +26,7 @@ func (c *ClusterImagePolicy) SetDefaults(ctx context.Context) {
 	c.Spec.SetDefaults(ctx)
 }
 
-func (spec *ClusterImagePolicySpec) SetDefaults(ctx context.Context) {
+func (spec *ClusterImagePolicySpec) SetDefaults(_ context.Context) {
 	if spec.Mode == "" {
 		spec.Mode = "enforce"
 	}

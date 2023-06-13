@@ -226,7 +226,7 @@ func UncompressMemFS(src io.Reader, stripPrefix string) (fs.FS, error) {
 // ClientFromSerializedMirror will construct a TUF client by
 // unzip/untar the repository and constructing an in-memory TUF
 // client for it. Will also Init/Update it.
-func ClientFromSerializedMirror(ctx context.Context, repo, rootJSON []byte, targets, stripPrefix string) (*client.Client, error) {
+func ClientFromSerializedMirror(_ context.Context, repo, rootJSON []byte, targets, stripPrefix string) (*client.Client, error) {
 	// unzip/untar the repository.
 	tufFS, err := UncompressMemFS(bytes.NewReader(repo), stripPrefix)
 	if err != nil {
@@ -258,7 +258,7 @@ func ClientFromSerializedMirror(ctx context.Context, repo, rootJSON []byte, targ
 }
 
 // ClientFromRemote will construct a TUF client from a root, and mirror
-func ClientFromRemote(ctx context.Context, mirror string, rootJSON []byte, targets string) (*client.Client, error) {
+func ClientFromRemote(_ context.Context, mirror string, rootJSON []byte, targets string) (*client.Client, error) {
 	opts := &client.HTTPRemoteOptions{
 		UserAgent:   uaString,
 		TargetsPath: targets,
