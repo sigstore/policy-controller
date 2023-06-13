@@ -48,7 +48,7 @@ func NewConfigMap(ns, name, cipName string, cip *webhookcip.ClusterImagePolicy) 
 // CreatePatch updates a particular entry to see if they are differing and
 // returning the patch bytes for it that's suitable for calling
 // ConfigMap.Patch with.
-func CreatePatch(ns, name, cipName string, cm *corev1.ConfigMap, cip *webhookcip.ClusterImagePolicy) ([]byte, error) {
+func CreatePatch(ns, name, cipName string, cm *corev1.ConfigMap, cip *webhookcip.ClusterImagePolicy) ([]byte, error) { //nolint: revive
 	entry, err := marshal(cip)
 	if err != nil {
 		return nil, err
@@ -70,7 +70,7 @@ func CreatePatch(ns, name, cipName string, cm *corev1.ConfigMap, cip *webhookcip
 
 // CreateRemovePatch removes an entry from the ConfigMap and returns the patch
 // bytes for it that's suitable for calling ConfigMap.Patch with.
-func CreateRemovePatch(ns, name string, cm *corev1.ConfigMap, cipName string) ([]byte, error) {
+func CreateRemovePatch(ns, name string, cm *corev1.ConfigMap, cipName string) ([]byte, error) { //nolint: revive
 	after := cm.DeepCopy()
 	// Just remove it without checking if it exists. If it doesn't, then no
 	// patch bytes are created.

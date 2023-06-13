@@ -59,7 +59,7 @@ import (
 
 type Validator struct{}
 
-func NewValidator(ctx context.Context) *Validator {
+func NewValidator(_ context.Context) *Validator {
 	return &Validator{}
 }
 

@@ -201,7 +201,7 @@ func NewValidatingAdmissionController(ctx context.Context, cmw configmap.Watcher
 	)
 }
 
-func NewMutatingAdmissionController(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
+func NewMutatingAdmissionController(ctx context.Context, _ configmap.Watcher) *controller.Impl {
 	kc := kubeclient.Get(ctx)
 	validator := cwebhook.NewValidator(ctx)
 

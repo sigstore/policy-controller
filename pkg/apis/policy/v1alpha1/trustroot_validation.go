@@ -128,7 +128,7 @@ func (sigstoreKeys *SigstoreKeys) Validate(ctx context.Context) (errors *apis.Fi
 	return
 }
 
-func ValidateRoot(ctx context.Context, rootJSON []byte) *apis.FieldError {
+func ValidateRoot(_ context.Context, rootJSON []byte) *apis.FieldError {
 	if rootJSON == nil {
 		return apis.ErrMissingField("root")
 	}
@@ -172,7 +172,7 @@ func ValidateTimeStampAuthority(ctx context.Context, ca CertificateAuthority) (e
 	return
 }
 
-func ValidateDistinguishedName(ctx context.Context, dn DistinguishedName) (errors *apis.FieldError) {
+func ValidateDistinguishedName(_ context.Context, dn DistinguishedName) (errors *apis.FieldError) {
 	if dn.Organization == "" {
 		errors = errors.Also(apis.ErrMissingField("organization"))
 	}
@@ -182,7 +182,7 @@ func ValidateDistinguishedName(ctx context.Context, dn DistinguishedName) (error
 	return
 }
 
-func ValidateTransparencyLogInstance(ctx context.Context, tli TransparencyLogInstance) (errors *apis.FieldError) {
+func ValidateTransparencyLogInstance(_ context.Context, tli TransparencyLogInstance) (errors *apis.FieldError) {
 	if tli.BaseURL.String() == "" {
 		errors = errors.Also(apis.ErrMissingField("baseURL"))
 	}

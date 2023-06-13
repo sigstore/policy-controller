@@ -188,10 +188,8 @@ func writeStagedTarget(dir, path string, data []byte) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
 		return err
 	}
-	if err := os.WriteFile(path, data, 0644); err != nil {
-		return err
-	}
-	return nil
+
+	return os.WriteFile(path, data, 0644)
 }
 
 func TestClientFromSerializedMirror(t *testing.T) {

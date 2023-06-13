@@ -24,10 +24,10 @@ import (
 
 type BadOne struct{}
 
-func (ct *BadOne) ConvertTo(ctx context.Context, sink apis.Convertible) error {
+func (ct *BadOne) ConvertTo(_ context.Context, sink apis.Convertible) error {
 	return fmt.Errorf("v1beta1 is the highest known version, got: %T", sink)
 }
-func (ct *BadOne) ConvertFrom(ctx context.Context, source apis.Convertible) error {
+func (ct *BadOne) ConvertFrom(_ context.Context, source apis.Convertible) error {
 	return fmt.Errorf("v1beta1 is the highest know version, got: %T", source)
 }
 

@@ -139,7 +139,7 @@ func NewPolicyValidatingAdmissionController(ctx context.Context, cmw configmap.W
 	)
 }
 
-func NewPolicyMutatingAdmissionController(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
+func NewPolicyMutatingAdmissionController(ctx context.Context, _ configmap.Watcher) *controller.Impl {
 	return defaulting.NewAdmissionController(
 		ctx,
 		*mutatingWebhookName,
@@ -152,7 +152,7 @@ func NewPolicyMutatingAdmissionController(ctx context.Context, cmw configmap.Wat
 	)
 }
 
-func newConversionController(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
+func newConversionController(ctx context.Context, _ configmap.Watcher) *controller.Impl {
 	// nolint: revive
 	var (
 		v1alpha1GroupVersion = v1alpha1.SchemeGroupVersion.Version

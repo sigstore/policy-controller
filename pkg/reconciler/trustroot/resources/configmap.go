@@ -45,7 +45,7 @@ func NewConfigMap(ns, name, trName string, sk *config.SigstoreKeys) (*corev1.Con
 // CreatePatch updates a particular entry to see if they are differing and
 // returning the patch bytes for it that's suitable for calling
 // ConfigMap.Patch with.
-func CreatePatch(ns, name, tkName string, cm *corev1.ConfigMap, sk *config.SigstoreKeys) ([]byte, error) {
+func CreatePatch(ns, name, tkName string, cm *corev1.ConfigMap, sk *config.SigstoreKeys) ([]byte, error) { //nolint: revive
 	entry, err := Marshal(sk)
 	if err != nil {
 		return nil, err
@@ -67,7 +67,7 @@ func CreatePatch(ns, name, tkName string, cm *corev1.ConfigMap, sk *config.Sigst
 
 // CreateRemovePatch removes an entry from the ConfigMap and returns the patch
 // bytes for it that's suitable for calling ConfigMap.Patch with.
-func CreateRemovePatch(ns, name string, cm *corev1.ConfigMap, tkName string) ([]byte, error) {
+func CreateRemovePatch(ns, name string, cm *corev1.ConfigMap, tkName string) ([]byte, error) { //nolint: revive
 	after := cm.DeepCopy()
 	// Just remove it without checking if it exists. If it doesn't, then no
 	// patch bytes are created.

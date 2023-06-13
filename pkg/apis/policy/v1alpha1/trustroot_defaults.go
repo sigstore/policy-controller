@@ -21,7 +21,7 @@ func (tr *TrustRoot) SetDefaults(ctx context.Context) {
 	tr.Spec.SetDefaults(ctx)
 }
 
-func (spec *TrustRootSpec) SetDefaults(ctx context.Context) {
+func (spec *TrustRootSpec) SetDefaults(_ context.Context) {
 	if spec.Repository != nil && spec.Repository.Targets == "" {
 		spec.Repository.Targets = "targets"
 	}

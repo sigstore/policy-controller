@@ -56,7 +56,7 @@ const (
 type Ctor func(context.Context, *Listers, configmap.Watcher) controller.Reconciler
 
 // MakeFactory creates a reconciler factory with fake clients and controller created by `ctor`.
-func MakeFactory(ctor Ctor, unstructured bool, logger *zap.SugaredLogger, privKMSKey *ecdsa.PrivateKey) reconcilertesting.Factory {
+func MakeFactory(ctor Ctor, unstructured bool, logger *zap.SugaredLogger, privKMSKey *ecdsa.PrivateKey) reconcilertesting.Factory { //nolint: revive
 	return func(t *testing.T, r *reconcilertesting.TableRow) (controller.Reconciler, reconcilertesting.ActionRecorderList, reconcilertesting.EventList) {
 		ls := NewListers(r.Objects)
 

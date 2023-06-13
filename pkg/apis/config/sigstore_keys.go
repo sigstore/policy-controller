@@ -143,7 +143,7 @@ func parseSigstoreKeys(entry string, out interface{}) error {
 
 // ConvertFrom takes a source and converts into a SigstoreKeys suitable
 // for serialization into a ConfigMap entry.
-func (sk *SigstoreKeys) ConvertFrom(ctx context.Context, source *v1alpha1.SigstoreKeys) {
+func (sk *SigstoreKeys) ConvertFrom(_ context.Context, source *v1alpha1.SigstoreKeys) {
 	sk.CertificateAuthorities = make([]CertificateAuthority, len(source.CertificateAuthorities))
 	for i := range source.CertificateAuthorities {
 		sk.CertificateAuthorities[i] = ConvertCertificateAuthority(source.CertificateAuthorities[i])

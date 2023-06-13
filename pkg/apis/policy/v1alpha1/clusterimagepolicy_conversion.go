@@ -78,7 +78,7 @@ func (spec *ClusterImagePolicySpec) ConvertTo(ctx context.Context, sink *v1beta1
 	return nil
 }
 
-func (matchResource *MatchResource) ConvertTo(ctx context.Context, sink *v1beta1.MatchResource) error {
+func (matchResource *MatchResource) ConvertTo(_ context.Context, sink *v1beta1.MatchResource) error {
 	sink.GroupVersionResource = *matchResource.GroupVersionResource.DeepCopy()
 	if matchResource.ResourceSelector != nil {
 		sink.ResourceSelector = matchResource.ResourceSelector.DeepCopy()
@@ -147,7 +147,7 @@ func (authority *Authority) ConvertTo(ctx context.Context, sink *v1beta1.Authori
 	return nil
 }
 
-func (p *Policy) ConvertTo(ctx context.Context, sink *v1beta1.Policy) {
+func (p *Policy) ConvertTo(_ context.Context, sink *v1beta1.Policy) {
 	sink.Type = p.Type
 	sink.Data = p.Data
 	if p.Remote != nil {
@@ -177,7 +177,7 @@ func (p *Policy) ConvertTo(ctx context.Context, sink *v1beta1.Policy) {
 	}
 }
 
-func (p *Policy) ConvertFrom(ctx context.Context, source *v1beta1.Policy) {
+func (p *Policy) ConvertFrom(_ context.Context, source *v1beta1.Policy) {
 	p.Type = source.Type
 	p.Data = source.Data
 	if source.Remote != nil {
@@ -207,7 +207,7 @@ func (p *Policy) ConvertFrom(ctx context.Context, source *v1beta1.Policy) {
 	}
 }
 
-func (key *KeyRef) ConvertTo(ctx context.Context, sink *v1beta1.KeyRef) {
+func (key *KeyRef) ConvertTo(_ context.Context, sink *v1beta1.KeyRef) {
 	sink.SecretRef = key.SecretRef.DeepCopy()
 	sink.Data = key.Data
 	sink.KMS = key.KMS
@@ -302,14 +302,14 @@ func (authority *Authority) ConvertFrom(ctx context.Context, source *v1beta1.Aut
 	return nil
 }
 
-func (key *KeyRef) ConvertFrom(ctx context.Context, source *v1beta1.KeyRef) {
+func (key *KeyRef) ConvertFrom(_ context.Context, source *v1beta1.KeyRef) {
 	key.SecretRef = source.SecretRef.DeepCopy()
 	key.Data = source.Data
 	key.KMS = source.KMS
 	key.HashAlgorithm = source.HashAlgorithm
 }
 
-func (matchResource *MatchResource) ConvertFrom(ctx context.Context, source *v1beta1.MatchResource) error {
+func (matchResource *MatchResource) ConvertFrom(_ context.Context, source *v1beta1.MatchResource) error {
 	matchResource.GroupVersionResource = *source.GroupVersionResource.DeepCopy()
 	if source.ResourceSelector != nil {
 		matchResource.ResourceSelector = source.ResourceSelector.DeepCopy()
