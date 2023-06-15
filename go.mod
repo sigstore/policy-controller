@@ -62,7 +62,7 @@ require (
 	github.com/sigstore/sigstore/pkg/signature/kms/aws v1.7.0
 	github.com/sigstore/sigstore/pkg/signature/kms/azure v1.7.0
 	github.com/sigstore/sigstore/pkg/signature/kms/gcp v1.7.0
-	github.com/sigstore/sigstore/pkg/signature/kms/hashivault v1.6.5
+	github.com/sigstore/sigstore/pkg/signature/kms/hashivault v1.7.0
 )
 
 require (
@@ -183,7 +183,7 @@ require (
 	github.com/googleapis/enterprise-certificate-proxy v0.2.4 // indirect
 	github.com/googleapis/gax-go/v2 v2.10.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.12.0 // indirect
-	github.com/hashicorp/vault/api v1.9.1 // indirect
+	github.com/hashicorp/vault/api v1.9.2 // indirect
 	github.com/imdario/mergo v0.3.13 // indirect
 	github.com/in-toto/in-toto-golang v0.9.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
