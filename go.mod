@@ -60,7 +60,7 @@ require github.com/spf13/cobra v1.7.0 // indirect
 
 require (
 	github.com/sigstore/sigstore/pkg/signature/kms/aws v1.6.5
-	github.com/sigstore/sigstore/pkg/signature/kms/azure v1.6.5
+	github.com/sigstore/sigstore/pkg/signature/kms/azure v1.7.0
 	github.com/sigstore/sigstore/pkg/signature/kms/gcp v1.7.0
 	github.com/sigstore/sigstore/pkg/signature/kms/hashivault v1.6.5
 )
@@ -75,7 +75,7 @@ require (
 	cuelang.org/go v0.5.0 // indirect
 	github.com/AliyunContainerService/ack-ram-tool/pkg/credentials/alibabacloudsdkgo/helper v0.2.0 // indirect
 	github.com/Azure/azure-sdk-for-go v68.0.0+incompatible // indirect
-	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.6.0 // indirect
+	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.6.1 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.3.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/internal v1.3.0 // indirect
 	github.com/Azure/azure-sdk-for-go/sdk/keyvault/azkeys v0.10.0 // indirect
