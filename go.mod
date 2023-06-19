@@ -59,10 +59,11 @@ require (
 require github.com/spf13/cobra v1.7.0 // indirect
 
 require (
+	github.com/go-jose/go-jose/v3 v3.0.0
 	github.com/sigstore/sigstore/pkg/signature/kms/aws v1.7.0
 	github.com/sigstore/sigstore/pkg/signature/kms/azure v1.7.0
 	github.com/sigstore/sigstore/pkg/signature/kms/gcp v1.7.0
-	github.com/sigstore/sigstore/pkg/signature/kms/hashivault v1.6.5
+	github.com/sigstore/sigstore/pkg/signature/kms/hashivault v1.7.0
 )
 
 require (
@@ -149,7 +150,6 @@ require (
 	github.com/gabriel-vasile/mimetype v1.4.2 // indirect
 	github.com/ghodss/yaml v1.0.0 // indirect
 	github.com/go-chi/chi v4.1.2+incompatible // indirect
-	github.com/go-jose/go-jose/v3 v3.0.0 // indirect
 	github.com/go-kit/log v0.2.1 // indirect
 	github.com/go-logfmt/logfmt v0.5.1 // indirect
 	github.com/go-logr/logr v1.2.4 // indirect
@@ -183,7 +183,7 @@ require (
 	github.com/googleapis/enterprise-certificate-proxy v0.2.4 // indirect
 	github.com/googleapis/gax-go/v2 v2.10.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.12.0 // indirect
-	github.com/hashicorp/vault/api v1.9.1 // indirect
+	github.com/hashicorp/vault/api v1.9.2 // indirect
 	github.com/imdario/mergo v0.3.13 // indirect
 	github.com/in-toto/in-toto-golang v0.9.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
