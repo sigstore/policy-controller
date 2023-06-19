@@ -28,6 +28,7 @@ import (
 	"github.com/sigstore/policy-controller/pkg/apis/policy/common"
 	"github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
 	"github.com/sigstore/policy-controller/pkg/apis/policy/v1beta1"
+	policycontrollerconfig "github.com/sigstore/policy-controller/pkg/config"
 	"github.com/sigstore/policy-controller/pkg/reconciler/clusterimagepolicy"
 	"github.com/sigstore/policy-controller/pkg/reconciler/trustroot"
 	admissionregistrationv1 "k8s.io/api/admissionregistration/v1"
@@ -55,7 +56,6 @@ import (
 	"github.com/sigstore/sigstore/pkg/tuf"
 
 	"github.com/sigstore/policy-controller/pkg/apis/config"
-	policycontrollerconfig "github.com/sigstore/policy-controller/pkg/config"
 	cwebhook "github.com/sigstore/policy-controller/pkg/webhook"
 )
 
@@ -306,8 +306,9 @@ func NewMutatingAdmissionController(ctx context.Context, _ configmap.Watcher) *c
 func NewPolicyValidatingAdmissionController(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
 	store := config.NewStore(logging.FromContext(ctx).Named("config-store"))
 	store.WatchConfigs(cmw)
-	policyControllerConfigStore := config.NewStore(logging.FromContext(ctx).Named("config-policy-controller"))
+	policyControllerConfigStore := policycontrollerconfig.NewStore(logging.FromContext(ctx).Named("config-policy-controller"))
 	policyControllerConfigStore.WatchConfigs(cmw)
+
 	logger := logging.FromContext(ctx)
 
 	woptions := webhook.GetOptions(ctx)
@@ -330,7 +331,7 @@ func NewPolicyValidatingAdmissionController(ctx context.Context, cmw configmap.W
 	)
 }
 
-func NewPolicyMutatingAdmissionController(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
+func NewPolicyMutatingAdmissionController(ctx context.Context, _ configmap.Watcher) *controller.Impl {
 	woptions := webhook.GetOptions(ctx)
 	logger := logging.FromContext(ctx)
 	woptions.ControllerOptions = &controller.ControllerOptions{
@@ -351,12 +352,19 @@ func NewPolicyMutatingAdmissionController(ctx context.Context, cmw configmap.Wat
 	)
 }
 
-func newConversionController(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
+func newConversionController(ctx context.Context, _ configmap.Watcher) *controller.Impl {
 	// nolint: revive
 	var (
 		v1alpha1GroupVersion = v1alpha1.SchemeGroupVersion.Version
 		v1beta1GroupVersion  = v1beta1.SchemeGroupVersion.Version
 	)
+	logger := logging.FromContext(ctx)
+	woptions := webhook.GetOptions(ctx)
+	woptions.ControllerOptions = &controller.ControllerOptions{
+		WorkQueueName: "resource-conversion",
+		Logger:        logger.Named("resource-conversion"),
+	}
+	ctx = webhook.WithOptions(ctx, *woptions)
 
 	return conversion.NewConversionController(ctx,
 		// The path on which to serve the webhook

@@ -90,9 +90,6 @@ jobs:
         make ko-policy-controller
         kustomize build test/kustomize-invalid-policy-resync-period | kubectl apply -f -
 
-        # Wait for the webhook to come up and become Ready
-        kubectl rollout status --timeout 5m --namespace cosign-system deployments/webhook
-
         sleep 30
 
         # And make sure a panic occurred
