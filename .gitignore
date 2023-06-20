@@ -27,7 +27,6 @@
 bin*
 dist/
 policyControllerImagerefs
-policyImagerefs
 
 **verify-experimental*
 
