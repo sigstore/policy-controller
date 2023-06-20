@@ -67,7 +67,6 @@ jobs:
 
     - name: Build policy controller for CodeQL
       run: |
-        make policy-webhook
         make policy-controller
 
     - name: Perform CodeQL Analysis

@@ -31,17 +31,3 @@ builds:
       - -extldflags "-static"
       - "{{ .Env.LDFLAGS }}"
 
-  - id: policy_webhook
-    dir: .
-    main: ./cmd/policy_webhook
-    env:
-      - CGO_ENABLED=0
-    flags:
-      - -trimpath
-      - --tags
-      - "{{ .Env.GIT_HASH }}"
-      - --tags
-      - "{{ .Env.GIT_VERSION }}"
-    ldflags:
-      - -extldflags "-static"
-      - "{{ .Env.LDFLAGS }}"

@@ -106,7 +106,6 @@ jobs:
 
         # Wait for the webhook to come up and become Ready
         kubectl rollout status --timeout 5m --namespace cosign-system deployments/webhook
-        kubectl rollout status --timeout 5m --namespace cosign-system deployments/policy-webhook
 
         # And make sure everything is up.
         kubectl wait deployment -n cosign-system --for condition=Available=True --timeout=90s --all

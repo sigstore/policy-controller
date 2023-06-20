@@ -22,7 +22,7 @@ spec:
       conversionReviewVersions: ["v1beta1", "v1alpha1"]
       clientConfig:
         service:
-          name: policy-webhook
+          name: webhook
           namespace: cosign-system
   group: policy.sigstore.dev
   names:

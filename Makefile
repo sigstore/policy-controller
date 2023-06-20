@@ -85,12 +85,8 @@ fmt: ## Format all go files
 
 ## Build policy-controller binary
 .PHONY: policy-controller
-policy-controller: policy-webhook
+policy-controller:
 	CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)" -o $@ ./cmd/webhook
-
-.PHONY: policy-webhook
-policy-webhook: ## Build the policy webhook binary
-	CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)" -o $@ ./cmd/policy_webhook
 
 ## Build policy-tester binary
 .PHONY: policy-tester
@@ -114,7 +110,6 @@ test:
 
 clean:
 	rm -rf policy-controller
-	rm -rf policy-webhook
 
 KOCACHE_PATH=/tmp/ko
 ARTIFACT_HUB_LABELS=--image-label io.artifacthub.package.readme-url="https://raw.githubusercontent.com/sigstore/policy-controller/main/README.md" \
@@ -133,22 +128,15 @@ endef
 # ko build
 ##########
 .PHONY: ko
-ko: ko-policy-controller ko-policy-webhook
+ko: ko-policy-controller
 
 .PHONY: ko-policy-controller
-ko-policy-controller: kustomize-policy-controller ko-policy-webhook
+ko-policy-controller: kustomize-policy-controller
 	# policy-controller
 	LDFLAGS="$(LDFLAGS)" GIT_HASH=$(GIT_HASH) GIT_VERSION=$(GIT_VERSION) \
 	KOCACHE=$(KOCACHE_PATH) KO_DOCKER_REPO=$(KO_PREFIX)/policy-controller ko resolve --bare \
 		--platform=$(POLICY_CONTROLLER_ARCHS) --tags $(GIT_VERSION) --tags $(GIT_HASH)$(LATEST_TAG) \
 		--image-refs policyControllerImagerefs --filename config/webhook.yaml >> $(POLICY_CONTROLLER_YAML)
-
-ko-policy-webhook:
-	# policy_webhook
-	LDFLAGS="$(LDFLAGS)" GIT_HASH=$(GIT_HASH) GIT_VERSION=$(GIT_VERSION) \
-	KOCACHE=$(KOCACHE_PATH) KO_DOCKER_REPO=$(KO_PREFIX)/policy-webhook ko resolve --bare \
-		--platform=$(POLICY_CONTROLLER_ARCHS) --tags $(GIT_VERSION) --tags $(GIT_HASH)$(LATEST_TAG) \
-		--image-refs policyImagerefs --filename config/policy-webhook.yaml >> $(POLICY_CONTROLLER_YAML)
 
 .PHONY: ko-local
 ko-local:
@@ -157,12 +145,6 @@ ko-local:
 		--tags $(GIT_VERSION) --tags $(GIT_HASH) \
 		$(ARTIFACT_HUB_LABELS) \
 		github.com/sigstore/policy-controller/cmd/webhook
-
-	LDFLAGS="$(LDFLAGS)" GIT_HASH=$(GIT_HASH) GIT_VERSION=$(GIT_VERSION) \
-	KOCACHE=$(KOCACHE_PATH) KO_DOCKER_REPO=ko.local ko build --base-import-paths \
-		--tags $(GIT_VERSION) --tags $(GIT_HASH) \
-		$(ARTIFACT_HUB_LABELS) \
-		github.com/sigstore/policy-controller/cmd/policy_webhook
 
 .PHONY: ko-apply
 ko-apply:
