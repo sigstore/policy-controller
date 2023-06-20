@@ -26,11 +26,5 @@ if [[ ! -f policyControllerImagerefs ]]; then
     exit 1
 fi
 
-if [[ ! -f policyImagerefs ]]; then
-    echo "policyImagerefs not found"
-    exit 1
-fi
-
 echo "Signing images with Keyless..."
 cosign sign --yes -a GIT_HASH="$GIT_HASH" -a GIT_VERSION="$GIT_VERSION" $(cat policyControllerImagerefs)
-cosign sign --yes -a GIT_HASH="$GIT_HASH" -a GIT_VERSION="$GIT_VERSION" $(cat policyImagerefs)
