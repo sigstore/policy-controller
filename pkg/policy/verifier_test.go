@@ -29,7 +29,7 @@ const (
 	// It is verifiable with goodPolicy.
 	staticDigest = "sha256:39ae0654d64cb72003216f6148e581e6d7cf239ac32325867af46666e31739d2"
 
-	// This is the digest of ghcr.io/distroless/static as of 2023/01/03.
+	// This is the digest of cgr.dev/chainguard/static as of 2023/01/03.
 	// It is not verifiable with goodPolicy.
 	ancientDigest = "sha256:a9650a15060275287ebf4530b34020b8d998bd2de9aea00d113c332d8c41eb0b"
 )
@@ -68,7 +68,7 @@ func TestVerifierDeny(t *testing.T) {
 			}},
 		},
 		d:       name.MustParseReference("cgr.dev/chainguard/static@" + ancientDigest).(name.Digest),
-		wantErr: errors.New("signature keyless validation failed for authority authority-0 for cgr.dev/chainguard/static@sha256:a9650a15060275287ebf4530b34020b8d998bd2de9aea00d113c332d8c41eb0b: no matching signatures:\nnone of the expected identities matched what was in the certificate, got subjects [https://github.com/distroless/static/.github/workflows/release.yaml@refs/heads/main] with issuer https://token.actions.githubusercontent.com: "),
+		wantErr: errors.New("signature keyless validation failed for authority authority-0 for cgr.dev/chainguard/static@sha256:a9650a15060275287ebf4530b34020b8d998bd2de9aea00d113c332d8c41eb0b: no matching signatures: none of the expected identities matched what was in the certificate, got subjects [https://github.com/distroless/static/.github/workflows/release.yaml@refs/heads/main] with issuer https://token.actions.githubusercontent.com: "),
 	}}
 
 	for _, test := range tests {
@@ -124,7 +124,7 @@ func TestVerifierWarn(t *testing.T) {
 			}},
 		},
 		d:       name.MustParseReference("cgr.dev/chainguard/static@" + ancientDigest).(name.Digest),
-		wantErr: errors.New("signature keyless validation failed for authority authority-0 for cgr.dev/chainguard/static@sha256:a9650a15060275287ebf4530b34020b8d998bd2de9aea00d113c332d8c41eb0b: no matching signatures:\nnone of the expected identities matched what was in the certificate, got subjects [https://github.com/distroless/static/.github/workflows/release.yaml@refs/heads/main] with issuer https://token.actions.githubusercontent.com: "),
+		wantErr: errors.New("signature keyless validation failed for authority authority-0 for cgr.dev/chainguard/static@sha256:a9650a15060275287ebf4530b34020b8d998bd2de9aea00d113c332d8c41eb0b: no matching signatures: none of the expected identities matched what was in the certificate, got subjects [https://github.com/distroless/static/.github/workflows/release.yaml@refs/heads/main] with issuer https://token.actions.githubusercontent.com: "),
 	}, {
 		name: "duplicate policies",
 		v: Verification{
