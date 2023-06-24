@@ -114,7 +114,7 @@ echo '::endgroup::'
 
 # This image has not been signed at all, so should get auto-reject
 echo '::group:: test job rejection'
-expected_error='no signatures found for image'
+expected_error='no matching signatures'
 assert_error ${expected_error}
 echo '::endgroup::'
 
