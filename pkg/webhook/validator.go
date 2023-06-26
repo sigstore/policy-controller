@@ -19,7 +19,9 @@ import (
 	"bytes"
 	"context"
 	"crypto/ecdsa"
+	"crypto/sha256"
 	"crypto/x509"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -642,9 +644,9 @@ func ociSignatureToPolicySignature(ctx context.Context, sigs []oci.Signature) []
 	for _, ociSig := range sigs {
 		logging.FromContext(ctx).Debugf("Converting signature %+v", ociSig)
 
-		id, err := ociSig.Digest()
+		sigID, err := signatureID(ociSig)
 		if err != nil {
-			logging.FromContext(ctx).Debugf("Error fetching signature digest %+v", err)
+			logging.FromContext(ctx).Debugf("Error fetching signature %+v", err)
 			continue
 		}
 
@@ -653,7 +655,7 @@ func ociSignatureToPolicySignature(ctx context.Context, sigs []oci.Signature) []
 				Cert: cert,
 			}
 			ret = append(ret, PolicySignature{
-				ID:      id.Hex,
+				ID:      sigID,
 				Subject: csigs.CertSubject(cert),
 				Issuer:  ce.GetIssuer(),
 				GithubExtensions: GithubExtensions{
@@ -666,12 +668,40 @@ func ociSignatureToPolicySignature(ctx context.Context, sigs []oci.Signature) []
 			})
 		} else {
 			ret = append(ret, PolicySignature{
-				ID: id.Hex,
+				ID: sigID,
 				// TODO(mattmoor): Is there anything we should encode for key-based?
 			})
 		}
 	}
 	return ret
+}
+
+// signatureID creates a unique hash for the Signature, using both the signature itself + the cert.
+func signatureID(sig oci.Signature) (string, error) {
+	h := sha256.New()
+	s, err := sig.Signature()
+	if err != nil {
+		return "", err
+	}
+	if _, err := h.Write(s); err != nil {
+		return "", err
+	}
+
+	cert, err := sig.Cert()
+	if err != nil {
+		return "", err
+	}
+	if cert != nil {
+		c, err := cryptoutils.MarshalCertificateToPEM(cert)
+		if err != nil {
+			return "", err
+		}
+		if _, err := h.Write(c); err != nil {
+			return "", err
+		}
+	}
+
+	return hex.EncodeToString(h.Sum(nil)), nil
 }
 
 // attestation is used to accumulate the signature along with extracted and
@@ -690,9 +720,9 @@ func attestationToPolicyAttestations(ctx context.Context, atts []attestation) []
 	for _, att := range atts {
 		logging.FromContext(ctx).Debugf("Converting attestation %+v", att)
 
-		id, err := att.Digest()
+		sigID, err := signatureID(att.Signature)
 		if err != nil {
-			logging.FromContext(ctx).Debugf("Error fetching attestation digest %+v", err)
+			logging.FromContext(ctx).Debugf("Error fetching attestation signature %+v", err)
 			continue
 		}
 
@@ -702,7 +732,7 @@ func attestationToPolicyAttestations(ctx context.Context, atts []attestation) []
 			}
 			ret = append(ret, PolicyAttestation{
 				PolicySignature: PolicySignature{
-					ID:      id.Hex,
+					ID:      sigID,
 					Subject: csigs.CertSubject(cert),
 					Issuer:  ce.GetIssuer(),
 					GithubExtensions: GithubExtensions{
@@ -719,7 +749,7 @@ func attestationToPolicyAttestations(ctx context.Context, atts []attestation) []
 		} else {
 			ret = append(ret, PolicyAttestation{
 				PolicySignature: PolicySignature{
-					ID: id.Hex,
+					ID: sigID,
 					// TODO(mattmoor): Is there anything we should encode for key-based?
 				},
 				PredicateType: att.PredicateType,

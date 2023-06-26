@@ -28,7 +28,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"reflect"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -1764,7 +1764,7 @@ func TestValidatePolicy(t *testing.T) {
 					Attestations: map[string][]PolicyAttestation{
 						"test-att": {{
 							PolicySignature: PolicySignature{
-								ID:      "01bd6aec99ad7c5d045d9aab649fd95b7af2b3b23887d34d7fce8b2e3c38ca0e",
+								ID:      "00016978d0723c9bc73c599d296ab4052a392e37746509c1f5038494ca4bf34a",
 								Subject: "https://github.com/distroless/static/.github/workflows/release.yaml@refs/heads/main",
 								Issuer:  "https://token.actions.githubusercontent.com",
 								GithubExtensions: GithubExtensions{
@@ -1817,8 +1817,8 @@ func TestValidatePolicy(t *testing.T) {
 			}
 			got, gotErrs := ValidatePolicy(testContext, system.Namespace(), digest, test.policy, kc)
 			validateErrors(t, test.wantErrs, gotErrs)
-			if !reflect.DeepEqual(test.want, got) {
-				t.Errorf("unexpected PolicyResult, want: %+v got: %+v", test.want, got)
+			if diff := cmp.Diff(test.want, got); diff != "" {
+				t.Errorf("unexpected PolicyResult, %s", diff)
 			}
 		})
 	}
@@ -3270,4 +3270,55 @@ func TestCheckOptsFromAuthority(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestSignatureID(t *testing.T) {
+	cert := mustRead(t, "testdata/cert.pem")
+	for _, tc := range []struct {
+		name string
+		sig  oci.Signature
+		want string
+	}{
+		{
+			name: "no cert",
+			sig:  newStaticSig(t, []byte("foo"), nil),
+			want: "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+		},
+		{
+			name: "with cert",
+			sig:  newStaticSig(t, []byte("foo"), cert),
+			want: "0b413181a61e85e0426d9f49ccd58d2205314297ee0c3bb515ad9d0f89480995",
+		},
+	} {
+		got, err := signatureID(tc.sig)
+		if err != nil {
+			t.Fatal(err)
+		}
+		if tc.want != got {
+			t.Errorf("want %s, got %s", tc.want, got)
+		}
+	}
+}
+
+func mustRead(t *testing.T, path string) []byte {
+	t.Helper()
+	b, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return b
+}
+
+func newStaticSig(t *testing.T, payload []byte, cert []byte) oci.Signature {
+	t.Helper()
+
+	var opts []static.Option
+	if cert != nil {
+		opts = append(opts, static.WithCertChain(cert, nil))
+	}
+	out, err := static.NewSignature(payload, "", opts...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return out
 }

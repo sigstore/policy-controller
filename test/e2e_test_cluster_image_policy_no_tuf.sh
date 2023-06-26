@@ -100,7 +100,7 @@ echo '::endgroup::'
 # This image has not been signed with our key
 # so should fail
 echo '::group:: test job rejection'
-expected_error='no signatures found for image'
+expected_error='no matching signatures'
 assert_error ${expected_error}
 echo '::endgroup::'
 
