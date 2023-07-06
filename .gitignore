@@ -31,7 +31,6 @@ policyControllerImagerefs
 **verify-experimental*
 
 policy-tester
-localk8s
 
 # Vim
 *.swp

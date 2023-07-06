@@ -96,7 +96,7 @@ policy-tester:
 ## Build localk8s binary
 .PHONY: localk8s
 localk8s:
-	CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)" -o $@ ./cmd/localk8s
+	CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)" -o bin/$@ ./cmd/localk8s
 
 #####################
 # lint / test section
