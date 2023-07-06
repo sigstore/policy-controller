@@ -46,7 +46,7 @@ Then run it pointing to a YAML file containing a ClusterImagePolicy, and an imag
 
 ## Local Development
 
-You can spin up a local [Kind](https://kind.sigs.k8s.io/) K8s cluster to test local changes to the policy controller using the `localk8s` 
+You can spin up a local [Kind](https://kind.sigs.k8s.io/) K8s cluster to test local changes to the policy controller using the `localk8s`
 CLI tool. Build the tool with `make localk8s` and then run it with `./bin/localk8s setup --cluster-name=<my cluster name> --ko-docker-repo=<some-docker-repo>`.
 
 You can clean up the cluster with `./bin/localk8s clean --cluster-name=<my cluster name>`.
