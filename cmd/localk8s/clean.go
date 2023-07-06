@@ -56,7 +56,7 @@ func clean() {
 	fmt.Println("Cleaning up the kind cluster...")
 
 	clusterName := viper.GetString("cluster-name")
-	removeCluster := exec.Command("kind", "delete", "cluster", fmt.Sprintf("--name=%s", clusterName))
+	removeCluster := exec.Command("kind", "delete", "cluster", fmt.Sprintf("--name=%s", clusterName)) //nolint:gosec
 	removeCluster.Stderr = &stderr
 	if err := removeCluster.Run(); err != nil {
 		log.Fatal(buildFatalMessage(err, stderr))
