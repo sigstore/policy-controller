@@ -65,7 +65,7 @@ func setup() {
 	// Create the new Kind cluster
 	clusterName := viper.GetString("cluster-name")
 	fmt.Println("Creating Kind cluster " + clusterName)
-	startKindCluster := exec.Command("kind", "create", "cluster", fmt.Sprintf("--name=%s", clusterName)) //nolint:gosec
+	startKindCluster := exec.Command("kind", "create", "cluster", "--name", clusterName)
 	startKindCluster.Stderr = &stderr
 	if err = startKindCluster.Run(); err != nil {
 		log.Fatal(buildFatalMessage(err, stderr))
