@@ -96,7 +96,7 @@ func setup() {
 	}
 
 	var configFiles []string
-	filepath.WalkDir("config", func(path string, d fs.DirEntry, err error) error {
+	err = filepath.WalkDir("config", func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
@@ -106,6 +106,9 @@ func setup() {
 		}
 		return nil
 	})
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	fmt.Println("Applying local policy controller manifests...")
 	for _, configFile := range configFiles {
