@@ -44,6 +44,19 @@ Then run it pointing to a YAML file containing a ClusterImagePolicy, and an imag
         --image=ghcr.io/sigstore/cosign/cosign:v1.9.0 | jq)
 ```
 
+## Local Development
+
+You can spin up a local [Kind](https://kind.sigs.k8s.io/) K8s cluster to test local changes to the policy controller using the ``
+CLI tool. Build the tool with `make local-dev` and then run it with `./bin/local-dev setup --cluster-name=<my cluster name> --ko-docker-repo=<some-docker-repo>`.
+
+You can clean up the cluster with `./bin/local-dev clean --cluster-name=<my cluster name>`.
+
+You will need to have the following tools installed to use this:
+- [Docker](https://docs.docker.com/get-docker/)
+- [kind](https://kind.sigs.k8s.io/)
+- [ko](https://ko.build/install/)
+- [kubectl](https://kubernetes.io/docs/tasks/tools/)
+
 ## Support Policy
 
 This policy-controller's versions are able to run in the following versions of Kubernetes:

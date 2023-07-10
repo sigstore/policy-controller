@@ -93,6 +93,11 @@ policy-controller:
 policy-tester:
 	CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)" -o $@ ./cmd/tester
 
+## Build local-dev binary
+.PHONY: local-dev
+local-dev:
+	CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)" -o bin/$@ ./cmd/local-dev
+
 #####################
 # lint / test section
 #####################
@@ -144,6 +149,7 @@ ko-local:
 	KOCACHE=$(KOCACHE_PATH) KO_DOCKER_REPO=ko.local ko build --base-import-paths \
 		--tags $(GIT_VERSION) --tags $(GIT_HASH) \
 		$(ARTIFACT_HUB_LABELS) \
+		--platform=all \
 		github.com/sigstore/policy-controller/cmd/webhook
 
 .PHONY: ko-apply
