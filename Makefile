@@ -93,10 +93,10 @@ policy-controller:
 policy-tester:
 	CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)" -o $@ ./cmd/tester
 
-## Build localk8s binary
-.PHONY: localk8s
-localk8s:
-	CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)" -o bin/$@ ./cmd/localk8s
+## Build local-dev binary
+.PHONY: local-dev
+local-dev:
+	CGO_ENABLED=0 go build -trimpath -ldflags "$(LDFLAGS)" -o bin/$@ ./cmd/local-dev
 
 #####################
 # lint / test section

@@ -23,7 +23,7 @@ import (
 )
 
 var rootCmd = &cobra.Command{
-	Use:   "localk8s",
+	Use:   "local-dev",
 	Short: "Create, manage, and destroy a local k8s cluster for testing the policy controller",
 	Long:  "Create, manage, and destroy a local k8s cluster for testing the policy controller",
 }
