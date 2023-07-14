@@ -19,32 +19,40 @@
 # 2. ko-docker-repo - if no value is provided, the local Kind registry is used
 #
 
-LOCAL_REGISTRY_NAME="registry.local"
-LOCAL_REGISTRY_PORT=5001
+CLUSTER_NAME="policy-controller-demo"
 K8S_VERSION="v1.24.x"
 KIND_VERSION="v0.15.0"
+LOCAL_REGISTRY_NAME="registry.local"
+LOCAL_REGISTRY_PORT=5001
+REGISTRY_NAME=$LOCAL_REGISTRY_NAME
+REGISTRY_PORT=$LOCAL_REGISTRY_PORT
 
-if [ -z "$1" ]
-then
-  echo "cluster-name argument not provided, using default name 'policy-controller-demo'"
-  CLUSTER_NAME="policy-controller-demo"
-else
-  CLUSTER_NAME="$1"
-fi
+while [[ $# -ne 0 ]]; do
+  parameter="$1"
+  case "${parameter}" in
+    --cluster-name)
+      shift
+      CLUSTER_NAME="$1"
+      ;;
+    --k8s-version)
+      shift
+      K8S_VERSION="$1"
+      ;;
+    --registry-url)
+      shift
+      REGISTRY_NAME="$(echo "$1" | cut -d':' -f 1)"
+      REGISTRY_PORT="$(echo "$1" | cut -d':' -f 2)"
+      ;;
+    *) echo "unknown option ${parameter}"; exit 1 ;;
+  esac
+  shift
+done
 
-if [ -z "$2" ]
+if [ $REGISTRY_NAME = $LOCAL_REGISTRY_NAME ];
 then
-  echo "ko-docker-repo arugment not provided, the local Kind registry will be used"
   export KO_DOCKER_REPO="$LOCAL_REGISTRY_NAME:$LOCAL_REGISTRY_PORT/sigstore"
 else
-  export KO_DOCKER_REPO="$2"
-fi
-
-if [ -z "$3" ]
-then
-  echo "K8s version not provided, using default ${K8S_VERSION}"
-else
-  export K8S_VERSION="$3"
+  export KO_DOCKER_REPO="$REGISTRY_NAME"
 fi
 
 # Map the Kind image version to this version of Kind and K8s
@@ -80,21 +88,16 @@ cat > kind.yaml <<EOF
   nodes:
   - role: control-plane
     image: "${KIND_IMAGE}"
+  # Configure registry for KinD.
+  containerdConfigPatches:
+  - |-
+    [plugins."io.containerd.grpc.v1.cri".registry.mirrors."$REGISTRY_NAME:$REGISTRY_PORT"]
+      endpoint = ["http://$REGISTRY_NAME:$REGISTRY_PORT"]
 EOF
 
 if [ $KO_DOCKER_REPO = "$LOCAL_REGISTRY_NAME:$LOCAL_REGISTRY_PORT/sigstore" ];
 then
-  printf "Configuring a cluster to use the local registry...\n"
-
-  cat >> kind.yaml <<EOF_2
-  # Configure registry for KinD.
-  containerdConfigPatches:
-  - |-
-    [plugins."io.containerd.grpc.v1.cri".registry.mirrors."$LOCAL_REGISTRY_NAME:$LOCAL_REGISTRY_PORT"]
-      endpoint = ["http://$LOCAL_REGISTRY_NAME:$LOCAL_REGISTRY_PORT"]
-EOF_2
-
-  echo "Creating Kind cluster $CLUSTER_NAME..."
+  echo "Creating Kind cluster $CLUSTER_NAME with local registry..."
   kind create cluster --config kind.yaml
 
   echo "Starting local registry $LOCAL_REGISTRY_NAME..."
@@ -109,9 +112,7 @@ EOF_2
     echo "127.0.0.1 $LOCAL_REGISTRY_NAME" | sudo tee -a /etc/hosts
   fi
 else
-  echo "Configuring a cluster to use the provided registry $KO_DOCKER_REPO..."
-
-  echo "Creating Kind cluster $CLUSTER_NAME..."
+  echo "Creating Kind cluster $CLUSTER_NAME with provided registry..."
   kind create cluster --config kind.yaml
 fi
 
@@ -122,5 +123,5 @@ CONFIG_FILES=$(find ../config -name "*.yaml" ! -name 'kustomization.yaml' | sort
 
 for i in ${CONFIG_FILES[@]}
 do
-    ko apply -f $i
+  ko apply -f $i
 done
