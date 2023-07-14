@@ -56,7 +56,7 @@ require (
 	sigs.k8s.io/yaml v1.3.0
 )
 
-require github.com/spf13/cobra v1.7.0
+require github.com/spf13/cobra v1.7.0 // indirect
 
 require (
 	github.com/go-jose/go-jose/v3 v3.0.0
@@ -64,7 +64,6 @@ require (
 	github.com/sigstore/sigstore/pkg/signature/kms/azure v1.7.1
 	github.com/sigstore/sigstore/pkg/signature/kms/gcp v1.7.1
 	github.com/sigstore/sigstore/pkg/signature/kms/hashivault v1.7.1
-	github.com/spf13/viper v1.16.0
 )
 
 require (
@@ -232,6 +231,7 @@ require (
 	github.com/spf13/cast v1.5.1 // indirect
 	github.com/spf13/jwalterweatherman v1.1.0 // indirect
 	github.com/spf13/pflag v1.0.5 // indirect
+	github.com/spf13/viper v1.16.0 // indirect
 	github.com/subosito/gotenv v1.4.2 // indirect
 	github.com/syndtr/goleveldb v1.0.1-0.20220721030215-126854af5e6d // indirect
 	github.com/tchap/go-patricia/v2 v2.3.1 // indirect
