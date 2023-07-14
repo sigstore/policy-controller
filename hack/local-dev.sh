@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Copyright 2022 The Sigstore Authors
+# Copyright 2023 The Sigstore Authors
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -23,7 +23,7 @@
 set -o errexit
 
 CLUSTER_NAME="policy-controller-demo"
-K8S_VERSION="v1.24.x"
+K8S_VERSION="v1.26.x"
 KIND_VERSION="v0.15.0"
 LOCAL_REGISTRY_NAME="registry.local"
 LOCAL_REGISTRY_PORT=5001
