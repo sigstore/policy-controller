@@ -14,10 +14,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# The script can take two optional arguments:
+# The script accepts the following optional arguments:
 # 1. cluster-name - default value is 'policy-controller-demo'
-# 2. ko-docker-repo - if no value is provided, the local Kind registry is used
+# 2. k8s-version - default value is 'v1.24.x'
+# 3. registry-url - if no value is provided, the local Kind registry is used
 #
+
+set -o errexit
 
 CLUSTER_NAME="policy-controller-demo"
 K8S_VERSION="v1.24.x"
