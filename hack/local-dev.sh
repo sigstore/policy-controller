@@ -116,10 +116,10 @@ else
   kind create cluster --config kind.yaml
 fi
 
-GIT_HASH=$(git rev-parse HEAD)
-GIT_VERSION=$(git describe --tags --always --dirty)
+export GIT_HASH=$(git rev-parse HEAD)
+export GIT_VERSION=$(git describe --tags --always --dirty)
 
-CONFIG_FILES=$(find ../config -name "*.yaml" ! -name 'kustomization.yaml' | sort)
+CONFIG_FILES=$(find config -name "*.yaml" ! -name 'kustomization.yaml' | sort)
 
 for i in ${CONFIG_FILES[@]}
 do

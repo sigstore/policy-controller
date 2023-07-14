@@ -36,3 +36,6 @@ policy-tester
 *.swp
 
 gha-creds-*.json
+
+# Kind cluster configuration produced by hack/local-dev.sh
+kind.yaml
