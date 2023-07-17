@@ -104,7 +104,7 @@ func setup() {
 
 	clusterConfig := fmt.Sprintf(kindClusterConfig, clusterName, kindImage, localRegistryName, localRegistryPort, localRegistryName, localRegistryPort)
 	configBytes := []byte(clusterConfig)
-	err := os.WriteFile("kind.yaml", configBytes, 0644)
+	err := os.WriteFile("kind.yaml", configBytes, 0600)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -139,14 +139,22 @@ func setup() {
 				},
 			},
 		}, nil, nil, localRegistryName)
+		if err != nil {
+			cli.Close()
+			log.Fatal(err)
+		}
 
 		if err := cli.ContainerStart(context.Background(), resp.ID, types.ContainerStartOptions{}); err != nil {
+			cli.Close()
 			log.Fatal(err)
 		}
 
 		fmt.Println("Connecting network between kind with local registry ...")
 
-		cli.NetworkConnect(context.Background(), "kind", localRegistryName, nil)
+		if err = cli.NetworkConnect(context.Background(), "kind", localRegistryName, nil); err != nil {
+			cli.Close()
+			log.Fatal(err)
+		}
 	}
 
 	setGitHash := exec.Command("git", "rev-parse", "HEAD")
