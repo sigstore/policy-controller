@@ -116,43 +116,7 @@ func setup() {
 	}
 
 	if registryURL == localRegistryName {
-		cli, err := client.NewClientWithOpts(
-			client.FromEnv,
-			client.WithAPIVersionNegotiation(),
-		)
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer cli.Close()
-
-		fmt.Printf("\nStarting local registry %s...\n", localRegistryName)
-
-		resp, err := cli.ContainerCreate(context.Background(), &container.Config{
-			Image:        "registry:2",
-			Env:          []string{fmt.Sprintf("REGISTRY_HTTP_ADDR=0.0.0.0:%d", localRegistryPort)},
-			ExposedPorts: nat.PortSet{"5001/tcp": struct{}{}},
-		}, &container.HostConfig{
-			RestartPolicy: container.RestartPolicy{Name: "always"},
-			PortBindings: nat.PortMap{
-				"5001/tcp": []nat.PortBinding{
-					{HostIP: "127.0.0.1", HostPort: strconv.Itoa(localRegistryPort)},
-				},
-			},
-		}, nil, nil, localRegistryName)
-		if err != nil {
-			cli.Close()
-			log.Fatal(err)
-		}
-
-		if err := cli.ContainerStart(context.Background(), resp.ID, types.ContainerStartOptions{}); err != nil {
-			cli.Close()
-			log.Fatal(err)
-		}
-
-		fmt.Println("Connecting network between kind with local registry ...")
-
-		if err = cli.NetworkConnect(context.Background(), "kind", localRegistryName, nil); err != nil {
-			cli.Close()
+		if err = setupLocalRegistry(); err != nil {
 			log.Fatal(err)
 		}
 	}
@@ -205,6 +169,46 @@ func setup() {
 			log.Fatal(buildFatalMessage(err, stderr))
 		}
 	}
+}
+
+func setupLocalRegistry() error {
+	cli, err := client.NewClientWithOpts(
+		client.FromEnv,
+		client.WithAPIVersionNegotiation(),
+	)
+	if err != nil {
+		return nil
+	}
+	defer cli.Close()
+
+	fmt.Printf("\nStarting local registry %s...\n", localRegistryName)
+
+	resp, err := cli.ContainerCreate(context.Background(), &container.Config{
+		Image:        "registry:2",
+		Env:          []string{fmt.Sprintf("REGISTRY_HTTP_ADDR=0.0.0.0:%d", localRegistryPort)},
+		ExposedPorts: nat.PortSet{"5001/tcp": struct{}{}},
+	}, &container.HostConfig{
+		RestartPolicy: container.RestartPolicy{Name: "always"},
+		PortBindings: nat.PortMap{
+			"5001/tcp": []nat.PortBinding{
+				{HostIP: "127.0.0.1", HostPort: strconv.Itoa(localRegistryPort)},
+			},
+		},
+	}, nil, nil, localRegistryName)
+	if err != nil {
+		return err
+	}
+
+	if err := cli.ContainerStart(context.Background(), resp.ID, types.ContainerStartOptions{}); err != nil {
+		return err
+	}
+
+	fmt.Println("Connecting network between kind with local registry ...")
+
+	if err = cli.NetworkConnect(context.Background(), "kind", localRegistryName, nil); err != nil {
+		return err
+	}
+	return nil
 }
 
 func getKindImage(k8sVersion string) string {
