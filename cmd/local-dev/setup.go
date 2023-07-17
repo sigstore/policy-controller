@@ -24,6 +24,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
@@ -102,10 +103,10 @@ func setup() {
 	kindImage := getKindImage(k8sVersion)
 
 	clusterConfig := fmt.Sprintf(kindClusterConfig, clusterName, kindImage, localRegistryName, localRegistryPort, localRegistryName, localRegistryPort)
-	d1 := []byte(clusterConfig)
-	err := os.WriteFile("kind.yaml", d1, 0644)
+	configBytes := []byte(clusterConfig)
+	err := os.WriteFile("kind.yaml", configBytes, 0644)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	startKindCluster := exec.Command("kind", "create", "cluster", "--config", "kind.yaml")
@@ -120,7 +121,7 @@ func setup() {
 			client.WithAPIVersionNegotiation(),
 		)
 		if err != nil {
-			panic(err)
+			log.Fatal(err)
 		}
 		defer cli.Close()
 
@@ -134,13 +135,13 @@ func setup() {
 			RestartPolicy: container.RestartPolicy{Name: "always"},
 			PortBindings: nat.PortMap{
 				"5001/tcp": []nat.PortBinding{
-					{HostIP: "127.0.0.1", HostPort: "5001"},
+					{HostIP: "127.0.0.1", HostPort: strconv.Itoa(localRegistryPort)},
 				},
 			},
 		}, nil, nil, localRegistryName)
 
 		if err := cli.ContainerStart(context.Background(), resp.ID, types.ContainerStartOptions{}); err != nil {
-			panic(err)
+			log.Fatal(err)
 		}
 
 		fmt.Println("Connecting network between kind with local registry ...")
@@ -220,7 +221,7 @@ func getKindImage(k8sVersion string) string {
 	default:
 		fmt.Println("Unsupported version: " + k8sVersion)
 	}
-	return ""
+	return fmt.Sprint("Unsupported version: " + k8sVersion)
 }
 
 func init() {

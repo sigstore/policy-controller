@@ -72,22 +72,22 @@ func clean() {
 		client.WithAPIVersionNegotiation(),
 	)
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 	defer cli.Close()
 
 	containers, err := cli.ContainerList(context.Background(), types.ContainerListOptions{Filters: filters.NewArgs(filters.KeyValuePair{Key: "name", Value: "registry.local"})})
 	if err != nil {
-		panic(err)
+		log.Fatal(err)
 	}
 
 	if containers != nil {
 		fmt.Println("Cleaning up registry.local...")
 		if err := cli.ContainerStop(context.Background(), containers[0].ID, container.StopOptions{}); err != nil {
-			panic(err)
+			log.Fatal(err)
 		}
 		if err := cli.ContainerRemove(context.Background(), containers[0].ID, types.ContainerRemoveOptions{}); err != nil {
-			panic(err)
+			log.Fatal(err)
 		}
 	}
 }
