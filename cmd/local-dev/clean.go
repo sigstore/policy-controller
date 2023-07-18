@@ -67,27 +67,34 @@ func clean() {
 		log.Fatal(buildFatalMessage(err, stderr))
 	}
 
+	if err := cleanUpRegistry(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func cleanUpRegistry() error {
 	cli, err := client.NewClientWithOpts(
 		client.FromEnv,
 		client.WithAPIVersionNegotiation(),
 	)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	defer cli.Close()
 
 	containers, err := cli.ContainerList(context.Background(), types.ContainerListOptions{Filters: filters.NewArgs(filters.KeyValuePair{Key: "name", Value: "registry.local"})})
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 
 	if containers != nil {
 		fmt.Println("Cleaning up registry.local...")
 		if err := cli.ContainerStop(context.Background(), containers[0].ID, container.StopOptions{}); err != nil {
-			log.Fatal(err)
+			return err
 		}
 		if err := cli.ContainerRemove(context.Background(), containers[0].ID, types.ContainerRemoveOptions{}); err != nil {
-			log.Fatal(err)
+			return err
 		}
 	}
+	return nil
 }

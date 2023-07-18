@@ -205,10 +205,7 @@ func setupLocalRegistry() error {
 
 	fmt.Println("Connecting network between kind with local registry ...")
 
-	if err = cli.NetworkConnect(context.Background(), "kind", localRegistryName, nil); err != nil {
-		return err
-	}
-	return nil
+	return cli.NetworkConnect(context.Background(), "kind", localRegistryName, nil)
 }
 
 func getKindImage(k8sVersion string) string {
