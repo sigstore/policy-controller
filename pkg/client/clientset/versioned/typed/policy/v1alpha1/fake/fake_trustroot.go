@@ -22,7 +22,6 @@ import (
 	v1alpha1 "github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
-	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	testing "k8s.io/client-go/testing"
@@ -33,9 +32,9 @@ type FakeTrustRoots struct {
 	Fake *FakePolicyV1alpha1
 }
 
-var trustrootsResource = schema.GroupVersionResource{Group: "policy.sigstore.dev", Version: "v1alpha1", Resource: "trustroots"}
+var trustrootsResource = v1alpha1.SchemeGroupVersion.WithResource("trustroots")
 
-var trustrootsKind = schema.GroupVersionKind{Group: "policy.sigstore.dev", Version: "v1alpha1", Kind: "TrustRoot"}
+var trustrootsKind = v1alpha1.SchemeGroupVersion.WithKind("TrustRoot")
 
 // Get takes name of the trustRoot, and returns the corresponding trustRoot object, and an error if there is any.
 func (c *FakeTrustRoots) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1alpha1.TrustRoot, err error) {

@@ -22,7 +22,6 @@ import (
 	v1beta1 "github.com/sigstore/policy-controller/pkg/apis/policy/v1beta1"
 	v1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	labels "k8s.io/apimachinery/pkg/labels"
-	schema "k8s.io/apimachinery/pkg/runtime/schema"
 	types "k8s.io/apimachinery/pkg/types"
 	watch "k8s.io/apimachinery/pkg/watch"
 	testing "k8s.io/client-go/testing"
@@ -33,9 +32,9 @@ type FakeClusterImagePolicies struct {
 	Fake *FakePolicyV1beta1
 }
 
-var clusterimagepoliciesResource = schema.GroupVersionResource{Group: "policy.sigstore.dev", Version: "v1beta1", Resource: "clusterimagepolicies"}
+var clusterimagepoliciesResource = v1beta1.SchemeGroupVersion.WithResource("clusterimagepolicies")
 
-var clusterimagepoliciesKind = schema.GroupVersionKind{Group: "policy.sigstore.dev", Version: "v1beta1", Kind: "ClusterImagePolicy"}
+var clusterimagepoliciesKind = v1beta1.SchemeGroupVersion.WithKind("ClusterImagePolicy")
 
 // Get takes name of the clusterImagePolicy, and returns the corresponding clusterImagePolicy object, and an error if there is any.
 func (c *FakeClusterImagePolicies) Get(ctx context.Context, name string, options v1.GetOptions) (result *v1beta1.ClusterImagePolicy, err error) {
