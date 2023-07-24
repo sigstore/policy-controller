@@ -88,7 +88,7 @@ func cleanUpRegistry() error {
 		return err
 	}
 
-	if containers != nil && len(containers) > 0 {
+	if len(containers) > 0 {
 		fmt.Println("Cleaning up registry.local...")
 		if err := dockerCLI.ContainerStop(ctx, containers[0].ID, container.StopOptions{}); err != nil {
 			return err
