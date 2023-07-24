@@ -24,6 +24,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"regexp"
 	"strconv"
 
 	"github.com/docker/docker/api/types"
@@ -35,8 +36,9 @@ import (
 )
 
 const (
-	localRegistryName = "registry.local"
-	localRegistryPort = 5001
+	localRegistryName            = "registry.local"
+	localRegistryPort            = 5001
+	defaultKindestNodeVersionTag = "v1.27.3"
 )
 
 var kindClusterConfig = `
@@ -53,10 +55,16 @@ containerdConfigPatches:
     endpoint = ["http://%s:%d"]
 `
 
+// check that a supplied image version is in the expected semver format: v<major>.<minor>.<patch>
+var semverRegexp = regexp.MustCompile("^v[0-9]+.[0-9]+.[0-9]+$")
+
+// check that registry URLs are in the expected format <url>:<port>
+var registryURLRegexp = regexp.MustCompile("^[a-zA-Z0-9]+.[a-z]+:[0-9]+$")
+
 func addSetupFlags(cmd *cobra.Command) {
 	cmd.Flags().String("cluster-name", "policy-controller-demo", "name of the dev policy controller cluster")
-	cmd.Flags().String("registry-url", "registry.local", "URL of the Ko Docker registry to use. If no registry is provided, the local Kind registry will be used")
-	cmd.Flags().String("k8s-version", "v1.26.x", "name of the Ko Docker repository to use")
+	cmd.Flags().String("k8s-version", defaultKindestNodeVersionTag, "name of the Ko Docker repository to use")
+	cmd.Flags().String("registry-url", "registry.local", "URL and port of the Ko Docker registry to use. Expected format: <url>:<port>. If no registry is provided, the local Kind registry will be used")
 }
 
 var setupCmd = &cobra.Command{
@@ -89,6 +97,9 @@ func setup() {
 			log.Fatal(buildFatalMessage(err, stderr))
 		}
 	} else {
+		if !registryURLRegexp.Match([]byte(registryURL)) {
+			log.Fatal(fmt.Errorf("provided registry URL is not in the expected format: <url>:<port>"))
+		}
 		err := os.Setenv("KO_DOCKER_REPO", registryURL)
 		if err != nil {
 			log.Fatal(buildFatalMessage(err, stderr))
@@ -97,14 +108,15 @@ func setup() {
 
 	// Create the new Kind cluster
 	clusterName := viper.GetString("cluster-name")
-	fmt.Println("Creating Kind cluster " + clusterName)
+	fmt.Printf("Creating Kind cluster %s...\n", clusterName)
 
-	k8sVersion := viper.GetString("k8s-version")
-	kindImage := getKindImage(k8sVersion)
+	clusterConfig, err := createKindConfig(clusterName, viper.GetString("k8s-version"))
+	if err != nil {
+		log.Fatal(err)
+	}
 
-	clusterConfig := fmt.Sprintf(kindClusterConfig, clusterName, kindImage, localRegistryName, localRegistryPort, localRegistryName, localRegistryPort)
 	configBytes := []byte(clusterConfig)
-	err := os.WriteFile("kind.yaml", configBytes, 0600)
+	err = os.WriteFile("kind.yaml", configBytes, 0600)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -171,19 +183,30 @@ func setup() {
 	}
 }
 
+func createKindConfig(clusterName, k8sVersion string) (string, error) {
+	// check that the provided version is in the expected format and use it
+	if !semverRegexp.Match([]byte(k8sVersion)) {
+		return "", fmt.Errorf("provided k8s version %s is not in the expected semver format v<major>.<minor>.<patch>", k8sVersion)
+	}
+
+	kindImage := fmt.Sprintf("kindest/node:%s", k8sVersion)
+	return fmt.Sprintf(kindClusterConfig, clusterName, kindImage, localRegistryName, localRegistryPort, localRegistryName, localRegistryPort), nil
+}
+
 func setupLocalRegistry() error {
-	cli, err := client.NewClientWithOpts(
+	dockerCLI, err := client.NewClientWithOpts(
 		client.FromEnv,
 		client.WithAPIVersionNegotiation(),
 	)
 	if err != nil {
 		return nil
 	}
-	defer cli.Close()
+	defer dockerCLI.Close()
 
 	fmt.Printf("\nStarting local registry %s...\n", localRegistryName)
 
-	resp, err := cli.ContainerCreate(context.Background(), &container.Config{
+	ctx := context.Background()
+	resp, err := dockerCLI.ContainerCreate(ctx, &container.Config{
 		Image:        "registry:2",
 		Env:          []string{fmt.Sprintf("REGISTRY_HTTP_ADDR=0.0.0.0:%d", localRegistryPort)},
 		ExposedPorts: nat.PortSet{"5001/tcp": struct{}{}},
@@ -199,38 +222,13 @@ func setupLocalRegistry() error {
 		return err
 	}
 
-	if err := cli.ContainerStart(context.Background(), resp.ID, types.ContainerStartOptions{}); err != nil {
+	if err := dockerCLI.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
 		return err
 	}
 
 	fmt.Println("Connecting network between kind with local registry ...")
 
-	return cli.NetworkConnect(context.Background(), "kind", localRegistryName, nil)
-}
-
-func getKindImage(k8sVersion string) string {
-	switch k8sVersion {
-	case "v1.23.x":
-		k8sVersionPatch := "1.23.13"
-		kindImageSHA := "sha256:ef453bb7c79f0e3caba88d2067d4196f427794086a7d0df8df4f019d5e336b61"
-		return fmt.Sprintf("kindest/node:v%s@%s", k8sVersionPatch, kindImageSHA)
-	case "v1.24.x":
-		k8sVersionPatch := "1.24.7"
-		kindImageSHA := "sha256:577c630ce8e509131eab1aea12c022190978dd2f745aac5eb1fe65c0807eb315"
-		return fmt.Sprintf("kindest/node:v%s@%s", k8sVersionPatch, kindImageSHA)
-	case "v1.25.x":
-		k8sVersionPatch := "1.25.3"
-		kindImageSHA := "sha256:f52781bc0d7a19fb6c405c2af83abfeb311f130707a0e219175677e366cc45d1"
-		return fmt.Sprintf("kindest/node:v%s@%s", k8sVersionPatch, kindImageSHA)
-
-	case "v1.26.x":
-		k8sVersionPatch := "1.26.0"
-		kindImageSHA := "sha256:691e24bd2417609db7e589e1a479b902d2e209892a10ce375fab60a8407c7352"
-		return fmt.Sprintf("kindest/node:v%s@%s", k8sVersionPatch, kindImageSHA)
-	default:
-		fmt.Println("Unsupported version: " + k8sVersion)
-	}
-	return fmt.Sprint("Unsupported version: " + k8sVersion)
+	return dockerCLI.NetworkConnect(ctx, "kind", localRegistryName, nil)
 }
 
 func init() {

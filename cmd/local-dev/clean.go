@@ -73,26 +73,27 @@ func clean() {
 }
 
 func cleanUpRegistry() error {
-	cli, err := client.NewClientWithOpts(
+	ctx := context.Background()
+	dockerCLI, err := client.NewClientWithOpts(
 		client.FromEnv,
 		client.WithAPIVersionNegotiation(),
 	)
 	if err != nil {
 		return err
 	}
-	defer cli.Close()
+	defer dockerCLI.Close()
 
-	containers, err := cli.ContainerList(context.Background(), types.ContainerListOptions{Filters: filters.NewArgs(filters.KeyValuePair{Key: "name", Value: "registry.local"})})
+	containers, err := dockerCLI.ContainerList(ctx, types.ContainerListOptions{Filters: filters.NewArgs(filters.KeyValuePair{Key: "name", Value: "registry.local"})})
 	if err != nil {
 		return err
 	}
 
-	if containers != nil {
+	if containers != nil && len(containers) > 0 {
 		fmt.Println("Cleaning up registry.local...")
-		if err := cli.ContainerStop(context.Background(), containers[0].ID, container.StopOptions{}); err != nil {
+		if err := dockerCLI.ContainerStop(ctx, containers[0].ID, container.StopOptions{}); err != nil {
 			return err
 		}
-		if err := cli.ContainerRemove(context.Background(), containers[0].ID, types.ContainerRemoveOptions{}); err != nil {
+		if err := dockerCLI.ContainerRemove(ctx, containers[0].ID, types.ContainerRemoveOptions{}); err != nil {
 			return err
 		}
 	}
