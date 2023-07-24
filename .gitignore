@@ -37,5 +37,5 @@ policy-tester
 
 gha-creds-*.json
 
-# Kind cluster configuration produced by hack/local-dev.sh
+# Kind cluster configuration produced by the local-dev tool
 kind.yaml
