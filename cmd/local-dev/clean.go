@@ -17,10 +17,15 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"log"
 	"os/exec"
 
+	"github.com/docker/docker/api/types"
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/filters"
+	"github.com/docker/docker/client"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -54,11 +59,43 @@ func clean() {
 
 	// clean up the local cluster
 	clusterName := viper.GetString("cluster-name")
-	fmt.Printf("Cleaning up the kind cluster %s...", clusterName)
+	fmt.Printf("Cleaning up the kind cluster %s...\n", clusterName)
 
 	removeCluster := exec.Command("kind", "delete", "cluster", "--name", clusterName)
 	removeCluster.Stderr = &stderr
 	if err := removeCluster.Run(); err != nil {
 		log.Fatal(buildFatalMessage(err, stderr))
 	}
+
+	if err := cleanUpRegistry(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func cleanUpRegistry() error {
+	ctx := context.Background()
+	dockerCLI, err := client.NewClientWithOpts(
+		client.FromEnv,
+		client.WithAPIVersionNegotiation(),
+	)
+	if err != nil {
+		return err
+	}
+	defer dockerCLI.Close()
+
+	containers, err := dockerCLI.ContainerList(ctx, types.ContainerListOptions{Filters: filters.NewArgs(filters.KeyValuePair{Key: "name", Value: "registry.local"})})
+	if err != nil {
+		return err
+	}
+
+	if len(containers) > 0 {
+		fmt.Println("Cleaning up registry.local...")
+		if err := dockerCLI.ContainerStop(ctx, containers[0].ID, container.StopOptions{}); err != nil {
+			return err
+		}
+		if err := dockerCLI.ContainerRemove(ctx, containers[0].ID, types.ContainerRemoveOptions{}); err != nil {
+			return err
+		}
+	}
+	return nil
 }
