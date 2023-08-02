@@ -35,7 +35,7 @@ require (
 	github.com/theupdateframework/go-tuf v0.5.2
 	github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399
 	go.uber.org/atomic v1.11.0 // indirect
-	go.uber.org/zap v1.24.0
+	go.uber.org/zap v1.25.0
 	golang.org/x/crypto v0.11.0
 	golang.org/x/net v0.13.0
 	golang.org/x/sys v0.10.0 // indirect
