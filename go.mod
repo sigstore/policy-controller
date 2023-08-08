@@ -30,7 +30,7 @@ require (
 	github.com/ryanuber/go-glob v1.0.0
 	github.com/sigstore/cosign/v2 v2.1.1
 	github.com/sigstore/rekor v1.2.2
-	github.com/sigstore/sigstore v1.7.1
+	github.com/sigstore/sigstore v1.7.2
 	github.com/stretchr/testify v1.8.4
 	github.com/theupdateframework/go-tuf v0.5.2
 	github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399
@@ -227,7 +227,7 @@ require (
 	github.com/prometheus/statsd_exporter v0.22.8 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475 // indirect
 	github.com/sassoftware/relic v7.2.1+incompatible // indirect
-	github.com/secure-systems-lab/go-securesystemslib v0.6.0 // indirect
+	github.com/secure-systems-lab/go-securesystemslib v0.7.0 // indirect
 	github.com/shibumi/go-pathspec v1.3.0 // indirect
 	github.com/sigstore/timestamp-authority v1.1.1 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
