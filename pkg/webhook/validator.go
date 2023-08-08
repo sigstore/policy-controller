@@ -928,6 +928,8 @@ func ValidatePolicyAttestationsForAuthority(ctx context.Context, ref name.Refere
 					continue
 				}
 			}
+
+			logging.FromContext(ctx).Debugf("found verified attestation with digest: %s", attDigest.String())
 			// Ok, so this passed aok, jot it down to our result set as
 			// verified attestation with the predicate type match
 			checkedAttestations = append(checkedAttestations, attestation{

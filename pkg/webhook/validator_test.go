@@ -1825,6 +1825,88 @@ func TestValidatePolicy(t *testing.T) {
 	}
 }
 
+func TestValidatePolicyAttestation(t *testing.T) {
+	// Resolved via crane digest on 2023/08/08
+	digestAtt := name.MustParseReference("ghcr.io/mattmoor/sbom-attestations/spdx-test@sha256:ba4037061b76ad8f306dd9e442877236015747ec42141caf504dc0df4d10708d")
+
+	attPayload := []byte(`{"_type":"https://in-toto.io/Statement/v0.1","predicateType":"https://spdx.dev/Document","subject":[{"name":"ghcr.io/chainguard-dev/log4shell-demo/app","digest":{"sha256":"ba4037061b76ad8f306dd9e442877236015747ec42141caf504dc0df4d10708d"}}],"predicate":{"Data":{"Reviews":[],"SPDXID":"SPDXRef-SPDXRef-DOCUMENT","annotations":[],"creationInfo":{"comment":"","created":"2022-06-08T15:31:05Z","creators":["Tool: spdx-maven-plugin"],"licenseListVersion":"3.5"},"dataLicense":"CC0-1.0","documentNamespace":"http://spdx.org/spdxpackages/log4shell-1.0-SNAPSHOT","files":[],"hasExtractedLicensingInfos":[],"name":"log4shell","packages":[{"Files":null,"IsFilesAnalyzedTagPresent":true,"IsUnpackaged":false,"SPDXID":"SPDXRef-4","annotations":null,"checksums":null,"comment":"This package was created for a Maven dependency.  No SPDX or license information could be found in the Maven POM file.","copyrightText":"UNSPECIFIED","downloadLocation":"NOASSERTION","licenseConcluded":"NOASSERTION","licenseDeclared":"NOASSERTION","licenseInfoFromFiles":["NOASSERTION"],"name":"javax.servlet-api","packageVerificationCode":{"packageVerificationCodeExcludedFiles":null,"packageVerificationCodeValue":""},"versionInfo":"4.0.1"},{"Files":null,"IsFilesAnalyzedTagPresent":true,"IsUnpackaged":false,"SPDXID":"SPDXRef-9","annotations":null,"checksums":null,"comment":"This package was created for a Maven dependency.  No SPDX or license information could be found in the Maven POM file.","copyrightText":"UNSPECIFIED","downloadLocation":"NOASSERTION","licenseConcluded":"NOASSERTION","licenseDeclared":"NOASSERTION","licenseInfoFromFiles":["NOASSERTION"],"name":"log4j-api","packageVerificationCode":{"packageVerificationCodeExcludedFiles":null,"packageVerificationCodeValue":""},"versionInfo":"2.14.1"},{"Files":null,"IsFilesAnalyzedTagPresent":true,"IsUnpackaged":false,"SPDXID":"SPDXRef-7","annotations":null,"checksums":null,"comment":"This package was created for a Maven dependency.  No SPDX or license information could be found in the Maven POM file.","copyrightText":"UNSPECIFIED","downloadLocation":"NOASSERTION","licenseConcluded":"NOASSERTION","licenseDeclared":"NOASSERTION","licenseInfoFromFiles":["NOASSERTION"],"name":"deploy-jar","packageVerificationCode":{"packageVerificationCodeExcludedFiles":null,"packageVerificationCodeValue":""},"versionInfo":"1.0"},{"Files":null,"IsFilesAnalyzedTagPresent":true,"IsUnpackaged":false,"SPDXID":"SPDXRef-6","annotations":null,"checksums":null,"comment":"This package was created for a Maven dependency.  No SPDX or license information could be found in the Maven POM file.","copyrightText":"UNSPECIFIED","downloadLocation":"NOASSERTION","licenseConcluded":"NOASSERTION","licenseDeclared":"NOASSERTION","licenseInfoFromFiles":["NOASSERTION"],"name":"junit-jupiter-engine","packageVerificationCode":{"packageVerificationCodeExcludedFiles":null,"packageVerificationCodeValue":""},"versionInfo":"5.7.1"},{"Files":null,"IsFilesAnalyzedTagPresent":true,"IsUnpackaged":false,"SPDXID":"SPDXRef-8","annotations":null,"checksums":null,"comment":"This package was created for a Maven dependency.  No SPDX or license information could be found in the Maven POM file.","copyrightText":"UNSPECIFIED","downloadLocation":"NOASSERTION","licenseConcluded":"NOASSERTION","licenseDeclared":"NOASSERTION","licenseInfoFromFiles":["NOASSERTION"],"name":"log4j-core","packageVerificationCode":{"packageVerificationCodeExcludedFiles":null,"packageVerificationCodeValue":""},"versionInfo":"2.14.1"},{"Files":null,"IsFilesAnalyzedTagPresent":true,"IsUnpackaged":false,"SPDXID":"SPDXRef-5","annotations":null,"checksums":null,"comment":"This package was created for a Maven dependency.  No SPDX or license information could be found in the Maven POM file.","copyrightText":"UNSPECIFIED","downloadLocation":"NOASSERTION","licenseConcluded":"NOASSERTION","licenseDeclared":"NOASSERTION","licenseInfoFromFiles":["NOASSERTION"],"name":"junit-jupiter-api","packageVerificationCode":{"packageVerificationCodeExcludedFiles":null,"packageVerificationCodeValue":""},"versionInfo":"5.7.1"},{"Files":[{"SPDXID":"SPDXRef-2","checksums":[{"algorithm":"SHA1","checksumValue":"9e58ba0426bed767f8da4d76afde1ee629d97c41"}],"copyrightText":"http://spdx.org/rdf/terms#noassertion","fileName":"./src/main/java/com/example/log4shell/log4j.java","fileTypes":["source"],"licenseConcluded":"NOASSERTION","licenseInfoInFiles":["NOASSERTION"]},{"SPDXID":"SPDXRef-3","checksums":[{"algorithm":"SHA1","checksumValue":"26df176b1904e473fddc8ca654bce5607b3fc64f"}],"copyrightText":"","fileName":"./src/main/java/com/example/log4shell/LoginServlet.java","fileTypes":["source"],"licenseConcluded":"NOASSERTION","licenseInfoInFiles":["NOASSERTION"]}],"IsFilesAnalyzedTagPresent":true,"IsUnpackaged":false,"SPDXID":"SPDXRef-1","annotations":null,"checksums":null,"copyrightText":"http://spdx.org/rdf/terms#noassertion","downloadLocation":"NOASSERTION","filesAnalyzed":true,"licenseConcluded":"NOASSERTION","licenseDeclared":"NOASSERTION","licenseInfoFromFiles":["NOASSERTION"],"name":"log4shell","packageFileName":"http://spdx.org/rdf/terms#noassertion","packageVerificationCode":{"packageVerificationCodeExcludedFiles":null,"packageVerificationCodeValue":"b5dabb87df1acb05636fe4dbc19afdfe18298a38"},"versionInfo":"1.0-SNAPSHOT"}],"relationships":[{"comment":"Relationship based on Maven POM file dependency information","relatedSpdxElement":"SPDXRef-4","relationshipType":"other","spdxElementId":"SPDXRef-1"},{"comment":"Relationship based on Maven POM file dependency information","relatedSpdxElement":"SPDXRef-9","relationshipType":"dynamicLink","spdxElementId":"SPDXRef-1"},{"comment":"Relationship based on Maven POM file dependency information","relatedSpdxElement":"SPDXRef-7","relationshipType":"other","spdxElementId":"SPDXRef-1"},{"relatedSpdxElement":"SPDXRef-1","relationshipType":"generates","spdxElementId":"SPDXRef-2"},{"comment":"Relationship based on Maven POM file dependency information","relatedSpdxElement":"SPDXRef-6","relationshipType":"testcaseOf","spdxElementId":"SPDXRef-1"},{"relatedSpdxElement":"SPDXRef-1","relationshipType":"generates","spdxElementId":"SPDXRef-3"},{"comment":"Relationship based on Maven POM file dependency information","relatedSpdxElement":"SPDXRef-8","relationshipType":"dynamicLink","spdxElementId":"SPDXRef-1"},{"comment":"Relationship based on Maven POM file dependency information","relatedSpdxElement":"SPDXRef-5","relationshipType":"testcaseOf","spdxElementId":"SPDXRef-1"},{"relatedSpdxElement":"SPDXRef-1","relationshipType":"describes","spdxElementId":"SPDXRef-DOCUMENT"}],"snippets":null,"spdxVersion":"SPDX-2.2"},"Timestamp":""}}`)
+
+	fulcioURL, err := apis.ParseURL("https://fulcio.sigstore.dev")
+	if err != nil {
+		t.Fatalf("Failed to parse fake Fulcio URL")
+	}
+
+	tests := []struct {
+		name          string
+		policy        webhookcip.ClusterImagePolicy
+		want          *PolicyResult
+		wantErrs      []string
+		customContext context.Context
+	}{{
+		name: "simple test",
+		policy: webhookcip.ClusterImagePolicy{
+			Images: []v1alpha1.ImagePattern{{
+				Glob: "**",
+			}},
+			Authorities: []webhookcip.Authority{{
+				Name: "authority-0",
+				Keyless: &webhookcip.KeylessRef{
+					URL: fulcioURL,
+					Identities: []v1alpha1.Identity{{
+						IssuerRegExp:  ".*",
+						SubjectRegExp: ".*",
+					}},
+				},
+				Attestations: []webhookcip.AttestationPolicy{{
+					Name:          "test-att",
+					PredicateType: "https://spdx.dev/Document",
+					Type:          "cue",
+					Data:          `{"predicateType": "https://spdx.dev/Document"}`,
+				}},
+			},
+			},
+		},
+		want: &PolicyResult{
+			AuthorityMatches: map[string]AuthorityMatch{
+				"authority-0": {
+					Attestations: map[string][]PolicyAttestation{
+						"test-att": {{
+							PolicySignature: PolicySignature{
+								ID:      "2906bbcbb40870d95b19e1bafe1db915ae73e5cd2ae1bdfee539ab6272ae7774",
+								Subject: "josh@dolit.ski",
+								Issuer:  "https://github.com/login/oauth",
+							},
+							PredicateType: "https://spdx.dev/Document",
+							Digest:        "sha256:f764a4251b2fe3c85dd46896b9d6e65361c9683755099d6dcd13009836d2e0e4",
+							Payload:       attPayload,
+						}},
+					},
+				},
+			},
+		},
+	}}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			cosignVerifySignatures = cosign.VerifyImageSignatures
+			cosignVerifyAttestations = cosign.VerifyImageAttestations
+			testContext := context.Background()
+
+			if test.customContext != nil {
+				testContext = test.customContext
+			}
+			kc, err := k8schain.NewNoClient(testContext)
+			if err != nil {
+				t.Fatalf("Failed to construct no client k8schain for testing")
+			}
+			got, gotErrs := ValidatePolicy(testContext, system.Namespace(), digestAtt, test.policy, kc)
+			validateErrors(t, test.wantErrs, gotErrs)
+			if diff := cmp.Diff(test.want, got); diff != "" {
+				t.Errorf("unexpected PolicyResult, %s with gotErrs %v", diff, gotErrs)
+			}
+		})
+	}
+}
 func validateErrors(t *testing.T, wantErr []string, got []error) {
 	t.Helper()
 	if len(wantErr) != len(got) {
