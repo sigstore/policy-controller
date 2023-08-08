@@ -1776,6 +1776,7 @@ func TestValidatePolicy(t *testing.T) {
 								},
 							},
 							PredicateType: "vuln",
+							Digest:        "sha256:01bd6aec99ad7c5d045d9aab649fd95b7af2b3b23887d34d7fce8b2e3c38ca0e",
 							Payload:       []byte(`{"_type":"https://in-toto.io/Statement/v0.1","predicateType":"https://cosign.sigstore.dev/attestation/vuln/v1","subject":[{"name":"ghcr.io/distroless/static","digest":{"sha256":"a1e82f6a5f6dfc735165d3442e7cc5a615f72abac3db19452481f5f3c90fbfa8"}}],"predicate":{"invocation":{"parameters":null,"uri":"https://github.com/distroless/static/actions/runs/2757953139","event_id":"2757953139","builder.id":"Create Release"},"scanner":{"uri":"https://github.com/aquasecurity/trivy","version":"0.29.2","db":{"uri":"","version":""},"result":{"$schema":"https://json.schemastore.org/sarif-2.1.0-rtm.5.json","runs":[{"columnKind":"utf16CodeUnits","originalUriBaseIds":{"ROOTPATH":{"uri":"file:///"}},"results":[],"tool":{"driver":{"fullName":"Trivy Vulnerability Scanner","informationUri":"https://github.com/aquasecurity/trivy","name":"Trivy","rules":[],"version":"0.29.2"}}}],"version":"2.1.0"}},"metadata":{"scanStartedOn":"2022-07-29T02:28:42Z","scanFinishedOn":"2022-07-29T02:28:48Z"}}}`),
 						}},
 					},

@@ -119,6 +119,9 @@ type PolicyAttestation struct {
 	// not intended for consumption in the ClusterImagePolicy's outer policy
 	// block.
 	Payload []byte `json:"-"`
+
+	// Digest of the attestation
+	Digest string `json:"digest,omitempty"`
 }
 
 // GithubExtensions holds the Github-related OID extensions.

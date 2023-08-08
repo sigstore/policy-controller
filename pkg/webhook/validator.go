@@ -713,6 +713,7 @@ type attestation struct {
 
 	PredicateType string
 	Payload       []byte
+	Digest        string
 }
 
 func attestationToPolicyAttestations(ctx context.Context, atts []attestation) []PolicyAttestation {
@@ -743,6 +744,7 @@ func attestationToPolicyAttestations(ctx context.Context, atts []attestation) []
 						WorkflowRef:     ce.GetCertExtensionGithubWorkflowRef(),
 					},
 				},
+				Digest:        att.Digest,
 				PredicateType: att.PredicateType,
 				Payload:       att.Payload,
 			})
@@ -754,6 +756,7 @@ func attestationToPolicyAttestations(ctx context.Context, atts []attestation) []
 				},
 				PredicateType: att.PredicateType,
 				Payload:       att.Payload,
+				Digest:        att.Digest,
 			})
 		}
 	}
@@ -890,6 +893,11 @@ func ValidatePolicyAttestationsForAuthority(ctx context.Context, ref name.Refere
 		// attestations and make sure that our particular one is satisfied.
 		checkedAttestations := make([]attestation, 0, len(verifiedAttestations))
 		for _, va := range verifiedAttestations {
+			attDigest, err := va.Digest()
+			if err != nil {
+				logging.FromContext(ctx).Errorf("failed to get the attestation digest for %s: %v", wantedAttestation.Name, err)
+				continue
+			}
 			attBytes, gotPredicateType, err := policy.AttestationToPayloadJSON(ctx, wantedAttestation.PredicateType, va)
 			if gotPredicateType != "" {
 				checkedPredicateTypes[gotPredicateType] = struct{}{}
@@ -926,6 +934,7 @@ func ValidatePolicyAttestationsForAuthority(ctx context.Context, ref name.Refere
 				Signature:     va,
 				PredicateType: wantedAttestation.PredicateType,
 				Payload:       attBytes,
+				Digest:        attDigest.String(),
 			})
 		}
 		if len(checkedAttestations) == 0 {
