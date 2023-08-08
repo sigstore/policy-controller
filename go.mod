@@ -65,7 +65,7 @@ require (
 	github.com/sigstore/sigstore/pkg/signature/kms/aws v1.7.2
 	github.com/sigstore/sigstore/pkg/signature/kms/azure v1.7.1
 	github.com/sigstore/sigstore/pkg/signature/kms/gcp v1.7.2
-	github.com/sigstore/sigstore/pkg/signature/kms/hashivault v1.7.1
+	github.com/sigstore/sigstore/pkg/signature/kms/hashivault v1.7.2
 	github.com/spf13/viper v1.16.0
 )
 
