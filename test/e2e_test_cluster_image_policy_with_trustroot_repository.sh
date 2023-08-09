@@ -140,7 +140,7 @@ echo '::endgroup::'
 
 # This image has an attestation, but was not added to TLog
 echo '::group:: test job rejection'
-expected_error='No leaf found for hash'
+expected_error='signature not found in transparency log'
 assert_error ${expected_error}
 echo '::endgroup::'
 
