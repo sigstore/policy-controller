@@ -19,7 +19,7 @@ jobs:
           check-latest: true
 
       - name: Check out code
-        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
 
       - uses: chainguard-dev/actions/gofmt@e6364567e59cb42c49cf69f8e1242f247bc23844 # main
         with:
@@ -37,6 +37,6 @@ jobs:
           check-latest: true
 
       - name: Check out code
-        uses: actions/checkout@c85c95e3d7251135ab7dc9ce3241c5835cc595a9 # v3.5.3
+        uses: actions/checkout@f43a0e5ff2bd294095638e18286ca9a3d1956744 # v3.6.0
 
       - uses: chainguard-dev/actions/goimports@main # main
