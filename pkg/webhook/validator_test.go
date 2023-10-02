@@ -20,7 +20,6 @@ import (
 	"context"
 	"crypto"
 	"crypto/ecdsa"
-	"crypto/elliptic"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/json"
@@ -208,11 +207,18 @@ func TestValidatePodSpec(t *testing.T) {
 	authorityPublicKeyCVS := func(ctx context.Context, signedImgRef name.Reference, co *cosign.CheckOpts) (checkedSignatures []oci.Signature, bundleVerified bool, err error) {
 		actualPublicKey, _ := co.SigVerifier.PublicKey()
 		actualECDSAPubkey := actualPublicKey.(*ecdsa.PublicKey)
-		actualKeyData := elliptic.Marshal(actualECDSAPubkey, actualECDSAPubkey.X, actualECDSAPubkey.Y)
 
-		expectedKeyData := elliptic.Marshal(authorityKeyCosignPub, authorityKeyCosignPub.X, authorityKeyCosignPub.Y)
+		actualPubKey, err := actualECDSAPubkey.ECDH()
+		if err != nil {
+			return nil, false, errors.New("failed to get edch pub key")
+		}
 
-		if bytes.Equal(actualKeyData, expectedKeyData) {
+		authorityKeyPubKey, err := authorityKeyCosignPub.ECDH()
+		if err != nil {
+			return nil, false, errors.New("failed to get edch pub key")
+		}
+
+		if bytes.Equal(actualPubKey.Bytes(), authorityKeyPubKey.Bytes()) {
 			return pass(ctx, signedImgRef, co)
 		}
 
@@ -1589,11 +1595,18 @@ func TestValidatePolicy(t *testing.T) {
 		}
 		actualPublicKey, _ := co.SigVerifier.PublicKey()
 		actualECDSAPubkey := actualPublicKey.(*ecdsa.PublicKey)
-		actualKeyData := elliptic.Marshal(actualECDSAPubkey, actualECDSAPubkey.X, actualECDSAPubkey.Y)
 
-		expectedKeyData := elliptic.Marshal(authorityKeyCosignPub, authorityKeyCosignPub.X, authorityKeyCosignPub.Y)
+		actualPubKey, err := actualECDSAPubkey.ECDH()
+		if err != nil {
+			return nil, false, errors.New("failed to get edch pub key")
+		}
 
-		if bytes.Equal(actualKeyData, expectedKeyData) {
+		authorityKeyPubKey, err := authorityKeyCosignPub.ECDH()
+		if err != nil {
+			return nil, false, errors.New("failed to get edch pub key")
+		}
+
+		if bytes.Equal(actualPubKey.Bytes(), authorityKeyPubKey.Bytes()) {
 			return pass(ctx, signedImgRef, co)
 		}
 
@@ -2022,11 +2035,18 @@ func TestValidatePodSpecNonDefaultNamespace(t *testing.T) {
 	authorityPublicKeyCVS := func(ctx context.Context, signedImgRef name.Reference, co *cosign.CheckOpts) (checkedSignatures []oci.Signature, bundleVerified bool, err error) {
 		actualPublicKey, _ := co.SigVerifier.PublicKey()
 		actualECDSAPubkey := actualPublicKey.(*ecdsa.PublicKey)
-		actualKeyData := elliptic.Marshal(actualECDSAPubkey, actualECDSAPubkey.X, actualECDSAPubkey.Y)
 
-		expectedKeyData := elliptic.Marshal(authorityKeyCosignPub, authorityKeyCosignPub.X, authorityKeyCosignPub.Y)
+		actualPubKey, err := actualECDSAPubkey.ECDH()
+		if err != nil {
+			return nil, false, errors.New("failed to get edch pub key")
+		}
 
-		if bytes.Equal(actualKeyData, expectedKeyData) {
+		authorityKeyPubKey, err := authorityKeyCosignPub.ECDH()
+		if err != nil {
+			return nil, false, errors.New("failed to get edch pub key")
+		}
+
+		if bytes.Equal(actualPubKey.Bytes(), authorityKeyPubKey.Bytes()) {
 			return pass(ctx, signedImgRef, co)
 		}
 
