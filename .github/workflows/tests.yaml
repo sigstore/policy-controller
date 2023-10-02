@@ -23,7 +23,7 @@ on:
 permissions: read-all
 
 env:
-  GO_VERSION: '1.20'
+  GO_VERSION: '1.21'
 
 jobs:
   unit-tests:
@@ -95,5 +95,5 @@ jobs:
       - name: golangci-lint
         uses: golangci/golangci-lint-action@3a919529898de77ec3da873e3063ca4b10e7f5cc # v3
         with:
-          version: v1.53
+          version: v1.54
           args: --timeout=15m
