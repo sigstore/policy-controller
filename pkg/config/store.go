@@ -28,7 +28,7 @@ type cfgKey struct{}
 const (
 	// PolicyControllerConfigName is the name of the configmap used to configure
 	// policy-controller.
-	PolicyControllerConfigName = "config-policy-controller"
+	PolicyControllerConfigName = "config-policy-controller" //nolint: gosec
 
 	// Specifies that if an image is not found to match any policy, it should
 	// be rejected.
