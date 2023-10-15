@@ -31,7 +31,7 @@ require (
 	github.com/ryanuber/go-glob v1.0.0
 	github.com/sigstore/cosign/v2 v2.2.0
 	github.com/sigstore/rekor v1.3.1
-	github.com/sigstore/sigstore v1.7.3
+	github.com/sigstore/sigstore v1.7.4
 	github.com/stretchr/testify v1.8.4
 	github.com/theupdateframework/go-tuf v0.6.1
 	github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399
@@ -258,7 +258,7 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/exp v0.0.0-20230905200255-921286631fa9 // indirect
 	golang.org/x/mod v0.13.0 // indirect
-	golang.org/x/oauth2 v0.12.0 // indirect
+	golang.org/x/oauth2 v0.13.0 // indirect
 	golang.org/x/sync v0.4.0 // indirect
 	golang.org/x/term v0.13.0 // indirect
 	golang.org/x/text v0.13.0 // indirect
