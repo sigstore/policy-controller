@@ -54,7 +54,7 @@ require (
 	knative.dev/hack/schema v0.0.0-20221024013916-9d2ae47c16b2
 	knative.dev/pkg v0.0.0-20230612083802-15605c78a270
 	sigs.k8s.io/release-utils v0.7.5
-	sigs.k8s.io/yaml v1.3.0
+	sigs.k8s.io/yaml v1.4.0
 )
 
 require github.com/spf13/cobra v1.7.0
