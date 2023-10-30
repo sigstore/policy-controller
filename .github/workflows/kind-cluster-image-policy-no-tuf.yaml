@@ -33,13 +33,14 @@ jobs:
       fail-fast: false # Keep running if one leg fails.
       matrix:
         k8s-version:
-        - v1.23.x
-        - v1.24.x
         - v1.25.x
+        - v1.26.x
+        - v1.27.x
+        - v1.28.x
 
     env:
       KO_DOCKER_REPO: "registry.local:5000/policy-controller"
-      SCAFFOLDING_RELEASE_VERSION: "v0.6.5"
+      SCAFFOLDING_RELEASE_VERSION: "v0.6.9"
       GO111MODULE: on
       GOFLAGS: -ldflags=-s -ldflags=-w
       KOCACHE: ~/ko
@@ -112,7 +113,7 @@ jobs:
       with:
         mirror: mirror.gcr.io
 
-    - uses: sigstore/cosign-installer@11086d25041f77fe8fe7b9ea4e48e3b9192b8f19
+    - uses: sigstore/cosign-installer@11086d25041f77fe8fe7b9ea4e48e3b9192b8f19 # v3.1.2
 
     - name: Install cluster + sigstore
       uses: sigstore/scaffolding/actions/setup@main
