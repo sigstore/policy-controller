@@ -56,7 +56,7 @@ require (
 	sigs.k8s.io/yaml v1.4.0
 )
 
-require github.com/spf13/cobra v1.7.0
+require github.com/spf13/cobra v1.8.0
 
 require (
 	github.com/docker/docker v24.0.7+incompatible
