@@ -43,13 +43,13 @@ group "Kubernetes Codegen"
 # --output-base    because this script should also be able to run inside the vendor dir of
 #                  k8s.io/kubernetes. The output-base is needed for the generators to output into the vendor dir
 #                  instead of the $GOPATH directly. For normal projects this can be dropped.
-${CODEGEN_PKG}/generate-groups.sh "deepcopy,client,informer,lister" \
+bash "${CODEGEN_PKG}/kube_codegen.sh" "deepcopy,client,informer,lister" \
   github.com/sigstore/policy-controller/pkg/client github.com/sigstore/policy-controller/pkg/apis \
   "policy:v1alpha1 policy:v1beta1" \
   --go-header-file ${REPO_ROOT_DIR}/hack/boilerplate/boilerplate.go.txt
 
 group "ducks"
-${CODEGEN_PKG}/generate-groups.sh "deepcopy" \
+bash "${CODEGEN_PKG}/kube_codegen.sh" "deepcopy" \
   github.com/sigstore/policy-controller/pkg/client github.com/sigstore/policy-controller/pkg/apis \
   "duck:v1beta1" \
   --go-header-file ${REPO_ROOT_DIR}/hack/boilerplate/boilerplate.go.txt
