@@ -62,7 +62,7 @@ require (
 	github.com/docker/go-connections v0.4.0
 	github.com/go-jose/go-jose/v3 v3.0.1
 	github.com/sigstore/sigstore/pkg/signature/kms/aws v1.7.6
-	github.com/sigstore/sigstore/pkg/signature/kms/azure v1.7.5
+	github.com/sigstore/sigstore/pkg/signature/kms/azure v1.7.6
 	github.com/sigstore/sigstore/pkg/signature/kms/gcp v1.7.6
 	github.com/sigstore/sigstore/pkg/signature/kms/hashivault v1.7.6
 	github.com/spf13/viper v1.17.0
