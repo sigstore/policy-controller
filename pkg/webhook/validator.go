@@ -1216,7 +1216,7 @@ func refOrFieldError(image, field string, index int) *apis.FieldError {
 	}
 	if _, ok := ref.(name.Digest); !ok {
 		return apis.ErrInvalidValue(
-			fmt.Sprintf("%s must be an image digest", image),
+			fmt.Sprintf("%s must be an image digest or image does not exist", image),
 			"image",
 		).ViaFieldIndex(field, index)
 	}
