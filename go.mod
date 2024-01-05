@@ -59,7 +59,7 @@ require github.com/spf13/cobra v1.8.0
 
 require (
 	github.com/docker/docker v24.0.7+incompatible
-	github.com/docker/go-connections v0.4.0
+	github.com/docker/go-connections v0.5.0
 	github.com/go-jose/go-jose/v3 v3.0.1
 	github.com/sigstore/sigstore/pkg/signature/kms/aws v1.8.0
 	github.com/sigstore/sigstore/pkg/signature/kms/azure v1.8.0
