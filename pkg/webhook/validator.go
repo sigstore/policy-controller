@@ -38,7 +38,6 @@ import (
 	"github.com/sigstore/cosign/v2/pkg/oci"
 	ociremote "github.com/sigstore/cosign/v2/pkg/oci/remote"
 	"github.com/sigstore/cosign/v2/pkg/policy"
-	csigs "github.com/sigstore/cosign/v2/pkg/signature"
 	"github.com/sigstore/policy-controller/pkg/apis/config"
 	policyduckv1beta1 "github.com/sigstore/policy-controller/pkg/apis/duck/v1beta1"
 	policycontrollerconfig "github.com/sigstore/policy-controller/pkg/config"
@@ -654,9 +653,13 @@ func ociSignatureToPolicySignature(ctx context.Context, sigs []oci.Signature) []
 			ce := cosign.CertExtensions{
 				Cert: cert,
 			}
+			sub := ""
+			if sans := cryptoutils.GetSubjectAlternateNames(cert); len(sans) > 0 {
+				sub = sans[0]
+			}
 			ret = append(ret, PolicySignature{
 				ID:      sigID,
-				Subject: csigs.CertSubject(cert),
+				Subject: sub,
 				Issuer:  ce.GetIssuer(),
 				GithubExtensions: GithubExtensions{
 					WorkflowTrigger: ce.GetCertExtensionGithubWorkflowTrigger(),
@@ -731,10 +734,14 @@ func attestationToPolicyAttestations(ctx context.Context, atts []attestation) []
 			ce := cosign.CertExtensions{
 				Cert: cert,
 			}
+			sub := ""
+			if sans := cryptoutils.GetSubjectAlternateNames(cert); len(sans) > 0 {
+				sub = sans[0]
+			}
 			ret = append(ret, PolicyAttestation{
 				PolicySignature: PolicySignature{
 					ID:      sigID,
-					Subject: csigs.CertSubject(cert),
+					Subject: sub,
 					Issuer:  ce.GetIssuer(),
 					GithubExtensions: GithubExtensions{
 						WorkflowTrigger: ce.GetCertExtensionGithubWorkflowTrigger(),
