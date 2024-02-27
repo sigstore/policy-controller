@@ -29,10 +29,10 @@ jobs:
       fail-fast: false # Keep running if one leg fails.
       matrix:
         k8s-version:
-        - v1.22.x
         - v1.23.x
         - v1.24.x
         - v1.25.x
+        - v1.26.x
 
     env:
       # https://github.com/google/go-containerregistry/pull/125 allows insecure registry for
@@ -103,7 +103,7 @@ jobs:
     - uses: imranismail/setup-kustomize@a76db1c6419124d51470b1e388c4b29476f495f1 # v1.6.1
 
     - name: Install yq
-      uses: mikefarah/yq@bb66c9c872a7a4cf3d6846c2ff6d182c66ec3f77 # v4.40.7
+      uses: mikefarah/yq@9adde1ac14bb283b8955d2b0d567bcaf3c69e639 # v4.42.1
 
     - uses: sigstore/cosign-installer@e1523de7571e31dbe865fd2e80c5c7c23ae71eb4
 
