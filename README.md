@@ -46,7 +46,7 @@ Then run it pointing to a YAML file containing a ClusterImagePolicy, and an imag
 
 ## Local Development
 
-You can spin up a local [Kind](https://kind.sigs.k8s.io/) K8s cluster to test local changes to the policy controller using the ``
+You can spin up a local [Kind](https://kind.sigs.k8s.io/) K8s cluster to test local changes to the policy controller using the `local-dev`
 CLI tool. Build the tool with `make local-dev` and then run it with `./bin/local-dev setup`.
 
 It optionally accepts the following:
