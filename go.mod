@@ -30,6 +30,7 @@ require (
 	github.com/mitchellh/mapstructure v1.5.0
 	github.com/ryanuber/go-glob v1.0.0
 	github.com/sigstore/cosign/v2 v2.2.3
+	github.com/sigstore/protobuf-specs v0.3.0
 	github.com/sigstore/rekor v1.3.5
 	github.com/sigstore/sigstore v1.8.2
 	github.com/stretchr/testify v1.9.0
@@ -41,7 +42,7 @@ require (
 	golang.org/x/sys v0.18.0 // indirect
 	golang.org/x/time v0.5.0
 	google.golang.org/grpc v1.62.0 // indirect
-	google.golang.org/protobuf v1.33.0 // indirect
+	google.golang.org/protobuf v1.33.0
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/api v0.29.3
 	k8s.io/apimachinery v0.29.3

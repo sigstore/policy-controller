@@ -17,11 +17,19 @@ package trustroot
 import (
 	"bytes"
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rand"
+	"crypto/x509"
+	"crypto/x509/pkix"
 	_ "embed"
 	"encoding/json"
+	"encoding/pem"
 	"fmt"
+	"math/big"
 	"strings"
 	"testing"
+	"time"
 
 	"knative.dev/pkg/apis"
 	logtesting "knative.dev/pkg/logging/testing"
@@ -30,6 +38,7 @@ import (
 	"github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
 	fakecosignclient "github.com/sigstore/policy-controller/pkg/client/injection/client/fake"
 	"github.com/sigstore/policy-controller/pkg/client/injection/reconciler/policy/v1alpha1/trustroot"
+	pbcommon "github.com/sigstore/protobuf-specs/gen/pb-go/common/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
@@ -363,13 +372,13 @@ func makeConfigMapWithSigstoreKeys() *corev1.ConfigMap {
 		Data: make(map[string]string),
 	}
 	source := NewTrustRoot(trName, WithSigstoreKeys(sigstoreKeys))
-	c := &config.SigstoreKeys{}
-	c.ConvertFrom(context.Background(), source.Spec.SigstoreKeys)
-	for i := range c.TLogs {
-		c.TLogs[i].LogID = rekorLogID
+	c := config.ConvertSigstoreKeys(context.Background(), source.Spec.SigstoreKeys)
+	for i := range c.Tlogs {
+		c.Tlogs[i].LogId = &config.LogId{KeyId: []byte(rekorLogID)}
+
 	}
-	for i := range c.CTLogs {
-		c.CTLogs[i].LogID = ctfeLogID
+	for i := range c.Ctlogs {
+		c.Ctlogs[i].LogId = &config.LogId{KeyId: []byte(ctfeLogID)}
 	}
 	marshalled, err := resources.Marshal(c)
 	if err != nil {
@@ -463,67 +472,161 @@ func patchRemoveFinalizers(namespace, name string) clientgotesting.PatchActionIm
 	return action
 }
 
-// TestConvertFrom tests marshalling / unmarshalling to the configmap and back.
+// TestConvertSigstoreKeys tests marshalling / unmarshalling to the configmap and back.
 // This is here instead of in the pkg/apis/config because of import cycles and
 // having both types v1alpha1.SigstoreTypes and config.SigstoreTypes being
 // available makes testing way easier, and due to import cycles we can't put
 // that in config and yet import v1alpha1.
-func TestConvertFrom(t *testing.T) {
-	source := v1alpha1.SigstoreKeys{}
-
+func TestConvertSigstoreKeys(t *testing.T) {
 	itemsPerEntry := 2
 
-	// Create TransparencyLogInstances.
-	// Values are not valid for proper usage, but we want to make sure
-	// we properly handle the serialize/unserialize so we use fixed values
-	// for testing that.
+	type key struct {
+		pem []byte
+		der []byte
+	}
+	type testTlog struct {
+		url           string
+		hashAlgorithm string
+		publicKey     key
+	}
+	type testCA struct {
+		url        string
+		org        string
+		commonName string
+		certChain  []key
+	}
+	type testData struct {
+		tlogs  []testTlog
+		ctlogs []testTlog
+		cas    []testCA
+		tsas   []testCA
+	}
+
+	hashAlgorithms := []string{"sha256", "sha512"}
+	hashAlgorithmMap := map[string]pbcommon.HashAlgorithm{"sha256": pbcommon.HashAlgorithm_SHA2_256, "sha512": pbcommon.HashAlgorithm_SHA2_512}
+
+	test := testData{}
+
+	// construct test data
 	for i := 0; i < itemsPerEntry; i++ {
-		for _, prefix := range []string{"tlog", "ctlog"} {
-			entry := v1alpha1.TransparencyLogInstance{
-				BaseURL:       *apis.HTTP(fmt.Sprintf("%s-%d.example.com", prefix, i)),
-				HashAlgorithm: fmt.Sprintf("%s-hash-%d", prefix, i),
-				PublicKey:     []byte(fmt.Sprintf("%s-publickey-%d", prefix, i)),
+		for _, service := range []string{"tlog", "ctlog"} {
+			priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+			if err != nil {
+				t.Fatalf("failed to generate ecdsa key: %v", err)
 			}
-			switch prefix {
+			der, err := x509.MarshalPKIXPublicKey(priv.Public().(*ecdsa.PublicKey))
+			if err != nil {
+				t.Fatalf("failed to marshal ecdsa key: %v", err)
+			}
+			pem := pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: der})
+			tlog := testTlog{
+				url:           fmt.Sprintf("https://%s-%d.example.com", service, i),
+				hashAlgorithm: hashAlgorithms[i%2],
+				publicKey:     key{pem, der},
+			}
+
+			switch service {
 			case "tlog":
-				source.TLogs = append(source.TLogs, entry)
+				test.tlogs = append(test.tlogs, tlog)
 			case "ctlog":
-				source.CTLogs = append(source.CTLogs, entry)
-			default:
-				panic("invalid type")
+				test.ctlogs = append(test.ctlogs, tlog)
 			}
 		}
-	}
-	// Create CertificateAuthorities.
-	// Values are not valid for proper usage, but we want to make sure
-	// we properly handle the serialize/unserialize so we use fixed values
-	// for testing that.
-	for i := 0; i < itemsPerEntry; i++ {
-		for _, prefix := range []string{"fulcio", "tsa"} {
-			entry := v1alpha1.CertificateAuthority{
-				Subject: v1alpha1.DistinguishedName{
-					Organization: fmt.Sprintf("%s-organization-%d", prefix, i),
-					CommonName:   fmt.Sprintf("%s-commonname-%d", prefix, i),
+		for _, service := range []string{"fulcio", "tsa"} {
+			priv, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+			if err != nil {
+				t.Fatalf("failed to generate ecdsa key: %v", err)
+			}
+			template := x509.Certificate{
+				SerialNumber: big.NewInt(1),
+				Subject: pkix.Name{
+					CommonName: "Test Certificate",
 				},
-				URI:       *apis.HTTP(fmt.Sprintf("%s-%d.example.com", prefix, i)),
-				CertChain: []byte(fmt.Sprintf("%s-certchain-%d", prefix, i)),
+				NotBefore:             time.Now(),
+				NotAfter:              time.Now().AddDate(1, 0, 0),
+				KeyUsage:              x509.KeyUsageDigitalSignature,
+				BasicConstraintsValid: true,
 			}
-			switch prefix {
+			der, err := x509.CreateCertificate(rand.Reader, &template, &template, priv.Public(), priv)
+			if err != nil {
+				t.Fatalf("failed to create x509 certificate: %v", err)
+			}
+			pem := pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: der})
+			ca := testCA{
+				url:        fmt.Sprintf("https://%s-%d.example.com", service, i),
+				org:        fmt.Sprintf("Test Org %d for %s", i, service),
+				commonName: fmt.Sprintf("Test CA %d for %s", i, service),
+				certChain:  []key{{pem, der}},
+			}
+
+			switch service {
 			case "fulcio":
-				source.CertificateAuthorities = append(source.CertificateAuthorities, entry)
+				test.cas = append(test.cas, ca)
 			case "tsa":
-				source.TimeStampAuthorities = append(source.TimeStampAuthorities, entry)
-			default:
-				panic("invalid type")
+				test.tsas = append(test.tsas, ca)
 			}
 		}
 	}
-	converted := &config.SigstoreKeys{}
+
+	// create and populate source
+	source := v1alpha1.SigstoreKeys{}
+
+	for _, tlog := range test.tlogs {
+		url, err := apis.ParseURL(tlog.url)
+		if err != nil {
+			t.Fatalf("failed to parse url: %v", err)
+		}
+		source.TLogs = append(source.TLogs, v1alpha1.TransparencyLogInstance{
+			BaseURL:       *url,
+			HashAlgorithm: tlog.hashAlgorithm,
+			PublicKey:     tlog.publicKey.pem,
+		})
+	}
+	for _, ctlog := range test.ctlogs {
+		url, err := apis.ParseURL(ctlog.url)
+		if err != nil {
+			t.Fatalf("failed to parse url: %v", err)
+		}
+		source.CTLogs = append(source.CTLogs, v1alpha1.TransparencyLogInstance{
+			BaseURL:       *url,
+			HashAlgorithm: ctlog.hashAlgorithm,
+			PublicKey:     ctlog.publicKey.pem,
+		})
+	}
+	for _, ca := range test.cas {
+		url, err := apis.ParseURL(ca.url)
+		if err != nil {
+			t.Fatalf("failed to parse url: %v", err)
+		}
+		source.CertificateAuthorities = append(source.CertificateAuthorities, v1alpha1.CertificateAuthority{
+			Subject: v1alpha1.DistinguishedName{
+				Organization: ca.org,
+				CommonName:   ca.commonName,
+			},
+			URI:       *url,
+			CertChain: ca.certChain[0].pem,
+		})
+	}
+	for _, tsa := range test.tsas {
+		url, err := apis.ParseURL(tsa.url)
+		if err != nil {
+			t.Fatalf("failed to parse url: %v", err)
+		}
+		source.TimeStampAuthorities = append(source.TimeStampAuthorities, v1alpha1.CertificateAuthority{
+			Subject: v1alpha1.DistinguishedName{
+				Organization: tsa.org,
+				CommonName:   tsa.commonName,
+			},
+			URI:       *url,
+			CertChain: tsa.certChain[0].pem,
+		})
+	}
+
 	// convert from v1alpha1 to config and let's marshal to configmap and back
 	// to make sure we exercise the path from:
 	// v1alpha1 => config => configMap => back (this is what reconciler will
 	// use to call cosign verification functions with).
-	converted.ConvertFrom(context.Background(), &source)
+	converted := config.ConvertSigstoreKeys(context.Background(), &source)
 	marshalled, err := resources.Marshal(converted)
 	if err != nil {
 		t.Fatalf("Failed to marshal entry: %v", err)
@@ -534,72 +637,70 @@ func TestConvertFrom(t *testing.T) {
 		t.Fatalf("Failed to construct from map entry: %v", err)
 	}
 	sk := skMap.SigstoreKeys["test-entry"]
-	if len(sk.TLogs) != 2 {
-		t.Errorf("Not enough TLog entries, want 2 got %d", len(sk.TLogs))
+	if len(sk.Tlogs) != 2 {
+		t.Errorf("Not enough TLog entries, want 2 got %d", len(sk.Tlogs))
 	}
-	if len(sk.CTLogs) != 2 {
-		t.Errorf("Not enough CTLog entries, want 2 got %d", len(sk.CTLogs))
+	if len(sk.Ctlogs) != 2 {
+		t.Errorf("Not enough CTLog entries, want 2 got %d", len(sk.Ctlogs))
 	}
 	if len(sk.CertificateAuthorities) != 2 {
 		t.Errorf("Not enough CertificateAuthority entries, want 2 got %d", len(sk.CertificateAuthorities))
 	}
-	if len(sk.TimeStampAuthorities) != 2 {
-		t.Errorf("Not enough TimestampAuthorities entries, want 2 got %d", len(sk.TimeStampAuthorities))
+	if len(sk.TimestampAuthorities) != 2 {
+		t.Errorf("Not enough TimestampAuthorities entries, want 2 got %d", len(sk.TimestampAuthorities))
 	}
 	// Verify TLog, CTLog
 	for i := 0; i < itemsPerEntry; i++ {
-		for _, prefix := range []string{"tlog", "ctlog"} {
-			var entry config.TransparencyLogInstance
-			switch prefix {
+		for _, service := range []string{"tlog", "ctlog"} {
+			var entry *config.TransparencyLogInstance
+			var tlog testTlog
+			switch service {
 			case "tlog":
-				entry = sk.TLogs[i]
+				entry = sk.Tlogs[i]
+				tlog = test.tlogs[i]
 			case "ctlog":
-				entry = sk.CTLogs[i]
+				entry = sk.Ctlogs[i]
+				tlog = test.ctlogs[i]
 			default:
 				panic("invalid type")
 			}
-			wantURL := fmt.Sprintf("http://%s-%d.example.com", prefix, i)
-			wantHash := fmt.Sprintf("%s-hash-%d", prefix, i)
-			wantPublicKey := fmt.Sprintf("%s-publickey-%d", prefix, i)
-			if entry.BaseURL.String() != wantURL {
-				t.Errorf("Unexpected BaseURL for %s %d wanted %s got %s", prefix, i, wantURL, entry.BaseURL.String())
+			if entry.BaseUrl != tlog.url {
+				t.Errorf("Unexpected BaseUrl for %s %d wanted %s got %s", service, i, tlog.url, entry.BaseUrl)
 			}
-			if entry.HashAlgorithm != wantHash {
-				t.Errorf("Unexpected HashAlgorithm for %s %d wanted %s got %s", prefix, i, wantHash, entry.HashAlgorithm)
+			if entry.HashAlgorithm != hashAlgorithmMap[tlog.hashAlgorithm] {
+				t.Errorf("Unexpected HashAlgorithm for %s %d wanted %s got %s", service, i, tlog.hashAlgorithm, entry.HashAlgorithm)
 			}
-			if string(entry.PublicKey) != wantPublicKey {
-				t.Errorf("Unexpected PublicKey for %s %d wanted %s got %s", prefix, i, wantPublicKey, string(entry.PublicKey))
+			if !bytes.Equal(entry.PublicKey.RawBytes, tlog.publicKey.der) {
+				t.Errorf("Unexpected PublicKey for %s %d wanted %s got %s", service, i, tlog.publicKey.der, entry.PublicKey.RawBytes)
 			}
 		}
 	}
-	// Verify CertificateAuthority, TimeStampAuthorities
+	// Verify CertificateAuthority, TimestampAuthorities
 	for i := 0; i < itemsPerEntry; i++ {
 		for _, prefix := range []string{"fulcio", "tsa"} {
-			var entry config.CertificateAuthority
+			var entry *config.CertificateAuthority
+			var ca testCA
 			switch prefix {
 			case "fulcio":
 				entry = sk.CertificateAuthorities[i]
+				ca = test.cas[i]
 			case "tsa":
-				entry = sk.TimeStampAuthorities[i]
+				entry = sk.TimestampAuthorities[i]
+				ca = test.tsas[i]
 			default:
 				panic("invalid type")
 			}
-			wantOrganization := fmt.Sprintf("%s-organization-%d", prefix, i)
-			wantCommonName := fmt.Sprintf("%s-commonname-%d", prefix, i)
-			wantURI := fmt.Sprintf("http://%s-%d.example.com", prefix, i)
-			wantCertChain := fmt.Sprintf("%s-certchain-%d", prefix, i)
-
-			if entry.Subject.Organization != wantOrganization {
-				t.Errorf("Unexpected Organization for %s %d wanted %s got %s", prefix, i, wantOrganization, entry.Subject.Organization)
+			if entry.Uri != ca.url {
+				t.Errorf("Unexpected Uri for %s %d wanted %s got %s", prefix, i, ca.url, entry.Uri)
 			}
-			if entry.Subject.CommonName != wantCommonName {
-				t.Errorf("Unexpected CommonName for %s %d wanted %s got %s", prefix, i, wantCommonName, entry.Subject.CommonName)
+			if entry.Subject.Organization != ca.org {
+				t.Errorf("Unexpected Organization for %s %d wanted %s got %s", prefix, i, ca.org, entry.Subject.Organization)
 			}
-			if string(entry.CertChain) != wantCertChain {
-				t.Errorf("Unexpected CertChain for %s %d wanted %s got %s", prefix, i, wantCertChain, string(entry.CertChain))
+			if entry.Subject.CommonName != ca.commonName {
+				t.Errorf("Unexpected CommonName for %s %d wanted %s got %s", prefix, i, ca.commonName, entry.Subject.CommonName)
 			}
-			if entry.URI.String() != wantURI {
-				t.Errorf("Unexpected URI for %s %d wanted %s got %s", prefix, i, wantURI, entry.URI.String())
+			if !bytes.Equal(entry.CertChain.Certificates[0].RawBytes, ca.certChain[0].der) {
+				t.Errorf("Unexpected CertChain for %s %d wanted %s got %s", prefix, i, ca.certChain[0].der, entry.CertChain.Certificates[0].RawBytes)
 			}
 		}
 	}

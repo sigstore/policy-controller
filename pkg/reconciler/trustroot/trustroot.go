@@ -66,8 +66,7 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, trustroot *v1alpha1.Trus
 	case trustroot.Spec.Remote != nil:
 		sigstoreKeys, err = r.getSigstoreKeysFromRemote(ctx, trustroot.Spec.Remote)
 	case trustroot.Spec.SigstoreKeys != nil:
-		sigstoreKeys = &config.SigstoreKeys{}
-		sigstoreKeys.ConvertFrom(ctx, trustroot.Spec.SigstoreKeys)
+		sigstoreKeys = config.ConvertSigstoreKeys(ctx, trustroot.Spec.SigstoreKeys)
 	default:
 		// This should not happen since the CRD has been validated.
 		err = fmt.Errorf("invalid TrustRoot entry: %s missing repository,remote, and sigstoreKeys", trustroot.Name)
@@ -84,8 +83,8 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, trustroot *v1alpha1.Trus
 	// them before serializing.
 	// Note this is identical to what we do with CTLog PublicKeys, but they
 	// are not restricted to being only ecdsa.PublicKey.
-	for i, tlog := range sigstoreKeys.TLogs {
-		pk, logID, err := pemToKeyAndID(tlog.PublicKey)
+	for i, tlog := range sigstoreKeys.Tlogs {
+		pk, logID, err := pemToKeyAndID(config.SerializePublicKey(tlog.PublicKey))
 		if err != nil {
 			return fmt.Errorf("invalid rekor public key %d: %w", i, err)
 		}
@@ -95,14 +94,14 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, trustroot *v1alpha1.Trus
 		if !ok {
 			return fmt.Errorf("public key %d is not ecdsa.PublicKey", i)
 		}
-		sigstoreKeys.TLogs[i].LogID = logID
+		sigstoreKeys.Tlogs[i].LogId = &config.LogId{KeyId: []byte(logID)}
 	}
-	for i, ctlog := range sigstoreKeys.CTLogs {
-		_, logID, err := pemToKeyAndID(ctlog.PublicKey)
+	for i, ctlog := range sigstoreKeys.Ctlogs {
+		_, logID, err := pemToKeyAndID(config.SerializePublicKey(ctlog.PublicKey))
 		if err != nil {
 			return fmt.Errorf("invalid ctlog public key %d: %w", i, err)
 		}
-		sigstoreKeys.CTLogs[i].LogID = logID
+		sigstoreKeys.Ctlogs[i].LogId = &config.LogId{KeyId: []byte(logID)}
 	}
 
 	// See if the CM holding configs exists
@@ -203,7 +202,7 @@ func (r *Reconciler) removeTrustRootEntry(ctx context.Context, cm *corev1.Config
 }
 
 // pemToKeyAndID takes a public key in PEM format, and turns it into
-// crypto.PublicKey and the CTLog LogID.
+// crypto.PublicKey and the CTLog LogId.
 func pemToKeyAndID(pem []byte) (crypto.PublicKey, string, error) {
 	pk, err := cryptoutils.UnmarshalPEMToPublicKey(pem)
 	if err != nil {
@@ -236,6 +235,8 @@ func getSigstoreKeysFromTuf(ctx context.Context, tufClient *client.Client) (*con
 		return nil, fmt.Errorf("error getting targets: %w", err)
 	}
 	ret := &config.SigstoreKeys{}
+	// TODO: Use `trusted_root.json` to populate `config.SigstoreKeys`, if
+	// available. Fall back to using target files with custom metadata if not.
 	for name, targetMeta := range targets {
 		// Skip any targets that do not include custom metadata.
 		if targetMeta.Custom == nil {
@@ -253,11 +254,11 @@ func getSigstoreKeysFromTuf(ctx context.Context, tufClient *client.Client) (*con
 		}
 		switch scm.Sigstore.Usage {
 		case sigstoretuf.Fulcio:
-			ret.CertificateAuthorities = append(ret.CertificateAuthorities, config.CertificateAuthority{CertChain: dl.Bytes()})
+			ret.CertificateAuthorities = append(ret.CertificateAuthorities, &config.CertificateAuthority{CertChain: config.DeserializeCertChain(dl.Bytes())})
 		case sigstoretuf.CTFE:
-			ret.CTLogs = append(ret.CTLogs, config.TransparencyLogInstance{PublicKey: dl.Bytes()})
+			ret.Ctlogs = append(ret.Ctlogs, &config.TransparencyLogInstance{PublicKey: config.DeserializePublicKey(dl.Bytes())})
 		case sigstoretuf.Rekor:
-			ret.TLogs = append(ret.TLogs, config.TransparencyLogInstance{PublicKey: dl.Bytes()})
+			ret.Tlogs = append(ret.Tlogs, &config.TransparencyLogInstance{PublicKey: config.DeserializePublicKey(dl.Bytes())})
 		}
 	}
 	// Make sure there's at least a single CertificateAuthority (Fulcio there).
