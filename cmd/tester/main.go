@@ -154,11 +154,10 @@ func main() {
 			log.Fatal(err)
 		}
 
-		c := &config.SigstoreKeys{}
-		c.ConvertFrom(context.Background(), tr.Spec.SigstoreKeys)
-		maps := make(map[string]config.SigstoreKeys, 0)
+		c := config.ConvertSigstoreKeys(context.Background(), tr.Spec.SigstoreKeys)
+		maps := make(map[string]*config.SigstoreKeys, 0)
 
-		maps[tr.Name] = *c
+		maps[tr.Name] = c
 		configCtx.SigstoreKeysConfig = &config.SigstoreKeysMap{SigstoreKeys: maps}
 
 		ctx = config.ToContext(ctx, configCtx)

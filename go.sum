@@ -717,6 +717,8 @@ github.com/shibumi/go-pathspec v1.3.0 h1:QUyMZhFo0Md5B8zV8x2tesohbb5kfbpTi9rBnKh
 github.com/shibumi/go-pathspec v1.3.0/go.mod h1:Xutfslp817l2I1cZvgcfeMQJG5QnU2lh5tVaaMCl3jE=
 github.com/sigstore/cosign/v2 v2.2.3 h1:WX7yawI+EXu9h7S5bZsfYCbB9XW6Jc43ctKy/NoOSiA=
 github.com/sigstore/cosign/v2 v2.2.3/go.mod h1:WpMn4MBt0cI23GdHsePwO4NxhX1FOz1ITGB3ALUjFaI=
+github.com/sigstore/protobuf-specs v0.3.1 h1:9aJQrPq7iRDSLBNg//zsP7tAzxdHnD1sA+1FyCCrkrQ=
+github.com/sigstore/protobuf-specs v0.3.1/go.mod h1:HfkcPi5QXteuew4+c5ONz8vYQ8aOH//ZTQ3gg0X8ZUA=
 github.com/sigstore/rekor v1.3.5 h1:QoVXcS7NppKY+rpbEFVHr4evGDZBBSh65X0g8PXoUkQ=
 github.com/sigstore/rekor v1.3.5/go.mod h1:CWqOk/fmnPwORQmm7SyDgB54GTJizqobbZ7yOP1lvw8=
 github.com/sigstore/scaffolding v0.6.17 h1:60P4/x/PdIj7SjzhEgEDefrnDcHAKzztF/RXddjZGQ8=

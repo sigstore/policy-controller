@@ -2951,19 +2951,22 @@ func TestFulcioCertsFromAuthority(t *testing.T) {
 		t.Fatalf("Failed to get embedded CTLog Public keys for testing")
 	}
 	sk := config.SigstoreKeys{
-		CertificateAuthorities: []config.CertificateAuthority{{
-			Subject: config.DistinguishedName{
+		CertificateAuthorities: []*config.CertificateAuthority{{
+			Subject: &config.DistinguishedName{
 				Organization: "testorg",
 				CommonName:   "testcommonname",
 			},
-			CertChain: []byte(certChain),
+			CertChain: config.DeserializeCertChain([]byte(certChain)),
 		}},
-		CTLogs: []config.TransparencyLogInstance{{LogID: ctfeLogID, PublicKey: []byte(ctfePublicKey)}},
+		Ctlogs: []*config.TransparencyLogInstance{{
+			LogId:     &config.LogId{KeyId: []byte(ctfeLogID)},
+			PublicKey: config.DeserializePublicKey([]byte(ctfePublicKey)),
+		}},
 	}
 	c := &config.Config{
 		SigstoreKeysConfig: &config.SigstoreKeysMap{
-			SigstoreKeys: map[string]config.SigstoreKeys{
-				"test-trust-root": sk,
+			SigstoreKeys: map[string]*config.SigstoreKeys{
+				"test-trust-root": &sk,
 			},
 		},
 	}
@@ -3066,16 +3069,16 @@ func TestRekorClientAndKeysFromAuthority(t *testing.T) {
 	}
 
 	sk := config.SigstoreKeys{
-		TLogs: []config.TransparencyLogInstance{{
-			PublicKey: []byte(rekorPublicKey),
-			LogID:     rekorLogID,
-			BaseURL:   *apis.HTTPS("rekor.example.com"),
+		Tlogs: []*config.TransparencyLogInstance{{
+			PublicKey: config.DeserializePublicKey([]byte(rekorPublicKey)),
+			LogId:     &config.LogId{KeyId: []byte(rekorLogID)},
+			BaseUrl:   "rekor.example.com",
 		}},
 	}
 	c := &config.Config{
 		SigstoreKeysConfig: &config.SigstoreKeysMap{
-			SigstoreKeys: map[string]config.SigstoreKeys{
-				"test-trust-root": sk,
+			SigstoreKeys: map[string]*config.SigstoreKeys{
+				"test-trust-root": &sk,
 			},
 		},
 	}
@@ -3210,43 +3213,49 @@ func TestCheckOptsFromAuthority(t *testing.T) {
 	}
 
 	skRekor := config.SigstoreKeys{
-		TLogs: []config.TransparencyLogInstance{{
-			PublicKey: []byte(rekorPublicKey),
-			LogID:     "rekor-logid",
-			BaseURL:   *apis.HTTPS("rekor.example.com"),
+		Tlogs: []*config.TransparencyLogInstance{{
+			PublicKey: config.DeserializePublicKey([]byte(rekorPublicKey)),
+			LogId:     &config.LogId{KeyId: []byte("rekor-logid")},
+			BaseUrl:   "rekor.example.com",
 		}},
 	}
 	skFulcio := config.SigstoreKeys{
-		CertificateAuthorities: []config.CertificateAuthority{{
-			Subject: config.DistinguishedName{
+		CertificateAuthorities: []*config.CertificateAuthority{{
+			Subject: &config.DistinguishedName{
 				Organization: "testorg",
 				CommonName:   "testcommonname",
 			},
-			CertChain: []byte(certChain),
+			CertChain: config.DeserializeCertChain([]byte(certChain)),
 		}},
-		CTLogs: []config.TransparencyLogInstance{{LogID: ctfeLogID, PublicKey: []byte(ctfePublicKey)}},
+		Ctlogs: []*config.TransparencyLogInstance{{
+			LogId:     &config.LogId{KeyId: []byte(ctfeLogID)},
+			PublicKey: config.DeserializePublicKey([]byte(ctfePublicKey)),
+		}},
 	}
 	skCombined := config.SigstoreKeys{
-		TLogs: []config.TransparencyLogInstance{{
-			PublicKey: []byte(rekorPublicKey),
-			LogID:     "rekor-logid",
-			BaseURL:   *apis.HTTPS("rekor.example.com"),
+		Tlogs: []*config.TransparencyLogInstance{{
+			PublicKey: config.DeserializePublicKey([]byte(rekorPublicKey)),
+			LogId:     &config.LogId{KeyId: []byte("rekor-logid")},
+			BaseUrl:   "rekor.example.com",
 		}},
-		CertificateAuthorities: []config.CertificateAuthority{{
-			Subject: config.DistinguishedName{
+		CertificateAuthorities: []*config.CertificateAuthority{{
+			Subject: &config.DistinguishedName{
 				Organization: "testorg",
 				CommonName:   "testcommonname",
 			},
-			CertChain: []byte(certChain),
+			CertChain: config.DeserializeCertChain([]byte(certChain)),
 		}},
-		CTLogs: []config.TransparencyLogInstance{{LogID: ctfeLogID, PublicKey: []byte(ctfePublicKey)}},
+		Ctlogs: []*config.TransparencyLogInstance{{
+			LogId:     &config.LogId{KeyId: []byte(ctfeLogID)},
+			PublicKey: config.DeserializePublicKey([]byte(ctfePublicKey)),
+		}},
 	}
 	c := &config.Config{
 		SigstoreKeysConfig: &config.SigstoreKeysMap{
-			SigstoreKeys: map[string]config.SigstoreKeys{
-				"test-trust-rekor":    skRekor,
-				"test-trust-fulcio":   skFulcio,
-				"test-trust-combined": skCombined,
+			SigstoreKeys: map[string]*config.SigstoreKeys{
+				"test-trust-rekor":    &skRekor,
+				"test-trust-fulcio":   &skFulcio,
+				"test-trust-combined": &skCombined,
 			},
 		},
 	}
