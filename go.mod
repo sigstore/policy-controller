@@ -66,7 +66,7 @@ require (
 	github.com/sigstore/sigstore/pkg/signature/kms/gcp v1.8.2
 	github.com/sigstore/sigstore/pkg/signature/kms/hashivault v1.8.2
 	github.com/spf13/viper v1.18.2
-	gopkg.in/go-jose/go-jose.v2 v2.6.2
+	gopkg.in/go-jose/go-jose.v2 v2.6.3
 )
 
 require (
