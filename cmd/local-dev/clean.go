@@ -22,7 +22,6 @@ import (
 	"log"
 	"os/exec"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/docker/client"
@@ -83,7 +82,7 @@ func cleanUpRegistry() error {
 	}
 	defer dockerCLI.Close()
 
-	containers, err := dockerCLI.ContainerList(ctx, types.ContainerListOptions{Filters: filters.NewArgs(filters.KeyValuePair{Key: "name", Value: "registry.local"})})
+	containers, err := dockerCLI.ContainerList(ctx, container.ListOptions{Filters: filters.NewArgs(filters.KeyValuePair{Key: "name", Value: "registry.local"})})
 	if err != nil {
 		return err
 	}
@@ -93,7 +92,7 @@ func cleanUpRegistry() error {
 		if err := dockerCLI.ContainerStop(ctx, containers[0].ID, container.StopOptions{}); err != nil {
 			return err
 		}
-		if err := dockerCLI.ContainerRemove(ctx, containers[0].ID, types.ContainerRemoveOptions{}); err != nil {
+		if err := dockerCLI.ContainerRemove(ctx, containers[0].ID, container.RemoveOptions{}); err != nil {
 			return err
 		}
 	}
