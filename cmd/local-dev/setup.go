@@ -27,7 +27,6 @@ import (
 	"regexp"
 	"strconv"
 
-	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/client"
 	"github.com/docker/go-connections/nat"
@@ -222,7 +221,7 @@ func setupLocalRegistry() error {
 		return err
 	}
 
-	if err := dockerCLI.ContainerStart(ctx, resp.ID, types.ContainerStartOptions{}); err != nil {
+	if err := dockerCLI.ContainerStart(ctx, resp.ID, container.StartOptions{}); err != nil {
 		return err
 	}
 
