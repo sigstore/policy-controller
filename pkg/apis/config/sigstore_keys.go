@@ -140,11 +140,11 @@ func ConvertTransparencyLogInstance(source v1alpha1.TransparencyLogInstance) *pb
 
 	var hashAlgorithm pbcommon.HashAlgorithm
 	switch source.HashAlgorithm {
-	case "sha256":
+	case "sha-256":
 		hashAlgorithm = pbcommon.HashAlgorithm_SHA2_256
-	case "sha384":
+	case "sha-384":
 		hashAlgorithm = pbcommon.HashAlgorithm_SHA2_384
-	case "sha512":
+	case "sha-512":
 		hashAlgorithm = pbcommon.HashAlgorithm_SHA2_512
 	default:
 		hashAlgorithm = pbcommon.HashAlgorithm_HASH_ALGORITHM_UNSPECIFIED

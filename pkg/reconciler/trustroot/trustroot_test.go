@@ -502,8 +502,8 @@ func TestConvertSigstoreKeys(t *testing.T) {
 		tsas   []testCA
 	}
 
-	hashAlgorithms := []string{"sha256", "sha512"}
-	hashAlgorithmMap := map[string]pbcommon.HashAlgorithm{"sha256": pbcommon.HashAlgorithm_SHA2_256, "sha512": pbcommon.HashAlgorithm_SHA2_512}
+	hashAlgorithms := []string{"sha-256", "sha-512"}
+	hashAlgorithmMap := map[string]pbcommon.HashAlgorithm{"sha-256": pbcommon.HashAlgorithm_SHA2_256, "sha-512": pbcommon.HashAlgorithm_SHA2_512}
 
 	test := testData{}
 
