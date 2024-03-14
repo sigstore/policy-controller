@@ -15,10 +15,10 @@
 package resources
 
 import (
-	"encoding/json"
 	"fmt"
 
 	"github.com/sigstore/policy-controller/pkg/apis/config"
+	"google.golang.org/protobuf/encoding/protojson"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"knative.dev/pkg/apis/duck"
@@ -83,7 +83,7 @@ func CreateRemovePatch(ns, name string, cm *corev1.ConfigMap, tkName string) ([]
 }
 
 func Marshal(spec *config.SigstoreKeys) (string, error) {
-	bytes, err := json.Marshal(spec)
+	bytes, err := protojson.Marshal(spec)
 	if err != nil {
 		return "", err
 	}
