@@ -22,7 +22,6 @@ import (
 	"crypto/rand"
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"encoding/json"
 	"encoding/pem"
 	"flag"
 	"log"
@@ -37,6 +36,7 @@ import (
 	testing "github.com/sigstore/policy-controller/pkg/reconciler/testing/v1alpha1"
 	"github.com/sigstore/scaffolding/pkg/repo"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // This program generates test data for the trustroot reconciler.
@@ -169,35 +169,34 @@ func genCertChain(keyUsage x509.KeyUsage) [][]byte {
 
 func genTrustRoot(sigstoreKeysMap map[string]string) (marshalledEntry []byte, err error) {
 	trustRoot := testing.NewTrustRoot("test-trustroot", testing.WithSigstoreKeys(sigstoreKeysMap))
-	sigstoreKeys := &config.SigstoreKeys{}
-	sigstoreKeys.ConvertFrom(context.Background(), trustRoot.Spec.SigstoreKeys)
+	sigstoreKeys := config.ConvertSigstoreKeys(context.Background(), trustRoot.Spec.SigstoreKeys)
 	err = populateLogIDs(sigstoreKeys)
 	if err != nil {
 		return nil, err
 	}
-	return json.MarshalIndent(sigstoreKeys, "", "  ")
+	return []byte(protojson.Format(sigstoreKeys)), nil
 }
 
 func populateLogIDs(sigstoreKeys *config.SigstoreKeys) error {
-	for i := range sigstoreKeys.TLogs {
-		logID, err := genLogID(sigstoreKeys.TLogs[i].PublicKey)
+	for i := range sigstoreKeys.Tlogs {
+		logID, err := genLogID(sigstoreKeys.Tlogs[i].PublicKey.RawBytes)
 		if err != nil {
 			return err
 		}
-		sigstoreKeys.TLogs[i].LogID = logID
+		sigstoreKeys.Tlogs[i].LogId = &config.LogId{KeyId: []byte(logID)}
 	}
-	for i := range sigstoreKeys.CTLogs {
-		logID, err := genLogID(sigstoreKeys.CTLogs[i].PublicKey)
+	for i := range sigstoreKeys.Ctlogs {
+		logID, err := genLogID(sigstoreKeys.Ctlogs[i].PublicKey.RawBytes)
 		if err != nil {
 			return err
 		}
-		sigstoreKeys.CTLogs[i].LogID = logID
+		sigstoreKeys.Ctlogs[i].LogId = &config.LogId{KeyId: []byte(logID)}
 	}
 	return nil
 }
 
 func genLogID(pkBytes []byte) (string, error) {
-	pk, err := cryptoutils.UnmarshalPEMToPublicKey(pkBytes)
+	pk, err := x509.ParsePKIXPublicKey(pkBytes)
 	if err != nil {
 		return "", err
 	}
@@ -231,17 +230,14 @@ func genTUFRepo(sigstoreKeysMap map[string]string) ([]byte, []byte, []byte, erro
 	}
 
 	trustRoot := &config.SigstoreKeys{
-		CertificateAuthorities: []config.CertificateAuthority{{CertChain: []byte(sigstoreKeysMap["fulcio"])}},
-		TLogs:                  []config.TransparencyLogInstance{{PublicKey: []byte(sigstoreKeysMap["rekor"])}},
-		CTLogs:                 []config.TransparencyLogInstance{{PublicKey: []byte(sigstoreKeysMap["ctfe"])}},
+		CertificateAuthorities: []*config.CertificateAuthority{{CertChain: config.DeserializeCertChain([]byte(sigstoreKeysMap["fulcio"]))}},
+		Tlogs:                  []*config.TransparencyLogInstance{{PublicKey: config.DeserializePublicKey([]byte(sigstoreKeysMap["rekor"]))}},
+		Ctlogs:                 []*config.TransparencyLogInstance{{PublicKey: config.DeserializePublicKey([]byte(sigstoreKeysMap["ctfe"]))}},
 	}
 	err = populateLogIDs(trustRoot)
 	if err != nil {
 		return nil, nil, nil, err
 	}
-	trustRootBytes, err := json.MarshalIndent(trustRoot, "", "  ")
-	if err != nil {
-		return nil, nil, nil, err
-	}
+	trustRootBytes := []byte(protojson.Format(trustRoot))
 	return trustRootBytes, compressed.Bytes(), rootJSON, nil
 }
