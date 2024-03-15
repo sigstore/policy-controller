@@ -23,7 +23,6 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	_ "embed"
-	"encoding/json"
 	"encoding/pem"
 	"fmt"
 	"math/big"
@@ -31,6 +30,7 @@ import (
 	"testing"
 	"time"
 
+	"google.golang.org/protobuf/encoding/protojson"
 	"knative.dev/pkg/apis"
 	logtesting "knative.dev/pkg/logging/testing"
 
@@ -119,17 +119,6 @@ const (
 	removePatchFmtString  = `[{"op":"remove","path":"/data/%s"}]`
 )
 
-// compactJSON compacts the given JSON, as the test data is formatted with
-// indentation for readability, but the expected patches are compacted.
-func compactJSON(in []byte) []byte {
-	out := bytes.NewBuffer([]byte{})
-	err := json.Compact(out, in)
-	if err != nil {
-		panic("error compacting json test data: " + err.Error())
-	}
-	return out.Bytes()
-}
-
 // testmap with prepopulated entries for creating TrustRoot resource.
 // ctfe   => CTLog Public Key
 // fulcio => CertificateAuthority certificate
@@ -142,12 +131,31 @@ var sigstoreKeys = map[string]string{
 	"tsa":    string(testdata.Get("tsaCertChain.pem")),
 }
 
+// canonicalizeSigstoreKeys round-trips the SigstoreKeys through protojson so
+// the output is deterministic for the current test run. This is necessary
+// because protojson has "randomly deterministic" output, meaning it will add
+// whitespace randomly depending on the digest of the executable.
+// See https://go-review.googlesource.com/c/protobuf/+/151340 and
+// https://github.com/golang/protobuf/issues/1121
+func canonicalizeSigstoreKeys(in []byte) []byte {
+	keys := &config.SigstoreKeys{}
+	err := protojson.Unmarshal([]byte(in), keys)
+	if err != nil {
+		panic(err)
+	}
+	out, err := protojson.Marshal(keys)
+	if err != nil {
+		panic(err)
+	}
+	return out
+}
+
 // This is the marshalled entry from above keys/certs with fixed values
 // (for ease of testing) for other parts.
-var marshalledEntry = string(compactJSON(testdata.Get("marshalledEntry.json")))
+var marshalledEntry = string(canonicalizeSigstoreKeys(testdata.Get("marshalledEntry.json")))
 
 // this is the marshalled entry for when we construct from the repository.
-var marshalledEntryFromMirrorFS = string(compactJSON(testdata.Get("marshalledEntryFromMirrorFS.json")))
+var marshalledEntryFromMirrorFS = string(canonicalizeSigstoreKeys(testdata.Get("marshalledEntryFromMirrorFS.json")))
 
 var rekorLogID = string(testdata.Get("rekorLogID.txt"))
 var ctfeLogID = string(testdata.Get("ctfeLogID.txt"))
