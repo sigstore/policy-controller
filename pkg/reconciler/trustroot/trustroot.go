@@ -32,6 +32,7 @@ import (
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	sigstoretuf "github.com/sigstore/sigstore/pkg/tuf"
 	"github.com/theupdateframework/go-tuf/client"
+	"google.golang.org/protobuf/encoding/protojson"
 	corev1 "k8s.io/api/core/v1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -235,8 +236,23 @@ func getSigstoreKeysFromTuf(ctx context.Context, tufClient *client.Client) (*con
 		return nil, fmt.Errorf("error getting targets: %w", err)
 	}
 	ret := &config.SigstoreKeys{}
-	// TODO: Use `trusted_root.json` to populate `config.SigstoreKeys`, if
-	// available. Fall back to using target files with custom metadata if not.
+
+	// if there is a "trusted_root.json" target, we can use that instead of the custom metadata
+	// TODO: Write tests for this
+	if _, ok := targets["trusted_root.json"]; ok {
+		dl := newDownloader()
+		if err = tufClient.Download("trusted_root.json", &dl); err != nil {
+			return nil, fmt.Errorf("downloading trusted_root.json: %w", err)
+		}
+
+		err := protojson.Unmarshal(dl.Bytes(), ret)
+		if err != nil {
+			return nil, fmt.Errorf("parsing trusted_root.json: %w", err)
+		}
+		return ret, nil
+	}
+
+	// fall back to using custom metadata (e.g. for private TUF repositories)
 	for name, targetMeta := range targets {
 		// Skip any targets that do not include custom metadata.
 		if targetMeta.Custom == nil {
