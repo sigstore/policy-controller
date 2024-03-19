@@ -17,6 +17,9 @@ package config
 
 import (
 	"context"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rsa"
 	"encoding/pem"
 	"fmt"
 
@@ -26,6 +29,7 @@ import (
 	pbtrustroot "github.com/sigstore/protobuf-specs/gen/pb-go/trustroot/v1"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	corev1 "k8s.io/api/core/v1"
 	"sigs.k8s.io/yaml"
 )
@@ -47,6 +51,8 @@ type CertificateAuthority = pbtrustroot.CertificateAuthority
 type TransparencyLogInstance = pbtrustroot.TransparencyLogInstance
 type DistinguishedName = pbcommon.DistinguishedName
 type LogId = pbcommon.LogId
+type TimeRange = pbcommon.TimeRange
+type Timestamp = timestamppb.Timestamp
 
 type SigstoreKeysMap struct {
 	SigstoreKeys map[string]*SigstoreKeys
@@ -92,6 +98,7 @@ func parseSigstoreKeys(entry string, out *pbtrustroot.TrustedRoot) error {
 // for serialization into a ConfigMap entry.
 func ConvertSigstoreKeys(_ context.Context, source *v1alpha1.SigstoreKeys) *SigstoreKeys {
 	sk := &SigstoreKeys{}
+	sk.MediaType = "application/vnd.dev.sigstore.trustedroot+json;version=0.1"
 	sk.CertificateAuthorities = make([]*pbtrustroot.CertificateAuthority, len(source.CertificateAuthorities))
 	for i := range source.CertificateAuthorities {
 		sk.CertificateAuthorities[i] = ConvertCertificateAuthority(source.CertificateAuthorities[i])
@@ -123,6 +130,11 @@ func ConvertCertificateAuthority(source v1alpha1.CertificateAuthority) *pbtrustr
 		},
 		Uri:       source.URI.String(),
 		CertChain: DeserializeCertChain(source.CertChain),
+		ValidFor: &pbcommon.TimeRange{
+			Start: &timestamppb.Timestamp{
+				Seconds: 0, // TODO: Add support for time range to v1alpha1.CertificateAuthority
+			},
+		},
 	}
 }
 
@@ -138,25 +150,26 @@ func ConvertTransparencyLogInstance(source v1alpha1.TransparencyLogInstance) *pb
 		return nil // TODO: log error? Add return error?
 	}
 
-	var hashAlgorithm pbcommon.HashAlgorithm
-	switch source.HashAlgorithm {
-	case "sha-256":
-		hashAlgorithm = pbcommon.HashAlgorithm_SHA2_256
-	case "sha-384":
-		hashAlgorithm = pbcommon.HashAlgorithm_SHA2_384
-	case "sha-512":
-		hashAlgorithm = pbcommon.HashAlgorithm_SHA2_512
-	default:
-		hashAlgorithm = pbcommon.HashAlgorithm_HASH_ALGORITHM_UNSPECIFIED
-	}
-
 	return &pbtrustroot.TransparencyLogInstance{
 		BaseUrl:       source.BaseURL.String(),
-		HashAlgorithm: hashAlgorithm,
+		HashAlgorithm: HashStringToHashAlgorithm(source.HashAlgorithm),
 		PublicKey:     DeserializePublicKey(source.PublicKey),
 		LogId: &pbcommon.LogId{
 			KeyId: []byte(logID),
 		},
+	}
+}
+
+func HashStringToHashAlgorithm(hash string) pbcommon.HashAlgorithm {
+	switch hash {
+	case "sha-256", "sha256":
+		return pbcommon.HashAlgorithm_SHA2_256
+	case "sha-384", "sha384":
+		return pbcommon.HashAlgorithm_SHA2_384
+	case "sha-512", "sha512":
+		return pbcommon.HashAlgorithm_SHA2_512
+	default:
+		return pbcommon.HashAlgorithm_HASH_ALGORITHM_UNSPECIFIED
 	}
 }
 
@@ -196,5 +209,48 @@ func DeserializeCertChain(chain []byte) *pbcommon.X509CertificateChain {
 
 func DeserializePublicKey(publicKey []byte) *pbcommon.PublicKey {
 	block, _ := pem.Decode(publicKey)
-	return &pbcommon.PublicKey{RawBytes: block.Bytes}
+	if block == nil {
+		return nil // TODO: log error? Add return error?
+	}
+	pk, err := cryptoutils.UnmarshalPEMToPublicKey(publicKey)
+	if err != nil {
+		return nil // TODO: log error? Add return error?
+	}
+	var keyDetails pbcommon.PublicKeyDetails
+	switch k := pk.(type) {
+	case *ecdsa.PublicKey:
+		switch k.Curve {
+		case elliptic.P256():
+			keyDetails = pbcommon.PublicKeyDetails_PKIX_ECDSA_P256_SHA_256
+		case elliptic.P384():
+			keyDetails = pbcommon.PublicKeyDetails_PKIX_ECDSA_P384_SHA_384
+		case elliptic.P521():
+			keyDetails = pbcommon.PublicKeyDetails_PKIX_ECDSA_P521_SHA_512
+		default:
+			keyDetails = pbcommon.PublicKeyDetails_PUBLIC_KEY_DETAILS_UNSPECIFIED
+		}
+	case *rsa.PublicKey:
+		switch k.Size() {
+		case 2048:
+			keyDetails = pbcommon.PublicKeyDetails_PKIX_RSA_PSS_2048_SHA256
+		case 3072:
+			keyDetails = pbcommon.PublicKeyDetails_PKIX_RSA_PSS_3072_SHA256
+		case 4096:
+			keyDetails = pbcommon.PublicKeyDetails_PKIX_RSA_PSS_4096_SHA256
+		default:
+			keyDetails = pbcommon.PublicKeyDetails_PUBLIC_KEY_DETAILS_UNSPECIFIED
+		}
+	default:
+		keyDetails = pbcommon.PublicKeyDetails_PUBLIC_KEY_DETAILS_UNSPECIFIED
+	}
+
+	return &pbcommon.PublicKey{
+		RawBytes:   block.Bytes,
+		KeyDetails: keyDetails,
+		ValidFor: &pbcommon.TimeRange{
+			Start: &timestamppb.Timestamp{
+				Seconds: 0, // TODO: Add support for time range to v1alpha.TransparencyLogInstance
+			},
+		},
+	}
 }

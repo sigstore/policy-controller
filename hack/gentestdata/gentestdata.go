@@ -34,6 +34,7 @@ import (
 	"github.com/sigstore/cosign/v2/pkg/cosign"
 	"github.com/sigstore/policy-controller/pkg/apis/config"
 	testing "github.com/sigstore/policy-controller/pkg/reconciler/testing/v1alpha1"
+	pbcommon "github.com/sigstore/protobuf-specs/gen/pb-go/common/v1"
 	"github.com/sigstore/scaffolding/pkg/repo"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"google.golang.org/protobuf/encoding/protojson"
@@ -230,9 +231,20 @@ func genTUFRepo(sigstoreKeysMap map[string]string) ([]byte, []byte, []byte, erro
 	}
 
 	trustRoot := &config.SigstoreKeys{
-		CertificateAuthorities: []*config.CertificateAuthority{{CertChain: config.DeserializeCertChain([]byte(sigstoreKeysMap["fulcio"]))}},
-		Tlogs:                  []*config.TransparencyLogInstance{{PublicKey: config.DeserializePublicKey([]byte(sigstoreKeysMap["rekor"]))}},
-		Ctlogs:                 []*config.TransparencyLogInstance{{PublicKey: config.DeserializePublicKey([]byte(sigstoreKeysMap["ctfe"]))}},
+		CertificateAuthorities: []*config.CertificateAuthority{{
+			CertChain: config.DeserializeCertChain([]byte(sigstoreKeysMap["fulcio"])),
+			ValidFor: &config.TimeRange{
+				Start: &config.Timestamp{},
+			},
+		}},
+		Tlogs: []*config.TransparencyLogInstance{{
+			HashAlgorithm: pbcommon.HashAlgorithm_SHA2_256,
+			PublicKey:     config.DeserializePublicKey([]byte(sigstoreKeysMap["rekor"])),
+		}},
+		Ctlogs: []*config.TransparencyLogInstance{{
+			HashAlgorithm: pbcommon.HashAlgorithm_SHA2_256,
+			PublicKey:     config.DeserializePublicKey([]byte(sigstoreKeysMap["ctfe"])),
+		}},
 	}
 	err = populateLogIDs(trustRoot)
 	if err != nil {
