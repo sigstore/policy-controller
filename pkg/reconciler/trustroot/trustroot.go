@@ -29,6 +29,7 @@ import (
 	trustrootreconciler "github.com/sigstore/policy-controller/pkg/client/injection/reconciler/policy/v1alpha1/trustroot"
 	"github.com/sigstore/policy-controller/pkg/reconciler/trustroot/resources"
 	"github.com/sigstore/policy-controller/pkg/tuf"
+	pbcommon "github.com/sigstore/protobuf-specs/gen/pb-go/common/v1"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	sigstoretuf "github.com/sigstore/sigstore/pkg/tuf"
 	"github.com/theupdateframework/go-tuf/client"
@@ -221,6 +222,7 @@ func pemToKeyAndID(pem []byte) (crypto.PublicKey, string, error) {
 type customMetadata struct {
 	Usage  sigstoretuf.UsageKind  `json:"usage"`
 	Status sigstoretuf.StatusKind `json:"status"`
+	URI    string                 `json:"uri"`
 }
 
 type sigstoreCustomMetadata struct {
@@ -268,13 +270,31 @@ func getSigstoreKeysFromTuf(ctx context.Context, tufClient *client.Client) (*con
 		if err = tufClient.Download(name, &dl); err != nil {
 			return nil, fmt.Errorf("downloading target %s: %w", name, err)
 		}
+
 		switch scm.Sigstore.Usage {
 		case sigstoretuf.Fulcio:
-			ret.CertificateAuthorities = append(ret.CertificateAuthorities, &config.CertificateAuthority{CertChain: config.DeserializeCertChain(dl.Bytes())})
+			certChain := config.DeserializeCertChain(dl.Bytes())
+			ret.CertificateAuthorities = append(ret.CertificateAuthorities,
+				&config.CertificateAuthority{
+					Uri:       scm.Sigstore.URI,
+					CertChain: certChain,
+					ValidFor: &config.TimeRange{
+						Start: &config.Timestamp{},
+					},
+				},
+			)
 		case sigstoretuf.CTFE:
-			ret.Ctlogs = append(ret.Ctlogs, &config.TransparencyLogInstance{PublicKey: config.DeserializePublicKey(dl.Bytes())})
+			tlog, err := genTransparencyLogInstance(scm.Sigstore.URI, dl.Bytes())
+			if err != nil {
+				return nil, fmt.Errorf("creating transparency log instance: %w", err)
+			}
+			ret.Ctlogs = append(ret.Ctlogs, tlog)
 		case sigstoretuf.Rekor:
-			ret.Tlogs = append(ret.Tlogs, &config.TransparencyLogInstance{PublicKey: config.DeserializePublicKey(dl.Bytes())})
+			tlog, err := genTransparencyLogInstance(scm.Sigstore.URI, dl.Bytes())
+			if err != nil {
+				return nil, fmt.Errorf("creating transparency log instance: %w", err)
+			}
+			ret.Tlogs = append(ret.Tlogs, tlog)
 		}
 	}
 	// Make sure there's at least a single CertificateAuthority (Fulcio there).
@@ -283,6 +303,24 @@ func getSigstoreKeysFromTuf(ctx context.Context, tufClient *client.Client) (*con
 		return nil, errors.New("no certificate authorities found")
 	}
 	return ret, nil
+}
+
+func genTransparencyLogInstance(baseURL string, pkBytes []byte) (*config.TransparencyLogInstance, error) {
+	pbpk := config.DeserializePublicKey(pkBytes) // TODO: refactor this func to also return public key and log id
+	pk, err := cryptoutils.UnmarshalPEMToPublicKey(pkBytes)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshaling PEM public key: %w", err)
+	}
+	logID, err := cosign.GetTransparencyLogID(pk)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct LogID: %w", err)
+	}
+	return &config.TransparencyLogInstance{
+		BaseUrl:       baseURL,
+		HashAlgorithm: pbcommon.HashAlgorithm_SHA2_256,
+		PublicKey:     pbpk,
+		LogId:         &pbcommon.LogId{KeyId: []byte(logID)},
+	}, nil
 }
 
 func newDownloader() downloader {
