@@ -306,8 +306,7 @@ func getSigstoreKeysFromTuf(ctx context.Context, tufClient *client.Client) (*con
 }
 
 func genTransparencyLogInstance(baseURL string, pkBytes []byte) (*config.TransparencyLogInstance, error) {
-	pbpk := config.DeserializePublicKey(pkBytes) // TODO: refactor this func to also return public key and log id
-	pk, err := cryptoutils.UnmarshalPEMToPublicKey(pkBytes)
+	pbpk, pk, err := config.DeserializePublicKey(pkBytes)
 	if err != nil {
 		return nil, fmt.Errorf("unmarshaling PEM public key: %w", err)
 	}
