@@ -17,6 +17,7 @@ package config
 
 import (
 	"context"
+	"crypto"
 	"crypto/ecdsa"
 	"crypto/elliptic"
 	"crypto/rsa"
@@ -141,7 +142,7 @@ func ConvertCertificateAuthority(source v1alpha1.CertificateAuthority) *pbtrustr
 // ConvertTransparencyLogInstance converts public into private
 // TransparencyLogInstance.
 func ConvertTransparencyLogInstance(source v1alpha1.TransparencyLogInstance) *pbtrustroot.TransparencyLogInstance {
-	pk, err := cryptoutils.UnmarshalPEMToPublicKey(source.PublicKey)
+	pbpk, pk, err := DeserializePublicKey(source.PublicKey)
 	if err != nil {
 		return nil // TODO: log error? Add return error?
 	}
@@ -153,7 +154,7 @@ func ConvertTransparencyLogInstance(source v1alpha1.TransparencyLogInstance) *pb
 	return &pbtrustroot.TransparencyLogInstance{
 		BaseUrl:       source.BaseURL.String(),
 		HashAlgorithm: HashStringToHashAlgorithm(source.HashAlgorithm),
-		PublicKey:     DeserializePublicKey(source.PublicKey),
+		PublicKey:     pbpk,
 		LogId: &pbcommon.LogId{
 			KeyId: []byte(logID),
 		},
@@ -207,14 +208,14 @@ func DeserializeCertChain(chain []byte) *pbcommon.X509CertificateChain {
 	return &pbcommon.X509CertificateChain{Certificates: certs}
 }
 
-func DeserializePublicKey(publicKey []byte) *pbcommon.PublicKey {
+func DeserializePublicKey(publicKey []byte) (*pbcommon.PublicKey, crypto.PublicKey, error) {
 	block, _ := pem.Decode(publicKey)
 	if block == nil {
-		return nil // TODO: log error? Add return error?
+		return nil, nil, fmt.Errorf("failed to decode public key")
 	}
 	pk, err := cryptoutils.UnmarshalPEMToPublicKey(publicKey)
 	if err != nil {
-		return nil // TODO: log error? Add return error?
+		return nil, nil, fmt.Errorf("failed to unmarshal public key: %w", err)
 	}
 	var keyDetails pbcommon.PublicKeyDetails
 	switch k := pk.(type) {
@@ -252,5 +253,5 @@ func DeserializePublicKey(publicKey []byte) *pbcommon.PublicKey {
 				Seconds: 0, // TODO: Add support for time range to v1alpha.TransparencyLogInstance
 			},
 		},
-	}
+	}, pk, nil
 }
