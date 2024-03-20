@@ -96,14 +96,14 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, trustroot *v1alpha1.Trus
 		if !ok {
 			return fmt.Errorf("public key %d is not ecdsa.PublicKey", i)
 		}
-		sigstoreKeys.Tlogs[i].LogId = &config.LogId{KeyId: []byte(logID)}
+		sigstoreKeys.Tlogs[i].LogId = &config.LogID{KeyId: []byte(logID)}
 	}
 	for i, ctlog := range sigstoreKeys.Ctlogs {
 		_, logID, err := pemToKeyAndID(config.SerializePublicKey(ctlog.PublicKey))
 		if err != nil {
 			return fmt.Errorf("invalid ctlog public key %d: %w", i, err)
 		}
-		sigstoreKeys.Ctlogs[i].LogId = &config.LogId{KeyId: []byte(logID)}
+		sigstoreKeys.Ctlogs[i].LogId = &config.LogID{KeyId: []byte(logID)}
 	}
 
 	// See if the CM holding configs exists

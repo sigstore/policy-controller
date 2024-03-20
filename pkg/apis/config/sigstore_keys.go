@@ -51,7 +51,7 @@ type SigstoreKeys = pbtrustroot.TrustedRoot
 type CertificateAuthority = pbtrustroot.CertificateAuthority
 type TransparencyLogInstance = pbtrustroot.TransparencyLogInstance
 type DistinguishedName = pbcommon.DistinguishedName
-type LogId = pbcommon.LogId
+type LogID = pbcommon.LogId
 type TimeRange = pbcommon.TimeRange
 type Timestamp = timestamppb.Timestamp
 
