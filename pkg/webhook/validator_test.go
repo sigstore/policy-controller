@@ -2963,7 +2963,7 @@ func TestFulcioCertsFromAuthority(t *testing.T) {
 			CertChain: config.DeserializeCertChain([]byte(certChain)),
 		}},
 		Ctlogs: []*config.TransparencyLogInstance{{
-			LogId:     &config.LogId{KeyId: []byte(ctfeLogID)},
+			LogId:     &config.LogID{KeyId: []byte(ctfeLogID)},
 			PublicKey: pbpk,
 		}},
 	}
@@ -3071,7 +3071,7 @@ func TestRekorClientAndKeysFromAuthority(t *testing.T) {
 	sk := config.SigstoreKeys{
 		Tlogs: []*config.TransparencyLogInstance{{
 			PublicKey: pbpk,
-			LogId:     &config.LogId{KeyId: []byte(rekorLogID)},
+			LogId:     &config.LogID{KeyId: []byte(rekorLogID)},
 			BaseUrl:   "rekor.example.com",
 		}},
 	}
@@ -3214,7 +3214,7 @@ func TestCheckOptsFromAuthority(t *testing.T) {
 	skRekor := config.SigstoreKeys{
 		Tlogs: []*config.TransparencyLogInstance{{
 			PublicKey: pbpkRekor,
-			LogId:     &config.LogId{KeyId: []byte("rekor-logid")},
+			LogId:     &config.LogID{KeyId: []byte("rekor-logid")},
 			BaseUrl:   "rekor.example.com",
 		}},
 	}
@@ -3227,14 +3227,14 @@ func TestCheckOptsFromAuthority(t *testing.T) {
 			CertChain: config.DeserializeCertChain([]byte(certChain)),
 		}},
 		Ctlogs: []*config.TransparencyLogInstance{{
-			LogId:     &config.LogId{KeyId: []byte(ctfeLogID)},
+			LogId:     &config.LogID{KeyId: []byte(ctfeLogID)},
 			PublicKey: pbpkCTFE,
 		}},
 	}
 	skCombined := config.SigstoreKeys{
 		Tlogs: []*config.TransparencyLogInstance{{
 			PublicKey: pbpkRekor,
-			LogId:     &config.LogId{KeyId: []byte("rekor-logid")},
+			LogId:     &config.LogID{KeyId: []byte("rekor-logid")},
 			BaseUrl:   "rekor.example.com",
 		}},
 		CertificateAuthorities: []*config.CertificateAuthority{{
@@ -3245,7 +3245,7 @@ func TestCheckOptsFromAuthority(t *testing.T) {
 			CertChain: config.DeserializeCertChain([]byte(certChain)),
 		}},
 		Ctlogs: []*config.TransparencyLogInstance{{
-			LogId:     &config.LogId{KeyId: []byte(ctfeLogID)},
+			LogId:     &config.LogID{KeyId: []byte(ctfeLogID)},
 			PublicKey: pbpkCTFE,
 		}},
 	}
