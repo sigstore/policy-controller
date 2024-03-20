@@ -36,19 +36,25 @@ echo '::endgroup::'
 
 echo '::group:: Validating the configmap entries'
 echo "Validating Fulcio entry"
-kubectl -n cosign-system get cm config-sigstore-keys -ojsonpath='{.data.bring-your-own-sigstore-keys}' | yq '.certificateAuthorities[0].certChain' | base64 -d > ./got.fulcio.pem
+echo -n > ./got.fulcio.pem
+for cert in $(kubectl -n cosign-system get cm config-sigstore-keys -ojsonpath='{.data.bring-your-own-sigstore-keys}' | yq '.certificateAuthorities[0].certChain.certificates[] | .rawBytes' ); do
+  echo $cert | base64 -d | openssl x509 -inform der >> ./got.fulcio.pem
+done
 diff ./got.fulcio.pem ./test/testdata/trustroot/golden/fulcio.crt.pem
 
 echo "Validating TSA entry"
-kubectl -n cosign-system get cm config-sigstore-keys -ojsonpath='{.data.bring-your-own-sigstore-keys}' | yq '.timestampAuthorities[0].certChain' | base64 -d > ./got.tsa.pem
+echo -n > ./got.tsa.pem
+for cert in $(kubectl -n cosign-system get cm config-sigstore-keys -ojsonpath='{.data.bring-your-own-sigstore-keys}' | yq '.timestampAuthorities[0].certChain.certificates[] | .rawBytes' ); do
+  echo $cert | base64 -d | openssl x509 -inform der >> ./got.tsa.pem
+done
 diff ./got.tsa.pem ./test/testdata/trustroot/golden/tsa.crt.pem
 
 echo "Validating Rekor entry"
-kubectl -n cosign-system get cm config-sigstore-keys -ojsonpath='{.data.bring-your-own-sigstore-keys}' | yq '.tLogs[0].publicKey' | base64 -d > ./got.rekor.pem
+kubectl -n cosign-system get cm config-sigstore-keys -ojsonpath='{.data.bring-your-own-sigstore-keys}' | yq '.tlogs[0].publicKey.rawBytes' | base64 -d | openssl pkey -pubin -inform der > ./got.rekor.pem
 diff ./got.rekor.pem ./test/testdata/trustroot/golden/rekor.pem
 
 echo "Validating CTLog entry"
-kubectl -n cosign-system get cm config-sigstore-keys -ojsonpath='{.data.bring-your-own-sigstore-keys}' | yq '.ctLogs[0].publicKey' | base64 -d > ./got.ctfe.pem
+kubectl -n cosign-system get cm config-sigstore-keys -ojsonpath='{.data.bring-your-own-sigstore-keys}' | yq '.ctlogs[0].publicKey.rawBytes' | base64 -d | openssl pkey -pubin -inform der > ./got.ctfe.pem
 diff ./got.ctfe.pem ./test/testdata/trustroot/golden/ctfe.pem
 
 kubectl delete -f ./test/testdata/trustroot/valid/valid-sigstore-keys.yaml
