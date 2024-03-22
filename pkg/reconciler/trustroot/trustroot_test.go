@@ -139,7 +139,7 @@ var sigstoreKeys = map[string]string{
 // https://github.com/golang/protobuf/issues/1121
 func canonicalizeSigstoreKeys(in []byte) []byte {
 	keys := &config.SigstoreKeys{}
-	err := protojson.Unmarshal([]byte(in), keys)
+	err := protojson.Unmarshal(in, keys)
 	if err != nil {
 		panic(err)
 	}
