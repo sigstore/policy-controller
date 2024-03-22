@@ -240,7 +240,6 @@ func getSigstoreKeysFromTuf(ctx context.Context, tufClient *client.Client) (*con
 	ret := &config.SigstoreKeys{}
 
 	// if there is a "trusted_root.json" target, we can use that instead of the custom metadata
-	// TODO: Write tests for this
 	if _, ok := targets["trusted_root.json"]; ok {
 		dl := newDownloader()
 		if err = tufClient.Download("trusted_root.json", &dl); err != nil {
