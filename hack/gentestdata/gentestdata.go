@@ -184,14 +184,14 @@ func populateLogIDs(sigstoreKeys *config.SigstoreKeys) error {
 		if err != nil {
 			return err
 		}
-		sigstoreKeys.Tlogs[i].LogId = &config.LogId{KeyId: []byte(logID)}
+		sigstoreKeys.Tlogs[i].LogId = &config.LogID{KeyId: []byte(logID)}
 	}
 	for i := range sigstoreKeys.Ctlogs {
 		logID, err := genLogID(sigstoreKeys.Ctlogs[i].PublicKey.RawBytes)
 		if err != nil {
 			return err
 		}
-		sigstoreKeys.Ctlogs[i].LogId = &config.LogId{KeyId: []byte(logID)}
+		sigstoreKeys.Ctlogs[i].LogId = &config.LogID{KeyId: []byte(logID)}
 	}
 	return nil
 }
@@ -230,6 +230,15 @@ func genTUFRepo(sigstoreKeysMap map[string]string) ([]byte, []byte, []byte, erro
 		return nil, nil, nil, err
 	}
 
+	tlogKey, _, err := config.DeserializePublicKey([]byte(sigstoreKeysMap["rekor"]))
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	ctlogKey, _, err := config.DeserializePublicKey([]byte(sigstoreKeysMap["ctfe"]))
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
 	trustRoot := &config.SigstoreKeys{
 		CertificateAuthorities: []*config.CertificateAuthority{{
 			CertChain: config.DeserializeCertChain([]byte(sigstoreKeysMap["fulcio"])),
@@ -239,11 +248,11 @@ func genTUFRepo(sigstoreKeysMap map[string]string) ([]byte, []byte, []byte, erro
 		}},
 		Tlogs: []*config.TransparencyLogInstance{{
 			HashAlgorithm: pbcommon.HashAlgorithm_SHA2_256,
-			PublicKey:     config.DeserializePublicKey([]byte(sigstoreKeysMap["rekor"])),
+			PublicKey:     tlogKey,
 		}},
 		Ctlogs: []*config.TransparencyLogInstance{{
 			HashAlgorithm: pbcommon.HashAlgorithm_SHA2_256,
-			PublicKey:     config.DeserializePublicKey([]byte(sigstoreKeysMap["ctfe"])),
+			PublicKey:     ctlogKey,
 		}},
 	}
 	err = populateLogIDs(trustRoot)
