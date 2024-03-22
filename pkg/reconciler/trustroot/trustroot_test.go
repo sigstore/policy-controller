@@ -168,6 +168,14 @@ var validRepository = testdata.Get("tufRepo.tar")
 // rootJSON is a valid root.json for above TUF repository.
 var rootJSON = testdata.Get("root.json")
 
+// validRepositoryWithTrustedRootJSON is a valid tarred repository representing
+// an air-gap TUF repository containing trusted_root.json.
+var validRepositoryWithTrustedRootJSON = testdata.Get("tufRepoWithTrustedRootJSON.tar")
+
+// IMPORTANT: The next expiration is on 2024-09-21
+// rootJSON is a valid root.json for above TUF repository.
+var rootWithTrustedRootJSON = testdata.Get("rootWithTrustedRootJSON.json")
+
 func TestReconcile(t *testing.T) {
 	table := TableTest{{
 		Name: "bad workqueue key",
@@ -342,13 +350,37 @@ func TestReconcile(t *testing.T) {
 			),
 		},
 		WantCreates: []runtime.Object{
-			makeConfigMapWithMirrorFS(),
+			makeConfigMapWithMirrorFS(marshalledEntryFromMirrorFS),
 		},
 		WantStatusUpdates: []clientgotesting.UpdateActionImpl{{
 			Object: NewTrustRoot(trName,
 				WithTrustRootUID(uid),
 				WithTrustRootResourceVersion(resourceVersion),
 				WithRepository("targets", rootJSON, validRepository),
+				WithTrustRootFinalizer,
+				MarkReadyTrustRoot,
+			)}},
+	}, {
+		Name: "With repository containing trusted_root.json",
+		Key:  testKey,
+
+		SkipNamespaceValidation: true, // Cluster scoped
+		Objects: []runtime.Object{
+			NewTrustRoot(trName,
+				WithTrustRootUID(uid),
+				WithTrustRootResourceVersion(resourceVersion),
+				WithRepository("targets", rootWithTrustedRootJSON, validRepositoryWithTrustedRootJSON),
+				WithTrustRootFinalizer,
+			),
+		},
+		WantCreates: []runtime.Object{
+			makeConfigMapWithMirrorFS(marshalledEntry),
+		},
+		WantStatusUpdates: []clientgotesting.UpdateActionImpl{{
+			Object: NewTrustRoot(trName,
+				WithTrustRootUID(uid),
+				WithTrustRootResourceVersion(resourceVersion),
+				WithRepository("targets", rootWithTrustedRootJSON, validRepositoryWithTrustedRootJSON),
 				WithTrustRootFinalizer,
 				MarkReadyTrustRoot,
 			)}},
@@ -395,13 +427,13 @@ func makeConfigMapWithSigstoreKeys() *corev1.ConfigMap {
 	return ret
 }
 
-func makeConfigMapWithMirrorFS() *corev1.ConfigMap {
+func makeConfigMapWithMirrorFS(entry string) *corev1.ConfigMap {
 	return &corev1.ConfigMap{
 		ObjectMeta: metav1.ObjectMeta{
 			Namespace: system.Namespace(),
 			Name:      config.SigstoreKeysConfigName,
 		},
-		Data: map[string]string{"test-trustroot": marshalledEntryFromMirrorFS},
+		Data: map[string]string{"test-trustroot": entry},
 	}
 }
 

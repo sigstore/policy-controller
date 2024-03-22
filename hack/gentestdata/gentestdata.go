@@ -77,7 +77,23 @@ func main() {
 		log.Fatal(err)
 	}
 
-	marshalledEntryFromMirrorFS, tufRepo, rootJSON, err := genTUFRepo(sigstoreKeysMap)
+	tufRepo, rootJSON, err := genTUFRepo(map[string][]byte{
+		"rekor.pem":  []byte(sigstoreKeysMap["rekor"]),
+		"ctfe.pem":   []byte(sigstoreKeysMap["ctfe"]),
+		"fulcio.pem": []byte(sigstoreKeysMap["fulcio"]),
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	tufRepoWithTrustedRootJSON, rootJSONWithTrustedRootJSON, err := genTUFRepo(map[string][]byte{
+		"trusted_root.json": marshalledEntry,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	marshalledEntryFromMirrorFS, err := genTrustedRoot(sigstoreKeysMap)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -92,6 +108,8 @@ func main() {
 	mustWriteFile("marshalledEntryFromMirrorFS.json", marshalledEntryFromMirrorFS)
 	mustWriteFile("tufRepo.tar", tufRepo)
 	mustWriteFile("root.json", rootJSON)
+	mustWriteFile("tufRepoWithTrustedRootJSON.tar", tufRepoWithTrustedRootJSON)
+	mustWriteFile("rootWithTrustedRootJSON.json", rootJSONWithTrustedRootJSON)
 }
 
 func mustWriteFile(path string, data []byte) {
@@ -204,39 +222,37 @@ func genLogID(pkBytes []byte) (string, error) {
 	return cosign.GetTransparencyLogID(pk)
 }
 
-func genTUFRepo(sigstoreKeysMap map[string]string) ([]byte, []byte, []byte, error) {
-	files := map[string][]byte{}
-	files["rekor.pem"] = []byte(sigstoreKeysMap["rekor"])
-	files["ctfe.pem"] = []byte(sigstoreKeysMap["ctfe"])
-	files["fulcio.pem"] = []byte(sigstoreKeysMap["fulcio"])
-
+func genTUFRepo(files map[string][]byte) ([]byte, []byte, error) {
 	defer os.RemoveAll(path.Join(os.TempDir(), "tuf")) // TODO: Update scaffolding to use os.MkdirTemp and remove this
 	ctx := context.Background()
 	local, dir, err := repo.CreateRepo(ctx, files)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 	meta, err := local.GetMeta()
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 	rootJSON, ok := meta["root.json"]
 	if !ok {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 
 	var compressed bytes.Buffer
 	if err := repo.CompressFS(os.DirFS(dir), &compressed, map[string]bool{"keys": true, "staged": true}); err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
+	return compressed.Bytes(), rootJSON, nil
+}
 
+func genTrustedRoot(sigstoreKeysMap map[string]string) ([]byte, error) {
 	tlogKey, _, err := config.DeserializePublicKey([]byte(sigstoreKeysMap["rekor"]))
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
 	ctlogKey, _, err := config.DeserializePublicKey([]byte(sigstoreKeysMap["ctfe"]))
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
 
 	trustRoot := &config.SigstoreKeys{
@@ -257,8 +273,8 @@ func genTUFRepo(sigstoreKeysMap map[string]string) ([]byte, []byte, []byte, erro
 	}
 	err = populateLogIDs(trustRoot)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
 	trustRootBytes := []byte(protojson.Format(trustRoot))
-	return trustRootBytes, compressed.Bytes(), rootJSON, nil
+	return trustRootBytes, nil
 }
