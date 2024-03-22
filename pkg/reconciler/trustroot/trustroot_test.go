@@ -143,12 +143,12 @@ var marshalledEntryFromMirrorFS = string(compactJSON(testdata.Get("marshalledEnt
 var rekorLogID = string(testdata.Get("rekorLogID.txt"))
 var ctfeLogID = string(testdata.Get("ctfeLogID.txt"))
 
-// validRepository is a valid tar/gzipped repository representing an air-gap
+// validRepository is a valid tarred repository representing an air-gap
 // TUF repository.
 var validRepository = testdata.Get("tufRepo.tar")
 
 // IMPORTANT: The next expiration is on 2024-09-21
-// rootJSON is a valid base64 encoded root.json for above TUF repository.
+// rootJSON is a valid root.json for above TUF repository.
 var rootJSON = testdata.Get("root.json")
 
 func TestReconcile(t *testing.T) {
