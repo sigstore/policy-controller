@@ -13,8 +13,7 @@
 // limitations under the License.
 //
 // Package testdata contains test data for the trustroot reconciler. To
-// regenerate, run `go run hack/gentestdata/gentestdata.go` from the root of
-// the repository.
+// regenerate, run `make generate-testdata` from the root of the repository.
 
 package testdata
 

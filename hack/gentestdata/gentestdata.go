@@ -43,6 +43,8 @@ import (
 //
 // To run this program, you can use the following command from the root of the repo:
 // $ go run hack/gentestdata/gentestdata.go
+// or,
+// $ make generate-testdata
 //
 // The output of this program can be used to update the `marshalledEntry.json`
 // file in the `pkg/reconciler/trustroot/testdata` package.
