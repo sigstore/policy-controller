@@ -189,3 +189,6 @@ docs/generate-api:
 	    `find ./pkg/apis/policy/v1alpha1/ -iname '*types.go' |  sort -r | tr '\n' ' '` \
 	    > docs/api-types/index-v1alpha1.md;
 
+.PHONY: generate-testdata
+generate-testdata:
+	go run hack/gentestdata/gentestdata.go
