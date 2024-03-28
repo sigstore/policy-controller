@@ -233,11 +233,11 @@ func DeserializePublicKey(publicKey []byte) (*pbcommon.PublicKey, crypto.PublicK
 	case *rsa.PublicKey:
 		switch k.Size() {
 		case 2048:
-			keyDetails = pbcommon.PublicKeyDetails_PKIX_RSA_PSS_2048_SHA256
+			keyDetails = pbcommon.PublicKeyDetails_PKIX_RSA_PKCS1V15_2048_SHA256
 		case 3072:
-			keyDetails = pbcommon.PublicKeyDetails_PKIX_RSA_PSS_3072_SHA256
+			keyDetails = pbcommon.PublicKeyDetails_PKIX_RSA_PKCS1V15_3072_SHA256
 		case 4096:
-			keyDetails = pbcommon.PublicKeyDetails_PKIX_RSA_PSS_4096_SHA256
+			keyDetails = pbcommon.PublicKeyDetails_PKIX_RSA_PKCS1V15_4096_SHA256
 		default:
 			keyDetails = pbcommon.PublicKeyDetails_PUBLIC_KEY_DETAILS_UNSPECIFIED
 		}
