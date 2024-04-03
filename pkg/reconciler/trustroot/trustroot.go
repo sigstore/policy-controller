@@ -68,7 +68,7 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, trustroot *v1alpha1.Trus
 	case trustroot.Spec.Remote != nil:
 		sigstoreKeys, err = r.getSigstoreKeysFromRemote(ctx, trustroot.Spec.Remote)
 	case trustroot.Spec.SigstoreKeys != nil:
-		sigstoreKeys = config.ConvertSigstoreKeys(ctx, trustroot.Spec.SigstoreKeys)
+		sigstoreKeys, err = config.ConvertSigstoreKeys(ctx, trustroot.Spec.SigstoreKeys)
 	default:
 		// This should not happen since the CRD has been validated.
 		err = fmt.Errorf("invalid TrustRoot entry: %s missing repository,remote, and sigstoreKeys", trustroot.Name)
@@ -272,7 +272,10 @@ func getSigstoreKeysFromTuf(ctx context.Context, tufClient *client.Client) (*con
 
 		switch scm.Sigstore.Usage {
 		case sigstoretuf.Fulcio:
-			certChain := config.DeserializeCertChain(dl.Bytes())
+			certChain, err := config.DeserializeCertChain(dl.Bytes())
+			if err != nil {
+				return nil, fmt.Errorf("deserializing certificate chain: %w", err)
+			}
 			ret.CertificateAuthorities = append(ret.CertificateAuthorities,
 				&config.CertificateAuthority{
 					Uri:       scm.Sigstore.URI,

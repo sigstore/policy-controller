@@ -2954,13 +2954,17 @@ func TestFulcioCertsFromAuthority(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to deserialize CTLog public key: %v", err)
 	}
+	certChain, err := config.DeserializeCertChain([]byte(certChain))
+	if err != nil {
+		t.Fatalf("Failed to deserialize cert chain: %v", err)
+	}
 	sk := config.SigstoreKeys{
 		CertificateAuthorities: []*config.CertificateAuthority{{
 			Subject: &config.DistinguishedName{
 				Organization: "testorg",
 				CommonName:   "testcommonname",
 			},
-			CertChain: config.DeserializeCertChain([]byte(certChain)),
+			CertChain: certChain,
 		}},
 		Ctlogs: []*config.TransparencyLogInstance{{
 			LogId:     &config.LogID{KeyId: []byte(ctfeLogID)},
@@ -3218,13 +3222,17 @@ func TestCheckOptsFromAuthority(t *testing.T) {
 			BaseUrl:   "rekor.example.com",
 		}},
 	}
+	certChainPB, err := config.DeserializeCertChain([]byte(certChain))
+	if err != nil {
+		t.Fatalf("Failed to unmarshal cert chain for testing: %v", err)
+	}
 	skFulcio := config.SigstoreKeys{
 		CertificateAuthorities: []*config.CertificateAuthority{{
 			Subject: &config.DistinguishedName{
 				Organization: "testorg",
 				CommonName:   "testcommonname",
 			},
-			CertChain: config.DeserializeCertChain([]byte(certChain)),
+			CertChain: certChainPB,
 		}},
 		Ctlogs: []*config.TransparencyLogInstance{{
 			LogId:     &config.LogID{KeyId: []byte(ctfeLogID)},
@@ -3242,7 +3250,7 @@ func TestCheckOptsFromAuthority(t *testing.T) {
 				Organization: "testorg",
 				CommonName:   "testcommonname",
 			},
-			CertChain: config.DeserializeCertChain([]byte(certChain)),
+			CertChain: certChainPB,
 		}},
 		Ctlogs: []*config.TransparencyLogInstance{{
 			LogId:     &config.LogID{KeyId: []byte(ctfeLogID)},

@@ -412,7 +412,10 @@ func makeConfigMapWithSigstoreKeys() *corev1.ConfigMap {
 		Data: make(map[string]string),
 	}
 	source := NewTrustRoot(trName, WithSigstoreKeys(sigstoreKeys))
-	c := config.ConvertSigstoreKeys(context.Background(), source.Spec.SigstoreKeys)
+	c, err := config.ConvertSigstoreKeys(context.Background(), source.Spec.SigstoreKeys)
+	if err != nil {
+		panic("failed to convert test SigstoreKeys")
+	}
 	for i := range c.Tlogs {
 		c.Tlogs[i].LogId = &config.LogID{KeyId: []byte(rekorLogID)}
 	}
@@ -665,7 +668,10 @@ func TestConvertSigstoreKeys(t *testing.T) {
 	// to make sure we exercise the path from:
 	// v1alpha1 => config => configMap => back (this is what reconciler will
 	// use to call cosign verification functions with).
-	converted := config.ConvertSigstoreKeys(context.Background(), &source)
+	converted, err := config.ConvertSigstoreKeys(context.Background(), &source)
+	if err != nil {
+		t.Fatalf("Failed to convert entry: %v", err)
+	}
 	marshalled, err := resources.Marshal(converted)
 	if err != nil {
 		t.Fatalf("Failed to marshal entry: %v", err)

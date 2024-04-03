@@ -154,7 +154,10 @@ func main() {
 			log.Fatal(err)
 		}
 
-		c := config.ConvertSigstoreKeys(context.Background(), tr.Spec.SigstoreKeys)
+		c, err := config.ConvertSigstoreKeys(context.Background(), tr.Spec.SigstoreKeys)
+		if err != nil {
+			log.Fatal(err)
+		}
 		maps := make(map[string]*config.SigstoreKeys, 0)
 
 		maps[tr.Name] = c

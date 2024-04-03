@@ -188,7 +188,10 @@ func genCertChain(keyUsage x509.KeyUsage) [][]byte {
 
 func genTrustRoot(sigstoreKeysMap map[string]string) (marshalledEntry []byte, err error) {
 	trustRoot := testing.NewTrustRoot("test-trustroot", testing.WithSigstoreKeys(sigstoreKeysMap))
-	sigstoreKeys := config.ConvertSigstoreKeys(context.Background(), trustRoot.Spec.SigstoreKeys)
+	sigstoreKeys, err := config.ConvertSigstoreKeys(context.Background(), trustRoot.Spec.SigstoreKeys)
+	if err != nil {
+		return nil, err
+	}
 	err = populateLogIDs(sigstoreKeys)
 	if err != nil {
 		return nil, err
@@ -254,10 +257,14 @@ func genTrustedRoot(sigstoreKeysMap map[string]string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
+	certChain, err := config.DeserializeCertChain([]byte(sigstoreKeysMap["fulcio"]))
+	if err != nil {
+		return nil, err
+	}
 
 	trustRoot := &config.SigstoreKeys{
 		CertificateAuthorities: []*config.CertificateAuthority{{
-			CertChain: config.DeserializeCertChain([]byte(sigstoreKeysMap["fulcio"])),
+			CertChain: certChain,
 			ValidFor: &config.TimeRange{
 				Start: &config.Timestamp{},
 			},

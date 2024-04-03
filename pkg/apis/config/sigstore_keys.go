@@ -97,58 +97,74 @@ func parseSigstoreKeys(entry string, out *pbtrustroot.TrustedRoot) error {
 
 // ConvertSigstoreKeys takes a source and converts into a SigstoreKeys suitable
 // for serialization into a ConfigMap entry.
-func ConvertSigstoreKeys(_ context.Context, source *v1alpha1.SigstoreKeys) *SigstoreKeys {
-	sk := &SigstoreKeys{}
+func ConvertSigstoreKeys(_ context.Context, source *v1alpha1.SigstoreKeys) (sk *SigstoreKeys, err error) {
+	sk = &SigstoreKeys{}
 	sk.MediaType = "application/vnd.dev.sigstore.trustedroot+json;version=0.1"
 	sk.CertificateAuthorities = make([]*pbtrustroot.CertificateAuthority, len(source.CertificateAuthorities))
 	for i := range source.CertificateAuthorities {
-		sk.CertificateAuthorities[i] = ConvertCertificateAuthority(source.CertificateAuthorities[i])
+		sk.CertificateAuthorities[i], err = ConvertCertificateAuthority(source.CertificateAuthorities[i])
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert certificate authority: %w", err)
+		}
 	}
 
 	sk.Tlogs = make([]*pbtrustroot.TransparencyLogInstance, len(source.TLogs))
 	for i := range source.TLogs {
-		sk.Tlogs[i] = ConvertTransparencyLogInstance(source.TLogs[i])
+		sk.Tlogs[i], err = ConvertTransparencyLogInstance(source.TLogs[i])
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert transparency log instance: %w", err)
+		}
 	}
 
 	sk.Ctlogs = make([]*pbtrustroot.TransparencyLogInstance, len(source.CTLogs))
 	for i := range source.CTLogs {
-		sk.Ctlogs[i] = ConvertTransparencyLogInstance(source.CTLogs[i])
+		sk.Ctlogs[i], err = ConvertTransparencyLogInstance(source.CTLogs[i])
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert ct log instance: %w", err)
+		}
 	}
 
 	sk.TimestampAuthorities = make([]*pbtrustroot.CertificateAuthority, len(source.TimeStampAuthorities))
 	for i := range source.TimeStampAuthorities {
-		sk.TimestampAuthorities[i] = ConvertCertificateAuthority(source.TimeStampAuthorities[i])
+		sk.TimestampAuthorities[i], err = ConvertCertificateAuthority(source.TimeStampAuthorities[i])
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert timestamp authority: %w", err)
+		}
 	}
-	return sk
+	return sk, nil
 }
 
 // ConvertCertificateAuthority converts public into private CertificateAuthority
-func ConvertCertificateAuthority(source v1alpha1.CertificateAuthority) *pbtrustroot.CertificateAuthority {
+func ConvertCertificateAuthority(source v1alpha1.CertificateAuthority) (*pbtrustroot.CertificateAuthority, error) {
+	certChain, err := DeserializeCertChain(source.CertChain)
+	if err != nil {
+		return nil, err
+	}
 	return &pbtrustroot.CertificateAuthority{
 		Subject: &pbcommon.DistinguishedName{
 			Organization: source.Subject.Organization,
 			CommonName:   source.Subject.CommonName,
 		},
 		Uri:       source.URI.String(),
-		CertChain: DeserializeCertChain(source.CertChain),
+		CertChain: certChain,
 		ValidFor: &pbcommon.TimeRange{
 			Start: &timestamppb.Timestamp{
 				Seconds: 0, // TODO: Add support for time range to v1alpha1.CertificateAuthority
 			},
 		},
-	}
+	}, nil
 }
 
 // ConvertTransparencyLogInstance converts public into private
 // TransparencyLogInstance.
-func ConvertTransparencyLogInstance(source v1alpha1.TransparencyLogInstance) *pbtrustroot.TransparencyLogInstance {
+func ConvertTransparencyLogInstance(source v1alpha1.TransparencyLogInstance) (*pbtrustroot.TransparencyLogInstance, error) {
 	pbpk, pk, err := DeserializePublicKey(source.PublicKey)
 	if err != nil {
-		return nil // TODO: log error? Add return error?
+		return nil, err
 	}
 	logID, err := cosign.GetTransparencyLogID(pk)
 	if err != nil {
-		return nil // TODO: log error? Add return error?
+		return nil, err
 	}
 
 	return &pbtrustroot.TransparencyLogInstance{
@@ -158,7 +174,7 @@ func ConvertTransparencyLogInstance(source v1alpha1.TransparencyLogInstance) *pb
 		LogId: &pbcommon.LogId{
 			KeyId: []byte(logID),
 		},
-	}
+	}, nil
 }
 
 func HashStringToHashAlgorithm(hash string) pbcommon.HashAlgorithm {
@@ -195,17 +211,17 @@ func SerializePublicKey(publicKey *pbcommon.PublicKey) []byte {
 	return pem.EncodeToMemory(block)
 }
 
-func DeserializeCertChain(chain []byte) *pbcommon.X509CertificateChain {
+func DeserializeCertChain(chain []byte) (*pbcommon.X509CertificateChain, error) {
 	var certs []*pbcommon.X509Certificate
-	for {
-		var block *pem.Block
+	var block *pem.Block
+	for len(chain) > 0 {
 		block, chain = pem.Decode(chain)
 		if block == nil {
-			break
+			return nil, fmt.Errorf("failed to decode certificate chain PEM")
 		}
 		certs = append(certs, &pbcommon.X509Certificate{RawBytes: block.Bytes})
 	}
-	return &pbcommon.X509CertificateChain{Certificates: certs}
+	return &pbcommon.X509CertificateChain{Certificates: certs}, nil
 }
 
 func DeserializePublicKey(publicKey []byte) (*pbcommon.PublicKey, crypto.PublicKey, error) {
