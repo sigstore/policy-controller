@@ -1,10 +1,10 @@
-// Copyright 2024 The Sigstore Authors
+// Copyright 2024 The Sigstore Authors.
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//      http://www.apache.org/licenses/LICENSE-2.0
+//     http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -22,7 +22,6 @@ import (
 	"crypto/rand"
 	"crypto/x509"
 	"crypto/x509/pkix"
-	"encoding/json"
 	"encoding/pem"
 	"flag"
 	"log"
@@ -35,8 +34,10 @@ import (
 	"github.com/sigstore/cosign/v2/pkg/cosign"
 	"github.com/sigstore/policy-controller/pkg/apis/config"
 	testing "github.com/sigstore/policy-controller/pkg/reconciler/testing/v1alpha1"
+	pbcommon "github.com/sigstore/protobuf-specs/gen/pb-go/common/v1"
 	"github.com/sigstore/scaffolding/pkg/repo"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
+	"google.golang.org/protobuf/encoding/protojson"
 )
 
 // This program generates test data for the trustroot reconciler.
@@ -76,7 +77,23 @@ func main() {
 		log.Fatal(err)
 	}
 
-	marshalledEntryFromMirrorFS, tufRepo, rootJSON, err := genTUFRepo(sigstoreKeysMap)
+	tufRepo, rootJSON, err := genTUFRepo(map[string][]byte{
+		"rekor.pem":  []byte(sigstoreKeysMap["rekor"]),
+		"ctfe.pem":   []byte(sigstoreKeysMap["ctfe"]),
+		"fulcio.pem": []byte(sigstoreKeysMap["fulcio"]),
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	tufRepoWithTrustedRootJSON, rootJSONWithTrustedRootJSON, err := genTUFRepo(map[string][]byte{
+		"trusted_root.json": marshalledEntry,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	marshalledEntryFromMirrorFS, err := genTrustedRoot(sigstoreKeysMap)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -91,6 +108,8 @@ func main() {
 	mustWriteFile("marshalledEntryFromMirrorFS.json", marshalledEntryFromMirrorFS)
 	mustWriteFile("tufRepo.tar", tufRepo)
 	mustWriteFile("root.json", rootJSON)
+	mustWriteFile("tufRepoWithTrustedRootJSON.tar", tufRepoWithTrustedRootJSON)
+	mustWriteFile("rootWithTrustedRootJSON.json", rootJSONWithTrustedRootJSON)
 }
 
 func mustWriteFile(path string, data []byte) {
@@ -169,79 +188,100 @@ func genCertChain(keyUsage x509.KeyUsage) [][]byte {
 
 func genTrustRoot(sigstoreKeysMap map[string]string) (marshalledEntry []byte, err error) {
 	trustRoot := testing.NewTrustRoot("test-trustroot", testing.WithSigstoreKeys(sigstoreKeysMap))
-	sigstoreKeys := &config.SigstoreKeys{}
-	sigstoreKeys.ConvertFrom(context.Background(), trustRoot.Spec.SigstoreKeys)
+	sigstoreKeys, err := config.ConvertSigstoreKeys(context.Background(), trustRoot.Spec.SigstoreKeys)
+	if err != nil {
+		return nil, err
+	}
 	err = populateLogIDs(sigstoreKeys)
 	if err != nil {
 		return nil, err
 	}
-	return json.MarshalIndent(sigstoreKeys, "", "  ")
+	return []byte(protojson.Format(sigstoreKeys)), nil
 }
 
 func populateLogIDs(sigstoreKeys *config.SigstoreKeys) error {
-	for i := range sigstoreKeys.TLogs {
-		logID, err := genLogID(sigstoreKeys.TLogs[i].PublicKey)
+	for i := range sigstoreKeys.Tlogs {
+		logID, err := genLogID(sigstoreKeys.Tlogs[i].PublicKey.RawBytes)
 		if err != nil {
 			return err
 		}
-		sigstoreKeys.TLogs[i].LogID = logID
+		sigstoreKeys.Tlogs[i].LogId = &config.LogID{KeyId: []byte(logID)}
 	}
-	for i := range sigstoreKeys.CTLogs {
-		logID, err := genLogID(sigstoreKeys.CTLogs[i].PublicKey)
+	for i := range sigstoreKeys.Ctlogs {
+		logID, err := genLogID(sigstoreKeys.Ctlogs[i].PublicKey.RawBytes)
 		if err != nil {
 			return err
 		}
-		sigstoreKeys.CTLogs[i].LogID = logID
+		sigstoreKeys.Ctlogs[i].LogId = &config.LogID{KeyId: []byte(logID)}
 	}
 	return nil
 }
 
 func genLogID(pkBytes []byte) (string, error) {
-	pk, err := cryptoutils.UnmarshalPEMToPublicKey(pkBytes)
+	pk, err := x509.ParsePKIXPublicKey(pkBytes)
 	if err != nil {
 		return "", err
 	}
 	return cosign.GetTransparencyLogID(pk)
 }
 
-func genTUFRepo(sigstoreKeysMap map[string]string) ([]byte, []byte, []byte, error) {
-	files := map[string][]byte{}
-	files["rekor.pem"] = []byte(sigstoreKeysMap["rekor"])
-	files["ctfe.pem"] = []byte(sigstoreKeysMap["ctfe"])
-	files["fulcio.pem"] = []byte(sigstoreKeysMap["fulcio"])
-
+func genTUFRepo(files map[string][]byte) ([]byte, []byte, error) {
 	defer os.RemoveAll(path.Join(os.TempDir(), "tuf")) // TODO: Update scaffolding to use os.MkdirTemp and remove this
 	ctx := context.Background()
 	local, dir, err := repo.CreateRepo(ctx, files)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 	meta, err := local.GetMeta()
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 	rootJSON, ok := meta["root.json"]
 	if !ok {
-		return nil, nil, nil, err
+		return nil, nil, err
 	}
 
 	var compressed bytes.Buffer
 	if err := repo.CompressFS(os.DirFS(dir), &compressed, map[string]bool{"keys": true, "staged": true}); err != nil {
-		return nil, nil, nil, err
+		return nil, nil, err
+	}
+	return compressed.Bytes(), rootJSON, nil
+}
+
+func genTrustedRoot(sigstoreKeysMap map[string]string) ([]byte, error) {
+	tlogKey, _, err := config.DeserializePublicKey([]byte(sigstoreKeysMap["rekor"]))
+	if err != nil {
+		return nil, err
+	}
+	ctlogKey, _, err := config.DeserializePublicKey([]byte(sigstoreKeysMap["ctfe"]))
+	if err != nil {
+		return nil, err
+	}
+	certChain, err := config.DeserializeCertChain([]byte(sigstoreKeysMap["fulcio"]))
+	if err != nil {
+		return nil, err
 	}
 
 	trustRoot := &config.SigstoreKeys{
-		CertificateAuthorities: []config.CertificateAuthority{{CertChain: []byte(sigstoreKeysMap["fulcio"])}},
-		TLogs:                  []config.TransparencyLogInstance{{PublicKey: []byte(sigstoreKeysMap["rekor"])}},
-		CTLogs:                 []config.TransparencyLogInstance{{PublicKey: []byte(sigstoreKeysMap["ctfe"])}},
+		CertificateAuthorities: []*config.CertificateAuthority{{
+			CertChain: certChain,
+			ValidFor: &config.TimeRange{
+				Start: &config.Timestamp{},
+			},
+		}},
+		Tlogs: []*config.TransparencyLogInstance{{
+			HashAlgorithm: pbcommon.HashAlgorithm_SHA2_256,
+			PublicKey:     tlogKey,
+		}},
+		Ctlogs: []*config.TransparencyLogInstance{{
+			HashAlgorithm: pbcommon.HashAlgorithm_SHA2_256,
+			PublicKey:     ctlogKey,
+		}},
 	}
 	err = populateLogIDs(trustRoot)
 	if err != nil {
-		return nil, nil, nil, err
+		return nil, err
 	}
-	trustRootBytes, err := json.MarshalIndent(trustRoot, "", "  ")
-	if err != nil {
-		return nil, nil, nil, err
-	}
-	return trustRootBytes, compressed.Bytes(), rootJSON, nil
+	trustRootBytes := []byte(protojson.Format(trustRoot))
+	return trustRootBytes, nil
 }

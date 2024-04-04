@@ -1,0 +1,87 @@
+{
+ "signed": {
+  "_type": "root",
+  "spec_version": "1.0",
+  "version": 1,
+  "expires": "2024-09-22T16:47:40-04:00",
+  "keys": {
+   "1742f6a1f846f4042382403b907864f125c2fca7bd70d6c157a40ac8e6f7d505": {
+    "keytype": "ed25519",
+    "scheme": "ed25519",
+    "keyid_hash_algorithms": [
+     "sha256",
+     "sha512"
+    ],
+    "keyval": {
+     "public": "3bfd19c0931a80cd3279322fc22b04b90831b1804f5dbc72c31676ca2ac82f97"
+    }
+   },
+   "5dd6940e523073d10a6252f38a4dc2ebf33e23641c103682e43cb351a5672f43": {
+    "keytype": "ed25519",
+    "scheme": "ed25519",
+    "keyid_hash_algorithms": [
+     "sha256",
+     "sha512"
+    ],
+    "keyval": {
+     "public": "d64a13987f3b0ccfcbfab8c5631acff1b69dda70e40c1aae0cb1f0f9575716cb"
+    }
+   },
+   "8b635809713e0b6ae3370afeb6fa83d7aae2039b355e56d1211049246c3d1a4d": {
+    "keytype": "ed25519",
+    "scheme": "ed25519",
+    "keyid_hash_algorithms": [
+     "sha256",
+     "sha512"
+    ],
+    "keyval": {
+     "public": "ecf8b527a4a4ce34718286dc9a67a5969060053bf1750e2dc74e065c9ab30ec1"
+    }
+   },
+   "d263be84f7043dd0b4636fb797cfd1c9b455b9168f282cad8f48ff0ca47465fc": {
+    "keytype": "ed25519",
+    "scheme": "ed25519",
+    "keyid_hash_algorithms": [
+     "sha256",
+     "sha512"
+    ],
+    "keyval": {
+     "public": "e7f35e9f47b6e2f38e62b184d9f9a54f085843c57bb102cab0fe684dabe1e0bd"
+    }
+   }
+  },
+  "roles": {
+   "root": {
+    "keyids": [
+     "1742f6a1f846f4042382403b907864f125c2fca7bd70d6c157a40ac8e6f7d505"
+    ],
+    "threshold": 1
+   },
+   "snapshot": {
+    "keyids": [
+     "8b635809713e0b6ae3370afeb6fa83d7aae2039b355e56d1211049246c3d1a4d"
+    ],
+    "threshold": 1
+   },
+   "targets": {
+    "keyids": [
+     "5dd6940e523073d10a6252f38a4dc2ebf33e23641c103682e43cb351a5672f43"
+    ],
+    "threshold": 1
+   },
+   "timestamp": {
+    "keyids": [
+     "d263be84f7043dd0b4636fb797cfd1c9b455b9168f282cad8f48ff0ca47465fc"
+    ],
+    "threshold": 1
+   }
+  },
+  "consistent_snapshot": false
+ },
+ "signatures": [
+  {
+   "keyid": "1742f6a1f846f4042382403b907864f125c2fca7bd70d6c157a40ac8e6f7d505",
+   "sig": "1050176114e44eec30b0661a9016b0a1ce607b4168d8e84ab1d4c15d73c3bdb051f0c0b21b67f03c77d4a98ea7dabc5fd1404bbef2eaac605ddfa2a6145d0709"
+  }
+ ]
+}

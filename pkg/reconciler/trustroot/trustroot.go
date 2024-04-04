@@ -29,9 +29,11 @@ import (
 	trustrootreconciler "github.com/sigstore/policy-controller/pkg/client/injection/reconciler/policy/v1alpha1/trustroot"
 	"github.com/sigstore/policy-controller/pkg/reconciler/trustroot/resources"
 	"github.com/sigstore/policy-controller/pkg/tuf"
+	pbcommon "github.com/sigstore/protobuf-specs/gen/pb-go/common/v1"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	sigstoretuf "github.com/sigstore/sigstore/pkg/tuf"
 	"github.com/theupdateframework/go-tuf/client"
+	"google.golang.org/protobuf/encoding/protojson"
 	corev1 "k8s.io/api/core/v1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
@@ -66,8 +68,7 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, trustroot *v1alpha1.Trus
 	case trustroot.Spec.Remote != nil:
 		sigstoreKeys, err = r.getSigstoreKeysFromRemote(ctx, trustroot.Spec.Remote)
 	case trustroot.Spec.SigstoreKeys != nil:
-		sigstoreKeys = &config.SigstoreKeys{}
-		sigstoreKeys.ConvertFrom(ctx, trustroot.Spec.SigstoreKeys)
+		sigstoreKeys, err = config.ConvertSigstoreKeys(ctx, trustroot.Spec.SigstoreKeys)
 	default:
 		// This should not happen since the CRD has been validated.
 		err = fmt.Errorf("invalid TrustRoot entry: %s missing repository,remote, and sigstoreKeys", trustroot.Name)
@@ -84,8 +85,8 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, trustroot *v1alpha1.Trus
 	// them before serializing.
 	// Note this is identical to what we do with CTLog PublicKeys, but they
 	// are not restricted to being only ecdsa.PublicKey.
-	for i, tlog := range sigstoreKeys.TLogs {
-		pk, logID, err := pemToKeyAndID(tlog.PublicKey)
+	for i, tlog := range sigstoreKeys.Tlogs {
+		pk, logID, err := pemToKeyAndID(config.SerializePublicKey(tlog.PublicKey))
 		if err != nil {
 			return fmt.Errorf("invalid rekor public key %d: %w", i, err)
 		}
@@ -95,14 +96,14 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, trustroot *v1alpha1.Trus
 		if !ok {
 			return fmt.Errorf("public key %d is not ecdsa.PublicKey", i)
 		}
-		sigstoreKeys.TLogs[i].LogID = logID
+		sigstoreKeys.Tlogs[i].LogId = &config.LogID{KeyId: []byte(logID)}
 	}
-	for i, ctlog := range sigstoreKeys.CTLogs {
-		_, logID, err := pemToKeyAndID(ctlog.PublicKey)
+	for i, ctlog := range sigstoreKeys.Ctlogs {
+		_, logID, err := pemToKeyAndID(config.SerializePublicKey(ctlog.PublicKey))
 		if err != nil {
 			return fmt.Errorf("invalid ctlog public key %d: %w", i, err)
 		}
-		sigstoreKeys.CTLogs[i].LogID = logID
+		sigstoreKeys.Ctlogs[i].LogId = &config.LogID{KeyId: []byte(logID)}
 	}
 
 	// See if the CM holding configs exists
@@ -203,7 +204,7 @@ func (r *Reconciler) removeTrustRootEntry(ctx context.Context, cm *corev1.Config
 }
 
 // pemToKeyAndID takes a public key in PEM format, and turns it into
-// crypto.PublicKey and the CTLog LogID.
+// crypto.PublicKey and the CTLog LogId.
 func pemToKeyAndID(pem []byte) (crypto.PublicKey, string, error) {
 	pk, err := cryptoutils.UnmarshalPEMToPublicKey(pem)
 	if err != nil {
@@ -221,6 +222,7 @@ func pemToKeyAndID(pem []byte) (crypto.PublicKey, string, error) {
 type customMetadata struct {
 	Usage  sigstoretuf.UsageKind  `json:"usage"`
 	Status sigstoretuf.StatusKind `json:"status"`
+	URI    string                 `json:"uri"`
 }
 
 type sigstoreCustomMetadata struct {
@@ -236,6 +238,22 @@ func getSigstoreKeysFromTuf(ctx context.Context, tufClient *client.Client) (*con
 		return nil, fmt.Errorf("error getting targets: %w", err)
 	}
 	ret := &config.SigstoreKeys{}
+
+	// if there is a "trusted_root.json" target, we can use that instead of the custom metadata
+	if _, ok := targets["trusted_root.json"]; ok {
+		dl := newDownloader()
+		if err = tufClient.Download("trusted_root.json", &dl); err != nil {
+			return nil, fmt.Errorf("downloading trusted_root.json: %w", err)
+		}
+
+		err := protojson.Unmarshal(dl.Bytes(), ret)
+		if err != nil {
+			return nil, fmt.Errorf("parsing trusted_root.json: %w", err)
+		}
+		return ret, nil
+	}
+
+	// fall back to using custom metadata (e.g. for private TUF repositories)
 	for name, targetMeta := range targets {
 		// Skip any targets that do not include custom metadata.
 		if targetMeta.Custom == nil {
@@ -251,13 +269,34 @@ func getSigstoreKeysFromTuf(ctx context.Context, tufClient *client.Client) (*con
 		if err = tufClient.Download(name, &dl); err != nil {
 			return nil, fmt.Errorf("downloading target %s: %w", name, err)
 		}
+
 		switch scm.Sigstore.Usage {
 		case sigstoretuf.Fulcio:
-			ret.CertificateAuthorities = append(ret.CertificateAuthorities, config.CertificateAuthority{CertChain: dl.Bytes()})
+			certChain, err := config.DeserializeCertChain(dl.Bytes())
+			if err != nil {
+				return nil, fmt.Errorf("deserializing certificate chain: %w", err)
+			}
+			ret.CertificateAuthorities = append(ret.CertificateAuthorities,
+				&config.CertificateAuthority{
+					Uri:       scm.Sigstore.URI,
+					CertChain: certChain,
+					ValidFor: &config.TimeRange{
+						Start: &config.Timestamp{},
+					},
+				},
+			)
 		case sigstoretuf.CTFE:
-			ret.CTLogs = append(ret.CTLogs, config.TransparencyLogInstance{PublicKey: dl.Bytes()})
+			tlog, err := genTransparencyLogInstance(scm.Sigstore.URI, dl.Bytes())
+			if err != nil {
+				return nil, fmt.Errorf("creating transparency log instance: %w", err)
+			}
+			ret.Ctlogs = append(ret.Ctlogs, tlog)
 		case sigstoretuf.Rekor:
-			ret.TLogs = append(ret.TLogs, config.TransparencyLogInstance{PublicKey: dl.Bytes()})
+			tlog, err := genTransparencyLogInstance(scm.Sigstore.URI, dl.Bytes())
+			if err != nil {
+				return nil, fmt.Errorf("creating transparency log instance: %w", err)
+			}
+			ret.Tlogs = append(ret.Tlogs, tlog)
 		}
 	}
 	// Make sure there's at least a single CertificateAuthority (Fulcio there).
@@ -266,6 +305,23 @@ func getSigstoreKeysFromTuf(ctx context.Context, tufClient *client.Client) (*con
 		return nil, errors.New("no certificate authorities found")
 	}
 	return ret, nil
+}
+
+func genTransparencyLogInstance(baseURL string, pkBytes []byte) (*config.TransparencyLogInstance, error) {
+	pbpk, pk, err := config.DeserializePublicKey(pkBytes)
+	if err != nil {
+		return nil, fmt.Errorf("unmarshaling PEM public key: %w", err)
+	}
+	logID, err := cosign.GetTransparencyLogID(pk)
+	if err != nil {
+		return nil, fmt.Errorf("failed to construct LogID: %w", err)
+	}
+	return &config.TransparencyLogInstance{
+		BaseUrl:       baseURL,
+		HashAlgorithm: pbcommon.HashAlgorithm_SHA2_256,
+		PublicKey:     pbpk,
+		LogId:         &pbcommon.LogId{KeyId: []byte(logID)},
+	}, nil
 }
 
 func newDownloader() downloader {

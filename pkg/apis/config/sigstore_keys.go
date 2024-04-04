@@ -17,12 +17,21 @@ package config
 
 import (
 	"context"
-	"encoding/json"
+	"crypto"
+	"crypto/ecdsa"
+	"crypto/elliptic"
+	"crypto/rsa"
+	"encoding/pem"
 	"fmt"
 
+	"github.com/sigstore/cosign/v2/pkg/cosign"
 	"github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
+	pbcommon "github.com/sigstore/protobuf-specs/gen/pb-go/common/v1"
+	pbtrustroot "github.com/sigstore/protobuf-specs/gen/pb-go/trustroot/v1"
+	"github.com/sigstore/sigstore/pkg/cryptoutils"
+	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/timestamppb"
 	corev1 "k8s.io/api/core/v1"
-	"knative.dev/pkg/apis"
 	"sigs.k8s.io/yaml"
 )
 
@@ -33,81 +42,26 @@ const (
 	SigstoreKeysConfigName = "config-sigstore-keys"
 )
 
-// Note that these are 1:1 mapped to public API SigstoreKeys. Reasoning
-// being that we may choose to serialize these differently, or use the protos
-// that are defined upstream, so want to keep the public/private distinction, so
-// that we can change things independend of breaking the API. Time will tell
-// if this is the right call, but we can always reunify them later if we so
-// want.
-// TODO(vaikas): See about replacing these with the protos here once they land
-// and see how easy it is to replace with protos instead of our custom defs
-// above.
-// https://github.com/sigstore/protobuf-specs/pull/5
-// And in particular: https://github.com/sigstore/protobuf-specs/pull/5/files#diff-b1f89b7fd3eb27b519380b092a2416f893a96fbba3f8c90cfa767e7687383ad4R70
-
-// TransparencyLogInstance describes the immutable parameters from a
-// transparency log.
-// See https://www.rfc-editor.org/rfc/rfc9162.html#name-log-parameters
-// for more details.
-// The incluced parameters are the minimal set required to identify a log,
-// and verify an inclusion promise.
-type TransparencyLogInstance struct {
-	BaseURL       apis.URL `json:"baseURL"`
-	HashAlgorithm string   `json:"hashAlgorithm"`
-	// PEM encoded public key
-	PublicKey []byte `json:"publicKey"`
-	LogID     string `json:"logID"`
-}
-
-type DistinguishedName struct {
-	Organization string `json:"organization"`
-	CommonName   string `json:"commonName"`
-}
-
-type CertificateAuthority struct {
-	// The root certificate MUST be self-signed, and so the subject and
-	// issuer are the same.
-	Subject DistinguishedName `json:"subject"`
-	// The URI at which the CA can be accessed.
-	URI apis.URL `json:"uri"`
-	// The certificate chain for this CA.
-	// CertChain is in PEM format.
-	CertChain []byte `json:"certChain"`
-
-	// TODO(vaikas): How to best represent this
-	// The time the *entire* chain was valid. This is at max the
-	// longest interval when *all* certificates in the chain where valid,
-	// but it MAY be shorter.
-	//       dev.sigstore.common.v1.TimeRange valid_for = 4;
-}
+// Type aliases for types from protobuf-specs. TODO: Consider just importing
+// the protobuf-specs types directly from each package as needed.
 
 // SigstoreKeys contains all the necessary Keys and Certificates for validating
 // against a specific instance of Sigstore.
-// TODO(vaikas): See about replacing these with the protos here once they land
-// and see how easy it is to replace with protos instead of our custom defs
-// above.
-// https://github.com/sigstore/protobuf-specs/pull/5
-// And in particular: https://github.com/sigstore/protobuf-specs/pull/5/files#diff-b1f89b7fd3eb27b519380b092a2416f893a96fbba3f8c90cfa767e7687383ad4R70
-// Well, not the multi-root, but one instance of that is exactly the
-// SigstoreKeys.
-type SigstoreKeys struct {
-	// Trusted certificate authorities (e.g Fulcio).
-	CertificateAuthorities []CertificateAuthority `json:"certificateAuthorities,omitempty"`
-	// Rekor log specifications
-	TLogs []TransparencyLogInstance `json:"tLogs,omitempty"`
-	// Certificate Transparency Log
-	CTLogs []TransparencyLogInstance `json:"ctLogs,omitempty"`
-	// Trusted timestamping authorities
-	TimeStampAuthorities []CertificateAuthority `json:"timestampAuthorities"`
-}
+type SigstoreKeys = pbtrustroot.TrustedRoot
+type CertificateAuthority = pbtrustroot.CertificateAuthority
+type TransparencyLogInstance = pbtrustroot.TransparencyLogInstance
+type DistinguishedName = pbcommon.DistinguishedName
+type LogID = pbcommon.LogId
+type TimeRange = pbcommon.TimeRange
+type Timestamp = timestamppb.Timestamp
 
 type SigstoreKeysMap struct {
-	SigstoreKeys map[string]SigstoreKeys
+	SigstoreKeys map[string]*SigstoreKeys
 }
 
 // NewSigstoreKeysFromMap creates a map of SigstoreKeys to use for validation.
 func NewSigstoreKeysFromMap(data map[string]string) (*SigstoreKeysMap, error) {
-	ret := make(map[string]SigstoreKeys, len(data))
+	ret := make(map[string]*SigstoreKeys, len(data))
 	// Spin through the ConfigMap. Each entry will have a serialized form of
 	// necessary validation keys in the form of SigstoreKeys.
 	for k, v := range data {
@@ -123,7 +77,7 @@ func NewSigstoreKeysFromMap(data map[string]string) (*SigstoreKeysMap, error) {
 		if err := parseSigstoreKeys(v, sigstoreKeys); err != nil {
 			return nil, fmt.Errorf("failed to parse the entry %q : %q : %w", k, v, err)
 		}
-		ret[k] = *sigstoreKeys
+		ret[k] = sigstoreKeys
 	}
 	return &SigstoreKeysMap{SigstoreKeys: ret}, nil
 }
@@ -133,56 +87,187 @@ func NewSigstoreKeysFromConfigMap(config *corev1.ConfigMap) (*SigstoreKeysMap, e
 	return NewSigstoreKeysFromMap(config.Data)
 }
 
-func parseSigstoreKeys(entry string, out interface{}) error {
+func parseSigstoreKeys(entry string, out *pbtrustroot.TrustedRoot) error {
 	j, err := yaml.YAMLToJSON([]byte(entry))
 	if err != nil {
 		return fmt.Errorf("config's value could not be converted to JSON: %w : %s", err, entry)
 	}
-	return json.Unmarshal(j, &out)
+	return protojson.Unmarshal(j, out)
 }
 
-// ConvertFrom takes a source and converts into a SigstoreKeys suitable
+// ConvertSigstoreKeys takes a source and converts into a SigstoreKeys suitable
 // for serialization into a ConfigMap entry.
-func (sk *SigstoreKeys) ConvertFrom(_ context.Context, source *v1alpha1.SigstoreKeys) {
-	sk.CertificateAuthorities = make([]CertificateAuthority, len(source.CertificateAuthorities))
+func ConvertSigstoreKeys(_ context.Context, source *v1alpha1.SigstoreKeys) (sk *SigstoreKeys, err error) {
+	sk = &SigstoreKeys{}
+	sk.MediaType = "application/vnd.dev.sigstore.trustedroot+json;version=0.1"
+	sk.CertificateAuthorities = make([]*pbtrustroot.CertificateAuthority, len(source.CertificateAuthorities))
 	for i := range source.CertificateAuthorities {
-		sk.CertificateAuthorities[i] = ConvertCertificateAuthority(source.CertificateAuthorities[i])
+		sk.CertificateAuthorities[i], err = ConvertCertificateAuthority(source.CertificateAuthorities[i])
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert certificate authority: %w", err)
+		}
 	}
 
-	sk.TLogs = make([]TransparencyLogInstance, len(source.TLogs))
+	sk.Tlogs = make([]*pbtrustroot.TransparencyLogInstance, len(source.TLogs))
 	for i := range source.TLogs {
-		sk.TLogs[i] = ConvertTransparencyLogInstance(source.TLogs[i])
+		sk.Tlogs[i], err = ConvertTransparencyLogInstance(source.TLogs[i])
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert transparency log instance: %w", err)
+		}
 	}
 
-	sk.CTLogs = make([]TransparencyLogInstance, len(source.CTLogs))
+	sk.Ctlogs = make([]*pbtrustroot.TransparencyLogInstance, len(source.CTLogs))
 	for i := range source.CTLogs {
-		sk.CTLogs[i] = ConvertTransparencyLogInstance(source.CTLogs[i])
+		sk.Ctlogs[i], err = ConvertTransparencyLogInstance(source.CTLogs[i])
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert ct log instance: %w", err)
+		}
 	}
 
-	sk.TimeStampAuthorities = make([]CertificateAuthority, len(source.TimeStampAuthorities))
+	sk.TimestampAuthorities = make([]*pbtrustroot.CertificateAuthority, len(source.TimeStampAuthorities))
 	for i := range source.TimeStampAuthorities {
-		sk.TimeStampAuthorities[i] = ConvertCertificateAuthority(source.TimeStampAuthorities[i])
+		sk.TimestampAuthorities[i], err = ConvertCertificateAuthority(source.TimeStampAuthorities[i])
+		if err != nil {
+			return nil, fmt.Errorf("failed to convert timestamp authority: %w", err)
+		}
 	}
+	return sk, nil
 }
 
 // ConvertCertificateAuthority converts public into private CertificateAuthority
-func ConvertCertificateAuthority(source v1alpha1.CertificateAuthority) CertificateAuthority {
-	return CertificateAuthority{
-		Subject: DistinguishedName{
+func ConvertCertificateAuthority(source v1alpha1.CertificateAuthority) (*pbtrustroot.CertificateAuthority, error) {
+	certChain, err := DeserializeCertChain(source.CertChain)
+	if err != nil {
+		return nil, err
+	}
+	return &pbtrustroot.CertificateAuthority{
+		Subject: &pbcommon.DistinguishedName{
 			Organization: source.Subject.Organization,
 			CommonName:   source.Subject.CommonName,
 		},
-		URI:       *source.URI.DeepCopy(),
-		CertChain: source.CertChain,
-	}
+		Uri:       source.URI.String(),
+		CertChain: certChain,
+		ValidFor: &pbcommon.TimeRange{
+			Start: &timestamppb.Timestamp{
+				Seconds: 0, // TODO: Add support for time range to v1alpha1.CertificateAuthority
+			},
+		},
+	}, nil
 }
 
 // ConvertTransparencyLogInstance converts public into private
 // TransparencyLogInstance.
-func ConvertTransparencyLogInstance(source v1alpha1.TransparencyLogInstance) TransparencyLogInstance {
-	return TransparencyLogInstance{
-		BaseURL:       *source.BaseURL.DeepCopy(),
-		HashAlgorithm: source.HashAlgorithm,
-		PublicKey:     source.PublicKey,
+func ConvertTransparencyLogInstance(source v1alpha1.TransparencyLogInstance) (*pbtrustroot.TransparencyLogInstance, error) {
+	pbpk, pk, err := DeserializePublicKey(source.PublicKey)
+	if err != nil {
+		return nil, err
 	}
+	logID, err := cosign.GetTransparencyLogID(pk)
+	if err != nil {
+		return nil, err
+	}
+
+	return &pbtrustroot.TransparencyLogInstance{
+		BaseUrl:       source.BaseURL.String(),
+		HashAlgorithm: HashStringToHashAlgorithm(source.HashAlgorithm),
+		PublicKey:     pbpk,
+		LogId: &pbcommon.LogId{
+			KeyId: []byte(logID),
+		},
+	}, nil
+}
+
+func HashStringToHashAlgorithm(hash string) pbcommon.HashAlgorithm {
+	switch hash {
+	case "sha-256", "sha256":
+		return pbcommon.HashAlgorithm_SHA2_256
+	case "sha-384", "sha384":
+		return pbcommon.HashAlgorithm_SHA2_384
+	case "sha-512", "sha512":
+		return pbcommon.HashAlgorithm_SHA2_512
+	default:
+		return pbcommon.HashAlgorithm_HASH_ALGORITHM_UNSPECIFIED
+	}
+}
+
+func SerializeCertChain(certChain *pbcommon.X509CertificateChain) []byte {
+	var chain []byte
+	for _, cert := range certChain.Certificates {
+		bytes := cert.RawBytes
+		block := &pem.Block{
+			Type:  "CERTIFICATE",
+			Bytes: bytes,
+		}
+		chain = append(chain, pem.EncodeToMemory(block)...)
+	}
+	return chain
+}
+
+func SerializePublicKey(publicKey *pbcommon.PublicKey) []byte {
+	block := &pem.Block{
+		Type:  "PUBLIC KEY",
+		Bytes: publicKey.RawBytes,
+	}
+	return pem.EncodeToMemory(block)
+}
+
+func DeserializeCertChain(chain []byte) (*pbcommon.X509CertificateChain, error) {
+	var certs []*pbcommon.X509Certificate
+	var block *pem.Block
+	for len(chain) > 0 {
+		block, chain = pem.Decode(chain)
+		if block == nil {
+			return nil, fmt.Errorf("failed to decode certificate chain PEM")
+		}
+		certs = append(certs, &pbcommon.X509Certificate{RawBytes: block.Bytes})
+	}
+	return &pbcommon.X509CertificateChain{Certificates: certs}, nil
+}
+
+func DeserializePublicKey(publicKey []byte) (*pbcommon.PublicKey, crypto.PublicKey, error) {
+	block, _ := pem.Decode(publicKey)
+	if block == nil {
+		return nil, nil, fmt.Errorf("failed to decode public key")
+	}
+	pk, err := cryptoutils.UnmarshalPEMToPublicKey(publicKey)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to unmarshal public key: %w", err)
+	}
+	var keyDetails pbcommon.PublicKeyDetails
+	switch k := pk.(type) {
+	case *ecdsa.PublicKey:
+		switch k.Curve {
+		case elliptic.P256():
+			keyDetails = pbcommon.PublicKeyDetails_PKIX_ECDSA_P256_SHA_256
+		case elliptic.P384():
+			keyDetails = pbcommon.PublicKeyDetails_PKIX_ECDSA_P384_SHA_384
+		case elliptic.P521():
+			keyDetails = pbcommon.PublicKeyDetails_PKIX_ECDSA_P521_SHA_512
+		default:
+			keyDetails = pbcommon.PublicKeyDetails_PUBLIC_KEY_DETAILS_UNSPECIFIED
+		}
+	case *rsa.PublicKey:
+		switch k.Size() {
+		case 2048:
+			keyDetails = pbcommon.PublicKeyDetails_PKIX_RSA_PSS_2048_SHA256
+		case 3072:
+			keyDetails = pbcommon.PublicKeyDetails_PKIX_RSA_PSS_3072_SHA256
+		case 4096:
+			keyDetails = pbcommon.PublicKeyDetails_PKIX_RSA_PSS_4096_SHA256
+		default:
+			keyDetails = pbcommon.PublicKeyDetails_PUBLIC_KEY_DETAILS_UNSPECIFIED
+		}
+	default:
+		keyDetails = pbcommon.PublicKeyDetails_PUBLIC_KEY_DETAILS_UNSPECIFIED
+	}
+
+	return &pbcommon.PublicKey{
+		RawBytes:   block.Bytes,
+		KeyDetails: keyDetails,
+		ValidFor: &pbcommon.TimeRange{
+			Start: &timestamppb.Timestamp{
+				Seconds: 0, // TODO: Add support for time range to v1alpha.TransparencyLogInstance
+			},
+		},
+	}, pk, nil
 }

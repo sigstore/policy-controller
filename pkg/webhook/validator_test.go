@@ -2950,26 +2950,33 @@ func TestFulcioCertsFromAuthority(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to get embedded CTLog Public keys for testing")
 	}
+	pbpk, marshalledPK, err := config.DeserializePublicKey([]byte(ctfePublicKey))
+	if err != nil {
+		t.Fatalf("Failed to deserialize CTLog public key: %v", err)
+	}
+	certChain, err := config.DeserializeCertChain([]byte(certChain))
+	if err != nil {
+		t.Fatalf("Failed to deserialize cert chain: %v", err)
+	}
 	sk := config.SigstoreKeys{
-		CertificateAuthorities: []config.CertificateAuthority{{
-			Subject: config.DistinguishedName{
+		CertificateAuthorities: []*config.CertificateAuthority{{
+			Subject: &config.DistinguishedName{
 				Organization: "testorg",
 				CommonName:   "testcommonname",
 			},
-			CertChain: []byte(certChain),
+			CertChain: certChain,
 		}},
-		CTLogs: []config.TransparencyLogInstance{{LogID: ctfeLogID, PublicKey: []byte(ctfePublicKey)}},
+		Ctlogs: []*config.TransparencyLogInstance{{
+			LogId:     &config.LogID{KeyId: []byte(ctfeLogID)},
+			PublicKey: pbpk,
+		}},
 	}
 	c := &config.Config{
 		SigstoreKeysConfig: &config.SigstoreKeysMap{
-			SigstoreKeys: map[string]config.SigstoreKeys{
-				"test-trust-root": sk,
+			SigstoreKeys: map[string]*config.SigstoreKeys{
+				"test-trust-root": &sk,
 			},
 		},
-	}
-	marshalledPK, err := cryptoutils.UnmarshalPEMToPublicKey([]byte(ctfePublicKey))
-	if err != nil {
-		t.Fatalf("Failed to unmarshal CTLog public key: %v", err)
 	}
 
 	testCtx := config.ToContext(context.Background(), c)
@@ -3042,7 +3049,7 @@ func TestFulcioCertsFromAuthority(t *testing.T) {
 }
 
 func TestRekorClientAndKeysFromAuthority(t *testing.T) {
-	pk, err := cryptoutils.UnmarshalPEMToPublicKey([]byte(rekorPublicKey))
+	pbpk, pk, err := config.DeserializePublicKey([]byte(rekorPublicKey))
 	if err != nil {
 		t.Fatalf("Failed to unmarshal public key for testing: %v", err)
 	}
@@ -3066,16 +3073,16 @@ func TestRekorClientAndKeysFromAuthority(t *testing.T) {
 	}
 
 	sk := config.SigstoreKeys{
-		TLogs: []config.TransparencyLogInstance{{
-			PublicKey: []byte(rekorPublicKey),
-			LogID:     rekorLogID,
-			BaseURL:   *apis.HTTPS("rekor.example.com"),
+		Tlogs: []*config.TransparencyLogInstance{{
+			PublicKey: pbpk,
+			LogId:     &config.LogID{KeyId: []byte(rekorLogID)},
+			BaseUrl:   "rekor.example.com",
 		}},
 	}
 	c := &config.Config{
 		SigstoreKeysConfig: &config.SigstoreKeysMap{
-			SigstoreKeys: map[string]config.SigstoreKeys{
-				"test-trust-root": sk,
+			SigstoreKeys: map[string]*config.SigstoreKeys{
+				"test-trust-root": &sk,
 			},
 		},
 	}
@@ -3155,11 +3162,15 @@ func TestRekorClientAndKeysFromAuthority(t *testing.T) {
 }
 
 func TestCheckOptsFromAuthority(t *testing.T) {
-	pk, err := cryptoutils.UnmarshalPEMToPublicKey([]byte(rekorPublicKey))
+	pbpkRekor, pkRekor, err := config.DeserializePublicKey([]byte(rekorPublicKey))
 	if err != nil {
 		t.Fatalf("Failed to unmarshal public key for testing: %v", err)
 	}
-	ecpk, ok := pk.(*ecdsa.PublicKey)
+	pbpkCTFE, pkCTFE, err := config.DeserializePublicKey([]byte(ctfePublicKey))
+	if err != nil {
+		t.Fatalf("Failed to unmarshal public key for testing: %v", err)
+	}
+	ecpk, ok := pkRekor.(*ecdsa.PublicKey)
 	if !ok {
 		t.Fatalf("pk is not a ecsda public key")
 	}
@@ -3204,49 +3215,54 @@ func TestCheckOptsFromAuthority(t *testing.T) {
 		t.Fatalf("Failed to get embedded CTLog Public keys for testing")
 	}
 
-	marshalledPK, err := cryptoutils.UnmarshalPEMToPublicKey([]byte(ctfePublicKey))
-	if err != nil {
-		t.Fatalf("Failed to unmarshal CTLog public key: %v", err)
-	}
-
 	skRekor := config.SigstoreKeys{
-		TLogs: []config.TransparencyLogInstance{{
-			PublicKey: []byte(rekorPublicKey),
-			LogID:     "rekor-logid",
-			BaseURL:   *apis.HTTPS("rekor.example.com"),
+		Tlogs: []*config.TransparencyLogInstance{{
+			PublicKey: pbpkRekor,
+			LogId:     &config.LogID{KeyId: []byte("rekor-logid")},
+			BaseUrl:   "rekor.example.com",
 		}},
+	}
+	certChainPB, err := config.DeserializeCertChain([]byte(certChain))
+	if err != nil {
+		t.Fatalf("Failed to unmarshal cert chain for testing: %v", err)
 	}
 	skFulcio := config.SigstoreKeys{
-		CertificateAuthorities: []config.CertificateAuthority{{
-			Subject: config.DistinguishedName{
+		CertificateAuthorities: []*config.CertificateAuthority{{
+			Subject: &config.DistinguishedName{
 				Organization: "testorg",
 				CommonName:   "testcommonname",
 			},
-			CertChain: []byte(certChain),
+			CertChain: certChainPB,
 		}},
-		CTLogs: []config.TransparencyLogInstance{{LogID: ctfeLogID, PublicKey: []byte(ctfePublicKey)}},
+		Ctlogs: []*config.TransparencyLogInstance{{
+			LogId:     &config.LogID{KeyId: []byte(ctfeLogID)},
+			PublicKey: pbpkCTFE,
+		}},
 	}
 	skCombined := config.SigstoreKeys{
-		TLogs: []config.TransparencyLogInstance{{
-			PublicKey: []byte(rekorPublicKey),
-			LogID:     "rekor-logid",
-			BaseURL:   *apis.HTTPS("rekor.example.com"),
+		Tlogs: []*config.TransparencyLogInstance{{
+			PublicKey: pbpkRekor,
+			LogId:     &config.LogID{KeyId: []byte("rekor-logid")},
+			BaseUrl:   "rekor.example.com",
 		}},
-		CertificateAuthorities: []config.CertificateAuthority{{
-			Subject: config.DistinguishedName{
+		CertificateAuthorities: []*config.CertificateAuthority{{
+			Subject: &config.DistinguishedName{
 				Organization: "testorg",
 				CommonName:   "testcommonname",
 			},
-			CertChain: []byte(certChain),
+			CertChain: certChainPB,
 		}},
-		CTLogs: []config.TransparencyLogInstance{{LogID: ctfeLogID, PublicKey: []byte(ctfePublicKey)}},
+		Ctlogs: []*config.TransparencyLogInstance{{
+			LogId:     &config.LogID{KeyId: []byte(ctfeLogID)},
+			PublicKey: pbpkCTFE,
+		}},
 	}
 	c := &config.Config{
 		SigstoreKeysConfig: &config.SigstoreKeysMap{
-			SigstoreKeys: map[string]config.SigstoreKeys{
-				"test-trust-rekor":    skRekor,
-				"test-trust-fulcio":   skFulcio,
-				"test-trust-combined": skCombined,
+			SigstoreKeys: map[string]*config.SigstoreKeys{
+				"test-trust-rekor":    &skRekor,
+				"test-trust-fulcio":   &skFulcio,
+				"test-trust-combined": &skCombined,
 			},
 		},
 	}
@@ -3312,7 +3328,7 @@ func TestCheckOptsFromAuthority(t *testing.T) {
 			RootCerts:         roots,
 			IntermediateCerts: intermediates,
 			IgnoreTlog:        true,
-			CTLogPubKeys:      &cosign.TrustedTransparencyLogPubKeys{Keys: map[string]cosign.TransparencyLogPubKey{ctfeLogID: {PubKey: marshalledPK, Status: tuf.Active}}},
+			CTLogPubKeys:      &cosign.TrustedTransparencyLogPubKeys{Keys: map[string]cosign.TransparencyLogPubKey{ctfeLogID: {PubKey: pkCTFE, Status: tuf.Active}}},
 		},
 	}, {
 		name: "trustroot found, combined, with Identities",
@@ -3337,7 +3353,7 @@ func TestCheckOptsFromAuthority(t *testing.T) {
 				Issuer:  "issuer",
 				Subject: "subject",
 			}},
-			CTLogPubKeys: &cosign.TrustedTransparencyLogPubKeys{Keys: map[string]cosign.TransparencyLogPubKey{ctfeLogID: {PubKey: marshalledPK, Status: tuf.Active}}},
+			CTLogPubKeys: &cosign.TrustedTransparencyLogPubKeys{Keys: map[string]cosign.TransparencyLogPubKey{ctfeLogID: {PubKey: pkCTFE, Status: tuf.Active}}},
 		},
 	}}
 

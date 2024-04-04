@@ -1394,8 +1394,8 @@ func checkOptsFromAuthority(ctx context.Context, authority webhookcip.Authority,
 		if !ok {
 			return nil, fmt.Errorf("trustRootRef %s not found", authority.RFC3161Timestamp.TrustRootRef)
 		}
-		for _, timestampAuthority := range sk.TimeStampAuthorities {
-			leaves, intermediates, roots, err := splitPEMCertificateChain(timestampAuthority.CertChain)
+		for _, timestampAuthority := range sk.TimestampAuthorities {
+			leaves, intermediates, roots, err := splitPEMCertificateChain(config.SerializeCertChain(timestampAuthority.CertChain)) // TODO: this is less efficient than it could be
 			if err != nil {
 				return nil, fmt.Errorf("error splitting certificates: %w", err)
 			}
@@ -1463,7 +1463,7 @@ func fulcioCertsFromAuthority(ctx context.Context, keylessRef *webhookcip.Keyles
 		return nil, nil, nil, fmt.Errorf("trustRootRef %s not found", trustRootRef)
 	}
 	for _, ca := range sk.CertificateAuthorities {
-		certs, err := cryptoutils.UnmarshalCertificatesFromPEM(ca.CertChain)
+		certs, err := cryptoutils.UnmarshalCertificatesFromPEM(config.SerializeCertChain(ca.CertChain)) // TODO: this is less efficient than it could be
 		if err != nil {
 			return nil, nil, nil, fmt.Errorf("error unmarshalling certificates: %w", err)
 		}
@@ -1478,14 +1478,14 @@ func fulcioCertsFromAuthority(ctx context.Context, keylessRef *webhookcip.Keyles
 	}
 
 	ctlogKeys := &cosign.TrustedTransparencyLogPubKeys{
-		Keys: make(map[string]cosign.TransparencyLogPubKey, len(sk.CTLogs)),
+		Keys: make(map[string]cosign.TransparencyLogPubKey, len(sk.Ctlogs)),
 	}
-	for i, ctlog := range sk.CTLogs {
-		pk, err := cryptoutils.UnmarshalPEMToPublicKey(ctlog.PublicKey)
+	for i, ctlog := range sk.Ctlogs {
+		pk, err := cryptoutils.UnmarshalPEMToPublicKey(config.SerializePublicKey(ctlog.PublicKey)) // TODO: this is less efficient than it could be
 		if err != nil {
 			return nil, nil, nil, fmt.Errorf("unmarshaling public key %d failed: %w", i, err)
 		}
-		ctlogKeys.Keys[ctlog.LogID] = cosign.TransparencyLogPubKey{
+		ctlogKeys.Keys[string(ctlog.LogId.KeyId)] = cosign.TransparencyLogPubKey{
 			PubKey: pk,
 			Status: tuf.Active,
 		}
@@ -1563,11 +1563,11 @@ func rekorKeysFromTrustRef(ctx context.Context, trustRootRef string) (*cosign.Tr
 
 	if sk, ok := sigstoreKeys.SigstoreKeys[trustRootRef]; ok {
 		retKeys := &cosign.TrustedTransparencyLogPubKeys{
-			Keys: make(map[string]cosign.TransparencyLogPubKey, len(sk.TLogs)),
+			Keys: make(map[string]cosign.TransparencyLogPubKey, len(sk.Tlogs)),
 		}
 		rekorURL := ""
-		for i, tlog := range sk.TLogs {
-			pk, err := cryptoutils.UnmarshalPEMToPublicKey(tlog.PublicKey)
+		for i, tlog := range sk.Tlogs {
+			pk, err := cryptoutils.UnmarshalPEMToPublicKey(config.SerializePublicKey(tlog.PublicKey))
 			if err != nil {
 				return nil, "", fmt.Errorf("unmarshaling public key %d failed: %w", i, err)
 			}
@@ -1577,11 +1577,11 @@ func rekorKeysFromTrustRef(ctx context.Context, trustRootRef string) (*cosign.Tr
 			if !ok {
 				return nil, "", fmt.Errorf("public key %d is not ecdsa.PublicKey", i)
 			}
-			retKeys.Keys[tlog.LogID] = cosign.TransparencyLogPubKey{
+			retKeys.Keys[string(tlog.LogId.KeyId)] = cosign.TransparencyLogPubKey{
 				PubKey: pkecdsa,
 				Status: tuf.Active,
 			}
-			rekorURL = tlog.BaseURL.String()
+			rekorURL = tlog.BaseUrl
 		}
 		return retKeys, rekorURL, nil
 	}
