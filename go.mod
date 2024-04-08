@@ -51,7 +51,7 @@ require (
 	knative.dev/hack v0.0.0-20231016131700-2c938d4918da
 	knative.dev/hack/schema v0.0.0-20221024013916-9d2ae47c16b2
 	knative.dev/pkg v0.0.0-20231101193506-b09d4f2a2845
-	sigs.k8s.io/release-utils v0.8.0
+	sigs.k8s.io/release-utils v0.8.1
 	sigs.k8s.io/yaml v1.4.0
 )
 
@@ -264,7 +264,7 @@ require (
 	golang.org/x/sync v0.6.0 // indirect
 	golang.org/x/term v0.19.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
-	golang.org/x/tools v0.16.1 // indirect
+	golang.org/x/tools v0.17.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 	google.golang.org/api v0.171.0 // indirect
 	google.golang.org/appengine v1.6.8 // indirect
