@@ -1,8 +1,7 @@
 module github.com/sigstore/policy-controller
 
 go 1.21
-
-toolchain go1.21.1
+toolchain go1.22.2
 
 require (
 	github.com/aws/aws-sdk-go v1.51.22
@@ -43,11 +42,11 @@ require (
 	google.golang.org/grpc v1.62.1 // indirect
 	google.golang.org/protobuf v1.33.0
 	gopkg.in/yaml.v3 v3.0.1
-	k8s.io/api v0.29.4
-	k8s.io/apimachinery v0.29.4
+	k8s.io/api v0.30.0
+	k8s.io/apimachinery v0.30.0
 	k8s.io/client-go v0.29.4
 	k8s.io/code-generator v0.29.4
-	k8s.io/kube-openapi v0.0.0-20231010175941-2dd684a91f00
+	k8s.io/kube-openapi v0.0.0-20240228011516-70dd3763d340
 	knative.dev/hack v0.0.0-20231016131700-2c938d4918da
 	knative.dev/hack/schema v0.0.0-20221024013916-9d2ae47c16b2
 	knative.dev/pkg v0.0.0-20231101193506-b09d4f2a2845
@@ -275,6 +274,7 @@ require (
 	gopkg.in/yaml.v2 v2.4.0 // indirect
 	k8s.io/apiextensions-apiserver v0.27.6 // indirect
 	k8s.io/gengo v0.0.0-20230829151522-9cce18d56c01 // indirect
+	k8s.io/gengo/v2 v2.0.0-20240228010128-51d4e06bde70 // indirect
 	k8s.io/klog/v2 v2.120.1 // indirect
 	k8s.io/utils v0.0.0-20230726121419-3b25d923346b // indirect
 	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
