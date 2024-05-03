@@ -178,7 +178,7 @@ func (r *Reconciler) getSigstoreKeysFromMirrorFS(ctx context.Context, repository
 		return nil, fmt.Errorf("failed to construct TUF client from mirror: %w", err)
 	}
 
-	return getSigstoreKeysFromTuf(ctx, tufClient)
+	return GetSigstoreKeysFromTuf(ctx, tufClient)
 }
 
 func (r *Reconciler) getSigstoreKeysFromRemote(ctx context.Context, remote *v1alpha1.Remote) (*config.SigstoreKeys, error) {
@@ -186,7 +186,7 @@ func (r *Reconciler) getSigstoreKeysFromRemote(ctx context.Context, remote *v1al
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct TUF client from remote: %w", err)
 	}
-	return getSigstoreKeysFromTuf(ctx, tufClient)
+	return GetSigstoreKeysFromTuf(ctx, tufClient)
 }
 
 // remoteTrustRootEntry removes a TrustRoot entry from a CM. If no entry exists, it's a nop.
@@ -232,7 +232,7 @@ type sigstoreCustomMetadata struct {
 // getSigstoreKeysFromTuf returns the sigstore keys from the TUF client. Note
 // that this should really be exposed from the sigstore/sigstore TUF pkg, but
 // is currently not.
-func getSigstoreKeysFromTuf(ctx context.Context, tufClient *client.Client) (*config.SigstoreKeys, error) {
+func GetSigstoreKeysFromTuf(ctx context.Context, tufClient *client.Client) (*config.SigstoreKeys, error) {
 	targets, err := tufClient.Targets()
 	if err != nil {
 		return nil, fmt.Errorf("error getting targets: %w", err)
