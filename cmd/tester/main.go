@@ -155,7 +155,7 @@ func main() {
 			log.Fatal(err)
 		}
 
-		keys, err := GetSigstoreKeysFromTrustRoot(ctx, tr)
+		keys, err := GetKeysFromTrustRoot(ctx, tr)
 		if err != nil {
 			log.Fatal(err)
 		}

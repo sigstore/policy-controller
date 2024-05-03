@@ -25,7 +25,7 @@ import (
 	"github.com/sigstore/policy-controller/pkg/tuf"
 )
 
-func GetSigstoreKeysFromTrustRoot(ctx context.Context, tr *v1alpha1.TrustRoot) (*config.SigstoreKeys, error) {
+func GetKeysFromTrustRoot(ctx context.Context, tr *v1alpha1.TrustRoot) (*config.SigstoreKeys, error) {
 	if tr.Spec.Remote != nil {
 		mirror := tr.Spec.Remote.Mirror.String()
 		client, err := tuf.ClientFromRemote(context.Background(), mirror, tr.Spec.Remote.Root, tr.Spec.Remote.Targets)
