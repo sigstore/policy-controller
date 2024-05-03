@@ -18,21 +18,14 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
 
 	"github.com/sigstore/policy-controller/pkg/apis/config"
 	"github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
 	"github.com/sigstore/policy-controller/pkg/reconciler/trustroot"
 	"github.com/sigstore/policy-controller/pkg/tuf"
-	"sigs.k8s.io/yaml"
 )
 
-func GetTrustRoot(raw []byte) (*config.SigstoreKeys, error) {
-	tr := &v1alpha1.TrustRoot{}
-	if err := yaml.Unmarshal(raw, tr); err != nil {
-		log.Fatal(err)
-	}
-
+func GetSigstoreKeysFromTrustRoot(ctx context.Context, tr *v1alpha1.TrustRoot) (*config.SigstoreKeys, error) {
 	if tr.Spec.Remote != nil {
 		mirror := tr.Spec.Remote.Mirror.String()
 		client, err := tuf.ClientFromRemote(context.Background(), mirror, tr.Spec.Remote.Root, tr.Spec.Remote.Targets)
@@ -40,20 +33,16 @@ func GetTrustRoot(raw []byte) (*config.SigstoreKeys, error) {
 			return nil, fmt.Errorf("failed to initialize TUF client from remote: %w", err)
 		}
 
-		return trustroot.GetSigstoreKeysFromTuf(context.TODO(), client)
+		return trustroot.GetSigstoreKeysFromTuf(ctx, client)
 	} else if tr.Spec.Repository != nil {
 		client, err := tuf.ClientFromSerializedMirror(context.Background(), tr.Spec.Repository.MirrorFS, tr.Spec.Repository.Root, tr.Spec.Repository.Targets, v1alpha1.DefaultTUFRepoPrefix)
 		if err != nil {
 			return nil, fmt.Errorf("failed to initialize TUF client from remote: %w", err)
 		}
 
-		return trustroot.GetSigstoreKeysFromTuf(context.TODO(), client)
+		return trustroot.GetSigstoreKeysFromTuf(ctx, client)
 	} else if tr.Spec.SigstoreKeys != nil {
-		c, err := config.ConvertSigstoreKeys(context.Background(), tr.Spec.SigstoreKeys)
-		if err != nil {
-			log.Fatal(err)
-		}
-		return c, nil
+		return config.ConvertSigstoreKeys(context.Background(), tr.Spec.SigstoreKeys)
 	}
-	return nil, fmt.Errorf("provided trust root configuration is invalid")
+	return nil, fmt.Errorf("provided trust root configuration is not supported")
 }
