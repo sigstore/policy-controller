@@ -26,22 +26,22 @@ import (
 )
 
 func GetKeysFromTrustRoot(ctx context.Context, tr *v1alpha1.TrustRoot) (*config.SigstoreKeys, error) {
-	if tr.Spec.Remote != nil {
+	switch {
+	case tr.Spec.Remote != nil:
 		mirror := tr.Spec.Remote.Mirror.String()
 		client, err := tuf.ClientFromRemote(context.Background(), mirror, tr.Spec.Remote.Root, tr.Spec.Remote.Targets)
 		if err != nil {
 			return nil, fmt.Errorf("failed to initialize TUF client from remote: %w", err)
 		}
-
 		return trustroot.GetSigstoreKeysFromTuf(ctx, client)
-	} else if tr.Spec.Repository != nil {
+	case tr.Spec.Repository != nil:
 		client, err := tuf.ClientFromSerializedMirror(context.Background(), tr.Spec.Repository.MirrorFS, tr.Spec.Repository.Root, tr.Spec.Repository.Targets, v1alpha1.DefaultTUFRepoPrefix)
 		if err != nil {
 			return nil, fmt.Errorf("failed to initialize TUF client from remote: %w", err)
 		}
 
 		return trustroot.GetSigstoreKeysFromTuf(ctx, client)
-	} else if tr.Spec.SigstoreKeys != nil {
+	case tr.Spec.SigstoreKeys != nil:
 		return config.ConvertSigstoreKeys(context.Background(), tr.Spec.SigstoreKeys)
 	}
 	return nil, fmt.Errorf("provided trust root configuration is not supported")
