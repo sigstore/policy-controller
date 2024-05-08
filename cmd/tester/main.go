@@ -149,18 +149,20 @@ func main() {
 		if err != nil {
 			log.Fatal(err)
 		}
+
 		tr := &v1alpha1.TrustRoot{}
 		if err := yaml.Unmarshal(raw, tr); err != nil {
 			log.Fatal(err)
 		}
 
-		c, err := config.ConvertSigstoreKeys(context.Background(), tr.Spec.SigstoreKeys)
+		keys, err := GetKeysFromTrustRoot(ctx, tr)
 		if err != nil {
 			log.Fatal(err)
 		}
+
 		maps := make(map[string]*config.SigstoreKeys, 0)
 
-		maps[tr.Name] = c
+		maps[tr.Name] = keys
 		configCtx.SigstoreKeysConfig = &config.SigstoreKeysMap{SigstoreKeys: maps}
 
 		ctx = config.ToContext(ctx, configCtx)
