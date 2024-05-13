@@ -7,6 +7,7 @@ import (
 	ecr "github.com/awslabs/amazon-ecr-credential-helper/ecr-login"
 	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/authn/k8schain"
+	kauth "github.com/google/go-containerregistry/pkg/authn/kubernetes"
 	"github.com/google/go-containerregistry/pkg/v1/google"
 	"github.com/sigstore/policy-controller/pkg/webhook/registryauth/azure"
 	"k8s.io/client-go/kubernetes"
