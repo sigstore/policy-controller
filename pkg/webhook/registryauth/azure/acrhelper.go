@@ -41,7 +41,7 @@ func (a ACRHelper) Delete(_ string) error {
 func (a ACRHelper) Get(_ string) (string, string, error) {
 	azCred, err := azidentity.NewDefaultAzureCredential(nil)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to obtain a credential: %v", err)
+		return "", "", fmt.Errorf("failed to obtain a credential: %w", err)
 	}
 
 	opts := policy.TokenRequestOptions{
@@ -49,7 +49,7 @@ func (a ACRHelper) Get(_ string) (string, string, error) {
 	}
 	token, err := azCred.GetToken(context.Background(), opts)
 	if err != nil {
-		return "", "", fmt.Errorf("failed to get token: %v", err)
+		return "", "", fmt.Errorf("failed to get token: %w", err)
 	}
 
 	return token.Token, "", nil
