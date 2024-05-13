@@ -31,7 +31,7 @@ import (
 var amazonKeychain authn.Keychain = authn.NewKeychainFromHelper(ecr.NewECRHelper(ecr.WithLogger(io.Discard)))
 
 func K8sChainWithCustomACRHelper(ctx context.Context, client kubernetes.Interface, opt k8schain.Options) (authn.Keychain, error) {
-	k8s, err := kauth.New(ctx, client, kauth.Options(opt))
+	k8s, err := kauth.New(ctx, client, opt)
 	if err != nil {
 		return nil, err
 	}
