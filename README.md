@@ -73,7 +73,7 @@ do not include the `registry-url` flag when calling the CLI. It will default to 
 
 ## Using Policy Controller with Azure Container Registry (ACR)
 
-To allow the webhook to make requests to ACR, you must use one of the following 
+To allow the webhook to make requests to ACR, you must use one of the following
 methods to authenticate:
 
 1. Managed identities (used with AKS clusters)
@@ -84,13 +84,12 @@ See the [official documentation](https://learn.microsoft.com/en-us/azure/contain
 
 ### Managed Identities for AKS Clusters
 
-See the [official documentation](https://learn.microsoft.com/en-us/azure/aks/cluster-container-registry-integration?toc=%2Fazure%2Fcontainer-registry%2Ftoc.json&bc=%2Fazure%2Fcontainer-registry%2Fbreadcrumb%2Ftoc.json&tabs=azure-cli) for 
-more details.
+See the [official documentation](https://learn.microsoft.com/en-us/azure/aks/cluster-container-registry-integration?toc=%2Fazure%2Fcontainer-registry%2Ftoc.json&bc=%2Fazure%2Fcontainer-registry%2Fbreadcrumb%2Ftoc.json&tabs=azure-cli) for more details.
 
 1. You must enable managed identities for the cluster using the `--enable-managed-identities` flag with either the `az aks create` or `az aks update` commands
-1. You must attach the ACR to the AKS cluster using the `--attach-acr` with either 
+1. You must attach the ACR to the AKS cluster using the `--attach-acr` with either
 the `az aks create` or `az aks update` commands. See [here](https://learn.microsoft.com/en-us/azure/aks/cluster-container-registry-integration?toc=%2Fazure%2Fcontainer-registry%2Ftoc.json&bc=%2Fazure%2Fcontainer-registry%2Fbreadcrumb%2Ftoc.json&tabs=azure-cli#create-a-new-aks-cluster-and-integrate-with-an-existing-acr) for more details
-1. You must set the `AZ_CLIENT_ID` environment variable to the managed identity's client ID. 
+1. You must set the `AZ_CLIENT_ID` environment variable to the managed identity's client ID.
 This will detected by the Azure credential manager
 
 ## Support Policy
