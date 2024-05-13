@@ -1,23 +1,14 @@
-package azureauth
+package azure
 
 import (
 	"context"
 	"fmt"
-	"io"
 	"log"
 
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
-	ecr "github.com/awslabs/amazon-ecr-credential-helper/ecr-login"
 	"github.com/docker/docker-credential-helpers/credentials"
-	"github.com/google/go-containerregistry/pkg/authn"
-	"github.com/google/go-containerregistry/pkg/authn/k8schain"
-	kauth "github.com/google/go-containerregistry/pkg/authn/kubernetes"
-	"github.com/google/go-containerregistry/pkg/v1/google"
-	"k8s.io/client-go/kubernetes"
 )
-
-var amazonKeychain authn.Keychain = authn.NewKeychainFromHelper(ecr.NewECRHelper(ecr.WithLogger(io.Discard)))
 
 type managedIdentityCreds struct {
 	ClientID string
@@ -33,22 +24,6 @@ func (c *CustomAzureAuthConfig) UseManagedIdentity() bool {
 
 func (c *CustomAzureAuthConfig) GetManagedIdentityClientID() string {
 	return c.ManagedIdentity.ClientID
-}
-
-func K8sChainWithCustomAzureCreds(ctx context.Context, client kubernetes.Interface, opt k8schain.Options, config CustomAzureAuthConfig) (authn.Keychain, error) {
-	k8s, err := kauth.New(ctx, client, kauth.Options(opt))
-	if err != nil {
-		return nil, err
-	}
-
-	return authn.NewMultiKeychain(
-		k8s,
-		authn.DefaultKeychain,
-		google.Keychain,
-		amazonKeychain,
-		authn.NewKeychainFromHelper(NewACRHelper(config)),
-	), nil
-
 }
 
 type ACRHelper struct {
