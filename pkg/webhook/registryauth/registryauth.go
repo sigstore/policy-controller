@@ -15,7 +15,7 @@ import (
 
 var amazonKeychain authn.Keychain = authn.NewKeychainFromHelper(ecr.NewECRHelper(ecr.WithLogger(io.Discard)))
 
-func K8sChainWithCustomAzureCreds(ctx context.Context, client kubernetes.Interface, opt k8schain.Options, config azure.CustomAzureAuthConfig) (authn.Keychain, error) {
+func K8sChainWithCustomACRHelper(ctx context.Context, client kubernetes.Interface, opt k8schain.Options) (authn.Keychain, error) {
 	k8s, err := kauth.New(ctx, client, kauth.Options(opt))
 	if err != nil {
 		return nil, err
@@ -26,6 +26,6 @@ func K8sChainWithCustomAzureCreds(ctx context.Context, client kubernetes.Interfa
 		authn.DefaultKeychain,
 		google.Keychain,
 		amazonKeychain,
-		authn.NewKeychainFromHelper(azure.NewACRHelper(config)),
+		authn.NewKeychainFromHelper(azure.NewACRHelper()),
 	), nil
 }
