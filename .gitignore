@@ -30,6 +30,7 @@ policyControllerImagerefs
 
 **verify-experimental*
 
+policy-controller
 policy-tester
 
 # Vim

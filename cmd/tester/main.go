@@ -39,16 +39,52 @@ import (
 	"github.com/sigstore/policy-controller/pkg/webhook"
 )
 
-var (
-	ctx = logging.WithLogger(context.Background(), func() *zap.SugaredLogger {
-		x, _ := zap.NewDevelopmentConfig().Build()
-		return x.Sugar()
-	}())
-)
-
 type output struct {
 	Errors   []string `json:"errors,omitempty"`
 	Warnings []string `json:"warnings,omitempty"`
+}
+
+type LogLevel string
+
+const (
+	LevelDebug LogLevel = "debug"
+	LevelInfo  LogLevel = "info"
+	LevelWarn  LogLevel = "warn"
+	LevelError LogLevel = "error"
+)
+
+func getSugaredLogger(value string) (*zap.SugaredLogger, error) {
+	ll := LogLevel(value)
+	switch ll {
+	case LevelDebug, LevelInfo, LevelWarn, LevelError:
+		return setSugaredLogger(ll)
+	default:
+		return nil, fmt.Errorf("invalid log level")
+	}
+}
+
+func setSugaredLogger(logLevel LogLevel) (*zap.SugaredLogger, error) {
+	cfg := zap.NewDevelopmentConfig()
+	switch logLevel {
+	case LevelDebug:
+		cfg.Level.SetLevel(zap.DebugLevel)
+	case LevelInfo:
+		cfg.Level.SetLevel(zap.InfoLevel)
+	case LevelWarn:
+		cfg = zap.NewProductionConfig()
+		cfg.Level.SetLevel(zap.WarnLevel)
+	case LevelError:
+		cfg = zap.NewProductionConfig()
+		cfg.Level.SetLevel(zap.ErrorLevel)
+	default:
+		panic("invalid log level")
+	}
+
+	logger, err := cfg.Build()
+	if err != nil {
+		return nil, fmt.Errorf("failed to build logger: %w", err)
+	}
+	return logger.Sugar(), nil
 }
 
 func main() {
@@ -57,7 +93,16 @@ func main() {
 	image := flag.String("image", "", "image to compare against policy")
 	resourceFilePath := flag.String("resource", "", "path to a kubernetes resource to use with includeSpec, includeObjectMeta")
 	trustRootFilePath := flag.String("trustroot", "", "path to a kubernetes TrustRoot resource to use with the ClusterImagePolicy")
+	logLevelStr := flag.String("log-level", "info", "configure the tool's log level (debug, info, warn, error)")
 	flag.Parse()
+
+	logger, err := getSugaredLogger(*logLevelStr)
+	if err != nil {
+		flag.Usage()
+		os.Exit(1)
+	}
+
+	ctx := logging.WithLogger(context.Background(), logger)
 
 	if *versionFlag {
 		v := version.GetVersionInfo()
@@ -82,6 +127,8 @@ func main() {
 		})
 	}
 
+	logging.FromContext(ctx).Infof("Validating policy\n")
+
 	v := policy.Verification{
 		NoMatchPolicy: "deny",
 		Policies:      &pols,
@@ -97,6 +144,8 @@ func main() {
 		}
 	}
 
+	logging.FromContext(ctx).Infof("Policy was successfully validated\n")
+
 	ref, err := name.ParseReference(*image)
 	if err != nil {
 		log.Fatal(err)
@@ -111,6 +160,8 @@ func main() {
 	}
 
 	if *resourceFilePath != "" {
+		logging.FromContext(ctx).Infof("Parsing the provided Kubernetes resource\n")
+
 		raw, err := os.ReadFile(*resourceFilePath)
 		if err != nil {
 			log.Fatal(err)
@@ -141,9 +192,13 @@ func main() {
 		typeMeta["kind"] = kind
 		typeMeta["apiVersion"] = apiVersion
 		ctx = webhook.IncludeTypeMeta(ctx, typeMeta)
+
+		logging.FromContext(ctx).Infof("The Kuberentes resource will be used with includeSpec\n")
 	}
 
 	if *trustRootFilePath != "" {
+		logging.FromContext(ctx).Infof("Parsing the custom trust root\n")
+
 		configCtx := config.FromContextOrDefaults(ctx)
 		raw, err := os.ReadFile(*trustRootFilePath)
 		if err != nil {
@@ -166,24 +221,31 @@ func main() {
 		configCtx.SigstoreKeysConfig = &config.SigstoreKeysMap{SigstoreKeys: maps}
 
 		ctx = config.ToContext(ctx, configCtx)
+
+		logging.FromContext(ctx).Infof("The custom trust root has been successfully added\n")
 	}
+
+	logging.FromContext(ctx).Infof("Verifying the provided image against the policy\n")
 
 	errStrings := []string{}
 	if err := vfy.Verify(ctx, ref, authn.DefaultKeychain); err != nil {
 		errStrings = append(errStrings, strings.Trim(err.Error(), "\n"))
 	}
 
-	var o []byte
-	o, err = json.Marshal(&output{
-		Errors:   errStrings,
-		Warnings: warningStrings,
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
+	if len(errStrings) != 0 {
+		logging.FromContext(ctx).Infof("Errors encountered during verification\n")
 
-	fmt.Println(string(o))
-	if len(errStrings) > 0 {
+		var o []byte
+		o, err = json.Marshal(&output{
+			Errors:   errStrings,
+			Warnings: warningStrings,
+		})
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		fmt.Println(string(o))
 		os.Exit(1)
 	}
+	logging.FromContext(ctx).Infof("Verification was successful!\n")
 }
