@@ -253,7 +253,7 @@ func (a *Authority) SourceSignaturePullSecretsOpts(ctx context.Context, namespac
 				ImagePullSecrets:   signaturePullSecrets,
 			}
 
-			kc, err := registryauth.K8sChainWithCustomACRHelper(ctx, kubeclient.Get(ctx), opt)
+			kc, err := registryauth.NewK8sKeychain(ctx, kubeclient.Get(ctx), opt)
 			if err != nil {
 				logging.FromContext(ctx).Errorf("failed creating keychain: %+v", err)
 				return nil, err

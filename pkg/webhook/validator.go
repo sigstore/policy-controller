@@ -255,7 +255,7 @@ func (v *Validator) ValidateCronJob(ctx context.Context, c *duckv1.CronJob) *api
 }
 
 func (v *Validator) validatePodSpec(ctx context.Context, namespace, kind, apiVersion string, labels map[string]string, ps *corev1.PodSpec, opt k8schain.Options) (errs *apis.FieldError) {
-	kc, err := registryauth.K8sChainWithCustomACRHelper(ctx, kubeclient.Get(ctx), opt)
+	kc, err := registryauth.NewK8sKeychain(ctx, kubeclient.Get(ctx), opt)
 	if err != nil {
 		logging.FromContext(ctx).Warnf("Unable to build k8schain: %v", err)
 		return apis.ErrGeneric(err.Error(), apis.CurrentField)
@@ -1053,7 +1053,7 @@ func (v *Validator) ResolveCronJob(ctx context.Context, c *duckv1.CronJob) {
 var remoteResolveDigest = ociremote.ResolveDigest
 
 func (v *Validator) resolvePodSpec(ctx context.Context, ps *corev1.PodSpec, opt k8schain.Options) {
-	kc, err := registryauth.K8sChainWithCustomACRHelper(ctx, kubeclient.Get(ctx), opt)
+	kc, err := registryauth.NewK8sKeychain(ctx, kubeclient.Get(ctx), opt)
 	if err != nil {
 		logging.FromContext(ctx).Warnf("Unable to build k8schain: %v", err)
 		return

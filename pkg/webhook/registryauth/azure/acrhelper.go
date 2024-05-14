@@ -44,6 +44,8 @@ func (a ACRHelper) Get(_ string) (string, string, error) {
 		return "", "", fmt.Errorf("failed to obtain a credential: %w", err)
 	}
 
+	// We need to set the desired token policy to https://management.azure.com
+	// to get a token that can be used to authenticate to the Azure Container Registry.
 	opts := policy.TokenRequestOptions{
 		Scopes: []string{"https://management.azure.com/.default"},
 	}
