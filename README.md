@@ -92,6 +92,12 @@ the `az aks create` or `az aks update` commands. See [here](https://learn.micros
 1. You must set the `AZ_CLIENT_ID` environment variable to the managed identity's client ID.
 This will detected by the Azure credential manager
 
+When you create a cluster that has managed identities enabled,
+a user assigned managed identity called
+`<AKS cluster name>-agentpool`. Use this identity's client ID
+when setting `AZ_CLIENT_ID`. Make sure the ACR is attached to
+your cluster.
+
 ## Support Policy
 
 This policy-controller's versions are able to run in the following versions of Kubernetes:
