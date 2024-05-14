@@ -98,9 +98,40 @@ a user assigned managed identity called
 when setting `AZ_CLIENT_ID`. Make sure the ACR is attached to
 your cluster.
 
-If you are deploying policy-controller directly from this repository, you will
-need to add `AZ_CLIENT_ID` to the list of environment variables in the
+#### Installing Policy Controller from this repository
+
+If you are deploying policy-controller directly from this repository with
+`make ko-apply`, you will need to add `AZ_CLIENT_ID` to the list of environment
+variables in the [webhook deployment configuration](config/webhook.yaml).
+
+#### Installing Policy Controller from the Helm chart
+
+You can provide the managed identity's client ID as a custom environment
+variable when installing the Helm chart:
+
+```bash
+helm upgrade --install policy-controller sigstore/policy-controller --version 0.9.0 \
+--set webhook.env.AZ_CLIENT_ID=my-managed-id-client-id
+```
+
+### Service Principals for AKS Clusters
+
+#### Installing Policy Controller from this repository
+
+If you are deploying policy-controller directly from this repository with
+`make ko-apply`, you will need to add `AZ_CLIENT_ID` and `AZURE_TENANT_ID` to
+the list of environment variables in the
 [webhook deployment configuration](config/webhook.yaml).
+
+#### Installing Policy Controller from the Helm chart
+
+You should be able to provide the service principal client ID and tenant ID
+as a workload identity annotations:
+
+```bash
+helm upgrade --install policy-controller sigstore/policy-controller --version 0.9.0 \
+--set-json webhook.serviceAccount.annotations="{\"azure.workload.identity/client-id\": \"${SERVICE_PRINCIPAL_CLIENT_ID}\", \"azure.workload.identity/tenant-id\": \"${TENANT_ID}\"}"
+```
 
 ## Support Policy
 
