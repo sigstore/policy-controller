@@ -28,6 +28,20 @@ import (
 	"k8s.io/client-go/kubernetes"
 )
 
+/*
+This file is based the K8s auth key chain constructor defined in the
+go-containerregistry library in
+https://github.com/google/go-containerregistry/blob/ff385a972813c79bbd5fc89357ff2cefe3e5b43c/pkg/authn/k8schain/k8schain.go
+
+The ony difference in this implementation is the Azure key chain. It is created
+using the current Azure credential handler defined in github.com/Azure/azure-sdk-for-go/sdk/azidentity.
+
+The K8s auth key chain constructor in go-containerregistry uses an old Azure credential handler.
+We should eventually try to get the Azure credential handler updated upstream in
+go-containerregistry and remove this file. But for now, this custom constructor
+should fix authentication errors encountered when using the policy controller
+with ACR and AKS clusters.
+*/
 var amazonKeychain authn.Keychain = authn.NewKeychainFromHelper(ecr.NewECRHelper(ecr.WithLogger(io.Discard)))
 
 func K8sChainWithCustomACRHelper(ctx context.Context, client kubernetes.Interface, opt k8schain.Options) (authn.Keychain, error) {
