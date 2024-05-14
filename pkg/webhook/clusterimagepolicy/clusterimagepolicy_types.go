@@ -27,6 +27,7 @@ import (
 	ociremote "github.com/sigstore/cosign/v2/pkg/oci/remote"
 	"github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
 	signaturealgo "github.com/sigstore/policy-controller/pkg/apis/signaturealgo"
+	"github.com/sigstore/policy-controller/pkg/webhook/registryauth"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"k8s.io/apimachinery/pkg/types"
 	"knative.dev/pkg/apis"
@@ -252,7 +253,7 @@ func (a *Authority) SourceSignaturePullSecretsOpts(ctx context.Context, namespac
 				ImagePullSecrets:   signaturePullSecrets,
 			}
 
-			kc, err := k8schain.New(ctx, kubeclient.Get(ctx), opt)
+			kc, err := registryauth.K8sChainWithCustomACRHelper(ctx, kubeclient.Get(ctx), opt)
 			if err != nil {
 				logging.FromContext(ctx).Errorf("failed creating keychain: %+v", err)
 				return nil, err
