@@ -98,6 +98,10 @@ a user assigned managed identity called
 when setting `AZ_CLIENT_ID`. Make sure the ACR is attached to
 your cluster.
 
+If you are deploying policy-controller directly from this repository, you will
+need to add `AZ_CLIENT_ID` to the list of environment variables in the
+[webhook deployment configuration](config/webhook.yaml).
+
 ## Support Policy
 
 This policy-controller's versions are able to run in the following versions of Kubernetes:
