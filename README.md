@@ -77,9 +77,12 @@ This policy-controller's versions are able to run in the following versions of K
 
 |  | policy-controller `> 0.2.x` |
 |---|:---:|
-| Kubernetes 1.23 | ✓ |
-| Kubernetes 1.24 | ✓ |
 | Kubernetes 1.25 | ✓ |
+| Kubernetes 1.26 | ✓ |
+| Kubernetes 1.27 | ✓ |
+| Kubernetes 1.28 | ✓ |
+| Kubernetes 1.29 | ✓ |
+| Kubernetes 1.30 | ✓ |
 
 note: not fully tested yet, but can be installed
 
