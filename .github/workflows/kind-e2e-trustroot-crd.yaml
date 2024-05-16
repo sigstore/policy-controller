@@ -34,7 +34,6 @@ jobs:
         - v1.27.x
         - v1.28.x
         - v1.29.x
-        - v1.30.x
 
     env:
       # https://github.com/google/go-containerregistry/pull/125 allows insecure registry for
