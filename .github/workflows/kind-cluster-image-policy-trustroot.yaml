@@ -33,8 +33,6 @@ jobs:
       fail-fast: false # Keep running if one leg fails.
       matrix:
         k8s-version:
-          - v1.25.x
-          - v1.26.x
           - v1.27.x
           - v1.28.x
           - v1.29.x
@@ -46,7 +44,7 @@ jobs:
 
     env:
       KO_DOCKER_REPO: "registry.local:5000/policy-controller"
-      SCAFFOLDING_RELEASE_VERSION: "v0.6.17"
+      SCAFFOLDING_RELEASE_VERSION: "v0.7.1"
       GO111MODULE: on
       GOFLAGS: -ldflags=-s -ldflags=-w
       KOCACHE: ~/ko
