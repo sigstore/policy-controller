@@ -18,6 +18,7 @@ package azure
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"os"
 
 	"github.com/Azure/azure-sdk-for-go/profiles/preview/preview/containerregistry/runtime/containerregistry"
@@ -40,7 +41,7 @@ func (a ACRHelper) Delete(_ string) error {
 	return fmt.Errorf("delete is unimplemented")
 }
 
-func (a ACRHelper) Get(_ string) (string, string, error) {
+func (a ACRHelper) Get(registryURL string) (string, string, error) {
 	azCred, err := azidentity.NewDefaultAzureCredential(nil)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to obtain a credential: %w", err)
@@ -56,22 +57,18 @@ func (a ACRHelper) Get(_ string) (string, string, error) {
 		return "", "", fmt.Errorf("failed to get token: %w", err)
 	}
 
-	acrName := os.Getenv("ACR_NAME")
-	if acrName == "" {
-		return "", "", fmt.Errorf("ACR_NAME environment variable not found")
+	registryWithScheme, err := url.Parse(fmt.Sprintf("https://%s", registryURL))
+	if err != nil {
+		return "", "", fmt.Errorf("failed to parse registry URL: %w", err)
 	}
-
-	acrDomain := fmt.Sprintf("%s.azurecr.io", acrName)
-
-	acrDomainWithScheme := fmt.Sprintf("https://%s.azurecr.io", acrName)
 
 	tenantID := os.Getenv("AZURE_TENANT_ID")
 	if tenantID == "" {
 		return "", "", fmt.Errorf("AZURE_TENANT_ID environment variable not found")
 	}
 
-	repoClient := containerregistry.NewRefreshTokensClient(acrDomainWithScheme)
-	refreshToken, err := repoClient.GetFromExchange(context.Background(), "access_token", acrDomain, tenantID, "", accessToken.Token)
+	repoClient := containerregistry.NewRefreshTokensClient(registryWithScheme.String())
+	refreshToken, err := repoClient.GetFromExchange(context.Background(), "access_token", registryURL, tenantID, "", accessToken.Token)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to get refresh token: %w", err)
 	}
