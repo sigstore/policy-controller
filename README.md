@@ -75,11 +75,14 @@ do not include the `registry-url` flag when calling the CLI. It will default to 
 
 This policy-controller's versions are able to run in the following versions of Kubernetes:
 
-|  | policy-controller `> 0.2.x` |
-|---|:---:|
-| Kubernetes 1.27 | ✓ |
-| Kubernetes 1.28 | ✓ |
-| Kubernetes 1.29 | ✓ |
+|  | policy-controller `> 0.2.x` | policy-controller `> 0.10.x` |
+|---|:---:|:---:|
+| Kubernetes 1.23 | ✓ |   |
+| Kubernetes 1.24 | ✓ |   |
+| Kubernetes 1.25 | ✓ |   |
+| Kubernetes 1.27 |   | ✓ |
+| Kubernetes 1.28 |   | ✓ |
+| Kubernetes 1.29 |   | ✓ |
 
 note: not fully tested yet, but can be installed
 
