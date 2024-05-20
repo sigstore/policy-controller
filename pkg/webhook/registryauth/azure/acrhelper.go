@@ -18,7 +18,9 @@ package azure
 import (
 	"context"
 	"fmt"
+	"os"
 
+	"github.com/Azure/azure-sdk-for-go/profiles/preview/preview/containerregistry/runtime/containerregistry"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
 	"github.com/Azure/azure-sdk-for-go/sdk/azidentity"
 	"github.com/docker/docker-credential-helpers/credentials"
@@ -47,14 +49,36 @@ func (a ACRHelper) Get(_ string) (string, string, error) {
 	// We need to set the desired token policy to https://management.azure.com
 	// to get a token that can be used to authenticate to the Azure Container Registry.
 	opts := policy.TokenRequestOptions{
-		Scopes: []string{"https://management.azure.com"},
+		Scopes: []string{"https://management.azure.com/.default"},
 	}
-	token, err := azCred.GetToken(context.Background(), opts)
+	accessToken, err := azCred.GetToken(context.Background(), opts)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to get token: %w", err)
 	}
 
-	return token.Token, "", nil
+	acrName := os.Getenv("ACR_NAME")
+	if acrName == "" {
+		return "", "", fmt.Errorf("ACR_NAME environment variable not found")
+	}
+
+	acrDomain := fmt.Sprintf("%s.azurecr.io", acrName)
+
+	acrDomainWithScheme := fmt.Sprintf("https://%s.azurecr.io", acrName)
+
+	tenantID := os.Getenv("AZURE_TENANT_ID")
+	if tenantID == "" {
+		return "", "", fmt.Errorf("AZURE_TENANT_ID environment variable not found")
+	}
+
+	repoClient := containerregistry.NewRefreshTokensClient(acrDomainWithScheme)
+	refreshToken, err := repoClient.GetFromExchange(context.Background(), "access_token", acrDomain, tenantID, "", accessToken.Token)
+	if err != nil {
+		return "", "", fmt.Errorf("failed to get refresh token: %w", err)
+	}
+
+	// we use a special username when authenticating with ACR using an access token
+	// associated with a managed identity
+	return "00000000-0000-0000-0000-000000000000", *refreshToken.RefreshToken, nil
 }
 
 func (a ACRHelper) List() (map[string]string, error) {
