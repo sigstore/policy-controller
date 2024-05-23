@@ -89,19 +89,23 @@ See the [official documentation](https://learn.microsoft.com/en-us/azure/aks/clu
 1. You must enable managed identities for the cluster using the `--enable-managed-identities` flag with either the `az aks create` or `az aks update` commands
 1. You must attach the ACR to the AKS cluster using the `--attach-acr` with either
 the `az aks create` or `az aks update` commands. See [here](https://learn.microsoft.com/en-us/azure/aks/cluster-container-registry-integration?toc=%2Fazure%2Fcontainer-registry%2Ftoc.json&bc=%2Fazure%2Fcontainer-registry%2Fbreadcrumb%2Ftoc.json&tabs=azure-cli#create-a-new-aks-cluster-and-integrate-with-an-existing-acr) for more details
-1. You must set the `AZ_CLIENT_ID` environment variable to the managed identity's client ID.
-This will detected by the Azure credential manager
+1. You must set the `AZURE_CLIENT_ID` environment variable to the managed identity's client ID.
+1. You must set the `AZURE_TENANT_ID` environment
+variable to the Azure tenant the managed identity
+resides in.
+
+These will detected by the Azure credential manager.
 
 When you create a cluster that has managed identities enabled,
 a user assigned managed identity called
 `<AKS cluster name>-agentpool`. Use this identity's client ID
-when setting `AZ_CLIENT_ID`. Make sure the ACR is attached to
+when setting `AZURE_CLIENT_ID`. Make sure the ACR is attached to
 your cluster.
 
 #### Installing Policy Controller from this repository
 
 If you are deploying policy-controller directly from this repository with
-`make ko-apply`, you will need to add `AZ_CLIENT_ID` to the list of environment
+`make ko-apply`, you will need to add `AZURE_CLIENT_ID` and `AZURE_TENANT_ID` to the list of environment
 variables in the [webhook deployment configuration](config/webhook.yaml).
 
 #### Installing Policy Controller from the Helm chart
@@ -110,8 +114,8 @@ You can provide the managed identity's client ID as a custom environment
 variable when installing the Helm chart:
 
 ```bash
-helm upgrade --install policy-controller sigstore/policy-controller --version 0.9.0 \
---set webhook.env.AZ_CLIENT_ID=my-managed-id-client-id
+helm install policy-controller sigstore/policy-controller --version 0.9.0 \
+--set webhook.env.AZURE_CLIENT_ID=my-managed-id-client-id,webhook.env.AZURE_TENANT_ID=tenant-id
 ```
 
 ### Service Principals for AKS Clusters
@@ -119,7 +123,7 @@ helm upgrade --install policy-controller sigstore/policy-controller --version 0.
 #### Installing Policy Controller from this repository
 
 If you are deploying policy-controller directly from this repository with
-`make ko-apply`, you will need to add `AZ_CLIENT_ID` and `AZURE_TENANT_ID` to
+`make ko-apply`, you will need to add `AZURE_CLIENT_ID` and `AZURE_TENANT_ID` to
 the list of environment variables in the
 [webhook deployment configuration](config/webhook.yaml).
 
