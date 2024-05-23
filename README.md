@@ -102,7 +102,7 @@ a user assigned managed identity called
 when setting `AZURE_CLIENT_ID`. Make sure the ACR is attached to
 your cluster.
 
-#### Installing Policy Controller from this repository
+#### Installing Policy Controller locally from this repository
 
 If you are deploying policy-controller directly from this repository with
 `make ko-apply`, you will need to add `AZURE_CLIENT_ID` and `AZURE_TENANT_ID` to the list of environment
@@ -119,13 +119,6 @@ helm install policy-controller sigstore/policy-controller --version 0.9.0 \
 ```
 
 ### Service Principals for AKS Clusters
-
-#### Installing Policy Controller from this repository
-
-If you are deploying policy-controller directly from this repository with
-`make ko-apply`, you will need to add `AZURE_CLIENT_ID` and `AZURE_TENANT_ID` to
-the list of environment variables in the
-[webhook deployment configuration](config/webhook.yaml).
 
 #### Installing Policy Controller from the Helm chart
 
