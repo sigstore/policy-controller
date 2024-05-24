@@ -42,6 +42,7 @@ import (
 	policyduckv1beta1 "github.com/sigstore/policy-controller/pkg/apis/duck/v1beta1"
 	policycontrollerconfig "github.com/sigstore/policy-controller/pkg/config"
 	webhookcip "github.com/sigstore/policy-controller/pkg/webhook/clusterimagepolicy"
+	"github.com/sigstore/policy-controller/pkg/webhook/registryauth"
 	rekor "github.com/sigstore/rekor/pkg/client"
 	"github.com/sigstore/rekor/pkg/generated/client"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
@@ -254,7 +255,7 @@ func (v *Validator) ValidateCronJob(ctx context.Context, c *duckv1.CronJob) *api
 }
 
 func (v *Validator) validatePodSpec(ctx context.Context, namespace, kind, apiVersion string, labels map[string]string, ps *corev1.PodSpec, opt k8schain.Options) (errs *apis.FieldError) {
-	kc, err := k8schain.New(ctx, kubeclient.Get(ctx), opt)
+	kc, err := registryauth.NewK8sKeychain(ctx, kubeclient.Get(ctx), opt)
 	if err != nil {
 		logging.FromContext(ctx).Warnf("Unable to build k8schain: %v", err)
 		return apis.ErrGeneric(err.Error(), apis.CurrentField)
@@ -1052,7 +1053,7 @@ func (v *Validator) ResolveCronJob(ctx context.Context, c *duckv1.CronJob) {
 var remoteResolveDigest = ociremote.ResolveDigest
 
 func (v *Validator) resolvePodSpec(ctx context.Context, ps *corev1.PodSpec, opt k8schain.Options) {
-	kc, err := k8schain.New(ctx, kubeclient.Get(ctx), opt)
+	kc, err := registryauth.NewK8sKeychain(ctx, kubeclient.Get(ctx), opt)
 	if err != nil {
 		logging.FromContext(ctx).Warnf("Unable to build k8schain: %v", err)
 		return
