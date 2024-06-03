@@ -66,7 +66,7 @@ func NewController(
 	// ConfigMap but there are no changes to the TrustRoot, it needs
 	// to be synced.
 	grCb := func(obj interface{}) {
-		logging.FromContext(ctx).Info("Doing a global resync on TrustRoot due to ConfigMap changing.")
+		logging.FromContext(ctx).Info("Doing a global resync on TrustRoot due to ConfigMap changing or resync period.")
 		impl.GlobalResync(trustrootInformer.Informer())
 	}
 	// Resync on only ConfigMap changes that pertain to the one I care about.
@@ -79,7 +79,7 @@ func NewController(
 			pkgreconciler.NameFilterFunc(config.SigstoreKeysConfigName)),
 		Handler: controller.HandleAll(grCb),
 	}, FromContextOrDefaults(ctx)); err != nil {
-		logging.FromContext(ctx).Warnf("Failed configMapInformer AddEventHandler() %v", err)
+		logging.FromContext(ctx).Warnf("Failed configMapInformer AddEventHandlerWithResyncPeriod() %v", err)
 	}
 	return impl
 }
