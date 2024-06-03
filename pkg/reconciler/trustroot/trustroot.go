@@ -22,7 +22,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/sigstore/cosign/v2/pkg/cosign"
 	"github.com/sigstore/policy-controller/pkg/apis/config"
@@ -46,11 +45,6 @@ import (
 	"knative.dev/pkg/reconciler"
 	"knative.dev/pkg/system"
 )
-
-type trustRootSnapshot struct {
-	IsRemote        bool
-	lastCacheUpdate time.Time
-}
 
 // Reconciler implements ConfigMap reconciler.
 // TrustRoot resources.
