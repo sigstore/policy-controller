@@ -98,6 +98,10 @@ var (
 	// policyResyncPeriod holds the interval which ClusterImagePolicies will resync
 	// This is essential for triggering a reconcile update for potentially stale KMS authorities.
 	policyResyncPeriod = flag.String("policy-resync-period", "10h", "The resync period for ClusterImagePolicies. The default is 10h.")
+
+	// trustrootResyncPeriod holds the interval which the TrustRoot will resync
+	// This is essential for triggering a reconcile update for potentially stale TUF metadata.
+	trustrootResyncPeriod = flag.String("trustroot-resync-period", "24h", "The resync period for ClusterImagePolicies. The default is 24h.")
 )
 
 func main() {
@@ -130,10 +134,16 @@ func main() {
 		}
 	}
 
-	if duration, err := time.ParseDuration(*policyResyncPeriod); err != nil {
+	if policyResyncDuration, err := time.ParseDuration(*policyResyncPeriod); err != nil {
 		logging.FromContext(ctx).Panicf("Failed to parse --policy-resync-period '%s' : %v", *policyResyncPeriod, err)
 	} else {
-		ctx = clusterimagepolicy.ToContext(ctx, duration)
+		ctx = clusterimagepolicy.ToContext(ctx, policyResyncDuration)
+	}
+
+	if trustrootResyncDuration, err := time.ParseDuration(*trustrootResyncPeriod); err != nil {
+		logging.FromContext(ctx).Panicf("Failed to parse --trustroot-resync-period '%s' : %v", *trustrootResyncPeriod, err)
+	} else {
+		ctx = trustroot.ToContext(ctx, trustrootResyncDuration)
 	}
 
 	// This must match the set of resources we configure in
