@@ -16,6 +16,7 @@ package trustroot
 
 import (
 	"context"
+	"time"
 
 	"k8s.io/client-go/tools/cache"
 	kubeclient "knative.dev/pkg/client/injection/kube/client"
@@ -35,6 +36,8 @@ import (
 // This is what the default finalizer name is, but make it explicit so we can
 // use it in tests as well.
 const FinalizerName = "trustroots.policy.sigstore.dev"
+
+type trustrootResyncPeriodKey struct{}
 
 // NewController creates a Reconciler and returns the result of NewImpl.
 func NewController(
@@ -63,20 +66,34 @@ func NewController(
 	// ConfigMap but there are no changes to the TrustRoot, it needs
 	// to be synced.
 	grCb := func(obj interface{}) {
-		logging.FromContext(ctx).Info("Doing a global resync on TrustRoot due to ConfigMap changing.")
+		logging.FromContext(ctx).Info("Doing a global resync on TrustRoot due to ConfigMap changing or resync period.")
 		impl.GlobalResync(trustrootInformer.Informer())
 	}
 	// Resync on only ConfigMap changes that pertain to the one I care about.
 	// We could also fetch/construct the store and use CM watcher for it, but
 	// since we need a lister for it anyways in the reconciler, just set up
 	// the watch here.
-	if _, err := configMapInformer.Informer().AddEventHandler(cache.FilteringResourceEventHandler{
+	if _, err := configMapInformer.Informer().AddEventHandlerWithResyncPeriod(cache.FilteringResourceEventHandler{
 		FilterFunc: pkgreconciler.ChainFilterFuncs(
 			pkgreconciler.NamespaceFilterFunc(system.Namespace()),
 			pkgreconciler.NameFilterFunc(config.SigstoreKeysConfigName)),
 		Handler: controller.HandleAll(grCb),
-	}); err != nil {
-		logging.FromContext(ctx).Warnf("Failed configMapInformer AddEventHandler() %v", err)
+	}, FromContextOrDefaults(ctx)); err != nil {
+		logging.FromContext(ctx).Warnf("Failed configMapInformer AddEventHandlerWithResyncPeriod() %v", err)
 	}
 	return impl
+}
+
+func ToContext(ctx context.Context, duration time.Duration) context.Context {
+	return context.WithValue(ctx, trustrootResyncPeriodKey{}, duration)
+}
+
+// FromContextOrDefaults returns a stored trustrootResyncPeriod if attached.
+// If not found, it returns a default duration
+func FromContextOrDefaults(ctx context.Context) time.Duration {
+	x, ok := ctx.Value(trustrootResyncPeriodKey{}).(time.Duration)
+	if ok {
+		return x
+	}
+	return controller.DefaultResyncPeriod
 }
