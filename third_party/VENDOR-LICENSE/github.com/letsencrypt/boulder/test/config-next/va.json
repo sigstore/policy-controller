@@ -1,0 +1,73 @@
+{
+	"va": {
+		"userAgent": "boulder",
+		"debugAddr": ":8004",
+		"dnsTries": 3,
+		"dnsProvider": {
+			"dnsAuthority": "consul.service.consul",
+			"srvLookup": {
+				"service": "dns",
+				"domain": "service.consul"
+			}
+		},
+		"dnsTimeout": "1s",
+		"dnsAllowLoopbackAddresses": true,
+		"issuerDomain": "happy-hacker-ca.invalid",
+		"tls": {
+			"caCertfile": "test/grpc-creds/minica.pem",
+			"certFile": "test/grpc-creds/va.boulder/cert.pem",
+			"keyFile": "test/grpc-creds/va.boulder/key.pem"
+		},
+		"grpc": {
+			"maxConnectionAge": "30s",
+			"address": ":9092",
+			"services": {
+				"va.VA": {
+					"clientNames": [
+						"ra.boulder"
+					]
+				},
+				"va.CAA": {
+					"clientNames": [
+						"ra.boulder"
+					]
+				},
+				"grpc.health.v1.Health": {
+					"clientNames": [
+						"health-checker.boulder"
+					]
+				}
+			}
+		},
+		"features": {
+			"EnforceMultiVA": true,
+			"MultiVAFullResults": true,
+			"CAAAfterValidation": true
+		},
+		"remoteVAs": [
+			{
+				"serverAddress": "rva1.service.consul:9097",
+				"timeout": "15s",
+				"hostOverride": "rva1.boulder"
+			},
+			{
+				"serverAddress": "rva1.service.consul:9098",
+				"timeout": "15s",
+				"hostOverride": "rva1.boulder"
+			}
+		],
+		"maxRemoteValidationFailures": 1,
+		"accountURIPrefixes": [
+			"http://boulder.service.consul:4000/acme/reg/",
+			"http://boulder.service.consul:4001/acme/acct/"
+		]
+	},
+	"syslog": {
+		"stdoutlevel": 6,
+		"sysloglevel": 6
+	},
+	"openTelemetry": {
+		"endpoint": "bjaeger:4317",
+		"sampleratio": 1
+	}
+}
