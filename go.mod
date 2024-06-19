@@ -55,7 +55,7 @@ require (
 	sigs.k8s.io/yaml v1.4.0
 )
 
-require github.com/spf13/cobra v1.8.0
+require github.com/spf13/cobra v1.8.1
 
 require (
 	github.com/Azure/azure-sdk-for-go v68.0.0+incompatible
