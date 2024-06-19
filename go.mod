@@ -71,7 +71,7 @@ require (
 	github.com/sigstore/sigstore/pkg/signature/kms/aws v1.8.4
 	github.com/sigstore/sigstore/pkg/signature/kms/azure v1.8.4
 	github.com/sigstore/sigstore/pkg/signature/kms/gcp v1.8.4
-	github.com/sigstore/sigstore/pkg/signature/kms/hashivault v1.8.3
+	github.com/sigstore/sigstore/pkg/signature/kms/hashivault v1.8.4
 	github.com/spf13/viper v1.19.0
 	gopkg.in/go-jose/go-jose.v2 v2.6.3
 )
@@ -161,6 +161,7 @@ require (
 	github.com/fsnotify/fsnotify v1.7.0 // indirect
 	github.com/go-chi/chi v4.1.2+incompatible // indirect
 	github.com/go-ini/ini v1.67.0 // indirect
+	github.com/go-jose/go-jose/v4 v4.0.1 // indirect
 	github.com/go-kit/log v0.2.1 // indirect
 	github.com/go-logfmt/logfmt v0.5.1 // indirect
 	github.com/go-logr/logr v1.4.1 // indirect
@@ -192,7 +193,7 @@ require (
 	github.com/googleapis/gax-go/v2 v2.12.4 // indirect
 	github.com/gorilla/mux v1.8.1 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.19.1 // indirect
-	github.com/hashicorp/vault/api v1.12.2 // indirect
+	github.com/hashicorp/vault/api v1.14.0 // indirect
 	github.com/imdario/mergo v0.3.16 // indirect
 	github.com/in-toto/in-toto-golang v0.9.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect

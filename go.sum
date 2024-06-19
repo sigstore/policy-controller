@@ -526,8 +526,8 @@ github.com/hashicorp/golang-lru v1.0.2 h1:dV3g9Z/unq5DpblPpw+Oqcv4dU/1omnb4Ok8iP
 github.com/hashicorp/golang-lru v1.0.2/go.mod h1:iADmTwqILo4mZ8BN3D2Q6+9jd8WM5uGBxy+E8yxSoD4=
 github.com/hashicorp/hcl v1.0.1-vault-5 h1:kI3hhbbyzr4dldA8UdTb7ZlVVlI2DACdCfz31RPDgJM=
 github.com/hashicorp/hcl v1.0.1-vault-5/go.mod h1:XYhtn6ijBSAj6n4YqAaf7RBPS4I06AItNorpy+MoQNM=
-github.com/hashicorp/vault/api v1.12.2 h1:7YkCTE5Ni90TcmYHDBExdt4WGJxhpzaHqR6uGbQb/rE=
-github.com/hashicorp/vault/api v1.12.2/go.mod h1:LSGf1NGT1BnvFFnKVtnvcaLBM2Lz+gJdpL6HUYed8KE=
+github.com/hashicorp/vault/api v1.14.0 h1:Ah3CFLixD5jmjusOgm8grfN9M0d+Y8fVR2SW0K6pJLU=
+github.com/hashicorp/vault/api v1.14.0/go.mod h1:pV9YLxBGSz+cItFDd8Ii4G17waWOQ32zVjMWHe/cOqk=
 github.com/howeyc/gopass v0.0.0-20210920133722-c8aef6fb66ef h1:A9HsByNhogrvm9cWb28sjiS3i7tcKCkflWFEkHfuAgM=
 github.com/howeyc/gopass v0.0.0-20210920133722-c8aef6fb66ef/go.mod h1:lADxMC39cJJqL93Duh1xhAs4I2Zs8mKS89XWXFGp9cs=
 github.com/hpcloud/tail v1.0.0/go.mod h1:ab1qPbhIpdTxEkNHXyeSf5vhxWSCs/tWer42PpOxQnU=
@@ -750,8 +750,8 @@ github.com/sigstore/sigstore/pkg/signature/kms/azure v1.8.4 h1:1G6uLTZaqvu867Dbg
 github.com/sigstore/sigstore/pkg/signature/kms/azure v1.8.4/go.mod h1:QtKKb8DChi1mRi9xSNr8ImSQu6m+0MZAV0sYIoPOta0=
 github.com/sigstore/sigstore/pkg/signature/kms/gcp v1.8.4 h1:fjnDR5Lw9ElfOSRUGKkgwjaynqj93nLu0twAw+QxhHE=
 github.com/sigstore/sigstore/pkg/signature/kms/gcp v1.8.4/go.mod h1:9KFn5MwelyNoFXu3gNyVzvN/yAhcL6FE053oxih9+vM=
-github.com/sigstore/sigstore/pkg/signature/kms/hashivault v1.8.3 h1:h9G8j+Ds21zqqulDbA/R/ft64oQQIyp8S7wJYABYSlg=
-github.com/sigstore/sigstore/pkg/signature/kms/hashivault v1.8.3/go.mod h1:zgCeHOuqF6k7A7TTEvftcA9V3FRzB7mrPtHOhXAQBnc=
+github.com/sigstore/sigstore/pkg/signature/kms/hashivault v1.8.4 h1:QEXOb+feQmNOyLVT+FrghBqKKK4QDMP5dyic8RZHXdE=
+github.com/sigstore/sigstore/pkg/signature/kms/hashivault v1.8.4/go.mod h1:ohOhV9zclcIpNAWS0kq2ASB3EPPuRce2HjgXXaU3pKQ=
 github.com/sigstore/timestamp-authority v1.2.2 h1:X4qyutnCQqJ0apMewFyx+3t7Tws00JQ/JonBiu3QvLE=
 github.com/sigstore/timestamp-authority v1.2.2/go.mod h1:nEah4Eq4wpliDjlY342rXclGSO7Kb9hoRrl9tqLW13A=
 github.com/sirupsen/logrus v1.2.0/go.mod h1:LxeOpSwHxABJmUn/MG1IvRgCAasNZTLOkJPxbbu5VWo=
