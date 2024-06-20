@@ -496,7 +496,7 @@ func ValidatePolicy(ctx context.Context, namespace string, ref name.Reference, c
 	results := make(chan retChannelType, len(cip.Authorities))
 	for _, authority := range cip.Authorities {
 		authority := authority // due to gofunc
-		logging.FromContext(ctx).Debugf("Checking Authority: %s", authority.Name)
+		logging.FromContext(ctx).Debugf("Checking Authority: %s\n", authority.Name)
 
 		wg.Add(1)
 		go func() {
@@ -723,7 +723,7 @@ type attestation struct {
 func attestationToPolicyAttestations(ctx context.Context, atts []attestation) []PolicyAttestation {
 	ret := make([]PolicyAttestation, 0, len(atts))
 	for _, att := range atts {
-		logging.FromContext(ctx).Debugf("Converting attestation %+v", att)
+		logging.FromContext(ctx).Debugf("Converting attestation with digest %s\n", att.Digest)
 
 		sigID, err := signatureID(att.Signature)
 		if err != nil {
@@ -937,7 +937,7 @@ func ValidatePolicyAttestationsForAuthority(ctx context.Context, ref name.Refere
 				}
 			}
 
-			logging.FromContext(ctx).Debugf("found verified attestation with digest: %s", attDigest.String())
+			logging.FromContext(ctx).Debugf("found verified attestation with digest: %s\n", attDigest.String())
 			// Ok, so this passed aok, jot it down to our result set as
 			// verified attestation with the predicate type match
 			checkedAttestations = append(checkedAttestations, attestation{
