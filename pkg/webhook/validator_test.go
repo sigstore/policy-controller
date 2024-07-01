@@ -146,7 +146,7 @@ func TestValidatePodSpec(t *testing.T) {
 		t.Fatalf("Failed to parse fake Fulcio URL")
 	}
 
-	rekorServer := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+	rekorServer := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, _ *http.Request) {
 		rw.Write([]byte(rekorResponse))
 	}))
 	t.Cleanup(rekorServer.Close)
@@ -863,7 +863,7 @@ func TestValidateCronJob(t *testing.T) {
 		return []oci.Signature{sig}, true, nil
 	}*/
 	// Let's just say that everything is not verified.
-	fail := func(ctx context.Context, signedImgRef name.Reference, co *cosign.CheckOpts) (checkedSignatures []oci.Signature, bundleVerified bool, err error) {
+	fail := func(_ context.Context, _ name.Reference, _ *cosign.CheckOpts) (checkedSignatures []oci.Signature, bundleVerified bool, err error) {
 		return nil, false, errors.New("bad signature")
 	}
 
@@ -1016,7 +1016,7 @@ func TestResolvePodSpec(t *testing.T) {
 	defer func() {
 		remoteResolveDigest = rrd
 	}()
-	resolve := func(ref name.Reference, opts ...remote.Option) (name.Digest, error) {
+	resolve := func(_ name.Reference, _ ...remote.Option) (name.Digest, error) {
 		return digest.(name.Digest), nil
 	}
 
@@ -1080,7 +1080,7 @@ func TestResolvePodSpec(t *testing.T) {
 			}},
 		},
 		wc: apis.WithinCreate,
-		rrd: func(r name.Reference, o ...remote.Option) (name.Digest, error) {
+		rrd: func(_ name.Reference, _ ...remote.Option) (name.Digest, error) {
 			return name.Digest{}, errors.New("boom")
 		},
 	}, {
@@ -1302,7 +1302,7 @@ func TestResolveCronJob(t *testing.T) {
 	defer func() {
 		remoteResolveDigest = rrd
 	}()
-	resolve := func(ref name.Reference, opts ...remote.Option) (name.Digest, error) {
+	resolve := func(_ name.Reference, _ ...remote.Option) (name.Digest, error) {
 		return digest.(name.Digest), nil
 	}
 
@@ -1426,7 +1426,7 @@ func TestResolveCronJob(t *testing.T) {
 			},
 		},
 		wc: apis.WithinCreate,
-		rrd: func(r name.Reference, o ...remote.Option) (name.Digest, error) {
+		rrd: func(_ name.Reference, _ ...remote.Option) (name.Digest, error) {
 			return name.Digest{}, errors.New("boom")
 		},
 	}, {
@@ -1514,7 +1514,7 @@ func TestValidatePolicy(t *testing.T) {
 	t.Logf("badURL: %s", badURL.String())
 
 	// Spin up a Fulcio that responds with a Root Cert
-	fulcioServer := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+	fulcioServer := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, _ *http.Request) {
 		rw.Write([]byte(fulcioRootCert))
 	}))
 	t.Cleanup(fulcioServer.Close)
@@ -1524,7 +1524,7 @@ func TestValidatePolicy(t *testing.T) {
 		t.Fatalf("Failed to parse fake Fulcio URL")
 	}
 
-	rekorServer := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+	rekorServer := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, _ *http.Request) {
 		rw.Write([]byte(rekorResponse))
 	}))
 	t.Cleanup(rekorServer.Close)
@@ -1944,7 +1944,7 @@ func TestValidatePodSpecNonDefaultNamespace(t *testing.T) {
 	badURL := apis.HTTP("http://example.com/")
 
 	// Spin up a Fulcio that responds with a Root Cert
-	fulcioServer := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+	fulcioServer := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, _ *http.Request) {
 		rw.Write([]byte(fulcioRootCert))
 	}))
 	t.Cleanup(fulcioServer.Close)
@@ -1953,7 +1953,7 @@ func TestValidatePodSpecNonDefaultNamespace(t *testing.T) {
 		t.Fatalf("Failed to parse fake Fulcio URL")
 	}
 
-	rekorServer := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+	rekorServer := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, _ *http.Request) {
 		rw.Write([]byte(rekorResponse))
 	}))
 	t.Cleanup(rekorServer.Close)

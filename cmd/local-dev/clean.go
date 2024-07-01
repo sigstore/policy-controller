@@ -42,13 +42,13 @@ var cleanCmd = &cobra.Command{
 	Use:   "clean",
 	Short: "cleanup the local k8s cluster",
 	Long:  "Cleanup the local k8s cluster",
-	PreRunE: func(cmd *cobra.Command, args []string) error {
+	PreRunE: func(cmd *cobra.Command, _ []string) error {
 		if err := viper.BindPFlags(cmd.Flags()); err != nil {
 			log.Fatal("Error initializing cmd line args: ", err)
 		}
 		return nil
 	},
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, _ []string) {
 		clean()
 	},
 }

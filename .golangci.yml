@@ -31,6 +31,14 @@ linters:
     - unconvert
     - unparam
     - whitespace
+linters-settings:
+  revive:
+    rules:
+     - name: dot-imports
+       arguments:
+          - allowedPackages:
+            - "knative.dev/pkg/reconciler/testing"
+            - "github.com/sigstore/policy-controller/pkg/reconciler/testing/v1alpha1"
 output:
   uniq-by-line: false
 issues:

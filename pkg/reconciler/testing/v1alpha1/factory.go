@@ -81,7 +81,7 @@ func MakeFactory(ctor Ctor, unstructured bool, logger *zap.SugaredLogger, privKM
 		// here via PrependReactor (this can be overridden below by the
 		// provided reactors).
 		dynamicClient.PrependReactor("patch", "*",
-			func(action ktesting.Action) (bool, runtime.Object, error) {
+			func(_ ktesting.Action) (bool, runtime.Object, error) {
 				return true, nil, nil
 			})
 
