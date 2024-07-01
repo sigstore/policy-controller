@@ -1,7 +1,6 @@
 module github.com/sigstore/policy-controller
 
-go 1.22
-toolchain go1.22.4
+go 1.22.0
 
 require (
 	github.com/aws/aws-sdk-go v1.54.10
@@ -47,9 +46,7 @@ require (
 	k8s.io/client-go v0.29.4
 	k8s.io/code-generator v0.29.4
 	k8s.io/kube-openapi v0.0.0-20231010175941-2dd684a91f00
-	knative.dev/hack v0.0.0-20231016131700-2c938d4918da
-	knative.dev/hack/schema v0.0.0-20221024013916-9d2ae47c16b2
-	knative.dev/pkg v0.0.0-20231101193506-b09d4f2a2845
+	knative.dev/hack v0.0.0-20240111013919-e89096d74d85
 	sigs.k8s.io/release-utils v0.8.2
 	sigs.k8s.io/yaml v1.4.0
 )
@@ -72,7 +69,8 @@ require (
 	github.com/sigstore/sigstore/pkg/signature/kms/gcp v1.8.4
 	github.com/sigstore/sigstore/pkg/signature/kms/hashivault v1.8.4
 	github.com/spf13/viper v1.19.0
-	gopkg.in/go-jose/go-jose.v2 v2.6.3
+	knative.dev/hack/schema v0.0.0-20240607132042-09143140a254
+	knative.dev/pkg v0.0.0-20230612155445-74c4be5e935e
 )
 
 require (
@@ -258,6 +256,7 @@ require (
 	go.opentelemetry.io/otel/metric v1.27.0 // indirect
 	go.opentelemetry.io/otel/sdk v1.27.0 // indirect
 	go.opentelemetry.io/otel/trace v1.27.0 // indirect
+	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/automaxprocs v1.5.3 // indirect
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/exp v0.0.0-20240112132812-db7319d0e0e3 // indirect
