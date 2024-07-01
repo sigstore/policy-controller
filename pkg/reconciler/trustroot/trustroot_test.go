@@ -387,7 +387,7 @@ func TestReconcile(t *testing.T) {
 	}}
 
 	logger := logtesting.TestLogger(t)
-	table.Test(t, MakeFactory(func(ctx context.Context, listers *Listers, cmw configmap.Watcher) controller.Reconciler {
+	table.Test(t, MakeFactory(func(ctx context.Context, listers *Listers, _ configmap.Watcher) controller.Reconciler {
 		r := &Reconciler{
 			configmaplister: listers.GetConfigMapLister(),
 			kubeclient:      fakekubeclient.Get(ctx),

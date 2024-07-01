@@ -53,14 +53,14 @@ func TestPodScalableDefaulting(t *testing.T) {
 	}, {
 		name: "no change",
 		with: func(ctx context.Context) context.Context {
-			return WithPodScalableDefaulter(ctx, func(ctx context.Context, wp *PodScalable) {
+			return WithPodScalableDefaulter(ctx, func(_ context.Context, _ *PodScalable) {
 			})
 		},
 		want: p.DeepCopy(),
 	}, {
 		name: "no busybox",
 		with: func(ctx context.Context) context.Context {
-			return WithPodScalableDefaulter(ctx, func(ctx context.Context, wp *PodScalable) {
+			return WithPodScalableDefaulter(ctx, func(_ context.Context, wp *PodScalable) {
 				for i, c := range wp.Spec.Template.Spec.InitContainers {
 					if !strings.Contains(c.Image, "@") {
 						wp.Spec.Template.Spec.InitContainers[i].Image = c.Image + "@sha256:deadbeef"

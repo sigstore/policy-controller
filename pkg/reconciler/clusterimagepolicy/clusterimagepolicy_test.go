@@ -140,7 +140,7 @@ func TestReconcile(t *testing.T) {
 	// the apis.IsInStatusUpdate correctly in the tests. So it validates the
 	// status update even though it shouldn't. This is tested elsewhere, so
 	// we just work around it here by expecting that benign error.
-	policyServerGood := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, r *http.Request) {
+	policyServerGood := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, _ *http.Request) {
 		rw.Write([]byte(testPolicy))
 	}))
 	t.Cleanup(policyServerGood.Close)
@@ -1418,7 +1418,7 @@ malformed KMS format, should be prefixed by any of the supported providers: [aws
 		}}
 
 	logger := logtesting.TestLogger(t)
-	table.Test(t, MakeFactory(func(ctx context.Context, listers *Listers, cmw configmap.Watcher) controller.Reconciler {
+	table.Test(t, MakeFactory(func(ctx context.Context, listers *Listers, _ configmap.Watcher) controller.Reconciler {
 		r := &Reconciler{
 			secretlister:    listers.GetSecretLister(),
 			configmaplister: listers.GetConfigMapLister(),

@@ -59,7 +59,7 @@ func NewController(
 		configmaplister: configMapInformer.Lister(),
 		kubeclient:      kubeclient.Get(ctx),
 	}
-	impl := clusterimagepolicyreconciler.NewImpl(ctx, r, func(impl *controller.Impl) controller.Options {
+	impl := clusterimagepolicyreconciler.NewImpl(ctx, r, func(_ *controller.Impl) controller.Options {
 		return controller.Options{FinalizerName: finalizerName}
 	})
 	r.tracker = impl.Tracker
@@ -98,7 +98,7 @@ func NewController(
 	// really see a way around it, since if something is wrong with the
 	// ConfigMap but there are no changes to the ClusterImagePolicy, it needs
 	// to be synced.
-	grCb := func(obj interface{}) {
+	grCb := func(_ interface{}) {
 		logging.FromContext(ctx).Info("Doing a global resync on ClusterImagePolicies due to ConfigMap changing or resync period.")
 		impl.GlobalResync(clusterimagepolicyInformer.Informer())
 	}

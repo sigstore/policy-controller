@@ -38,7 +38,7 @@ func TestPodScalableValidation(t *testing.T) {
 	}, {
 		name: "no error",
 		with: func(ctx context.Context) context.Context {
-			return WithPodScalableValidator(ctx, func(ctx context.Context, wp *PodScalable) *apis.FieldError {
+			return WithPodScalableValidator(ctx, func(_ context.Context, _ *PodScalable) *apis.FieldError {
 				return nil
 			})
 		},
@@ -46,7 +46,7 @@ func TestPodScalableValidation(t *testing.T) {
 	}, {
 		name: "no busybox",
 		with: func(ctx context.Context) context.Context {
-			return WithPodScalableValidator(ctx, func(ctx context.Context, wp *PodScalable) *apis.FieldError {
+			return WithPodScalableValidator(ctx, func(_ context.Context, wp *PodScalable) *apis.FieldError {
 				for i, c := range wp.Spec.Template.Spec.InitContainers {
 					if c.Image == "busybox" {
 						return apis.ErrInvalidValue(c.Image, "image").ViaFieldIndex("spec.template.spec.initContainers", i)

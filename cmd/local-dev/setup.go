@@ -70,13 +70,13 @@ var setupCmd = &cobra.Command{
 	Use:   "setup",
 	Short: "setup local k8s cluster for testing policy controller",
 	Long:  "Setup a local k8s cluster for testing policy controller",
-	PreRunE: func(cmd *cobra.Command, args []string) error {
+	PreRunE: func(cmd *cobra.Command, _ []string) error {
 		if err := viper.BindPFlags(cmd.Flags()); err != nil {
 			log.Fatal("Error initializing cmd line args: ", err)
 		}
 		return nil
 	},
-	Run: func(cmd *cobra.Command, args []string) {
+	Run: func(_ *cobra.Command, _ []string) {
 		setup()
 	},
 }
