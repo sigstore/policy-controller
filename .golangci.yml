@@ -37,6 +37,7 @@ linters-settings:
      - name: dot-imports
        arguments:
           - allowedPackages:
+            - "knative.dev/pkg/configmap/testing"
             - "knative.dev/pkg/reconciler/testing"
             - "github.com/sigstore/policy-controller/pkg/reconciler/testing/v1alpha1"
 output:
