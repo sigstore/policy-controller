@@ -3,7 +3,7 @@ module github.com/sigstore/policy-controller
 go 1.22.0
 
 require (
-	github.com/aws/aws-sdk-go v1.54.13
+	github.com/aws/aws-sdk-go v1.54.14
 	github.com/aws/aws-sdk-go-v2 v1.30.0 // indirect
 	github.com/cenkalti/backoff/v3 v3.2.2
 	github.com/golang/protobuf v1.5.4 // indirect
