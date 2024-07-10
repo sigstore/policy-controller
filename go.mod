@@ -61,7 +61,7 @@ require (
 	github.com/docker/docker v27.0.3+incompatible
 	github.com/docker/docker-credential-helpers v0.8.2
 	github.com/docker/go-connections v0.5.0
-	github.com/go-jose/go-jose/v4 v4.0.2
+	github.com/go-jose/go-jose/v4 v4.0.3
 	github.com/sigstore/protobuf-specs v0.3.2
 	github.com/sigstore/scaffolding v0.7.3
 	github.com/sigstore/sigstore/pkg/signature/kms/aws v1.8.6
