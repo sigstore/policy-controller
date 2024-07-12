@@ -65,7 +65,7 @@ require (
 	github.com/sigstore/protobuf-specs v0.3.2
 	github.com/sigstore/scaffolding v0.7.4
 	github.com/sigstore/sigstore/pkg/signature/kms/aws v1.8.6
-	github.com/sigstore/sigstore/pkg/signature/kms/azure v1.8.6
+	github.com/sigstore/sigstore/pkg/signature/kms/azure v1.8.7
 	github.com/sigstore/sigstore/pkg/signature/kms/gcp v1.8.7
 	github.com/sigstore/sigstore/pkg/signature/kms/hashivault v1.8.6
 	github.com/spf13/viper v1.19.0
