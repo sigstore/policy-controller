@@ -751,8 +751,8 @@ github.com/sigstore/sigstore/pkg/signature/kms/azure v1.8.7 h1:jcdKxc5bvwfL7+Zbe
 github.com/sigstore/sigstore/pkg/signature/kms/azure v1.8.7/go.mod h1:gakVcpRiN+aFdLhPXXP8ubOCWiedM1YJ/gR74ez/tT0=
 github.com/sigstore/sigstore/pkg/signature/kms/gcp v1.8.7 h1:zYg1XlbKpQkmE7FpWTkLuUn7RttLAq4FcZ1G9JcqhoY=
 github.com/sigstore/sigstore/pkg/signature/kms/gcp v1.8.7/go.mod h1:VmUsO1R4OHuyHBEgI4bbSUn0z2nojszrDMvlDxyX/dE=
-github.com/sigstore/sigstore/pkg/signature/kms/hashivault v1.8.6 h1:5pNfbRsG5GZyJy+cBZ6gjuhedlC6CCaMTVr2lPIfdOo=
-github.com/sigstore/sigstore/pkg/signature/kms/hashivault v1.8.6/go.mod h1:ieWGmXzhPSZ3W8aOBUWNFM6Hh/VFQzZdiyGw1zSBanY=
+github.com/sigstore/sigstore/pkg/signature/kms/hashivault v1.8.7 h1:dbcB9VEddYrvK+y4rHeES5OZ/pMQuucfJ0qCNWQmnp0=
+github.com/sigstore/sigstore/pkg/signature/kms/hashivault v1.8.7/go.mod h1:96MrPJBkHiAvqFyqviuYbwPAdbPCj8CR3V0RJ9bKjrE=
 github.com/sigstore/timestamp-authority v1.2.2 h1:X4qyutnCQqJ0apMewFyx+3t7Tws00JQ/JonBiu3QvLE=
 github.com/sigstore/timestamp-authority v1.2.2/go.mod h1:nEah4Eq4wpliDjlY342rXclGSO7Kb9hoRrl9tqLW13A=
 github.com/sirupsen/logrus v1.2.0/go.mod h1:LxeOpSwHxABJmUn/MG1IvRgCAasNZTLOkJPxbbu5VWo=
