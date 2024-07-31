@@ -38,13 +38,13 @@ require (
 	golang.org/x/net v0.27.0
 	golang.org/x/sys v0.22.0 // indirect
 	golang.org/x/time v0.5.0
-	google.golang.org/grpc v1.64.1 // indirect
+	google.golang.org/grpc v1.65.0 // indirect
 	google.golang.org/protobuf v1.34.2
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/api v0.30.3
 	k8s.io/apimachinery v0.30.3
 	k8s.io/client-go v0.30.3
-	k8s.io/code-generator v0.30.2
+	k8s.io/code-generator v0.30.3
 	k8s.io/kube-openapi v0.0.0-20240228011516-70dd3763d340
 	knative.dev/hack v0.0.0-20240111013919-e89096d74d85
 	sigs.k8s.io/release-utils v0.8.4
@@ -63,7 +63,7 @@ require (
 	github.com/docker/go-connections v0.5.0
 	github.com/go-jose/go-jose/v4 v4.0.4
 	github.com/sigstore/protobuf-specs v0.3.2
-	github.com/sigstore/scaffolding v0.7.4
+	github.com/sigstore/scaffolding v0.7.5
 	github.com/sigstore/sigstore/pkg/signature/kms/aws v1.8.7
 	github.com/sigstore/sigstore/pkg/signature/kms/azure v1.8.7
 	github.com/sigstore/sigstore/pkg/signature/kms/gcp v1.8.7
@@ -97,7 +97,7 @@ require (
 	github.com/Azure/go-autorest/logger v0.2.1 // indirect
 	github.com/Azure/go-autorest/tracing v0.6.0 // indirect
 	github.com/AzureAD/microsoft-authentication-library-for-go v1.2.2 // indirect
-	github.com/Microsoft/go-winio v0.6.1 // indirect
+	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/OneOfOne/xxhash v1.2.8 // indirect
 	github.com/ProtonMail/go-crypto v0.0.0-20230923063757-afb1ddc0824c // indirect
 	github.com/ThalesIgnite/crypto11 v1.2.5 // indirect
@@ -134,7 +134,7 @@ require (
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/blendle/zapdriver v1.3.1 // indirect
 	github.com/census-instrumentation/opencensus-proto v0.4.1 // indirect
-	github.com/cespare/xxhash/v2 v2.2.0 // indirect
+	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/chrismellard/docker-credential-acr-env v0.0.0-20230304212654-82a0ddb27589 // indirect
 	github.com/clbanning/mxj/v2 v2.7.0 // indirect
 	github.com/cloudflare/circl v1.3.7 // indirect
@@ -221,8 +221,8 @@ require (
 	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
 	github.com/prometheus/client_golang v1.19.1 // indirect
 	github.com/prometheus/client_model v0.6.1 // indirect
-	github.com/prometheus/common v0.51.1 // indirect
-	github.com/prometheus/procfs v0.12.0 // indirect
+	github.com/prometheus/common v0.55.0 // indirect
+	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/prometheus/statsd_exporter v0.22.8 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20201227073835-cf1acfcdf475 // indirect
 	github.com/sagikazarmark/locafero v0.4.0 // indirect
