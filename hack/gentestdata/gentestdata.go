@@ -93,6 +93,13 @@ func main() {
 		log.Fatal(err)
 	}
 
+	tufRepoWithCustomTrustedRootJSON, rootJSONWithCustomTrustedRootJSON, err := genTUFRepo(map[string][]byte{
+		"custom_trusted_root.json": marshalledEntry,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	marshalledEntryFromMirrorFS, err := genTrustedRoot(sigstoreKeysMap)
 	if err != nil {
 		log.Fatal(err)
@@ -110,6 +117,8 @@ func main() {
 	mustWriteFile("root.json", rootJSON)
 	mustWriteFile("tufRepoWithTrustedRootJSON.tar", tufRepoWithTrustedRootJSON)
 	mustWriteFile("rootWithTrustedRootJSON.json", rootJSONWithTrustedRootJSON)
+	mustWriteFile("tufRepoWithCustomTrustedRootJSON.tar", tufRepoWithCustomTrustedRootJSON)
+	mustWriteFile("rootWithCustomTrustedRootJSON.json", rootJSONWithCustomTrustedRootJSON)
 }
 
 func mustWriteFile(path string, data []byte) {
