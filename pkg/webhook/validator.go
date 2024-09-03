@@ -277,11 +277,11 @@ func (v *Validator) validatePodSpec(ctx context.Context, namespace, kind, apiVer
 
 				// Require digests, otherwise the validation is meaningless
 				// since the tag can move.
-				fe := refOrFieldError(c.Image, field, i)
-				if fe != nil {
-					results <- containerCheckResult{index: i, containerCheckResult: fe}
-					return
-				}
+//				fe := refOrFieldError(c.Image, field, i)
+//				if fe != nil {
+//					results <- containerCheckResult{index: i, containerCheckResult: fe}
+//					return
+//				}
 
 				containerErrors := v.validateContainerImage(ctx, c.Image, namespace, field, i, kind, apiVersion, labels, kc, ociremote.WithRemoteOptions(
 					remote.WithContext(ctx),
@@ -317,11 +317,11 @@ func (v *Validator) validatePodSpec(ctx context.Context, namespace, kind, apiVer
 
 				// Require digests, otherwise the validation is meaningless
 				// since the tag can move.
-				fe := refOrFieldError(c.Image, field, i)
-				if fe != nil {
-					results <- containerCheckResult{index: i, containerCheckResult: fe}
-					return
-				}
+//				fe := refOrFieldError(c.Image, field, i)
+//				if fe != nil {
+//					results <- containerCheckResult{index: i, containerCheckResult: fe}
+//					return
+//				}
 
 				containerErrors := v.validateContainerImage(ctx, c.Image, namespace, field, i, kind, apiVersion, labels, kc, ociremote.WithRemoteOptions(
 					remote.WithContext(ctx),
@@ -1078,7 +1078,9 @@ func (v *Validator) resolvePodSpec(ctx context.Context, ps *corev1.PodSpec, opt 
 					logging.FromContext(ctx).Debugf("Unable to resolve digest %q: %v", ref.String(), err)
 					continue
 				}
-				cs[i].Image = digest.String()
+				logging.FromContext(ctx).Infof("Resolved Digest is : %q", digest.String())
+//				cs[i].Image = digest.String()
+				cs[i].Image = cs[i].Image
 			}
 		}
 	}
@@ -1102,7 +1104,9 @@ func (v *Validator) resolvePodSpec(ctx context.Context, ps *corev1.PodSpec, opt 
 					logging.FromContext(ctx).Debugf("Unable to resolve digest %q: %v", ref.String(), err)
 					continue
 				}
-				cs[i].Image = digest.String()
+				logging.FromContext(ctx).Infof("Resolved Digest is : %q", digest.String())
+//				cs[i].Image = digest.String()
+				cs[i].Image = cs[i].Image
 			}
 		}
 	}
