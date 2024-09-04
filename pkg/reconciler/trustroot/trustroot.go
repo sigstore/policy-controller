@@ -178,7 +178,12 @@ func (r *Reconciler) getSigstoreKeysFromMirrorFS(ctx context.Context, repository
 		return nil, fmt.Errorf("failed to construct TUF client from mirror: %w", err)
 	}
 
-	return GetSigstoreKeysFromTuf(ctx, tufClient)
+	trustedRootTarget := "trusted_root.json"
+	if repository.TrustedRootTarget != "" {
+		trustedRootTarget = repository.TrustedRootTarget
+	}
+
+	return GetSigstoreKeysFromTuf(ctx, tufClient, trustedRootTarget)
 }
 
 func (r *Reconciler) getSigstoreKeysFromRemote(ctx context.Context, remote *v1alpha1.Remote) (*config.SigstoreKeys, error) {
@@ -186,7 +191,13 @@ func (r *Reconciler) getSigstoreKeysFromRemote(ctx context.Context, remote *v1al
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct TUF client from remote: %w", err)
 	}
-	return GetSigstoreKeysFromTuf(ctx, tufClient)
+
+	trustedRootTarget := "trusted_root.json"
+	if remote.TrustedRootTarget != "" {
+		trustedRootTarget = remote.TrustedRootTarget
+	}
+
+	return GetSigstoreKeysFromTuf(ctx, tufClient, trustedRootTarget)
 }
 
 // remoteTrustRootEntry removes a TrustRoot entry from a CM. If no entry exists, it's a nop.
@@ -232,23 +243,23 @@ type sigstoreCustomMetadata struct {
 // getSigstoreKeysFromTuf returns the sigstore keys from the TUF client. Note
 // that this should really be exposed from the sigstore/sigstore TUF pkg, but
 // is currently not.
-func GetSigstoreKeysFromTuf(ctx context.Context, tufClient *client.Client) (*config.SigstoreKeys, error) {
+func GetSigstoreKeysFromTuf(ctx context.Context, tufClient *client.Client, trustedRootTarget string) (*config.SigstoreKeys, error) {
 	targets, err := tufClient.Targets()
 	if err != nil {
 		return nil, fmt.Errorf("error getting targets: %w", err)
 	}
 	ret := &config.SigstoreKeys{}
 
-	// if there is a "trusted_root.json" target, we can use that instead of the custom metadata
-	if _, ok := targets["trusted_root.json"]; ok {
+	// if there is a trusted root JSON target, we can use that instead of the custom metadata
+	if _, ok := targets[trustedRootTarget]; ok {
 		dl := newDownloader()
-		if err = tufClient.Download("trusted_root.json", &dl); err != nil {
-			return nil, fmt.Errorf("downloading trusted_root.json: %w", err)
+		if err = tufClient.Download(trustedRootTarget, &dl); err != nil {
+			return nil, fmt.Errorf("downloading %s: %w", trustedRootTarget, err)
 		}
 
 		err := protojson.Unmarshal(dl.Bytes(), ret)
 		if err != nil {
-			return nil, fmt.Errorf("parsing trusted_root.json: %w", err)
+			return nil, fmt.Errorf("parsing %s: %w", trustedRootTarget, err)
 		}
 		return ret, nil
 	}

@@ -1,48 +1,48 @@
 {
-  "tlogs":  [
+  "tlogs": [
     {
-      "hashAlgorithm":  "SHA2_256",
-      "publicKey":  {
-        "rawBytes":  "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE1Vobk4rjNzYrf/uqDwEd/HDfCro89r63DaHCTRYQJaf/JHdJj/nxBl1e3ZCo0B7kB/uU+e7d56A9gPdelFc51g==",
-        "keyDetails":  "PKIX_ECDSA_P256_SHA_256",
-        "validFor":  {
-          "start":  "1970-01-01T00:00:00Z"
+      "hashAlgorithm": "SHA2_256",
+      "publicKey": {
+        "rawBytes": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEoM/qB3YtDs6+rXvxfxZNXH0dfXY85qgGuiJJezpzXjCm6jbiUp15VpzNcdJGzExHNZYZj7l+ma1Fjer68+1+tA==",
+        "keyDetails": "PKIX_ECDSA_P256_SHA_256",
+        "validFor": {
+          "start": "1970-01-01T00:00:00Z"
         }
       },
-      "logId":  {
-        "keyId":  "YWRjNTE1MWY5OTExZWUxZjAwMWVkYzc0Y2Q3MWNkNThmOGExMWE0ODRhOGM5NzA5NDkwYjRkOTY2NDcxZjQxMQ=="
+      "logId": {
+        "keyId": "Yzk5MjkxODU0M2MxNmIwZGY2Y2NkMGQ4ODE2NjVkNDljZGQxZWYzZjM4M2IxNmY5YzRkNjRiODhjZWRmZTAxMA=="
       }
     }
   ],
-  "certificateAuthorities":  [
+  "certificateAuthorities": [
     {
-      "certChain":  {
-        "certificates":  [
+      "certChain": {
+        "certificates": [
           {
-            "rawBytes":  "MIIBPTCB5KADAgECAgECMAoGCCqGSM49BAMCMA0xCzAJBgNVBAMTAmNhMB4XDTI0MDMyMjIwNDczOVoXDTM0MDMyMjIwNDczOVowDzENMAsGA1UEAxMEbGVhZjBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABNr99Dzn4PLhw3a9dP8YLwZaPnm3hpF3vt/55rMc7N194IPRB+qCDQIKIsyFMQ937IA+ylxdYvwYPB30kw/nie+jMzAxMA4GA1UdDwEB/wQEAwIGwDAfBgNVHSMEGDAWgBSgpcC8Rht4JttKz/d6pqb87A+f+zAKBggqhkjOPQQDAgNIADBFAiEAtuSOJ8LaCp6OrUIo8eKz7iYFEeOMI5d3aBEUSUp8y64CIHnTyu87fhXigrwrrhx0mEluHBfqeBpJilenwWjcUzYT"
+            "rawBytes": "MIIBPDCB5KADAgECAgECMAoGCCqGSM49BAMCMA0xCzAJBgNVBAMTAmNhMB4XDTI0MDgzMDE4NTczOFoXDTM0MDgzMDE4NTczOFowDzENMAsGA1UEAxMEbGVhZjBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABAJCeHCU8sFwES7vmf4dAABk7HC2hclCwgAMCwPbdJAXRyA9wWFQhWM8osvic/LMq5m0AfVi4y1hjhFkrLjfbHejMzAxMA4GA1UdDwEB/wQEAwIGwDAfBgNVHSMEGDAWgBRQn62BEmrPPx7tr1ZIcgrTbMrj8DAKBggqhkjOPQQDAgNHADBEAiAS77lBrjWbbYKGBJ/i5ag/Rmsml+oECQ/GMmxdEZ/MzAIgcjfmUGYXufT/lX2VXsvkFzfVQH1fG0g5i03NWSFYDB4="
           },
           {
-            "rawBytes":  "MIIBSTCB8aADAgECAgEBMAoGCCqGSM49BAMCMA0xCzAJBgNVBAMTAmNhMB4XDTI0MDMyMjIwNDczOVoXDTM0MDMyMjIwNDczOVowDTELMAkGA1UEAxMCY2EwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAATpp0ZNVPLAIzjTPkYzluuwuJxo4kmCLQRmznmz9GE89huCeLhyLbgj6xLgLrlZPwEnlGRKdiba+pLxUzKVKTPAo0IwQDAOBgNVHQ8BAf8EBAMCAgQwDwYDVR0TAQH/BAUwAwEB/zAdBgNVHQ4EFgQUoKXAvEYbeCbbSs/3eqam/OwPn/swCgYIKoZIzj0EAwIDRwAwRAIgPpFwR+kjxrG75XPEQCiKPwF1Zg55FZVT7PlNJKyIPYACIFMMqZ4//ncJoBxMtvTsr3++2d91SPpyis2cLiDcr3kW"
+            "rawBytes": "MIIBSjCB8aADAgECAgEBMAoGCCqGSM49BAMCMA0xCzAJBgNVBAMTAmNhMB4XDTI0MDgzMDE4NTczOFoXDTM0MDgzMDE4NTczOFowDTELMAkGA1UEAxMCY2EwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAAR3h5jys9TUi2KTcvbxjCpkC+qoHcVikiWRdkp1WAMg1fJAQvqPX8kB8OSXc2v8pTBKmzMteEvZJW+9kkybobtKo0IwQDAOBgNVHQ8BAf8EBAMCAgQwDwYDVR0TAQH/BAUwAwEB/zAdBgNVHQ4EFgQUUJ+tgRJqzz8e7a9WSHIK02zK4/AwCgYIKoZIzj0EAwIDSAAwRQIgUVBM1Lkvf7DVjG6hygMVTK2cWkHDdjL4MW8wCFaKV9YCIQC2DtPtWvu/VgaI0QGI+v7iGNnPf7USY0qlJwWWGvAaWw=="
           }
         ]
       },
-      "validFor":  {
-        "start":  "1970-01-01T00:00:00Z"
+      "validFor": {
+        "start": "1970-01-01T00:00:00Z"
       }
     }
   ],
-  "ctlogs":  [
+  "ctlogs": [
     {
-      "hashAlgorithm":  "SHA2_256",
-      "publicKey":  {
-        "rawBytes":  "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEBQY7A479x/VleGrvxp1gQAykOZMjld4J6VWVLnN0WLiqOesr9QkSBVnBkYKw0pr6Bgr8Qjg6NA3x470DLPxrDQ==",
-        "keyDetails":  "PKIX_ECDSA_P256_SHA_256",
-        "validFor":  {
-          "start":  "1970-01-01T00:00:00Z"
+      "hashAlgorithm": "SHA2_256",
+      "publicKey": {
+        "rawBytes": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEklvaOetNsPoZt+BHsE0bbHybxHskImD/Swu8QyDZONn2hnJNxEImaz6Xzv7+/bzns9y0/b9NadWbeDht3KGBBg==",
+        "keyDetails": "PKIX_ECDSA_P256_SHA_256",
+        "validFor": {
+          "start": "1970-01-01T00:00:00Z"
         }
       },
-      "logId":  {
-        "keyId":  "MTcxMGUyM2RhMDY1MWFhYTgxOTRiYzk2NTJjZDAwYTk3YzFmZGE5Yzc2ZmNlMTJmMTRlYjYzNWU0MjAzNjk1NA=="
+      "logId": {
+        "keyId": "ZGY4ZGM0ZjQzNWE2M2U4Y2Q0OGQyNTU3YzNjMjI4ZTk1NThlMDRkY2E4OTlmYWI1NjEyYTZkNjBkNTE1ZThmMA=="
       }
     }
   ]

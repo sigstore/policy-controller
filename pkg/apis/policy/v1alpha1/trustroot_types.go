@@ -107,6 +107,11 @@ type Remote struct {
 	// If not specified 'targets' is defaulted.
 	// +optional
 	Targets string `json:"targets,omitempty"`
+
+	// TrustedRootTarget is the name of the target containing the JSON trusted
+	// root. If not specified, `trusted_root.json` is used.
+	// +optional
+	TrustedRootTarget string `json:"trustedRootTarget,omitempty"`
 }
 
 // Repository specifies an airgapped TUF. Specifies the trusted initial root as
@@ -126,6 +131,11 @@ type Repository struct {
 	// above. If not specified 'targets' is defaulted.
 	// +optional
 	Targets string `json:"targets,omitempty"`
+
+	// TrustedRootTarget is the name of the target containing the JSON trusted
+	// root. If not specified, `trusted_root.json` is used.
+	// +optional
+	TrustedRootTarget string `json:"trustedRootTarget,omitempty"`
 }
 
 // TransparencyLogInstance describes the immutable parameters from a

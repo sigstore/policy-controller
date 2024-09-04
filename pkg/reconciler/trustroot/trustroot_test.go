@@ -164,7 +164,7 @@ var ctfeLogID = string(testdata.Get("ctfeLogID.txt"))
 // TUF repository.
 var validRepository = testdata.Get("tufRepo.tar")
 
-// IMPORTANT: The next expiration is on 2024-09-21
+// IMPORTANT: The next expiration is on 2025-03-02
 // rootJSON is a valid root.json for above TUF repository.
 var rootJSON = testdata.Get("root.json")
 
@@ -172,9 +172,16 @@ var rootJSON = testdata.Get("root.json")
 // an air-gap TUF repository containing trusted_root.json.
 var validRepositoryWithTrustedRootJSON = testdata.Get("tufRepoWithTrustedRootJSON.tar")
 
-// IMPORTANT: The next expiration is on 2024-09-21
+// IMPORTANT: The next expiration is on 2025-03-02
 // rootJSON is a valid root.json for above TUF repository.
 var rootWithTrustedRootJSON = testdata.Get("rootWithTrustedRootJSON.json")
+
+// validRepositoryWithCustomTrustedRootJSON is a valid tarred repository representing
+// an air-gap TUF repository containing custom_trusted_root.json.
+var validRepositoryWithCustomTrustedRootJSON = testdata.Get("tufRepoWithCustomTrustedRootJSON.tar")
+
+// rootWithCustomTrustedRootJSON is a valid root.json for above TUF repository.
+var rootWithCustomTrustedRootJSON = testdata.Get("rootWithCustomTrustedRootJSON.json")
 
 func TestReconcile(t *testing.T) {
 	table := TableTest{{
@@ -345,7 +352,7 @@ func TestReconcile(t *testing.T) {
 			NewTrustRoot(trName,
 				WithTrustRootUID(uid),
 				WithTrustRootResourceVersion(resourceVersion),
-				WithRepository("targets", rootJSON, validRepository),
+				WithRepository("targets", rootJSON, validRepository, ""),
 				WithTrustRootFinalizer,
 			),
 		},
@@ -356,7 +363,7 @@ func TestReconcile(t *testing.T) {
 			Object: NewTrustRoot(trName,
 				WithTrustRootUID(uid),
 				WithTrustRootResourceVersion(resourceVersion),
-				WithRepository("targets", rootJSON, validRepository),
+				WithRepository("targets", rootJSON, validRepository, ""),
 				WithTrustRootFinalizer,
 				MarkReadyTrustRoot,
 			)}},
@@ -369,7 +376,7 @@ func TestReconcile(t *testing.T) {
 			NewTrustRoot(trName,
 				WithTrustRootUID(uid),
 				WithTrustRootResourceVersion(resourceVersion),
-				WithRepository("targets", rootWithTrustedRootJSON, validRepositoryWithTrustedRootJSON),
+				WithRepository("targets", rootWithTrustedRootJSON, validRepositoryWithTrustedRootJSON, ""),
 				WithTrustRootFinalizer,
 			),
 		},
@@ -380,7 +387,31 @@ func TestReconcile(t *testing.T) {
 			Object: NewTrustRoot(trName,
 				WithTrustRootUID(uid),
 				WithTrustRootResourceVersion(resourceVersion),
-				WithRepository("targets", rootWithTrustedRootJSON, validRepositoryWithTrustedRootJSON),
+				WithRepository("targets", rootWithTrustedRootJSON, validRepositoryWithTrustedRootJSON, ""),
+				WithTrustRootFinalizer,
+				MarkReadyTrustRoot,
+			)}},
+	}, {
+		Name: "With repository containing custom_trusted_root.json",
+		Key:  testKey,
+
+		SkipNamespaceValidation: true, // Cluster scoped
+		Objects: []runtime.Object{
+			NewTrustRoot(trName,
+				WithTrustRootUID(uid),
+				WithTrustRootResourceVersion(resourceVersion),
+				WithRepository("targets", rootWithCustomTrustedRootJSON, validRepositoryWithCustomTrustedRootJSON, "custom_trusted_root.json"),
+				WithTrustRootFinalizer,
+			),
+		},
+		WantCreates: []runtime.Object{
+			makeConfigMapWithMirrorFS(marshalledEntry),
+		},
+		WantStatusUpdates: []clientgotesting.UpdateActionImpl{{
+			Object: NewTrustRoot(trName,
+				WithTrustRootUID(uid),
+				WithTrustRootResourceVersion(resourceVersion),
+				WithRepository("targets", rootWithCustomTrustedRootJSON, validRepositoryWithCustomTrustedRootJSON, "custom_trusted_root.json"),
 				WithTrustRootFinalizer,
 				MarkReadyTrustRoot,
 			)}},
