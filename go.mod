@@ -1,6 +1,7 @@
 module github.com/sigstore/policy-controller
 
 go 1.22.6
+toolchain go1.23.1
 
 require (
 	github.com/aws/aws-sdk-go v1.55.5
@@ -47,7 +48,7 @@ require (
 	k8s.io/code-generator v0.31.0
 	k8s.io/kube-openapi v0.0.0-20240228011516-70dd3763d340
 	knative.dev/hack v0.0.0-20240111013919-e89096d74d85
-	sigs.k8s.io/release-utils v0.8.4
+	sigs.k8s.io/release-utils v0.8.5
 	sigs.k8s.io/yaml v1.4.0
 )
 
