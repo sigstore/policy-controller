@@ -79,6 +79,9 @@ var (
 	// https://github.com/sigstore/policy-controller/issues/354
 	disableTUF = flag.Bool("disable-tuf", false, "Disable TUF support.")
 
+	// Do not initialize Mutating Webhook  at all.
+    disableMutation = flag.Bool("disable-Mutation", false, "Disable Mutation support.")
+
 	// Validate specific resources.
 	// https://github.com/sigstore/policy-controller/issues/1388
 	resourcesNames = flag.String("resource-name", "replicasets, deployments, pods, cronjobs, jobs, statefulsets, daemonsets", "Comma-separated list of resources")
@@ -154,16 +157,28 @@ func main() {
 	vJSON, _ := v.JSONString()
 	log.Printf("%v", vJSON)
 	// This calls flag.Parse()
-	sharedmain.MainWithContext(ctx, "policy-controller",
-		certificates.NewController,
-		NewValidatingAdmissionController,
-		NewMutatingAdmissionController,
-		trustroot.NewController,
-		clusterimagepolicy.NewController,
-		NewPolicyValidatingAdmissionController,
-		NewPolicyMutatingAdmissionController,
-		newConversionController,
-	)
+	if !*disableMutation {
+    	sharedmain.MainWithContext(ctx, "policy-controller",
+    		certificates.NewController,
+    		NewValidatingAdmissionController,
+    		NewMutatingAdmissionController,
+    		trustroot.NewController,
+    		clusterimagepolicy.NewController,
+    		NewPolicyValidatingAdmissionController,
+    		NewPolicyMutatingAdmissionController,
+    		newConversionController,
+    	)
+    	}else {
+    	sharedmain.MainWithContext(ctx, "policy-controller",
+    		certificates.NewController,
+    		NewValidatingAdmissionController,
+    		trustroot.NewController,
+    		clusterimagepolicy.NewController,
+    		NewPolicyValidatingAdmissionController,
+    		NewPolicyMutatingAdmissionController,
+    		newConversionController,
+    	)
+    	}
 	types = createTypesMap(resourcesNamesList)
 }
 
@@ -214,18 +229,18 @@ func createTypesMap(kindsList []string) map[schema.GroupVersionKind]resourcesema
 		case "Pod":
 			types[corev1.SchemeGroupVersion.WithKind("Pod")] = &crdEphemeralContainers{GenericCRD: &duckv1.Pod{}}
 		case "ReplicaSet":
-			types[appsv1.SchemeGroupVersion.WithKind("ReplicaSets")] = &crdNoStatusUpdatesOrDeletes{GenericCRD: &policyduckv1beta1.PodScalable{}}
+			types[appsv1.SchemeGroupVersion.WithKind("ReplicaSet")] = &crdNoStatusUpdatesOrDeletes{GenericCRD: &policyduckv1beta1.PodScalable{}}
 		case "Deployment":
-			types[appsv1.SchemeGroupVersion.WithKind("Deployments")] = &crdNoStatusUpdatesOrDeletes{GenericCRD: &policyduckv1beta1.PodScalable{}}
+			types[appsv1.SchemeGroupVersion.WithKind("Deployment")] = &crdNoStatusUpdatesOrDeletes{GenericCRD: &policyduckv1beta1.PodScalable{}}
 		case "StatefulSet":
-			types[appsv1.SchemeGroupVersion.WithKind("StatefulSets")] = &crdNoStatusUpdatesOrDeletes{GenericCRD: &policyduckv1beta1.PodScalable{}}
+			types[appsv1.SchemeGroupVersion.WithKind("StatefulSet")] = &crdNoStatusUpdatesOrDeletes{GenericCRD: &policyduckv1beta1.PodScalable{}}
 		case "DaemonSet":
-			types[appsv1.SchemeGroupVersion.WithKind("DaemonSets")] = &crdNoStatusUpdatesOrDeletes{GenericCRD: &duckv1.WithPod{}}
+			types[appsv1.SchemeGroupVersion.WithKind("DaemonSet")] = &crdNoStatusUpdatesOrDeletes{GenericCRD: &duckv1.WithPod{}}
 		case "Job":
-			types[batchv1.SchemeGroupVersion.WithKind("Jobs")] = &crdNoStatusUpdatesOrDeletes{GenericCRD: &duckv1.WithPod{}}
+			types[batchv1.SchemeGroupVersion.WithKind("Job")] = &crdNoStatusUpdatesOrDeletes{GenericCRD: &duckv1.WithPod{}}
 		case "CronJob":
-			types[batchv1.SchemeGroupVersion.WithKind("CronJobs")] = &crdNoStatusUpdatesOrDeletes{GenericCRD: &duckv1.CronJob{}}
-			types[batchv1beta1.SchemeGroupVersion.WithKind("CronJobs")] = &crdNoStatusUpdatesOrDeletes{GenericCRD: &duckv1.CronJob{}}
+			types[batchv1.SchemeGroupVersion.WithKind("CronJob")] = &crdNoStatusUpdatesOrDeletes{GenericCRD: &duckv1.CronJob{}}
+			types[batchv1beta1.SchemeGroupVersion.WithKind("CronJob")] = &crdNoStatusUpdatesOrDeletes{GenericCRD: &duckv1.CronJob{}}
 		}
 	}
 	return types

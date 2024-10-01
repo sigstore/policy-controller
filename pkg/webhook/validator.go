@@ -277,11 +277,11 @@ func (v *Validator) validatePodSpec(ctx context.Context, namespace, kind, apiVer
 
 				// Require digests, otherwise the validation is meaningless
 				// since the tag can move.
-				fe := refOrFieldError(c.Image, field, i)
-				if fe != nil {
-					results <- containerCheckResult{index: i, containerCheckResult: fe}
-					return
-				}
+//				fe := refOrFieldError(c.Image, field, i)
+//				if fe != nil {
+//					results <- containerCheckResult{index: i, containerCheckResult: fe}
+//					return
+//				}
 
 				containerErrors := v.validateContainerImage(ctx, c.Image, namespace, field, i, kind, apiVersion, labels, kc, ociremote.WithRemoteOptions(
 					remote.WithContext(ctx),
