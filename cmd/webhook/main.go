@@ -212,7 +212,11 @@ func createTypesMap(kindsList []string) map[schema.GroupVersionKind]resourcesema
 		kind = strings.TrimSpace(kind)
 		switch kind {
 		case "Pod":
+<<<<<<< HEAD
 			types[corev1.SchemeGroupVersion.WithKind("Pod")] = &crdEphemeralContainers{GenericCRD: &duckv1.Pod{}}
+=======
+			types[corev1.SchemeGroupVersion.WithKind("Pods")] = &crdEphemeralContainers{GenericCRD: &duckv1.Pod{}}
+>>>>>>> 607da1519e835fa018408062bd10b9c4aa531286
 		case "ReplicaSet":
 			types[appsv1.SchemeGroupVersion.WithKind("ReplicaSets")] = &crdNoStatusUpdatesOrDeletes{GenericCRD: &policyduckv1beta1.PodScalable{}}
 		case "Deployment":
