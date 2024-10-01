@@ -226,19 +226,19 @@ func createTypesMap(kindsList []string) map[schema.GroupVersionKind]resourcesema
 	for _, kind := range kindsList {
 		kind = strings.TrimSpace(kind)
 		switch kind {
-		case "Pod":
+		case "pods":
 			types[corev1.SchemeGroupVersion.WithKind("Pod")] = &crdEphemeralContainers{GenericCRD: &duckv1.Pod{}}
-		case "ReplicaSet":
+		case "replicasets":
 			types[appsv1.SchemeGroupVersion.WithKind("ReplicaSet")] = &crdNoStatusUpdatesOrDeletes{GenericCRD: &policyduckv1beta1.PodScalable{}}
-		case "Deployment":
+		case "deployments":
 			types[appsv1.SchemeGroupVersion.WithKind("Deployment")] = &crdNoStatusUpdatesOrDeletes{GenericCRD: &policyduckv1beta1.PodScalable{}}
-		case "StatefulSet":
+		case "statefulsets":
 			types[appsv1.SchemeGroupVersion.WithKind("StatefulSet")] = &crdNoStatusUpdatesOrDeletes{GenericCRD: &policyduckv1beta1.PodScalable{}}
-		case "DaemonSet":
+		case "daemonsets":
 			types[appsv1.SchemeGroupVersion.WithKind("DaemonSet")] = &crdNoStatusUpdatesOrDeletes{GenericCRD: &duckv1.WithPod{}}
-		case "Job":
+		case "jobs":
 			types[batchv1.SchemeGroupVersion.WithKind("Job")] = &crdNoStatusUpdatesOrDeletes{GenericCRD: &duckv1.WithPod{}}
-		case "CronJob":
+		case "cronjobs":
 			types[batchv1.SchemeGroupVersion.WithKind("CronJob")] = &crdNoStatusUpdatesOrDeletes{GenericCRD: &duckv1.CronJob{}}
 			types[batchv1beta1.SchemeGroupVersion.WithKind("CronJob")] = &crdNoStatusUpdatesOrDeletes{GenericCRD: &duckv1.CronJob{}}
 		}
