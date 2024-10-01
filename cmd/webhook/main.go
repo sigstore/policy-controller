@@ -21,8 +21,8 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"time"
 	"strings"
+	"time"
 
 	policyduckv1beta1 "github.com/sigstore/policy-controller/pkg/apis/duck/v1beta1"
 	"github.com/sigstore/policy-controller/pkg/apis/policy"
@@ -82,11 +82,9 @@ var (
 	// Validate specific resources.
 	// https://github.com/sigstore/policy-controller/issues/1388
 	resourcesNames = flag.String("resource-name", "replicasets, deployments, pods, cronjobs, jobs, statefulsets, daemonsets", "Comma-separated list of resources")
-    // Split the input string into a slice of strings
-    resourcesNamesList = strings.Split(*resourcesNames, ",")
-    types map[schema.GroupVersionKind]resourcesemantics.GenericCRD
-
-
+	// Split the input string into a slice of strings
+	resourcesNamesList = strings.Split(*resourcesNames, ",")
+	types              map[schema.GroupVersionKind]resourcesemantics.GenericCRD
 
 	// mutatingCIPWebhookName holds the name of the mutating webhook configuration
 	// resource dispatching admission requests to policy-webhook.
@@ -209,28 +207,28 @@ func (c *crdEphemeralContainers) SupportedVerbs() []admissionregistrationv1.Oper
 }
 
 func createTypesMap(kindsList []string) map[schema.GroupVersionKind]resourcesemantics.GenericCRD {
-    types := make(map[schema.GroupVersionKind]resourcesemantics.GenericCRD)
-    for _, kind := range kindsList {
-        kind = strings.TrimSpace(kind)
-        switch kind {
-        case "Pod":
-            types[corev1.SchemeGroupVersion.WithKind("Pod")] = &crdEphemeralContainers{GenericCRD: &duckv1.Pod{}}
-        case "ReplicaSet":
-            types[appsv1.SchemeGroupVersion.WithKind("ReplicaSet")] = &crdNoStatusUpdatesOrDeletes{GenericCRD: &policyduckv1beta1.PodScalable{}}
-        case "Deployment":
-            types[appsv1.SchemeGroupVersion.WithKind("Deployment")] = &crdNoStatusUpdatesOrDeletes{GenericCRD: &policyduckv1beta1.PodScalable{}}
-        case "StatefulSet":
-            types[appsv1.SchemeGroupVersion.WithKind("StatefulSet")] = &crdNoStatusUpdatesOrDeletes{GenericCRD: &policyduckv1beta1.PodScalable{}}
-        case "DaemonSet":
-            types[appsv1.SchemeGroupVersion.WithKind("DaemonSet")] = &crdNoStatusUpdatesOrDeletes{GenericCRD: &duckv1.WithPod{}}
-        case "Job":
-            types[batchv1.SchemeGroupVersion.WithKind("Job")] = &crdNoStatusUpdatesOrDeletes{GenericCRD: &duckv1.WithPod{}}
-        case "CronJob":
-            types[batchv1.SchemeGroupVersion.WithKind("CronJob")] = &crdNoStatusUpdatesOrDeletes{GenericCRD: &duckv1.CronJob{}}
-            types[batchv1beta1.SchemeGroupVersion.WithKind("CronJob")] = &crdNoStatusUpdatesOrDeletes{GenericCRD: &duckv1.CronJob{}}
-        }
-    }
-    return types
+	types := make(map[schema.GroupVersionKind]resourcesemantics.GenericCRD)
+	for _, kind := range kindsList {
+		kind = strings.TrimSpace(kind)
+		switch kind {
+		case "Pod":
+			types[corev1.SchemeGroupVersion.WithKind("Pods")] = &crdEphemeralContainers{GenericCRD: &duckv1.Pod{}}
+		case "ReplicaSet":
+			types[appsv1.SchemeGroupVersion.WithKind("ReplicaSets")] = &crdNoStatusUpdatesOrDeletes{GenericCRD: &policyduckv1beta1.PodScalable{}}
+		case "Deployment":
+			types[appsv1.SchemeGroupVersion.WithKind("Deployments")] = &crdNoStatusUpdatesOrDeletes{GenericCRD: &policyduckv1beta1.PodScalable{}}
+		case "StatefulSet":
+			types[appsv1.SchemeGroupVersion.WithKind("StatefulSets")] = &crdNoStatusUpdatesOrDeletes{GenericCRD: &policyduckv1beta1.PodScalable{}}
+		case "DaemonSet":
+			types[appsv1.SchemeGroupVersion.WithKind("DaemonSets")] = &crdNoStatusUpdatesOrDeletes{GenericCRD: &duckv1.WithPod{}}
+		case "Job":
+			types[batchv1.SchemeGroupVersion.WithKind("Jobs")] = &crdNoStatusUpdatesOrDeletes{GenericCRD: &duckv1.WithPod{}}
+		case "CronJob":
+			types[batchv1.SchemeGroupVersion.WithKind("CronJobs")] = &crdNoStatusUpdatesOrDeletes{GenericCRD: &duckv1.CronJob{}}
+			types[batchv1beta1.SchemeGroupVersion.WithKind("CronJobs")] = &crdNoStatusUpdatesOrDeletes{GenericCRD: &duckv1.CronJob{}}
+		}
+	}
+	return types
 }
 
 var typesCIP = map[schema.GroupVersionKind]resourcesemantics.GenericCRD{
@@ -412,4 +410,3 @@ func newConversionController(ctx context.Context, _ configmap.Watcher) *controll
 		},
 	)
 }
-
