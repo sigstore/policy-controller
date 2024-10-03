@@ -179,7 +179,6 @@ func main() {
     		newConversionController,
     	)
     	}
-	types = createTypesMap(resourcesNamesList)
 }
 
 var (
@@ -256,6 +255,7 @@ var typesCIP = map[schema.GroupVersionKind]resourcesemantics.GenericCRD{
 
 func NewValidatingAdmissionController(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
 	// Decorate contexts with the current state of the config.
+	types = createTypesMap(resourcesNamesList)
 	store := config.NewStore(logging.FromContext(ctx).Named("config-store"))
 	store.WatchConfigs(cmw)
 	policyControllerConfigStore := policycontrollerconfig.NewStore(logging.FromContext(ctx).Named("config-policy-controller"))
@@ -313,7 +313,7 @@ func NewMutatingAdmissionController(ctx context.Context, _ configmap.Watcher) *c
 	}
 	ctx = webhook.WithOptions(ctx, *woptions)
 	validator := cwebhook.NewValidator(ctx)
-
+	types = createTypesMap(resourcesNamesList)
 	return defaulting.NewAdmissionController(ctx,
 		// Name of the resource webhook.
 		*webhookName,
