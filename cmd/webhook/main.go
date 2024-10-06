@@ -86,7 +86,7 @@ var (
 	// https://github.com/sigstore/policy-controller/issues/1388
 	resourcesNames = flag.String("resource-name", "replicasets, deployments, pods, cronjobs, jobs, statefulsets, daemonsets", "Comma-separated list of resources")
 	// Split the input string into a slice of strings
-	resourcesNamesList = strings.Split(*resourcesNames, ",")
+	listResources []string
 	types              map[schema.GroupVersionKind]resourcesemantics.GenericCRD
 
 	// mutatingCIPWebhookName holds the name of the mutating webhook configuration
@@ -127,6 +127,8 @@ func main() {
 	flag.IntVar(&opts.Port, "secure-port", opts.Port, "The port on which to serve HTTPS.")
 
 	flag.Parse()
+	resourcesNamesList := strings.Split(*resourcesNames, ",")
+	listResources = append(listResources, resourcesNamesList...)
 
 	// If TUF has been disabled do not try to set it up.
 	if !*disableTUF {
@@ -255,7 +257,7 @@ var typesCIP = map[schema.GroupVersionKind]resourcesemantics.GenericCRD{
 
 func NewValidatingAdmissionController(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
 	// Decorate contexts with the current state of the config.
-	types = createTypesMap(resourcesNamesList)
+	types = createTypesMap(listResources)
 	store := config.NewStore(logging.FromContext(ctx).Named("config-store"))
 	store.WatchConfigs(cmw)
 	policyControllerConfigStore := policycontrollerconfig.NewStore(logging.FromContext(ctx).Named("config-policy-controller"))
@@ -313,7 +315,7 @@ func NewMutatingAdmissionController(ctx context.Context, _ configmap.Watcher) *c
 	}
 	ctx = webhook.WithOptions(ctx, *woptions)
 	validator := cwebhook.NewValidator(ctx)
-	types = createTypesMap(resourcesNamesList)
+	types = createTypesMap(listResources)
 	return defaulting.NewAdmissionController(ctx,
 		// Name of the resource webhook.
 		*webhookName,
