@@ -1,8 +1,6 @@
 module github.com/sigstore/policy-controller
 
-go 1.23
-
-toolchain go1.23.1
+go 1.23.2
 
 require (
 	github.com/aws/aws-sdk-go v1.55.5
