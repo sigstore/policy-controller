@@ -20,6 +20,7 @@ import (
 	"fmt"
 	"net/url"
 	"os"
+	"strings"
 
 	"github.com/Azure/azure-sdk-for-go/profiles/preview/preview/containerregistry/runtime/containerregistry"
 	"github.com/Azure/azure-sdk-for-go/sdk/azcore/policy"
@@ -42,6 +43,10 @@ func (a ACRHelper) Delete(_ string) error {
 }
 
 func (a ACRHelper) Get(registryURL string) (string, string, error) {
+	if !isACR(registryURL) {
+		return "", "", fmt.Errorf("not an ACR registry")
+	}
+
 	azCred, err := azidentity.NewDefaultAzureCredential(nil)
 	if err != nil {
 		return "", "", fmt.Errorf("failed to obtain a credential: %w", err)
@@ -80,4 +85,8 @@ func (a ACRHelper) Get(registryURL string) (string, string, error) {
 
 func (a ACRHelper) List() (map[string]string, error) {
 	return nil, fmt.Errorf("list is unimplemented")
+}
+
+func isACR(registryURL string) bool {
+	return strings.HasSuffix(registryURL, ".azurecr.io")
 }
