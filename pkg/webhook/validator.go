@@ -517,7 +517,7 @@ func ValidatePolicy(ctx context.Context, namespace string, ref name.Reference, c
 			switch {
 			case authority.Static != nil:
 				if authority.Static.Action == "fail" {
-					result.err = cosign.NewVerificationError("disallowed by static policy: " + authority.Static.Message)
+					result.err = cosign.NewVerificationError("disallowed by static policy: %s", authority.Static.Message)
 					results <- result
 					return
 				}
