@@ -756,8 +756,8 @@ github.com/sigstore/protobuf-specs v0.3.2 h1:nCVARCN+fHjlNCk3ThNXwrZRqIommIeNKWw
 github.com/sigstore/protobuf-specs v0.3.2/go.mod h1:RZ0uOdJR4OB3tLQeAyWoJFbNCBFrPQdcokntde4zRBA=
 github.com/sigstore/rekor v1.3.6 h1:QvpMMJVWAp69a3CHzdrLelqEqpTM3ByQRt5B5Kspbi8=
 github.com/sigstore/rekor v1.3.6/go.mod h1:JDTSNNMdQ/PxdsS49DJkJ+pRJCO/83nbR5p3aZQteXc=
-github.com/sigstore/scaffolding v0.7.11 h1:wiqw0coSfpADwdNDvqgMgGKn1JFiqc5xtsxYrVD0pDU=
-github.com/sigstore/scaffolding v0.7.11/go.mod h1:pXyQNJjQkkm9urV6S61Gx+9B8yyXGHOgp8LJJz6Do3w=
+github.com/sigstore/scaffolding v0.7.12 h1:zqCejvgf4auVovVfjwqo7Mi5+b6UZHaBAgLpDWr0+hA=
+github.com/sigstore/scaffolding v0.7.12/go.mod h1:lncHWpv9lOjrAx0M3yQSuplPj65ZGvRaObz5YF/OwaI=
 github.com/sigstore/sigstore v1.8.9 h1:NiUZIVWywgYuVTxXmRoTT4O4QAGiTEKup4N1wdxFadk=
 github.com/sigstore/sigstore v1.8.9/go.mod h1:d9ZAbNDs8JJfxJrYmulaTazU3Pwr8uLL9+mii4BNR3w=
 github.com/sigstore/sigstore-go v0.6.2 h1:8uiywjt73vzfrGfWYVwVsiB1E1Qmwmpgr1kVpl4fs6A=
@@ -770,8 +770,8 @@ github.com/sigstore/sigstore/pkg/signature/kms/gcp v1.8.10 h1:Xre51HdjIIaVo5ox5z
 github.com/sigstore/sigstore/pkg/signature/kms/gcp v1.8.10/go.mod h1:VNfdklQDbyGJog8S7apdxiEfmYmCkKyxrsCL9xprkTY=
 github.com/sigstore/sigstore/pkg/signature/kms/hashivault v1.8.10 h1:HjfjL3x3dP2kaGqQHVog974cTcKfzFaGjfZyLQ9KXrg=
 github.com/sigstore/sigstore/pkg/signature/kms/hashivault v1.8.10/go.mod h1:jaeEjkTW1p3gUyPjz9lTcT4TydCs208FoyAwIs6bIT4=
-github.com/sigstore/timestamp-authority v1.2.2 h1:X4qyutnCQqJ0apMewFyx+3t7Tws00JQ/JonBiu3QvLE=
-github.com/sigstore/timestamp-authority v1.2.2/go.mod h1:nEah4Eq4wpliDjlY342rXclGSO7Kb9hoRrl9tqLW13A=
+github.com/sigstore/timestamp-authority v1.2.3 h1:/4YXCKF/+ZQsad89D0Lj2QIz78s5/aRgLa8Nwq2/Kd4=
+github.com/sigstore/timestamp-authority v1.2.3/go.mod h1:q2tJKJzP34hLIbVu3Y1A9bBZTBuZ/gEmMN7MtAoGQKI=
 github.com/sirupsen/logrus v1.2.0/go.mod h1:LxeOpSwHxABJmUn/MG1IvRgCAasNZTLOkJPxbbu5VWo=
 github.com/sirupsen/logrus v1.4.2/go.mod h1:tLMulIdttU9McNUspp0xgXVQah82FyeX6MwdIuYE2rE=
 github.com/sirupsen/logrus v1.6.0/go.mod h1:7uNnSEd1DgxDLC74fIahvMZmmYsHGZGEOFrfsX/uA88=
