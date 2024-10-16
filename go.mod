@@ -67,7 +67,7 @@ require (
 	github.com/sigstore/sigstore/pkg/signature/kms/aws v1.8.10
 	github.com/sigstore/sigstore/pkg/signature/kms/azure v1.8.9
 	github.com/sigstore/sigstore/pkg/signature/kms/gcp v1.8.10
-	github.com/sigstore/sigstore/pkg/signature/kms/hashivault v1.8.9
+	github.com/sigstore/sigstore/pkg/signature/kms/hashivault v1.8.10
 	github.com/spf13/viper v1.19.0
 	knative.dev/hack/schema v0.0.0-20240607132042-09143140a254
 	knative.dev/pkg v0.0.0-20230612155445-74c4be5e935e
@@ -133,6 +133,7 @@ require (
 	github.com/blang/semver v3.5.1+incompatible // indirect
 	github.com/blang/semver/v4 v4.0.0 // indirect
 	github.com/blendle/zapdriver v1.3.1 // indirect
+	github.com/cenkalti/backoff/v4 v4.3.0 // indirect
 	github.com/census-instrumentation/opencensus-proto v0.4.1 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/chrismellard/docker-credential-acr-env v0.0.0-20230304212654-82a0ddb27589 // indirect
@@ -191,7 +192,7 @@ require (
 	github.com/googleapis/gax-go/v2 v2.13.0 // indirect
 	github.com/gorilla/mux v1.8.1 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.22.0 // indirect
-	github.com/hashicorp/vault/api v1.14.0 // indirect
+	github.com/hashicorp/vault/api v1.15.0 // indirect
 	github.com/imdario/mergo v0.3.16 // indirect
 	github.com/in-toto/in-toto-golang v0.9.0 // indirect
 	github.com/inconshreveable/mousetrap v1.1.0 // indirect
