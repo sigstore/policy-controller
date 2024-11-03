@@ -280,7 +280,7 @@ func (v *Validator) validatePodSpec(ctx context.Context, namespace, kind, apiVer
 				fe := refOrFieldError(c.Image, field, i)
 				if fe != nil {
 					results <- containerCheckResult{index: i, containerCheckResult: fe}
-				return
+				    return
 				}
 
 				containerErrors := v.validateContainerImage(ctx, c.Image, namespace, field, i, kind, apiVersion, labels, kc, ociremote.WithRemoteOptions(
@@ -517,7 +517,7 @@ func ValidatePolicy(ctx context.Context, namespace string, ref name.Reference, c
 			switch {
 			case authority.Static != nil:
 				if authority.Static.Action == "fail" {
-					result.err = cosign.NewVerificationError("disallowed by static policy: " + authority.Static.Message)
+					result.err = cosign.NewVerificationError("disallowed by static policy: %s", authority.Static.Message)
 					results <- result
 					return
 				}
