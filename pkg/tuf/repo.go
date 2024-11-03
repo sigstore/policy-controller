@@ -129,7 +129,10 @@ func Uncompress(src io.Reader, dst string) error {
 			}
 		// Write out files
 		case tar.TypeReg:
-			fileToWrite, err := os.OpenFile(target, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode))
+			if header.Mode < 0 && int64(uint32(header.Mode)) != header.Mode { //nolint:gosec // disable G115
+				return errors.New("invalid mode value in tar header")
+			}
+			fileToWrite, err := os.OpenFile(target, os.O_CREATE|os.O_RDWR, os.FileMode(header.Mode)) //nolint:gosec // disable G115
 			if err != nil {
 				return err
 			}
@@ -213,9 +216,12 @@ func UncompressMemFS(src io.Reader, stripPrefix string) (fs.FS, error) {
 			if err != nil && err != io.EOF {
 				return nil, fmt.Errorf("reading file %s : %w", header.Name, err)
 			}
+			if header.Mode < 0 && int64(uint32(header.Mode)) != header.Mode { //nolint:gosec // disable G115
+				return nil, errors.New("invalid mode value in tar header")
+			}
 			testFS[target] = &fstest.MapFile{
 				Data:    data,
-				Mode:    os.FileMode(header.Mode),
+				Mode:    os.FileMode(header.Mode), //nolint:gosec // disable G115
 				ModTime: header.ModTime,
 			}
 		}
