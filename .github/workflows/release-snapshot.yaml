@@ -27,7 +27,7 @@ jobs:
           go-version-file: './go.mod'
           check-latest: true
 
-      - uses: anchore/sbom-action/download-syft@251a468eed47e5082b105c3ba6ee500c0e65a764 # v0.17.6
+      - uses: anchore/sbom-action/download-syft@fc46e51fd3cb168ffb36c6d1915723c47db58abb # v0.17.7
 
       - uses: ko-build/setup-ko@3aebd0597dc1e9d1a26bcfdb7cbeb19c131d3037 # v0.7
 
