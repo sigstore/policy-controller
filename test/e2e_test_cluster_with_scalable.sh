@@ -112,7 +112,7 @@ sed "s#TEST_IMAGE#${demoimage}#" ./test/testdata/policy-controller/e2e/test-depl
 echo '::endgroup::'
 
 echo '::group:: Deploy deployment with custom resource'
-sed "s#TEST_IMAGE#${demoimage}#" ./test/testdata/policy-controller/e2e/test-deployment.yaml | kubectl apply -f -
+sed "s#TEST_IMAGE#${demoimage}#" ./test/testdata/policy-controller/e2e/test-deployment-with-custom-resource.yaml | kubectl apply -f -
 echo '::endgroup::'
 
 echo '::group:: Label test namespace for verification'
