@@ -38,7 +38,7 @@ require (
 	golang.org/x/sys v0.27.0 // indirect
 	golang.org/x/time v0.7.0
 	google.golang.org/grpc v1.67.1 // indirect
-	google.golang.org/protobuf v1.35.1
+	google.golang.org/protobuf v1.35.2
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/api v0.31.2
 	k8s.io/apimachinery v0.31.2
