@@ -89,6 +89,7 @@ func (matchResource *MatchResource) ConvertTo(_ context.Context, sink *v1beta1.M
 
 func (authority *Authority) ConvertTo(ctx context.Context, sink *v1beta1.Authority) error {
 	sink.Name = authority.Name
+	sink.SignatureFormat = authority.SignatureFormat
 	if authority.CTLog != nil && authority.CTLog.URL != nil {
 		sink.CTLog = &v1beta1.TLog{
 			URL:          authority.CTLog.URL.DeepCopy(),
@@ -244,6 +245,7 @@ func (spec *ClusterImagePolicySpec) ConvertFrom(ctx context.Context, source *v1b
 
 func (authority *Authority) ConvertFrom(ctx context.Context, source *v1beta1.Authority) error {
 	authority.Name = source.Name
+	authority.SignatureFormat = source.SignatureFormat
 	if source.CTLog != nil && source.CTLog.URL != nil {
 		authority.CTLog = &TLog{
 			URL:          source.CTLog.URL.DeepCopy(),
