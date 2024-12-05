@@ -415,6 +415,57 @@ func TestReconcile(t *testing.T) {
 				WithTrustRootFinalizer,
 				MarkReadyTrustRoot,
 			)}},
+	}, {
+		Name: "With TrustedRootJSON",
+		Key:  testKey,
+
+		SkipNamespaceValidation: true, // Cluster scoped
+		Objects: []runtime.Object{
+			NewTrustRoot(trName,
+				WithTrustRootUID(uid),
+				WithTrustRootResourceVersion(resourceVersion),
+				WithTrustedRootJSON(marshalledEntry),
+				WithTrustRootFinalizer,
+			),
+		},
+		WantCreates: []runtime.Object{
+			makeConfigMapWithMirrorFS(marshalledEntry),
+		},
+		WantStatusUpdates: []clientgotesting.UpdateActionImpl{{
+			Object: NewTrustRoot(trName,
+				WithTrustRootUID(uid),
+				WithTrustRootResourceVersion(resourceVersion),
+				WithTrustedRootJSON(marshalledEntry),
+				WithTrustRootFinalizer,
+				MarkReadyTrustRoot,
+			)}},
+	}, {
+		Name: "With invalid TrustedRootJSON",
+		Key:  testKey,
+
+		SkipNamespaceValidation: true, // Cluster scoped
+		Objects: []runtime.Object{
+			NewTrustRoot(trName,
+				WithTrustRootUID(uid),
+				WithTrustRootResourceVersion(resourceVersion),
+				WithTrustedRootJSON("invalid"),
+				WithTrustRootFinalizer,
+			),
+		},
+		WantErr: true,
+		WantEvents: []string{
+			Eventf(corev1.EventTypeWarning, "InternalError", "failed to unmarshal trusted root JSON"),
+		},
+		WantStatusUpdates: []clientgotesting.UpdateActionImpl{{
+			Object: NewTrustRoot(trName,
+				WithTrustRootUID(uid),
+				WithTrustRootResourceVersion(resourceVersion),
+				WithTrustedRootJSON("invalid"),
+				WithTrustRootFinalizer,
+				WithInitConditionsTrustRoot,
+				WithObservedGenerationTrustRoot(1),
+				WithMarkInlineKeysFailedTrustRoot("failed to unmarshal trusted root JSON"),
+			)}},
 	}}
 
 	logger := logtesting.TestLogger(t)

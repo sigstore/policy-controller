@@ -23,6 +23,7 @@ import (
 	"github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
 	"github.com/sigstore/policy-controller/pkg/reconciler/trustroot"
 	"github.com/sigstore/policy-controller/pkg/tuf"
+	"github.com/sigstore/sigstore-go/pkg/root"
 )
 
 func GetKeysFromTrustRoot(ctx context.Context, tr *v1alpha1.TrustRoot) (*config.SigstoreKeys, error) {
@@ -43,6 +44,9 @@ func GetKeysFromTrustRoot(ctx context.Context, tr *v1alpha1.TrustRoot) (*config.
 		return trustroot.GetSigstoreKeysFromTuf(ctx, client, "")
 	case tr.Spec.SigstoreKeys != nil:
 		return config.ConvertSigstoreKeys(context.Background(), tr.Spec.SigstoreKeys)
+
+	case len(tr.Spec.TrustedRootJSON) > 0:
+		return root.NewTrustedRootProtobuf([]byte(tr.Spec.TrustedRootJSON))
 	}
 	return nil, fmt.Errorf("provided trust root configuration is not supported")
 }

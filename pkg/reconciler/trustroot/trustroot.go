@@ -30,6 +30,7 @@ import (
 	"github.com/sigstore/policy-controller/pkg/reconciler/trustroot/resources"
 	"github.com/sigstore/policy-controller/pkg/tuf"
 	pbcommon "github.com/sigstore/protobuf-specs/gen/pb-go/common/v1"
+	"github.com/sigstore/sigstore-go/pkg/root"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	sigstoretuf "github.com/sigstore/sigstore/pkg/tuf"
 	"github.com/theupdateframework/go-tuf/client"
@@ -69,9 +70,15 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, trustroot *v1alpha1.Trus
 		sigstoreKeys, err = r.getSigstoreKeysFromRemote(ctx, trustroot.Spec.Remote)
 	case trustroot.Spec.SigstoreKeys != nil:
 		sigstoreKeys, err = config.ConvertSigstoreKeys(ctx, trustroot.Spec.SigstoreKeys)
+	case len(trustroot.Spec.TrustedRootJSON) > 0:
+		sigstoreKeys, err = root.NewTrustedRootProtobuf([]byte(trustroot.Spec.TrustedRootJSON))
+		if err != nil {
+			err = fmt.Errorf("failed to unmarshal trusted root JSON")
+		}
+
 	default:
 		// This should not happen since the CRD has been validated.
-		err = fmt.Errorf("invalid TrustRoot entry: %s missing repository,remote, and sigstoreKeys", trustroot.Name)
+		err = fmt.Errorf("invalid TrustRoot entry: %s missing repository, remote, sigstoreKeys, and trustedRootJSON", trustroot.Name)
 		logging.FromContext(ctx).Errorf("Invalid trustroot entry: %s missing repository,remote, and sigstoreKeys", trustroot.Name)
 	}
 

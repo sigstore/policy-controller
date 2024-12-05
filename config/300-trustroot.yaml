@@ -147,6 +147,9 @@ spec:
                           uri:
                             description: The URI at which the CA can be accessed.
                             type: string
+                trustedRootJSON:
+                  description: TrustedRootJSON contains the serialized trusted_root.json.
+                  type: string
             status:
               description: Status represents the current state of the TrustRoot. This data may be out of date.
               type: object

@@ -41,26 +41,31 @@ func (tr *TrustRoot) Validate(ctx context.Context) *apis.FieldError {
 }
 
 func (spec *TrustRootSpec) Validate(ctx context.Context) (errors *apis.FieldError) {
-	if spec.Repository == nil && spec.Remote == nil && spec.SigstoreKeys == nil {
-		return apis.ErrMissingOneOf("repository", "remote", "sigstoreKeys")
+	if spec.Repository == nil && spec.Remote == nil && spec.SigstoreKeys == nil && len(spec.TrustedRootJSON) == 0 {
+		return apis.ErrMissingOneOf("repository", "remote", "sigstoreKeys", "trustedRootJSON")
 	}
 	if spec.Repository != nil {
-		if spec.Remote != nil || spec.SigstoreKeys != nil {
-			return apis.ErrMultipleOneOf("repository", "remote", "sigstoreKeys")
+		if spec.Remote != nil || spec.SigstoreKeys != nil || len(spec.TrustedRootJSON) > 0 {
+			return apis.ErrMultipleOneOf("repository", "remote", "sigstoreKeys", "trustedRootJSON")
 		}
 		return spec.Repository.Validate(ctx).ViaField("repository")
 	}
 	if spec.Remote != nil {
-		if spec.Repository != nil || spec.SigstoreKeys != nil {
-			return apis.ErrMultipleOneOf("repository", "remote", "sigstoreKeys")
+		if spec.Repository != nil || spec.SigstoreKeys != nil || len(spec.TrustedRootJSON) > 0 {
+			return apis.ErrMultipleOneOf("repository", "remote", "sigstoreKeys", "trustedRootJSON")
 		}
 		return spec.Remote.Validate(ctx).ViaField("remote")
 	}
 	if spec.SigstoreKeys != nil {
 		if spec.Remote != nil || spec.Repository != nil {
-			return apis.ErrMultipleOneOf("repository", "remote", "sigstoreKeys")
+			return apis.ErrMultipleOneOf("repository", "remote", "sigstoreKeys", "trustedRootJSON")
 		}
 		return spec.SigstoreKeys.Validate(ctx).ViaField("sigstoreKeys")
+	}
+	if len(spec.TrustedRootJSON) > 0 {
+		if spec.Remote != nil || spec.Repository != nil || spec.SigstoreKeys != nil {
+			return apis.ErrMultipleOneOf("repository", "remote", "sigstoreKeys", "trustedRootJSON")
+		}
 	}
 	return
 }
