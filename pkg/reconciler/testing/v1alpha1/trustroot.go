@@ -115,6 +115,14 @@ func WithRepository(targets string, root, repository []byte, trustedRootTarget s
 	}
 }
 
+// WithTrustedRootJSON constructs a TrustRootOption which sets the
+// TrustedRootJSON to the provided value.
+func WithTrustedRootJSON(tr string) TrustRootOption {
+	return func(trustRoot *v1alpha1.TrustRoot) {
+		trustRoot.Spec.TrustedRootJSON = tr
+	}
+}
+
 func WithInitConditionsTrustRoot(tr *v1alpha1.TrustRoot) {
 	tr.Status.InitializeConditions()
 }

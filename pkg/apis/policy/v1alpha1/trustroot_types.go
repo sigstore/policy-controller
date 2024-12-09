@@ -91,6 +91,10 @@ type TrustRootSpec struct {
 	// SigstoreKeys contains the serialized keys.
 	// +optional
 	SigstoreKeys *SigstoreKeys `json:"sigstoreKeys,omitempty"`
+
+	// TrustedRootJSON contains the serialized trusted_root.json.
+	// +optional
+	TrustedRootJSON string `json:"trustedRootJSON,omitempty"`
 }
 
 // Remote specifies the TUF with trusted initial root and remote mirror where

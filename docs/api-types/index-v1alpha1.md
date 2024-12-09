@@ -138,6 +138,7 @@ TrustRootSpec defines a trusted Root. This is typically either a TUF Root or a b
 | remote | Remote specifies initial root of trust & remote mirror. | [Remote](#remote) | false |
 | repository | Repository contains the serialized TUF remote repository. | [Repository](#repository) | false |
 | sigstoreKeys | SigstoreKeys contains the serialized keys. | [SigstoreKeys](#sigstorekeys) | false |
+| trustedRootJSON | TrustedRootJSON contains the serialized trusted_root.json. | string | false |
 
 [Back to TOC](#table-of-contents)
 
