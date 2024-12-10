@@ -49,6 +49,7 @@ The authorities block defines the rules for discovering and validating signature
 | ctlog | CTLog sets the configuration to verify the authority against a Rekor instance. | [TLog](#tlog) | false |
 | attestations | Attestations is a list of individual attestations for this authority, once the signature for this authority has been verified. | [][Attestation](#attestation) | false |
 | rfc3161timestamp | RFC3161Timestamp sets the configuration to verify the signature timestamp against a RFC3161 time-stamping instance. | [RFC3161Timestamp](#rfc3161timestamp) | false |
+| signatureFormat | SignatureFormat specifies the format the authority expects. Supported formats are \"legacy\" and \"bundle\". If not specified, the default is \"legacy\" (cosign's default). | string | false |
 
 [Back to TOC](#table-of-contents)
 
