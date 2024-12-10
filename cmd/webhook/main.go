@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	policyduckv1beta1 "github.com/sigstore/policy-controller/pkg/apis/duck/v1beta1"
@@ -78,6 +79,13 @@ var (
 	// https://github.com/sigstore/policy-controller/issues/354
 	disableTUF = flag.Bool("disable-tuf", false, "Disable TUF support.")
 
+	// Validate specific resources.
+    // https://github.com/sigstore/policy-controller/issues/1388
+    resourcesNames = flag.String("resource-name", "replicasets, deployments, pods, cronjobs, jobs, statefulsets, daemonsets", "Comma-separated list of resources")
+    // Split the input string into a slice of strings
+    listResources []string
+    types              map[schema.GroupVersionKind]resourcesemantics.GenericCRD
+
 	// mutatingCIPWebhookName holds the name of the mutating webhook configuration
 	// resource dispatching admission requests to policy-webhook.
 	// It is also the name of the webhook which is injected by the controller
@@ -116,6 +124,8 @@ func main() {
 	flag.IntVar(&opts.Port, "secure-port", opts.Port, "The port on which to serve HTTPS.")
 
 	flag.Parse()
+	resourcesNamesList := strings.Split(*resourcesNames, ",")
+    listResources = append(listResources, resourcesNamesList...)
 
 	// If TUF has been disabled do not try to set it up.
 	if !*disableTUF {
@@ -140,8 +150,7 @@ func main() {
 
 	// This must match the set of resources we configure in
 	// cmd/webhook/main.go in the "types" map.
-	common.ValidResourceNames = sets.NewString("replicasets", "deployments",
-		"pods", "cronjobs", "jobs", "statefulsets", "daemonsets")
+	common.ValidResourceNames = sets.NewString(resourcesNamesList...)
 
 	v := version.GetVersionInfo()
 	vJSON, _ := v.JSONString()
@@ -198,17 +207,29 @@ func (c *crdEphemeralContainers) SupportedVerbs() []admissionregistrationv1.Oper
 	}
 }
 
-var types = map[schema.GroupVersionKind]resourcesemantics.GenericCRD{
-	corev1.SchemeGroupVersion.WithKind("Pod"): &crdEphemeralContainers{GenericCRD: &duckv1.Pod{}},
-
-	appsv1.SchemeGroupVersion.WithKind("ReplicaSet"):  &crdNoStatusUpdatesOrDeletes{GenericCRD: &policyduckv1beta1.PodScalable{}},
-	appsv1.SchemeGroupVersion.WithKind("Deployment"):  &crdNoStatusUpdatesOrDeletes{GenericCRD: &policyduckv1beta1.PodScalable{}},
-	appsv1.SchemeGroupVersion.WithKind("StatefulSet"): &crdNoStatusUpdatesOrDeletes{GenericCRD: &policyduckv1beta1.PodScalable{}},
-	appsv1.SchemeGroupVersion.WithKind("DaemonSet"):   &crdNoStatusUpdatesOrDeletes{GenericCRD: &duckv1.WithPod{}},
-	batchv1.SchemeGroupVersion.WithKind("Job"):        &crdNoStatusUpdatesOrDeletes{GenericCRD: &duckv1.WithPod{}},
-
-	batchv1.SchemeGroupVersion.WithKind("CronJob"):      &crdNoStatusUpdatesOrDeletes{GenericCRD: &duckv1.CronJob{}},
-	batchv1beta1.SchemeGroupVersion.WithKind("CronJob"): &crdNoStatusUpdatesOrDeletes{GenericCRD: &duckv1.CronJob{}},
+func createTypesMap(kindsList []string) map[schema.GroupVersionKind]resourcesemantics.GenericCRD {
+	types := make(map[schema.GroupVersionKind]resourcesemantics.GenericCRD)
+	for _, kind := range kindsList {
+		kind = strings.TrimSpace(kind)
+		switch kind {
+		case "pods":
+			types[corev1.SchemeGroupVersion.WithKind("Pod")] = &crdEphemeralContainers{GenericCRD: &duckv1.Pod{}}
+		case "replicasets":
+			types[appsv1.SchemeGroupVersion.WithKind("ReplicaSet")] = &crdNoStatusUpdatesOrDeletes{GenericCRD: &policyduckv1beta1.PodScalable{}}
+		case "deployments":
+			types[appsv1.SchemeGroupVersion.WithKind("Deployment")] = &crdNoStatusUpdatesOrDeletes{GenericCRD: &policyduckv1beta1.PodScalable{}}
+		case "statefulsets":
+			types[appsv1.SchemeGroupVersion.WithKind("StatefulSet")] = &crdNoStatusUpdatesOrDeletes{GenericCRD: &policyduckv1beta1.PodScalable{}}
+		case "daemonsets":
+			types[appsv1.SchemeGroupVersion.WithKind("DaemonSet")] = &crdNoStatusUpdatesOrDeletes{GenericCRD: &duckv1.WithPod{}}
+		case "jobs":
+			types[batchv1.SchemeGroupVersion.WithKind("Job")] = &crdNoStatusUpdatesOrDeletes{GenericCRD: &duckv1.WithPod{}}
+		case "cronjobs":
+			types[batchv1.SchemeGroupVersion.WithKind("CronJob")] = &crdNoStatusUpdatesOrDeletes{GenericCRD: &duckv1.CronJob{}}
+			types[batchv1beta1.SchemeGroupVersion.WithKind("CronJob")] = &crdNoStatusUpdatesOrDeletes{GenericCRD: &duckv1.CronJob{}}
+		}
+	}
+	return types
 }
 
 var typesCIP = map[schema.GroupVersionKind]resourcesemantics.GenericCRD{
@@ -221,6 +242,7 @@ var typesCIP = map[schema.GroupVersionKind]resourcesemantics.GenericCRD{
 
 func NewValidatingAdmissionController(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
 	// Decorate contexts with the current state of the config.
+	types = createTypesMap(listResources)
 	store := config.NewStore(logging.FromContext(ctx).Named("config-store"))
 	store.WatchConfigs(cmw)
 	policyControllerConfigStore := policycontrollerconfig.NewStore(logging.FromContext(ctx).Named("config-policy-controller"))
@@ -278,7 +300,7 @@ func NewMutatingAdmissionController(ctx context.Context, _ configmap.Watcher) *c
 	}
 	ctx = webhook.WithOptions(ctx, *woptions)
 	validator := cwebhook.NewValidator(ctx)
-
+    types = createTypesMap(listResources)
 	return defaulting.NewAdmissionController(ctx,
 		// Name of the resource webhook.
 		*webhookName,
