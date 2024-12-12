@@ -41,7 +41,7 @@ require (
 	google.golang.org/protobuf v1.35.2
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/api v0.31.3
-	k8s.io/apimachinery v0.31.3
+	k8s.io/apimachinery v0.31.4
 	k8s.io/client-go v0.31.3
 	k8s.io/code-generator v0.31.1
 	k8s.io/kube-openapi v0.0.0-20240228011516-70dd3763d340
@@ -58,7 +58,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.8.0
 	github.com/awslabs/amazon-ecr-credential-helper/ecr-login v0.0.0-20231024185945-8841054dbdb8
 	github.com/cenkalti/backoff/v4 v4.3.0
-	github.com/docker/docker v27.3.1+incompatible
+	github.com/docker/docker v27.4.0+incompatible
 	github.com/docker/docker-credential-helpers v0.8.2
 	github.com/docker/go-connections v0.5.0
 	github.com/go-jose/go-jose/v4 v4.0.4
