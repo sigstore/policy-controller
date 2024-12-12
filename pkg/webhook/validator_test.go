@@ -3032,7 +3032,7 @@ func TestFulcioCertsFromAuthority(t *testing.T) {
 				} else if err.Error() != tc.wantErr {
 					t.Errorf("unexpected error: %v wanted %q", err, tc.wantErr)
 				}
-			} else if err == nil && tc.wantErr != "" {
+			} else if tc.wantErr != "" {
 				t.Errorf("wanted error: %q got none", tc.wantErr)
 			}
 			if !roots.Equal(tc.wantRoots) {
@@ -3140,7 +3140,7 @@ func TestRekorClientAndKeysFromAuthority(t *testing.T) {
 				} else if err.Error() != tc.wantErr {
 					t.Errorf("unexpected error: %v wanted %q", err, tc.wantErr)
 				}
-			} else if err == nil && tc.wantErr != "" {
+			} else if tc.wantErr != "" {
 				t.Errorf("wanted error: %q got none", tc.wantErr)
 			}
 			if tc.wantLogID != "" {
@@ -3370,7 +3370,7 @@ func TestCheckOptsFromAuthority(t *testing.T) {
 				} else if err.Error() != tc.wantErr {
 					t.Errorf("unexpected error: %v wanted %q", err, tc.wantErr)
 				}
-			} else if err == nil && tc.wantErr != "" {
+			} else if tc.wantErr != "" {
 				t.Errorf("wanted error: %q got none", tc.wantErr)
 			}
 			if tc.wantClient && (gotCheckOpts == nil || gotCheckOpts.RekorClient == nil) {

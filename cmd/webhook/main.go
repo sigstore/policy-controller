@@ -56,6 +56,7 @@ import (
 	"github.com/sigstore/sigstore/pkg/tuf"
 
 	"github.com/sigstore/policy-controller/pkg/apis/config"
+	pctuf "github.com/sigstore/policy-controller/pkg/tuf"
 	cwebhook "github.com/sigstore/policy-controller/pkg/webhook"
 )
 
@@ -136,7 +137,7 @@ func main() {
 
 	// Set the policy and trust root resync periods
 	ctx = clusterimagepolicy.ToContext(ctx, *policyResyncPeriod)
-	ctx = trustroot.ToContext(ctx, *trustrootResyncPeriod)
+	ctx = pctuf.ToContext(ctx, *trustrootResyncPeriod)
 
 	// This must match the set of resources we configure in
 	// cmd/webhook/main.go in the "types" map.
