@@ -41,10 +41,10 @@ require (
 	google.golang.org/protobuf v1.35.2
 	gopkg.in/yaml.v3 v3.0.1
 	k8s.io/api v0.31.3
-	k8s.io/apimachinery v0.31.4
+	k8s.io/apimachinery v0.32.0
 	k8s.io/client-go v0.31.3
 	k8s.io/code-generator v0.31.1
-	k8s.io/kube-openapi v0.0.0-20240228011516-70dd3763d340
+	k8s.io/kube-openapi v0.0.0-20241105132330-32ad38e42d3f
 	knative.dev/hack v0.0.0-20240111013919-e89096d74d85
 	sigs.k8s.io/release-utils v0.8.5
 	sigs.k8s.io/yaml v1.4.0
@@ -269,7 +269,7 @@ require (
 	golang.org/x/sync v0.10.0 // indirect
 	golang.org/x/term v0.27.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
-	golang.org/x/tools v0.24.0 // indirect
+	golang.org/x/tools v0.26.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 	google.golang.org/api v0.206.0 // indirect
 	google.golang.org/genproto v0.0.0-20241104194629-dd2ea8efbc28 // indirect
@@ -282,9 +282,9 @@ require (
 	k8s.io/apiextensions-apiserver v0.27.6 // indirect
 	k8s.io/gengo v0.0.0-20230829151522-9cce18d56c01 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
-	k8s.io/utils v0.0.0-20240711033017-18e509b52bc8 // indirect
-	sigs.k8s.io/json v0.0.0-20221116044647-bc3834ca7abd // indirect
-	sigs.k8s.io/structured-merge-diff/v4 v4.4.1 // indirect
+	k8s.io/utils v0.0.0-20241104100929-3ea5e8cea738 // indirect
+	sigs.k8s.io/json v0.0.0-20241010143419-9aa6b5e7a4b3 // indirect
+	sigs.k8s.io/structured-merge-diff/v4 v4.4.2 // indirect
 )
 
 // TODO: this dependency causes issues on webhook startup due
