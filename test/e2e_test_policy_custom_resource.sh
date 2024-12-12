@@ -22,7 +22,7 @@ if [[ -z "${KO_DOCKER_REPO}" ]]; then
 fi
 
 # Variables
-export CUSTOM_RESOURCE="Pods,ReplicaSets"
+export CUSTOM_RESOURCE="DaemonSet,ReplicaSets"
 export NS=custom-resource-test
 export TIMESTAMP="TIMESTAMP"
 
@@ -39,30 +39,76 @@ assert_webhook_configuration() {
   echo "Resource ${resource} found in ${webhook_name}"
 }
 
+# Helper function to check if an image uses a tag
+assert_image_tag() {
+  local pod_name=$1
+  local container_name=$2
+
+  echo "Checking that ${pod_name}/${container_name} uses a tag, not a digest"
+  image=$(kubectl get pod "${pod_name}" -n "${NS}" -o=jsonpath="{.spec.containers[?(@.name=='${container_name}')].image}")
+  if [[ "${image}" =~ @sha256:[a-f0-9]{64} ]]; then
+    echo "Image ${image} is using a digest, which is not allowed"
+    exit 1
+  else
+    echo "Image ${image} is correctly using a tag"
+  fi
+}
+
+# Step 1: Create namespace
 echo '::group:: Create and label namespace for testing'
 kubectl create namespace ${NS}
 kubectl label namespace ${NS} policy.sigstore.dev/include=true
 echo '::endgroup::'
 
+# Step 2: Deploy Policy Controller with custom-resource flag
+echo '::group:: Deploy Policy Controller with custom-resource flag'
+KO_DOCKER_REPO=${KO_DOCKER_REPO} ko apply -f ./deploy/manifests.yaml \
+  --set-string policyController.customResource=${CUSTOM_RESOURCE}
+echo '::endgroup::'
+
+# Step 3: Validate webhook configurations
 echo '::group:: Validate webhook configurations'
 sleep 5  # Allow webhook configurations to propagate
 
-for resource in Pods ReplicaSets; do
+for resource in DaemonSet ReplicaSets; do
   assert_webhook_configuration "MutatingWebhookConfiguration" "${resource}"
   assert_webhook_configuration "ValidatingWebhookConfiguration" "${resource}"
 done
 
 # Ensure a non-monitored resource is NOT included
-if kubectl get MutatingWebhookConfiguration -o yaml | grep -q "resources:.*DaemonSet"; then
-  echo "DaemonSet should not be included in MutatingWebhookConfiguration"
+if kubectl get MutatingWebhookConfiguration -o yaml | grep -q "resources:.*Pods"; then
+  echo "Pods should not be included in MutatingWebhookConfiguration"
   exit 1
 else
-  echo "DaemonSet correctly excluded from MutatingWebhookConfiguration"
+  echo "Pods correctly excluded from MutatingWebhookConfiguration"
 fi
 echo '::endgroup::'
 
+# Step 4: Deploy sandbox and check for image tag usage
+echo '::group:: Deploy sandbox and check image tags'
+cat <<EOF | kubectl apply -n ${NS} -f -
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sandbox-pod
+spec:
+  containers:
+  - name: sandbox-container
+    image: nginx:1.23.2
+    command: ["sleep"]
+    args: ["3600"]
+EOF
+
+# Wait for the pod to be ready
+kubectl wait --for=condition=Ready pod/sandbox-pod -n ${NS} --timeout=60s
+
+# Validate that the image uses a tag
+assert_image_tag "sandbox-pod" "sandbox-container"
+echo '::endgroup::'
+
+# Step 5: Clean up
 echo '::group:: Cleanup'
 kubectl delete ns ${NS}
 echo '::endgroup::'
 
-echo "Custom resource flag test completed successfully!"
+echo "Custom resource flag and sandbox image tag tests completed successfully!"

@@ -15,22 +15,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  namespace: demo-scalable-custom-resource
+  namespace: test-deployment-custom-resource
   name: test-deployment-custom-resource
   labels:
-    app: demo-custom-resource
+    app: demo-test-custom-resource
 spec:
   replicas: 3
   selector:
     matchLabels:
-      app: demo-custom-resource
+      app: demo-test-custom-resource
   template:
     metadata:
       labels:
-        app: demo-custom-resource
+        app: demo-test-custom-resource
     spec:
       containers:
           - args:
-              - resource-name="pods"
+              - resource-name="replicasets,damemonsets"
           - name: demo-custom-resource
-          image: TEST_IMAGE
+            image: TEST_IMAGE

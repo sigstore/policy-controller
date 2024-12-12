@@ -26,7 +26,7 @@ permissions: read-all
 
 jobs:
   cip-test-trustroot-bring-your-own-keys:
-    name: ClusterImagePolicy e2e tests with TrustRoot - Bring Your Own Keys
+    name: ClusterImagePolicy e2e tests with custom resources
     runs-on: ubuntu-latest
 
     strategy:
@@ -137,38 +137,6 @@ jobs:
           # Wait for the webhook to come up and become Ready
           kubectl rollout status --timeout 5m --namespace cosign-system deployments/webhook
           echo "TUF_ROOT_FILE=./root.json" >> $GITHUB_ENV
-
-      - name: Checkout TSA for testing.
-        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v3.0.2
-        with:
-          repository: sigstore/timestamp-authority
-          path: ./src/github.com/sigstore/timestamp-authority
-
-      - name: Build timestamp-cli
-        working-directory: ./src/github.com/sigstore/timestamp-authority
-        run: |
-          go build -o ./timestamp-cli ./cmd/timestamp-cli
-
-      - name: Exercise our local TSA
-        working-directory: ./src/github.com/sigstore/timestamp-authority
-        run: |
-          TSA_URL=$(kubectl -n tsa-system get ksvc tsa -ojsonpath='{.status.url}')
-          echo "TSA_URL=$TSA_URL" >> $GITHUB_ENV
-
-          curl $TSA_URL/api/v1/timestamp/certchain > ts_chain.pem
-          echo "myblob" > myblob
-          if ! ./timestamp-cli --timestamp_server $TSA_URL timestamp --hash sha256 --artifact myblob --out response.tsr ; then
-            echo "failed to timestamp artifact"
-            exit -1
-          fi
-          if ! ./timestamp-cli verify --timestamp response.tsr --artifact "myblob" --certificate-chain ts_chain.pem ; then
-            echo "failed to verify timestamp"
-            exit -1
-          fi
-          if ! ./timestamp-cli inspect --timestamp response.tsr --format json ; then
-            echo "failed to inspect the timestamp"
-            exit -1
-          fi
 
       - name: Run Custom resources Tests
         timeout-minutes: 5
