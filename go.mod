@@ -34,7 +34,7 @@ require (
 	github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399
 	go.uber.org/zap v1.27.0
 	golang.org/x/crypto v0.31.0
-	golang.org/x/net v0.32.0
+	golang.org/x/net v0.33.0
 	golang.org/x/sys v0.28.0 // indirect
 	golang.org/x/time v0.8.0
 	google.golang.org/grpc v1.68.0 // indirect
@@ -58,7 +58,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.8.0
 	github.com/awslabs/amazon-ecr-credential-helper/ecr-login v0.0.0-20231024185945-8841054dbdb8
 	github.com/cenkalti/backoff/v4 v4.3.0
-	github.com/docker/docker v27.4.0+incompatible
+	github.com/docker/docker v27.4.1+incompatible
 	github.com/docker/docker-credential-helpers v0.8.2
 	github.com/docker/go-connections v0.5.0
 	github.com/go-jose/go-jose/v4 v4.0.4
