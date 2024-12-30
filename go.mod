@@ -46,7 +46,7 @@ require (
 	k8s.io/code-generator v0.31.2
 	k8s.io/kube-openapi v0.0.0-20241105132330-32ad38e42d3f
 	knative.dev/hack v0.0.0-20240111013919-e89096d74d85
-	sigs.k8s.io/release-utils v0.8.5
+	sigs.k8s.io/release-utils v0.9.0
 	sigs.k8s.io/yaml v1.4.0
 )
 
@@ -268,7 +268,7 @@ require (
 	golang.org/x/sync v0.10.0 // indirect
 	golang.org/x/term v0.27.0 // indirect
 	golang.org/x/text v0.21.0 // indirect
-	golang.org/x/tools v0.26.0 // indirect
+	golang.org/x/tools v0.28.0 // indirect
 	gomodules.xyz/jsonpatch/v2 v2.4.0 // indirect
 	google.golang.org/api v0.210.0 // indirect
 	google.golang.org/genproto v0.0.0-20241118233622-e639e219e697 // indirect
