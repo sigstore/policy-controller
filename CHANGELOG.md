@@ -1,3 +1,14 @@
+# v0.12.0
+
+* drop 1.27/28 and add 1.30/31/32 k8s
+* fix post submit job
+* Use v0.7.18 for scaffolding, update k8s versions to test with
+
+## Contributors
+
+* Carlos Tadeu Panato Junior
+* Ville Aikas
+
 # v0.1.0
 
 ## Enhancements
