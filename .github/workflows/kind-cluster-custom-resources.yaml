@@ -16,7 +16,7 @@ name: Test policy-controller with custom resource
 
 on:
   pull_request:
-    branches: [ 'main', 'release-*' ]
+    branches: ["main", "release-*"]
 
 defaults:
   run:
@@ -96,7 +96,7 @@ jobs:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - uses: actions/setup-go@41dfa10bad2bb2ae585af6ee5bb4d7d973ad74ed # v5.1.0
         with:
-          go-version-file: './go.mod'
+          go-version-file: "./go.mod"
           check-latest: true
 
       # will use the latest release available for ko
@@ -122,7 +122,7 @@ jobs:
           k8s-version: ${{ matrix.k8s-version}}
           version: ${{ env.SCAFFOLDING_RELEASE_VERSION }}
 
-      - name: Install policy-controller-with-only-pod-resource
+      - name: Install policy-controller-with-replicasets-daemonsets-resource
         env:
           GIT_HASH: ${{ github.sha }}
           GIT_VERSION: ci
@@ -141,6 +141,7 @@ jobs:
       - name: Run Custom resources Tests
         timeout-minutes: 5
         run: |
+          chmod +x ./test/e2e_test_policy_custom_resource.sh
           ./test/e2e_test_policy_custom_resource.sh
 
       - name: Collect diagnostics

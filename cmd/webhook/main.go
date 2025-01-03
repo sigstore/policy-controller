@@ -80,11 +80,11 @@ var (
 	disableTUF = flag.Bool("disable-tuf", false, "Disable TUF support.")
 
 	// Validate specific resources.
-    // https://github.com/sigstore/policy-controller/issues/1388
-    resourcesNames = flag.String("resource-name", "replicasets, deployments, pods, cronjobs, jobs, statefulsets, daemonsets", "Comma-separated list of resources")
-    // Split the input string into a slice of strings
-    listResources []string
-    types              map[schema.GroupVersionKind]resourcesemantics.GenericCRD
+	// https://github.com/sigstore/policy-controller/issues/1388
+	resourcesNames = flag.String("resource-name", "replicasets, deployments, pods, cronjobs, jobs, statefulsets, daemonsets", "Comma-separated list of resources")
+	// Split the input string into a slice of strings
+	listResources []string
+	types         map[schema.GroupVersionKind]resourcesemantics.GenericCRD
 
 	// mutatingCIPWebhookName holds the name of the mutating webhook configuration
 	// resource dispatching admission requests to policy-webhook.
@@ -125,7 +125,7 @@ func main() {
 
 	flag.Parse()
 	resourcesNamesList := strings.Split(*resourcesNames, ",")
-    listResources = append(listResources, resourcesNamesList...)
+	listResources = append(listResources, resourcesNamesList...)
 
 	// If TUF has been disabled do not try to set it up.
 	if !*disableTUF {
@@ -300,7 +300,7 @@ func NewMutatingAdmissionController(ctx context.Context, _ configmap.Watcher) *c
 	}
 	ctx = webhook.WithOptions(ctx, *woptions)
 	validator := cwebhook.NewValidator(ctx)
-    types = createTypesMap(listResources)
+	types = createTypesMap(listResources)
 	return defaulting.NewAdmissionController(ctx,
 		// Name of the resource webhook.
 		*webhookName,
