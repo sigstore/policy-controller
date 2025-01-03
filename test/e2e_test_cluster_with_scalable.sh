@@ -111,6 +111,10 @@ echo '::group:: Deploy deployment with unsigned image'
 sed "s#TEST_IMAGE#${demoimage}#" ./test/testdata/policy-controller/e2e/test-deployment.yaml | kubectl apply -f -
 echo '::endgroup::'
 
+echo '::group:: Deploy deployment with custom resource'
+sed "s#TEST_IMAGE#${demoimage}#" ./test/testdata/policy-controller/e2e/test-deployment-with-custom-resource.yaml | kubectl apply -f -
+echo '::endgroup::'
+
 echo '::group:: Label test namespace for verification'
 kubectl label namespace ${NS} policy.sigstore.dev/include=true
 echo '::endgroup::'
