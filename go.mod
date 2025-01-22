@@ -58,7 +58,7 @@ require (
 	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.8.0
 	github.com/awslabs/amazon-ecr-credential-helper/ecr-login v0.0.0-20231024185945-8841054dbdb8
 	github.com/cenkalti/backoff/v4 v4.3.0
-	github.com/docker/docker v27.4.1+incompatible
+	github.com/docker/docker v27.5.0+incompatible
 	github.com/docker/docker-credential-helpers v0.8.2
 	github.com/docker/go-connections v0.5.0
 	github.com/go-jose/go-jose/v4 v4.0.4
