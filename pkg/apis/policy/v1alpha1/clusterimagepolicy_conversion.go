@@ -175,6 +175,9 @@ func (p *Policy) ConvertTo(_ context.Context, sink *v1beta1.Policy) {
 	if p.IncludeTypeMeta != nil {
 		sink.IncludeTypeMeta = ptr.Bool(*p.IncludeTypeMeta)
 	}
+	if p.NamespaceSelector != "" {
+		sink.NamespaceSelector = p.NamespaceSelector
+	}
 }
 
 func (p *Policy) ConvertFrom(_ context.Context, source *v1beta1.Policy) {
@@ -204,6 +207,9 @@ func (p *Policy) ConvertFrom(_ context.Context, source *v1beta1.Policy) {
 	}
 	if source.IncludeTypeMeta != nil {
 		p.IncludeTypeMeta = ptr.Bool(*source.IncludeTypeMeta)
+	}
+	if source.NamespaceSelector != "" {
+		p.NamespaceSelector = source.NamespaceSelector
 	}
 }
 
