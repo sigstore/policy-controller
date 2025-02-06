@@ -287,6 +287,11 @@ type Policy struct {
 	// evaluated iff at least one authority matches.
 	// +optional
 	IncludeTypeMeta *bool `json:"includeTypeMeta,omitempty"`
+
+	// NamespaceSelector is a label selector used to filter namespaces for inclusion.
+	// For example, it allows enforcing that images can only be verified within specific namespaces,
+	// such as permitting "a" images only in namespace "a" and "b" images only in namespace "b".
+	NamespaceSelector string `json:"namespaceSelector,omitempty"`
 }
 
 // MatchResource allows selecting resources based on its version, group and resource.
