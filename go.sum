@@ -1324,8 +1324,8 @@ k8s.io/apiextensions-apiserver v0.27.6 h1:mOwSBJtThZhpJr+8gEkc3wFDIjq87E3JspR5mt
 k8s.io/apiextensions-apiserver v0.27.6/go.mod h1:AVNlLYRrESG5Poo6ASRUhY2pvoKPcNt8y/IuZ4lx3o8=
 k8s.io/apimachinery v0.32.2 h1:yoQBR9ZGkA6Rgmhbp/yuT9/g+4lxtsGYwW6dR6BDPLQ=
 k8s.io/apimachinery v0.32.2/go.mod h1:GpHVgxoKlTxClKcteaeuF1Ul/lDVb74KpZcxcmLDElE=
-k8s.io/client-go v0.32.0 h1:DimtMcnN/JIKZcrSrstiwvvZvLjG0aSxy8PxN8IChp8=
-k8s.io/client-go v0.32.0/go.mod h1:boDWvdM1Drk4NJj/VddSLnx59X3OPgwrOo0vGbtq9+8=
+k8s.io/client-go v0.32.2 h1:4dYCD4Nz+9RApM2b/3BtVvBHw54QjMFUl1OLcJG5yOA=
+k8s.io/client-go v0.32.2/go.mod h1:fpZ4oJXclZ3r2nDOv+Ux3XcJutfrwjKTCHz2H3sww94=
 k8s.io/code-generator v0.29.4 h1:8ESudFNbY5/9BzB8KOEFG2uV9Q0AQxkc4mrQESr30Ks=
 k8s.io/code-generator v0.29.4/go.mod h1:7TYnI0dYItL2cKuhhgPSuF3WED9uMdELgbVXFfn/joE=
 k8s.io/gengo v0.0.0-20230829151522-9cce18d56c01 h1:pWEwq4Asjm4vjW7vcsmijwBhOr1/shsbSYiWXmNGlks=
