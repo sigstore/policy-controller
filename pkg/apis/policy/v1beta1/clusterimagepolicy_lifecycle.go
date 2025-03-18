@@ -75,7 +75,7 @@ func (cs *ClusterImagePolicyStatus) MarkInlinePoliciesFailed(msg string) {
 	cipCondSet.Manage(cs).MarkFalse(ClusterImagePolicyConditionPoliciesInlined, inlinePoliciesFailedReason, msg)
 }
 
-// MarkInlinePoliciesdOk marks the status saying that the inlining of the
+// MarkInlinePoliciesOk marks the status saying that the inlining of the
 // policies had no errors.
 func (cs *ClusterImagePolicyStatus) MarkInlinePoliciesOk() {
 	cipCondSet.Manage(cs).MarkTrue(ClusterImagePolicyConditionPoliciesInlined)
