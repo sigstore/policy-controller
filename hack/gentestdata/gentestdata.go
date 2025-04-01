@@ -38,6 +38,7 @@ import (
 	"github.com/sigstore/scaffolding/pkg/repo"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"google.golang.org/protobuf/encoding/protojson"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // This program generates test data for the trustroot reconciler.
@@ -237,7 +238,7 @@ func genLogID(pkBytes []byte) (string, error) {
 func genTUFRepo(files map[string][]byte) ([]byte, []byte, error) {
 	defer os.RemoveAll(path.Join(os.TempDir(), "tuf")) // TODO: Update scaffolding to use os.MkdirTemp and remove this
 	ctx := context.Background()
-	local, dir, err := repo.CreateRepo(ctx, files)
+	local, dir, err := repo.CreateRepoWithOptions(ctx, files, repo.CreateRepoOptions{AddMetadataTargets: true})
 	if err != nil {
 		return nil, nil, err
 	}
@@ -274,9 +275,7 @@ func genTrustedRoot(sigstoreKeysMap map[string]string) ([]byte, error) {
 	trustRoot := &config.SigstoreKeys{
 		CertificateAuthorities: []*config.CertificateAuthority{{
 			CertChain: certChain,
-			ValidFor: &config.TimeRange{
-				Start: &config.Timestamp{},
-			},
+			ValidFor:  &config.TimeRange{Start: &timestamppb.Timestamp{}},
 		}},
 		Tlogs: []*config.TransparencyLogInstance{{
 			HashAlgorithm: pbcommon.HashAlgorithm_SHA2_256,
