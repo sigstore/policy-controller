@@ -39,7 +39,7 @@ jobs:
         path: ./src/github.com/${{ github.repository }}
         fetch-depth: 0
 
-    - uses: actions/setup-go@3041bf56c941b39c61721a86cd11f3bb1338122a # v5.2.0
+    - uses: actions/setup-go@0aaccfd150d50ccaeb58ebd88d36e91967a5f35b # v5.4.0
       with:
         go-version-file: './src/github.com/${{ github.repository }}/go.mod'
         check-latest: true
@@ -49,7 +49,7 @@ jobs:
       run: |
         make policy-tester
 
-    - uses: sigstore/cosign-installer@dc72c7d5c4d10cd6bcb8cf6e3fd625a9e5e537da
+    - uses: sigstore/cosign-installer@d7d6bc7722e3daa8354c50bcb52f4837da5e9b6a
 
     - name: Setup local registry
       run: |
