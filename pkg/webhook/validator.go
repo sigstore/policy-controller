@@ -152,7 +152,7 @@ func (v *Validator) ValidatePodScalable(ctx context.Context, ps *policyduckv1bet
 
 	// If we are being scaled down don't block it.
 	if ps.IsScalingDown(ctx) {
-		logging.FromContext(ctx).Debugf("Skipping validations due to scale down request %s/%s", &ps.ObjectMeta.Name, &ps.ObjectMeta.Namespace)
+		logging.FromContext(ctx).Debugf("Skipping validations due to scale down request %s/%s", &ps.Name, &ps.Namespace)
 		return nil
 	}
 
@@ -974,7 +974,7 @@ func (v *Validator) ResolvePodScalable(ctx context.Context, ps *policyduckv1beta
 	}
 
 	if ps.IsScalingDown(ctx) {
-		logging.FromContext(ctx).Debugf("Skipping validations due to scale down request %s/%s", &ps.ObjectMeta.Name, &ps.ObjectMeta.Namespace)
+		logging.FromContext(ctx).Debugf("Skipping validations due to scale down request %s/%s", &ps.Name, &ps.Namespace)
 		return
 	}
 

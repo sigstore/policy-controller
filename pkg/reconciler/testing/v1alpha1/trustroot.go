@@ -58,7 +58,7 @@ func WithTrustRootResourceVersion(resourceVersion string) TrustRootOption {
 
 func WithTrustRootDeletionTimestamp(tr *v1alpha1.TrustRoot) {
 	t := metav1.NewTime(time.Unix(1e9, 0))
-	tr.ObjectMeta.SetDeletionTimestamp(&t)
+	tr.SetDeletionTimestamp(&t)
 }
 
 func WithTrustRootFinalizer(tr *v1alpha1.TrustRoot) {
