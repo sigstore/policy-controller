@@ -12,46 +12,57 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
+version: "2"
+run:
+  issues-exit-code: 1
 linters:
   enable:
     - asciicheck
-    - errcheck
     - errorlint
-    - gofmt
-    - goimports
-    - gosec
     - gocritic
+    - gosec
     - importas
+    - misspell
     - prealloc
     - revive
-    - misspell
-    - stylecheck
+    - staticcheck
     - tparallel
     - unconvert
     - unparam
     - whitespace
-linters-settings:
-  revive:
+  settings:
+    revive:
+      rules:
+        - name: dot-imports
+          arguments:
+            - allowedPackages:
+                - knative.dev/pkg/configmap/testing
+                - knative.dev/pkg/reconciler/testing
+                - github.com/sigstore/policy-controller/pkg/reconciler/testing/v1alpha1
+  exclusions:
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
     rules:
-     - name: dot-imports
-       arguments:
-          - allowedPackages:
-            - "knative.dev/pkg/configmap/testing"
-            - "knative.dev/pkg/reconciler/testing"
-            - "github.com/sigstore/policy-controller/pkg/reconciler/testing/v1alpha1"
-output:
-  uniq-by-line: false
+      - linters:
+          - errcheck
+          - gosec
+        path: _test\.go
+    paths:
+      - ^third_party/
+      - ^examples/
 issues:
-  exclude-rules:
-    - path: _test\.go
-      linters:
-        - errcheck
-        - gosec
   max-issues-per-linter: 0
   max-same-issues: 0
-run:
-  issues-exit-code: 1
-  timeout: 10m
-  skip-dirs:
-    - third_party
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  exclusions:
+    generated: lax
+    paths:
+      - ^third_party/
+      - ^examples/

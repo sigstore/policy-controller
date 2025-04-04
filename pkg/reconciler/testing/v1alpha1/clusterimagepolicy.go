@@ -57,7 +57,7 @@ func WithResourceVersion(resourceVersion string) ClusterImagePolicyOption {
 
 func WithClusterImagePolicyDeletionTimestamp(cip *v1alpha1.ClusterImagePolicy) {
 	t := metav1.NewTime(time.Unix(1e9, 0))
-	cip.ObjectMeta.SetDeletionTimestamp(&t)
+	cip.SetDeletionTimestamp(&t)
 }
 
 func WithImagePattern(ip v1alpha1.ImagePattern) ClusterImagePolicyOption {
