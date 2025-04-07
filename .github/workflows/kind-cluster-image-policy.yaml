@@ -115,19 +115,19 @@ jobs:
         check-latest: true
 
     # will use the latest release available for ko
-    - uses: ko-build/setup-ko@3aebd0597dc1e9d1a26bcfdb7cbeb19c131d3037 # v0.7
+    - uses: ko-build/setup-ko@d982fec422852203cfb2053a8ec6ad302280d04d # v0.8
 
     - uses: imranismail/setup-kustomize@2ba527d4d055ab63514ba50a99456fc35684947f # v2.1.0
 
     - name: Install yq
-      uses: mikefarah/yq@4839dbbf80445070a31c7a9c1055da527db2d5ee # v4.44.6
+      uses: mikefarah/yq@8bf425b4d1344db7cd469a8d10a390876e0c77fd # v4.45.1
 
     - name: Setup mirror
       uses: chainguard-dev/actions/setup-mirror@main
       with:
         mirror: mirror.gcr.io
 
-    - uses: sigstore/cosign-installer@dc72c7d5c4d10cd6bcb8cf6e3fd625a9e5e537da
+    - uses: sigstore/cosign-installer@d7d6bc7722e3daa8354c50bcb52f4837da5e9b6a
 
     - name: Install cluster + sigstore
       uses: sigstore/scaffolding/actions/setup@main
