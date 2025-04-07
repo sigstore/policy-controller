@@ -1,6 +1,7 @@
 module github.com/sigstore/policy-controller
 
-go 1.23.2
+go 1.23.4
+
 toolchain go1.24.1
 
 require (
