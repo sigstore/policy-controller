@@ -28,7 +28,7 @@ require (
 	github.com/ryanuber/go-glob v1.0.0
 	github.com/sigstore/cosign/v2 v2.4.1
 	github.com/sigstore/rekor v1.3.7
-	github.com/sigstore/sigstore v1.8.12
+	github.com/sigstore/sigstore v1.9.2
 	github.com/stretchr/testify v1.10.0
 	github.com/theupdateframework/go-tuf v0.7.0
 	github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399
@@ -62,7 +62,7 @@ require (
 	github.com/docker/docker-credential-helpers v0.9.3
 	github.com/docker/go-connections v0.5.0
 	github.com/go-jose/go-jose/v4 v4.0.5
-	github.com/sigstore/protobuf-specs v0.4.0
+	github.com/sigstore/protobuf-specs v0.4.1
 	github.com/sigstore/scaffolding v0.7.18
 	github.com/sigstore/sigstore/pkg/signature/kms/aws v1.8.12
 	github.com/sigstore/sigstore/pkg/signature/kms/azure v1.8.12
@@ -263,7 +263,7 @@ require (
 	go.uber.org/multierr v1.11.0 // indirect
 	golang.org/x/exp v0.0.0-20240909161429-701f63a606c0 // indirect
 	golang.org/x/mod v0.23.0 // indirect
-	golang.org/x/oauth2 v0.25.0 // indirect
+	golang.org/x/oauth2 v0.28.0 // indirect
 	golang.org/x/sync v0.13.0 // indirect
 	golang.org/x/term v0.31.0 // indirect
 	golang.org/x/text v0.24.0 // indirect
