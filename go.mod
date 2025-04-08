@@ -64,7 +64,7 @@ require (
 	github.com/docker/docker-credential-helpers v0.9.3
 	github.com/docker/go-connections v0.5.0
 	github.com/go-jose/go-jose/v4 v4.0.5
-	github.com/sigstore/protobuf-specs v0.4.1
+	github.com/sigstore/protobuf-specs v0.4.0
 	github.com/sigstore/scaffolding v0.7.22
 	github.com/sigstore/sigstore/pkg/signature/kms/aws v1.8.15
 	github.com/sigstore/sigstore/pkg/signature/kms/azure v1.8.15
