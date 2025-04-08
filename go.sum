@@ -382,8 +382,8 @@ github.com/go-piv/piv-go/v2 v2.3.0 h1:kKkrYlgLQTMPA6BiSL25A7/x4CEh2YCG7rtb/aTkx+
 github.com/go-piv/piv-go/v2 v2.3.0/go.mod h1:ShZi74nnrWNQEdWzRUd/3cSig3uNOcEZp+EWl0oewnI=
 github.com/go-quicktest/qt v1.101.0 h1:O1K29Txy5P2OK0dGo59b7b0LR6wKfIhttaAhHUyn7eI=
 github.com/go-quicktest/qt v1.101.0/go.mod h1:14Bz/f7NwaXPtdYEgzsx46kqSxVwTbzVZsDC26tQJow=
-github.com/go-sql-driver/mysql v1.8.1 h1:LedoTUt/eveggdHS9qUFC1EFSa8bU2+1pZjSRpvNJ1Y=
-github.com/go-sql-driver/mysql v1.8.1/go.mod h1:wEBSXgmK//2ZFJyE+qWnIsVGmvmEKlqwuVSjsCm7DZg=
+github.com/go-sql-driver/mysql v1.9.1 h1:FrjNGn/BsJQjVRuSa8CBrM5BWA9BWoXXat3KrtSb/iI=
+github.com/go-sql-driver/mysql v1.9.1/go.mod h1:qn46aNg1333BRMNU69Lq93t8du/dwxI64Gl8i5p1WMU=
 github.com/go-stack/stack v1.8.0/go.mod h1:v0f6uXyyMGvRgIKkXu+yp6POWl0qKG85gN/melR3HDY=
 github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 h1:p104kn46Q8WdvHunIJ9dAyjPVtrBPhSr3KT2yUst43I=
 github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0/go.mod h1:fyg7847qk6SyHyPtNmDHnmrv/HOrqktSC+C9fM+CJOE=
@@ -764,8 +764,8 @@ github.com/sigstore/protobuf-specs v0.4.1 h1:5SsMqZbdkcO/DNHudaxuCUEjj6x29tS2Xby
 github.com/sigstore/protobuf-specs v0.4.1/go.mod h1:+gXR+38nIa2oEupqDdzg4qSBT0Os+sP7oYv6alWewWc=
 github.com/sigstore/rekor v1.3.9 h1:sUjRpKVh/hhgqGMs0t+TubgYsksArZ6poLEC3MsGAzU=
 github.com/sigstore/rekor v1.3.9/go.mod h1:xThNUhm6eNEmkJ/SiU/FVU7pLY2f380fSDZFsdDWlcM=
-github.com/sigstore/scaffolding v0.7.18 h1:0Uko31b+BHSfoh2v0k61V3H7KwAvOA2gffda3mKfTGk=
-github.com/sigstore/scaffolding v0.7.18/go.mod h1:uvV0f2ky//WDhCkOLm3McxuxbUmDG+UwsmylPWdYOB8=
+github.com/sigstore/scaffolding v0.7.22 h1:VjrRzUVRXWGPboglizvGvgq3U8kXnBS5/s4jDCUVwiU=
+github.com/sigstore/scaffolding v0.7.22/go.mod h1:ojN1gLIjZCl0lhEoqXBvaL+GJbTbBgcNZxxxvK7apuM=
 github.com/sigstore/sigstore v1.9.2 h1:Ext8R2EI6gxoPfylwhXCS/EFYctBbvlxQnNfigpyp+0=
 github.com/sigstore/sigstore v1.9.2/go.mod h1:VwYkiw0G0dRtwL25KSs04hCyVFF6CYMd/qvNeYrl7EQ=
 github.com/sigstore/sigstore-go v0.7.1 h1:lyzi3AjO6+BHc5zCf9fniycqPYOt3RaC08M/FRmQhVY=
