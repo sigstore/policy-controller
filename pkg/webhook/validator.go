@@ -1409,6 +1409,7 @@ func checkOptsFromAuthority(ctx context.Context, authority webhookcip.Authority,
 			ret.TSAIntermediateCertificates = intermediates
 			ret.TSARootCertificates = roots
 		}
+		ret.UseSignedTimestamps = true
 	}
 	return ret, nil
 }
