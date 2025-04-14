@@ -44,7 +44,7 @@ jobs:
           check-latest: true
 
       # will use the latest release available for ko
-      - uses: ko-build/setup-ko@d982fec422852203cfb2053a8ec6ad302280d04d # v0.8
+      - uses: ko-build/setup-ko@d006021bd0c28d1ce33a07e7943d48b079944c8d # v0.9
 
       - uses: chainguard-dev/actions/goimports@dacf41f3472c33979cfd49bca5b503236be57de0 # main
 
