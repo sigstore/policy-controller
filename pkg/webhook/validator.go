@@ -41,6 +41,7 @@ import (
 	"github.com/sigstore/policy-controller/pkg/apis/config"
 	policyduckv1beta1 "github.com/sigstore/policy-controller/pkg/apis/duck/v1beta1"
 	policycontrollerconfig "github.com/sigstore/policy-controller/pkg/config"
+	pctuf "github.com/sigstore/policy-controller/pkg/tuf"
 	webhookcip "github.com/sigstore/policy-controller/pkg/webhook/clusterimagepolicy"
 	"github.com/sigstore/policy-controller/pkg/webhook/registryauth"
 	rekor "github.com/sigstore/rekor/pkg/client"
@@ -1378,7 +1379,7 @@ func checkOptsFromAuthority(ctx context.Context, authority webhookcip.Authority,
 			}
 		} else {
 			var err error
-			ret.TrustedMaterial, err = root.FetchTrustedRoot()
+			ret.TrustedMaterial, err = pctuf.GetTrustedRoot(ctx)
 			if err != nil {
 				return nil, fmt.Errorf("failed to fetch trusted root: %w", err)
 			}
