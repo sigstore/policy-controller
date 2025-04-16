@@ -1078,7 +1078,12 @@ func (v *Validator) resolvePodSpec(ctx context.Context, ps *corev1.PodSpec, opt 
 					logging.FromContext(ctx).Debugf("Unable to resolve digest %q: %v", ref.String(), err)
 					continue
 				}
-				cs[i].Image = digest.String()
+				// Keep the original tag and append the digest
+				if tagRef, ok := ref.(name.Tag); ok {
+					cs[i].Image = fmt.Sprintf("%s@%s", tagRef.Name(), digest.DigestStr())
+				} else {
+					cs[i].Image = digest.String()
+				}
 			}
 		}
 	}
@@ -1102,7 +1107,12 @@ func (v *Validator) resolvePodSpec(ctx context.Context, ps *corev1.PodSpec, opt 
 					logging.FromContext(ctx).Debugf("Unable to resolve digest %q: %v", ref.String(), err)
 					continue
 				}
-				cs[i].Image = digest.String()
+				// Keep the original tag and append the digest
+				if tagRef, ok := ref.(name.Tag); ok {
+					cs[i].Image = fmt.Sprintf("%s@%s", tagRef.Name(), digest.DigestStr())
+				} else {
+					cs[i].Image = digest.String()
+				}
 			}
 		}
 	}
