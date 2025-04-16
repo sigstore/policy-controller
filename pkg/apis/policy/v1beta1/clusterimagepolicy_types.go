@@ -143,6 +143,10 @@ type Authority struct {
 	// RFC3161Timestamp sets the configuration to verify the signature timestamp against a RFC3161 time-stamping instance.
 	// +optional
 	RFC3161Timestamp *RFC3161Timestamp `json:"rfc3161timestamp,omitempty"`
+	// SignatureFormat specifies the format the authority expects. Supported
+	// formats are "legacy" and "bundle". If not specified, the default
+	// is "legacy" (cosign's default).
+	SignatureFormat string `json:"signatureFormat,omitempty"`
 }
 
 // This references a public verification key stored in

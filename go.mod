@@ -64,6 +64,7 @@ require (
 	github.com/go-jose/go-jose/v4 v4.0.5
 	github.com/sigstore/protobuf-specs v0.4.1
 	github.com/sigstore/scaffolding v0.7.22
+	github.com/sigstore/sigstore-go v0.7.1
 	github.com/sigstore/sigstore/pkg/signature/kms/aws v1.9.3
 	github.com/sigstore/sigstore/pkg/signature/kms/azure v1.9.3
 	github.com/sigstore/sigstore/pkg/signature/kms/gcp v1.9.3
@@ -228,7 +229,6 @@ require (
 	github.com/sassoftware/relic v7.2.1+incompatible // indirect
 	github.com/secure-systems-lab/go-securesystemslib v0.9.0 // indirect
 	github.com/shibumi/go-pathspec v1.3.0 // indirect
-	github.com/sigstore/sigstore-go v0.7.1 // indirect
 	github.com/sigstore/timestamp-authority v1.2.5 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/sourcegraph/conc v0.3.0 // indirect
