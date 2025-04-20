@@ -62,6 +62,7 @@ require (
 	github.com/docker/docker-credential-helpers v0.9.3
 	github.com/docker/go-connections v0.5.0
 	github.com/go-jose/go-jose/v4 v4.1.0
+	github.com/hashicorp/golang-lru/v2 v2.0.7
 	github.com/sigstore/protobuf-specs v0.4.1
 	github.com/sigstore/scaffolding v0.7.22
 	github.com/sigstore/sigstore-go v0.7.2
