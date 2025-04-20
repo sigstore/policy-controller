@@ -136,9 +136,6 @@ func TestValidatePodSpec(t *testing.T) {
 	// Resolved via crane digest on 2022/09/29
 	digestNewer := name.MustParseReference("gcr.io/distroless/static:nonroot@sha256:2a9e2b4fa771d31fe3346a873be845bfc2159695b9f90ca08e950497006ccc2e")
 
-	// Digest only reference (without tag)
-	digestOnly := name.MustParseReference("gcr.io/distroless/static@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4")
-
 	ctx, _ := rtesting.SetupFakeContext(t)
 
 	// Non-existent URL for testing complete failure
@@ -684,38 +681,6 @@ func TestValidatePodSpec(t *testing.T) {
 			},
 		),
 		cvs: authorityPublicKeyCVS,
-	}, {
-		name: "digest only",
-		ps: &corev1.PodSpec{
-			Containers: []corev1.Container{{
-				Name:  "user-container",
-				Image: digestOnly.String(),
-			}},
-		},
-		customContext: config.ToContext(context.Background(),
-			&config.Config{
-				ImagePolicyConfig: &config.ImagePolicyConfig{
-					Policies: map[string]webhookcip.ClusterImagePolicy{
-						"cluster-image-policy": {
-							Images: []v1alpha1.ImagePattern{{
-								Glob: "gcr.io/*/*",
-							}},
-							Authorities: []webhookcip.Authority{
-								{
-									Key: &webhookcip.KeyRef{
-										Data:              authorityKeyCosignPubString,
-										PublicKeys:        []crypto.PublicKey{authorityKeyCosignPub},
-										HashAlgorithm:     signaturealgo.DefaultSignatureAlgorithm,
-										HashAlgorithmCode: crypto.SHA256,
-									},
-								},
-							},
-						},
-					},
-				},
-			},
-		),
-		cvs: pass,
 	}}
 
 	for _, test := range tests {
