@@ -17,6 +17,7 @@ package registryauth
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"sync"
@@ -109,13 +110,13 @@ func TestNewDockerCredentialHelper(t *testing.T) {
 
 	// Test Add (should always return error)
 	err = helper.Add(struct{}{})
-	if err != ErrCredentialsNotFound {
+	if !errors.Is(err, ErrCredentialsNotFound) {
 		t.Errorf("Expected ErrCredentialsNotFound, got %v", err)
 	}
 
 	// Test Delete (should always return error)
 	err = helper.Delete("test-url")
-	if err != ErrCredentialsNotFound {
+	if !errors.Is(err, ErrCredentialsNotFound) {
 		t.Errorf("Expected ErrCredentialsNotFound, got %v", err)
 	}
 
@@ -318,11 +319,11 @@ func TestIntegrationWithRealECRHelper(t *testing.T) {
 	}
 
 	// Unsupported operations should return ErrCredentialsNotFound
-	if err := helper.Add(struct{}{}); err != ErrCredentialsNotFound {
+	if err := helper.Add(struct{}{}); !errors.Is(err, ErrCredentialsNotFound) {
 		t.Errorf("Expected ErrCredentialsNotFound for Add, got %v", err)
 	}
 
-	if err := helper.Delete("test"); err != ErrCredentialsNotFound {
+	if err := helper.Delete("test"); !errors.Is(err, ErrCredentialsNotFound) {
 		t.Errorf("Expected ErrCredentialsNotFound for Delete, got %v", err)
 	}
 }
