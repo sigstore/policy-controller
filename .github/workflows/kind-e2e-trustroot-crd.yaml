@@ -141,4 +141,4 @@ jobs:
 
     - name: Collect diagnostics
       if: ${{ failure() }}
-      uses: chainguard-dev/actions/kind-diag@29fb6e979a0b3efc79748a17e8cec08d0594cbfd # main
+      uses: chainguard-dev/actions/kind-diag@93d7e48486a0ec24d253345d8b5378a5551b7be9 # main
