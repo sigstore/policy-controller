@@ -1000,6 +1000,7 @@ func TestResolvePodSpec(t *testing.T) {
 	tag := name.MustParseReference("gcr.io/distroless/static:nonroot")
 	// Resolved via crane digest on 2021/09/25
 	digest := name.MustParseReference("gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4")
+	digestWithoutTag := name.MustParseReference("gcr.io/distroless/static@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4")
 
 	ctx, _ := rtesting.SetupFakeContext(t)
 
@@ -1017,7 +1018,7 @@ func TestResolvePodSpec(t *testing.T) {
 		remoteResolveDigest = rrd
 	}()
 	resolve := func(_ name.Reference, _ ...remote.Option) (name.Digest, error) {
-		return digest.(name.Digest), nil
+		return tag.Context().Digest(digestWithoutTag.Identifier()), nil
 	}
 
 	tests := []struct {
@@ -1103,6 +1104,30 @@ func TestResolvePodSpec(t *testing.T) {
 			Containers: []corev1.Container{{
 				Name:  "user-container",
 				Image: digest.String(),
+			}},
+		},
+		wc:  apis.WithinCreate,
+		rrd: resolve,
+	}, {
+		name: "digests without tag resolve (in create)",
+		ps: &corev1.PodSpec{
+			InitContainers: []corev1.Container{{
+				Name:  "setup-stuff",
+				Image: digestWithoutTag.String(),
+			}},
+			Containers: []corev1.Container{{
+				Name:  "user-container",
+				Image: digestWithoutTag.String(),
+			}},
+		},
+		want: &corev1.PodSpec{
+			InitContainers: []corev1.Container{{
+				Name:  "setup-stuff",
+				Image: digestWithoutTag.String(),
+			}},
+			Containers: []corev1.Container{{
+				Name:  "user-container",
+				Image: digestWithoutTag.String(),
 			}},
 		},
 		wc:  apis.WithinCreate,
