@@ -209,6 +209,9 @@ spec:
                           trustRootRef:
                             description: Use the Certificate Chain from the referred TrustRoot.TimeStampAuthorities
                             type: string
+                      signatureFormat:
+                        description: SignatureFormat specifies the format the authority expects. Supported formats are "legacy" and "bundle". If not specified, the default is "legacy" (cosign's default).
+                        type: string
                       source:
                         description: Sources sets the configuration to specify the sources from where to consume the signatures.
                         type: array
@@ -545,6 +548,9 @@ spec:
                           trustRootRef:
                             description: Use the Certificate Chain from the referred TrustRoot.TimeStampAuthorities
                             type: string
+                      signatureFormat:
+                        description: SignatureFormat specifies the format the authority expects. Supported formats are "legacy" and "bundle". If not specified, the default is "legacy" (cosign's default).
+                        type: string
                       source:
                         description: Sources sets the configuration to specify the sources from where to consume the signatures.
                         type: array

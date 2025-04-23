@@ -28,9 +28,12 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"testing/fstest"
 	"time"
 
+	"github.com/sigstore/sigstore-go/pkg/root"
+	"github.com/sigstore/sigstore/pkg/tuf"
 	"github.com/theupdateframework/go-tuf/client"
 	"sigs.k8s.io/release-utils/version"
 )
@@ -293,4 +296,45 @@ func ClientFromRemote(_ context.Context, mirror string, rootJSON []byte, targets
 		return nil, errors.New("there are no valid targetfiles in TUF repo")
 	}
 	return tufClient, nil
+}
+
+var (
+	mu          sync.RWMutex
+	timestamp   time.Time
+	trustedRoot *root.TrustedRoot
+)
+
+// GetTrustedRoot returns the trusted root for the TUF repository.
+func GetTrustedRoot(ctx context.Context) (*root.TrustedRoot, error) {
+	resyncPeriodDuration := FromContextOrDefaults(ctx)
+	now := time.Now().UTC()
+	// check if timestamp has never been set or if the current time
+	// is after the current timestamp value plus the included resync duration
+	if timestamp.IsZero() || now.After(timestamp.Add(resyncPeriodDuration)) {
+		mu.Lock()
+		defer mu.Unlock()
+
+		tufClient, err := tuf.NewFromEnv(context.Background())
+		if err != nil {
+			return nil, fmt.Errorf("initializing tuf: %w", err)
+		}
+		// TODO: add support for custom trusted root path
+		targetBytes, err := tufClient.GetTarget("trusted_root.json")
+		if err != nil {
+			return nil, fmt.Errorf("error getting targets: %w", err)
+		}
+		trustedRoot, err = root.NewTrustedRootFromJSON(targetBytes)
+		if err != nil {
+			return nil, fmt.Errorf("error creating trusted root: %w", err)
+		}
+
+		timestamp = now
+
+		return trustedRoot, nil
+	}
+
+	mu.RLock()
+	defer mu.RUnlock()
+
+	return trustedRoot, nil
 }
