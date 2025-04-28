@@ -105,15 +105,15 @@ jobs:
     - name: Install yq
       uses: mikefarah/yq@8bf425b4d1344db7cd469a8d10a390876e0c77fd # v4.45.1
 
-    - uses: sigstore/cosign-installer@d7d6bc7722e3daa8354c50bcb52f4837da5e9b6a
+    - uses: sigstore/cosign-installer@3454372f43399081ed03b604cb2d021dabca52bb
 
     - name: Setup mirror
-      uses: chainguard-dev/actions/setup-mirror@be6c67b5b374ed43d908ac017ff9b04c271ad3d8 # v1.0.3
+      uses: chainguard-dev/actions/setup-mirror@93d7e48486a0ec24d253345d8b5378a5551b7be9 # v1.0.4
       with:
         mirror: mirror.gcr.io
 
     - name: Setup kind cluster
-      uses: chainguard-dev/actions/setup-kind@be6c67b5b374ed43d908ac017ff9b04c271ad3d8 # v1.0.3
+      uses: chainguard-dev/actions/setup-kind@93d7e48486a0ec24d253345d8b5378a5551b7be9 # v1.0.4
       with:
         k8s-version: ${{ matrix.k8s-version }}
         cluster-suffix: c${{ github.run_id }}.local
@@ -141,4 +141,4 @@ jobs:
 
     - name: Collect diagnostics
       if: ${{ failure() }}
-      uses: chainguard-dev/actions/kind-diag@be6c67b5b374ed43d908ac017ff9b04c271ad3d8 # v1.0.3
+      uses: chainguard-dev/actions/kind-diag@93d7e48486a0ec24d253345d8b5378a5551b7be9 # v1.0.4
