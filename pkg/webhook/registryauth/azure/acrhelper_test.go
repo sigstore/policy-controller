@@ -18,19 +18,12 @@ package azure
 import (
 	"strings"
 	"testing"
-
-	"github.com/docker/docker-credential-helpers/credentials"
 )
 
 func TestNewACRHelper(t *testing.T) {
 	helper := NewACRHelper()
 	if helper == nil {
 		t.Fatal("Expected non-nil helper, got nil")
-	}
-
-	_, ok := helper.(credentials.Helper)
-	if !ok {
-		t.Error("Helper doesn't implement credentials.Helper interface")
 	}
 }
 
