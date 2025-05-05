@@ -36,7 +36,7 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
-      - uses: sigstore/cosign-installer@d7d6bc7722e3daa8354c50bcb52f4837da5e9b6a # v3.8.1
+      - uses: sigstore/cosign-installer@3454372f43399081ed03b604cb2d021dabca52bb # v3.8.2
 
       - uses: actions/setup-go@3041bf56c941b39c61721a86cd11f3bb1338122a # v5.2.0
         with:
@@ -46,10 +46,10 @@ jobs:
       # will use the latest release available for ko
       - uses: ko-build/setup-ko@d006021bd0c28d1ce33a07e7943d48b079944c8d # v0.9
 
-      - uses: chainguard-dev/actions/goimports@be6c67b5b374ed43d908ac017ff9b04c271ad3d8 # v1.0.3
+      - uses: chainguard-dev/actions/goimports@dd4524afd480a43ead9543a08be1c5004ee8b0a7 # v1.0.7
 
       - name: Set up Cloud SDK
-        uses: google-github-actions/auth@71f986410dfbc7added4569d411d040a91dc6935 # v2.1.8
+        uses: google-github-actions/auth@ba79af03959ebeac9769e648f473a284504d9193 # v2.1.10
         with:
           workload_identity_provider: 'projects/498091336538/locations/global/workloadIdentityPools/githubactions/providers/sigstore-policy-controller'
           service_account: 'gha-policy-controller@projectsigstore.iam.gserviceaccount.com'
