@@ -33,10 +33,10 @@ jobs:
       fail-fast: false # Keep running if one leg fails.
       matrix:
         k8s-version:
-          - v1.29.x
           - v1.30.x
           - v1.31.x
           - v1.32.x
+          - v1.33.x
 
     env:
       KO_DOCKER_REPO: "registry.local:5000/policy-controller"

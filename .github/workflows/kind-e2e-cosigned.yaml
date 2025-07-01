@@ -16,23 +16,27 @@ name: Policy Controller KinD E2E
 
 on:
   pull_request:
-    branches: [ 'main', 'release-*' ]
+    branches:
+      - 'main'
 
-permissions: read-all
+permissions: {}
 
 jobs:
   e2e-tests:
     name: e2e tests
     runs-on: ubuntu-latest
 
+    permissions:
+      contents: read # For checking out the code.
+
     strategy:
       fail-fast: false # Keep running if one leg fails.
       matrix:
         k8s-version:
-        - v1.29.x
         - v1.30.x
         - v1.31.x
         - v1.32.x
+        - v1.33.x
 
     env:
       # https://github.com/google/go-containerregistry/pull/125 allows insecure registry for
@@ -92,7 +96,11 @@ jobs:
           apt-get remove -y 'php.*' || true
           apt-get autoremove -y >/dev/null 2>&1 || true
           apt-get autoclean -y >/dev/null 2>&1 || true
+
     - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      with:
+        persist-credentials: false
+
     - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
       with:
         go-version-file: './go.mod'
@@ -102,10 +110,7 @@ jobs:
 
     - uses: imranismail/setup-kustomize@2ba527d4d055ab63514ba50a99456fc35684947f # v2.1.0
 
-    - name: Install yq
-      uses: mikefarah/yq@b534aa9ee5d38001fba3cd8fe254a037e4847b37 # v4.45.4
-
-    - uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac
+    - uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3.9.1
 
     - name: Setup mirror
       uses: chainguard-dev/actions/setup-mirror@16e2fd6603a1c6a1fbc880fdbb922b2e8e2be3e7 # v1.4.3
