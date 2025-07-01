@@ -21,4 +21,4 @@ permissions:
 jobs:
   dependency-review:
     name: dependency-review
-    uses: sigstore/community/.github/workflows/reusable-dependency-review.yml@9b1b5aca605f92ec5b1bf3681b1e61b3dbc420cc
+    uses: sigstore/community/.github/workflows/reusable-dependency-review.yml@a38887851a12d604b8441ed09e6ebf6b9fe17cbc # main branch 30/Jun/2025
