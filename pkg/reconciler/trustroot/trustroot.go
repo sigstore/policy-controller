@@ -328,10 +328,10 @@ func genTransparencyLogInstance(baseURL string, pkBytes []byte) (*config.Transpa
 		return nil, fmt.Errorf("failed to construct LogID: %w", err)
 	}
 	return &config.TransparencyLogInstance{
-		BaseUrl:       baseURL,
-		HashAlgorithm: pbcommon.HashAlgorithm_SHA2_256,
-		PublicKey:     pbpk,
-		LogId:         &pbcommon.LogId{KeyId: []byte(logID)},
+		BaseUrl:         baseURL,
+		HashAlgorithm:   pbcommon.HashAlgorithm_SHA2_256,
+		PublicKey:       pbpk,
+		CheckpointKeyId: &pbcommon.LogId{KeyId: []byte(logID)},
 	}, nil
 }
 

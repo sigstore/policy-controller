@@ -2995,8 +2995,8 @@ func TestFulcioCertsFromAuthority(t *testing.T) {
 			CertChain: certChain,
 		}},
 		Ctlogs: []*config.TransparencyLogInstance{{
-			LogId:     &config.LogID{KeyId: []byte(ctfeLogID)},
-			PublicKey: pbpk,
+			CheckpointKeyId: &config.LogID{KeyId: []byte(ctfeLogID)},
+			PublicKey:       pbpk,
 		}},
 	}
 	c := &config.Config{
@@ -3102,9 +3102,9 @@ func TestRekorClientAndKeysFromAuthority(t *testing.T) {
 
 	sk := config.SigstoreKeys{
 		Tlogs: []*config.TransparencyLogInstance{{
-			PublicKey: pbpk,
-			LogId:     &config.LogID{KeyId: []byte(rekorLogID)},
-			BaseUrl:   "rekor.example.com",
+			PublicKey:       pbpk,
+			CheckpointKeyId: &config.LogID{KeyId: []byte(rekorLogID)},
+			BaseUrl:         "rekor.example.com",
 		}},
 	}
 	c := &config.Config{
@@ -3245,9 +3245,9 @@ func TestCheckOptsFromAuthority(t *testing.T) {
 
 	skRekor := config.SigstoreKeys{
 		Tlogs: []*config.TransparencyLogInstance{{
-			PublicKey: pbpkRekor,
-			LogId:     &config.LogID{KeyId: []byte("rekor-logid")},
-			BaseUrl:   "rekor.example.com",
+			PublicKey:       pbpkRekor,
+			CheckpointKeyId: &config.LogID{KeyId: []byte("rekor-logid")},
+			BaseUrl:         "rekor.example.com",
 		}},
 	}
 	certChainPB, err := config.DeserializeCertChain([]byte(certChain))
@@ -3263,17 +3263,17 @@ func TestCheckOptsFromAuthority(t *testing.T) {
 			CertChain: certChainPB,
 		}},
 		Ctlogs: []*config.TransparencyLogInstance{{
-			LogId:     &config.LogID{KeyId: []byte(ctfeLogID)},
-			PublicKey: pbpkCTFE,
+			CheckpointKeyId: &config.LogID{KeyId: []byte(ctfeLogID)},
+			PublicKey:       pbpkCTFE,
 		}},
 	}
 	skCombined := config.SigstoreKeys{
 		MediaType: "application/vnd.dev.sigstore.trustedroot+json;version=0.1",
 		Tlogs: []*config.TransparencyLogInstance{{
-			PublicKey:     pbpkRekor,
-			LogId:         &config.LogID{KeyId: []byte("rekor-logid")},
-			BaseUrl:       "rekor.example.com",
-			HashAlgorithm: pbcommon.HashAlgorithm_SHA2_256,
+			PublicKey:       pbpkRekor,
+			CheckpointKeyId: &config.LogID{KeyId: []byte("rekor-logid")},
+			BaseUrl:         "rekor.example.com",
+			HashAlgorithm:   pbcommon.HashAlgorithm_SHA2_256,
 		}},
 		CertificateAuthorities: []*config.CertificateAuthority{{
 			Subject: &config.DistinguishedName{
@@ -3283,9 +3283,9 @@ func TestCheckOptsFromAuthority(t *testing.T) {
 			CertChain: certChainPB,
 		}},
 		Ctlogs: []*config.TransparencyLogInstance{{
-			LogId:         &config.LogID{KeyId: []byte(ctfeLogID)},
-			PublicKey:     pbpkCTFE,
-			HashAlgorithm: pbcommon.HashAlgorithm_SHA2_256,
+			CheckpointKeyId: &config.LogID{KeyId: []byte(ctfeLogID)},
+			PublicKey:       pbpkCTFE,
+			HashAlgorithm:   pbcommon.HashAlgorithm_SHA2_256,
 		}},
 	}
 	c := &config.Config{

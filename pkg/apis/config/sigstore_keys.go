@@ -171,7 +171,7 @@ func ConvertTransparencyLogInstance(source v1alpha1.TransparencyLogInstance) (*p
 		BaseUrl:       source.BaseURL.String(),
 		HashAlgorithm: HashStringToHashAlgorithm(source.HashAlgorithm),
 		PublicKey:     pbpk,
-		LogId: &pbcommon.LogId{
+		CheckpointKeyId: &pbcommon.LogId{
 			KeyId: []byte(logID),
 		},
 	}, nil
