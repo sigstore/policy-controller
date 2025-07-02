@@ -215,14 +215,14 @@ func populateLogIDs(sigstoreKeys *config.SigstoreKeys) error {
 		if err != nil {
 			return err
 		}
-		sigstoreKeys.Tlogs[i].LogId = &config.LogID{KeyId: []byte(logID)}
+		sigstoreKeys.Tlogs[i].CheckpointKeyId = &config.LogID{KeyId: []byte(logID)}
 	}
 	for i := range sigstoreKeys.Ctlogs {
 		logID, err := genLogID(sigstoreKeys.Ctlogs[i].PublicKey.RawBytes)
 		if err != nil {
 			return err
 		}
-		sigstoreKeys.Ctlogs[i].LogId = &config.LogID{KeyId: []byte(logID)}
+		sigstoreKeys.Ctlogs[i].CheckpointKeyId = &config.LogID{KeyId: []byte(logID)}
 	}
 	return nil
 }

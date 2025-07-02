@@ -1560,7 +1560,7 @@ func fulcioCertsFromAuthority(ctx context.Context, keylessRef *webhookcip.Keyles
 		if err != nil {
 			return nil, nil, nil, fmt.Errorf("unmarshaling public key %d failed: %w", i, err)
 		}
-		ctlogKeys.Keys[string(ctlog.LogId.KeyId)] = cosign.TransparencyLogPubKey{
+		ctlogKeys.Keys[string(ctlog.CheckpointKeyId.KeyId)] = cosign.TransparencyLogPubKey{
 			PubKey: pk,
 			Status: tuf.Active,
 		}
@@ -1652,7 +1652,7 @@ func rekorKeysFromTrustRef(ctx context.Context, trustRootRef string) (*cosign.Tr
 			if !ok {
 				return nil, "", fmt.Errorf("public key %d is not ecdsa.PublicKey", i)
 			}
-			retKeys.Keys[string(tlog.LogId.KeyId)] = cosign.TransparencyLogPubKey{
+			retKeys.Keys[string(tlog.CheckpointKeyId.KeyId)] = cosign.TransparencyLogPubKey{
 				PubKey: pkecdsa,
 				Status: tuf.Active,
 			}

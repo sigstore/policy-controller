@@ -448,10 +448,10 @@ func makeConfigMapWithSigstoreKeys() *corev1.ConfigMap {
 		panic("failed to convert test SigstoreKeys")
 	}
 	for i := range c.Tlogs {
-		c.Tlogs[i].LogId = &config.LogID{KeyId: []byte(rekorLogID)}
+		c.Tlogs[i].CheckpointKeyId = &config.LogID{KeyId: []byte(rekorLogID)}
 	}
 	for i := range c.Ctlogs {
-		c.Ctlogs[i].LogId = &config.LogID{KeyId: []byte(ctfeLogID)}
+		c.Ctlogs[i].CheckpointKeyId = &config.LogID{KeyId: []byte(ctfeLogID)}
 	}
 	marshalled, err := resources.Marshal(c)
 	if err != nil {
