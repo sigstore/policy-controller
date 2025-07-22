@@ -110,15 +110,15 @@ jobs:
 
     - uses: imranismail/setup-kustomize@2ba527d4d055ab63514ba50a99456fc35684947f # v2.1.0
 
-    - uses: sigstore/cosign-installer@398d4b0eeef1380460a10c8013a76f728fb906ac # v3.9.1
+    - uses: sigstore/cosign-installer@d58896d6a1865668819e1d91763c7751a165e159 # v3.9.2
 
     - name: Setup mirror
-      uses: chainguard-dev/actions/setup-mirror@a643adefc8ec64796d92837210be6bf0a6d0788e # v1.4.4
+      uses: chainguard-dev/actions/setup-mirror@ae2f0393ff2a60c572ff4d3485f406e8f36dfd38 # v1.4.6
       with:
         mirror: mirror.gcr.io
 
     - name: Setup kind cluster
-      uses: chainguard-dev/actions/setup-kind@a643adefc8ec64796d92837210be6bf0a6d0788e # v1.4.4
+      uses: chainguard-dev/actions/setup-kind@ae2f0393ff2a60c572ff4d3485f406e8f36dfd38 # v1.4.6
       with:
         k8s-version: ${{ matrix.k8s-version }}
         cluster-suffix: c${{ github.run_id }}.local
@@ -175,4 +175,4 @@ jobs:
 
     - name: Collect diagnostics
       if: ${{ failure() }}
-      uses: chainguard-dev/actions/kind-diag@a643adefc8ec64796d92837210be6bf0a6d0788e # v1.4.4
+      uses: chainguard-dev/actions/kind-diag@ae2f0393ff2a60c572ff4d3485f406e8f36dfd38 # v1.4.6
