@@ -46,7 +46,7 @@ jobs:
       # will use the latest release available for ko
       - uses: ko-build/setup-ko@d006021bd0c28d1ce33a07e7943d48b079944c8d # v0.9
 
-      - uses: chainguard-dev/actions/goimports@b1933e3d1f574c772dc7efd68c2060dafbc25e8c # v1.4.9
+      - uses: chainguard-dev/actions/goimports@be7b31a01af8ce7228fe901326f1d223fb788e14 # v1.4.12
 
       - name: Set up Cloud SDK
         uses: google-github-actions/auth@b7593ed2efd1c1617e1b0254da33b86225adb2a5 # v2.1.12
