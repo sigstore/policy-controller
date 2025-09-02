@@ -3428,6 +3428,7 @@ func TestCheckOptsFromAuthority(t *testing.T) {
 			NewBundleFormat:     true,
 			UseSignedTimestamps: true,
 			TrustedMaterial:     &root.TrustedRoot{},
+			IgnoreTlog:          true,
 		},
 	}, {
 		name: "bundle format, bad TrustRootRef",

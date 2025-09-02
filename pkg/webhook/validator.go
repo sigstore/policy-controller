@@ -1405,6 +1405,7 @@ func checkOptsFromAuthority(ctx context.Context, authority webhookcip.Authority,
 				return nil, fmt.Errorf("when using the new bundle format, the trustRootRef for the TSA must be the same as the trustRootRef for the Keyless authority")
 			}
 			ret.UseSignedTimestamps = true
+			ret.IgnoreTlog = true
 		}
 
 		// Check for custom Rekor
