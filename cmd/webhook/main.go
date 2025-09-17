@@ -103,6 +103,9 @@ var (
 	// trustrootResyncPeriod holds the interval which the TrustRoot will resync
 	// This is essential for triggering a reconcile update for potentially stale TUF metadata.
 	trustrootResyncPeriod = flag.Duration("trustroot-resync-period", 24*time.Hour, "The resync period for ClusterImagePolicies. The default is 24h.")
+
+	// podOnly allows to restrict the mutation and validation to only pod resources for validating/mutating webhooks.
+	podOnly = flag.Bool("pod-only", false, "If true, only register the core/v1 Pod resource with the validating and mutating webhooks.")
 )
 
 func main() {
@@ -135,14 +138,25 @@ func main() {
 		}
 	}
 
+	// If podOnly is set, restrict the resources we register to just pods
+	if *podOnly {
+		common.ValidResourceNames = sets.NewString("pods")
+		types = map[schema.GroupVersionKind]resourcesemantics.GenericCRD{
+			corev1.SchemeGroupVersion.WithKind("Pod"): &crdEphemeralContainers{
+				GenericCRD: &duckv1.Pod{},
+			},
+		}
+		logging.FromContext(ctx).Info("pod-only enabled: restricting validating/mutating policies to core/v1 Pods")
+	} else {
+		// This must match the set of resources we configure in
+		// cmd/webhook/main.go in the "types" map.
+		common.ValidResourceNames = sets.NewString("replicasets", "deployments",
+			"pods", "cronjobs", "jobs", "statefulsets", "daemonsets")
+	}
+
 	// Set the policy and trust root resync periods
 	ctx = clusterimagepolicy.ToContext(ctx, *policyResyncPeriod)
 	ctx = pctuf.ToContext(ctx, *trustrootResyncPeriod)
-
-	// This must match the set of resources we configure in
-	// cmd/webhook/main.go in the "types" map.
-	common.ValidResourceNames = sets.NewString("replicasets", "deployments",
-		"pods", "cronjobs", "jobs", "statefulsets", "daemonsets")
 
 	v := version.GetVersionInfo()
 	vJSON, _ := v.JSONString()
