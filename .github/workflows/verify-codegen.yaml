@@ -50,7 +50,7 @@ jobs:
         # For whatever reason running this makes it not complain...
         git status
 
-    - uses: chainguard-dev/actions/nodiff@be7b31a01af8ce7228fe901326f1d223fb788e14 # v1.4.12
+    - uses: chainguard-dev/actions/nodiff@6f4f4de7549514e7b659741b30f6476f245600dd # v1.5.3
       with:
         path: ./src/github.com/${{ github.repository }}
         fixup-command: "./hack/update-codegen.sh"
