@@ -129,10 +129,10 @@ func TestTrustRootValidation(t *testing.T) {
 func TestTimeStampAuthorityValidation(t *testing.T) {
 	rootCert, rootKey, _ := test.GenerateRootCa()
 	subCert, subKey, _ := test.GenerateSubordinateCa(rootCert, rootKey)
-	leafCert, _, _ := test.GenerateLeafCert("subject", "oidc-issuer", subCert, subKey)
+	leafCert, _, _ := test.GenerateLeafCert("subject@example.com", "oidc-issuer", subCert, subKey)
 	rootCert2, rootKey2, _ := test.GenerateRootCa()
 	subCert2, subKey2, _ := test.GenerateSubordinateCa(rootCert2, rootKey2)
-	leafCert2, _, _ := test.GenerateLeafCert("subject", "oidc-issuer", subCert2, subKey2)
+	leafCert2, _, _ := test.GenerateLeafCert("subject@example.com", "oidc-issuer", subCert2, subKey2)
 
 	pem, err := cryptoutils.MarshalCertificatesToPEM([]*x509.Certificate{rootCert, subCert, leafCert})
 	if err != nil {
