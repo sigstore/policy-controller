@@ -342,5 +342,8 @@ require (
 // to conflicting "log_dir" flags between this and klog (knative)
 replace github.com/golang/glog => github.com/jdolitsky/glog v0.0.0-20220729172235-78744e90d087
 
+// Use local cosign fork for testing
+replace github.com/sigstore/cosign/v3 => /Users/falco/code/cosign
+
 // knative deps require to use an old k8s.io/gengo so we need to replace these ones
 replace k8s.io/code-generator => k8s.io/code-generator v0.29.4
