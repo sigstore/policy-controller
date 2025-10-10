@@ -875,10 +875,9 @@ func ValidatePolicyAttestationsForAuthority(ctx context.Context, ref name.Refere
 	// If we didn't get any verified attestations either from the Key or Keyless
 	// path, then error out
 	if len(verifiedAttestations) == 0 {
-		logging.FromContext(ctx).Errorf("no valid attestations found for authority %s for %s", name, ref.Name())
 		return nil, fmt.Errorf("%s for authority %s for %s", cosign.ErrNoMatchingAttestationsMessage, name, ref.Name())
 	}
-	logging.FromContext(ctx).Debugf("Found %d valid attestations, validating policies for them", len(verifiedAttestations))
+	logging.FromContext(ctx).Debugf("Found %d valid attestations for authority %s, validating policies for them", len(verifiedAttestations), name)
 
 	// Now spin through the Attestations that the user specified and validate
 	// them.
@@ -1351,6 +1350,7 @@ func checkOptsFromAuthority(ctx context.Context, authority webhookcip.Authority,
 	ret := &cosign.CheckOpts{
 		RegistryClientOpts: remoteOpts,
 		NewBundleFormat:    authority.SignatureFormat == "bundle",
+		ExperimentalOCI11:  true, // Enable OCI 1.1 attestation verification
 	}
 
 	// Add in the identities for verification purposes
