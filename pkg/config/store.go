@@ -43,6 +43,8 @@ const (
 	NoMatchPolicyKey = "no-match-policy"
 
 	FailOnEmptyAuthorities = "fail-on-empty-authorities"
+
+	EnableOCI11 = "enable-oci11"
 )
 
 // PolicyControllerConfig controls the behaviour of policy-controller that needs
@@ -56,6 +58,8 @@ type PolicyControllerConfig struct {
 	NoMatchPolicy string `json:"no-match-policy"`
 	// FailOnEmptyAuthorities configures the validating webhook to allow creating CIP without a list authorities
 	FailOnEmptyAuthorities bool `json:"fail-on-empty-authorities"`
+	// EnableOCI11 enables experimental OCI 1.1 referrers API for attestation discovery
+	EnableOCI11 bool `json:"enable-oci11"`
 }
 
 func NewPolicyControllerConfigFromMap(data map[string]string) (*PolicyControllerConfig, error) {
@@ -73,9 +77,17 @@ func NewPolicyControllerConfigFromMap(data map[string]string) (*PolicyController
 	if val, ok := data[FailOnEmptyAuthorities]; ok {
 		var err error
 		ret.FailOnEmptyAuthorities, err = strconv.ParseBool(val)
-		return ret, err
+		if err != nil {
+			return ret, err
+		}
 	}
-	ret.FailOnEmptyAuthorities = true
+	if val, ok := data[EnableOCI11]; ok {
+		var err error
+		ret.EnableOCI11, err = strconv.ParseBool(val)
+		if err != nil {
+			return ret, err
+		}
+	}
 	return ret, nil
 }
 
@@ -102,6 +114,7 @@ func FromContextOrDefaults(ctx context.Context) *PolicyControllerConfig {
 	return &PolicyControllerConfig{
 		NoMatchPolicy:          DenyAll,
 		FailOnEmptyAuthorities: true,
+		EnableOCI11:            false,
 	}
 }
 

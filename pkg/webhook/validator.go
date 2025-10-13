@@ -1348,9 +1348,13 @@ func normalizeArchitecture(cf *v1.ConfigFile) string {
 // checkOptsFromAuthority creates the necessary options for calling Cosign
 // verify functions (signatures and attestations).
 func checkOptsFromAuthority(ctx context.Context, authority webhookcip.Authority, remoteOpts ...ociremote.Option) (*cosign.CheckOpts, error) {
+	// Get the policy controller configuration to check if OCI 1.1 is enabled
+	cfg := policycontrollerconfig.FromContextOrDefaults(ctx)
+	
 	ret := &cosign.CheckOpts{
 		RegistryClientOpts: remoteOpts,
 		NewBundleFormat:    authority.SignatureFormat == "bundle",
+		ExperimentalOCI11:  cfg.EnableOCI11,
 	}
 
 	// Add in the identities for verification purposes
