@@ -36,6 +36,7 @@ jobs:
           - v1.31.x
           - v1.32.x
           - v1.33.x
+          - v1.34.x
 
         script:
         - cluster_image_policy
