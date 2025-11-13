@@ -733,7 +733,7 @@ func attestationToPolicyAttestations(ctx context.Context, atts []attestation) []
 			continue
 		}
 
-		if cert, err := att.Cert(); err == nil && cert != nil {
+		if cert, err := att.Signature.Cert(); err == nil && cert != nil {
 			ce := cosign.CertExtensions{
 				Cert: cert,
 			}
@@ -1350,7 +1350,7 @@ func normalizeArchitecture(cf *v1.ConfigFile) string {
 func checkOptsFromAuthority(ctx context.Context, authority webhookcip.Authority, remoteOpts ...ociremote.Option) (*cosign.CheckOpts, error) {
 	// Get the policy controller configuration to check if OCI 1.1 is enabled
 	cfg := policycontrollerconfig.FromContextOrDefaults(ctx)
-	
+
 	ret := &cosign.CheckOpts{
 		RegistryClientOpts: remoteOpts,
 		NewBundleFormat:    authority.SignatureFormat == "bundle",
