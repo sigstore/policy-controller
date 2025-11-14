@@ -33,10 +33,10 @@ jobs:
       fail-fast: false # Keep running if one leg fails.
       matrix:
         k8s-version:
-        - v1.30.x
         - v1.31.x
         - v1.32.x
         - v1.33.x
+        - v1.34.x
 
     env:
       # https://github.com/google/go-containerregistry/pull/125 allows insecure registry for
@@ -118,7 +118,7 @@ jobs:
         mirror: mirror.gcr.io
 
     - name: Setup kind cluster
-      uses: chainguard-dev/actions/setup-kind@be7b31a01af8ce7228fe901326f1d223fb788e14 # v1.4.12
+      uses: chainguard-dev/actions/setup-kind@1b32103f5aa389c31ab0be75a8edc38d7e4750d8 # v1.5.7
       with:
         k8s-version: ${{ matrix.k8s-version }}
         cluster-suffix: c${{ github.run_id }}.local

@@ -33,10 +33,10 @@ jobs:
       fail-fast: false # Keep running if one leg fails.
       matrix:
         k8s-version:
-          - v1.30.x
           - v1.31.x
           - v1.32.x
           - v1.33.x
+          - v1.34.x
 
         script:
         - cluster_image_policy
@@ -54,7 +54,7 @@ jobs:
 
     env:
       KO_DOCKER_REPO: "registry.local:5000/policy-controller"
-      SCAFFOLDING_RELEASE_VERSION: "v0.7.24"
+      SCAFFOLDING_RELEASE_VERSION: "v0.7.27"
       GO111MODULE: on
       GOFLAGS: -ldflags=-s -ldflags=-w
       KOCACHE: ~/ko
