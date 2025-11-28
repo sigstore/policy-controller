@@ -65,6 +65,9 @@ func valid(ctx context.Context, ref name.Reference, keys []crypto.PublicKey, has
 // For testing
 var cosignVerifySignatures = cosign.VerifyImageSignatures
 var cosignVerifyAttestations = cosign.VerifyImageAttestations
+var ociremoteResolveDigest = ociremote.ResolveDigest
+var ociremoteReferrers = ociremote.Referrers
+var ociremoteSignedImage = ociremote.SignedImage
 
 func validSignatures(ctx context.Context, ref name.Reference, checkOpts *cosign.CheckOpts) ([]oci.Signature, error) {
 	checkOpts.ClaimVerifier = cosign.SimpleClaimVerifier
@@ -86,18 +89,18 @@ func validAttestations(ctx context.Context, ref name.Reference, checkOpts *cosig
 }
 
 func discoverAttestationsOCI11(ctx context.Context, ref name.Reference, checkOpts *cosign.CheckOpts) ([]oci.Signature, error) {
-	digest, err := ociremote.ResolveDigest(ref, checkOpts.RegistryClientOpts...)
+	digest, err := ociremoteResolveDigest(ref, checkOpts.RegistryClientOpts...)
 	if err != nil {
 		return nil, err
 	}
 
-	index, err := ociremote.Referrers(digest, "", checkOpts.RegistryClientOpts...)
+	indexManifest, err := ociremoteReferrers(digest, "", checkOpts.RegistryClientOpts...)
 	if err != nil {
 		return nil, err
 	}
 
 	var allSigs []oci.Signature
-	for _, manifest := range index.Manifests {
+	for _, manifest := range indexManifest.Manifests {
 		if strings.Contains(manifest.ArtifactType, "in-toto") {
 			sigs, err := processAttestationArtifact(manifest, digest.Repository, checkOpts.RegistryClientOpts)
 			if err != nil {
@@ -120,12 +123,12 @@ func processAttestationArtifact(result v1.Descriptor, repository name.Repository
 		return nil, err
 	}
 
-	signedImg, err := ociremote.SignedImage(attRef, registryOpts...)
+	signedEntity, err := ociremoteSignedImage(attRef, registryOpts...)
 	if err != nil {
 		return nil, err
 	}
 
-	layers, err := signedImg.Layers()
+	layers, err := signedEntity.Layers()
 	if err != nil || len(layers) == 0 {
 		return nil, fmt.Errorf("no layers found")
 	}
