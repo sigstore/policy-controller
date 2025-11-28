@@ -41,6 +41,7 @@ jobs:
         script:
         - cluster_image_policy
         - cluster_image_policy_with_attestations
+        - cluster_image_policy_with_oci11_attestations
         - cluster_with_scalable
         - cluster_image_policy_with_warn
         - cluster_image_policy_with_source
