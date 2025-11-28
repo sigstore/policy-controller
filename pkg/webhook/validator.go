@@ -733,7 +733,7 @@ func attestationToPolicyAttestations(ctx context.Context, atts []attestation) []
 			continue
 		}
 
-		if cert, err := att.Signature.Cert(); err == nil && cert != nil {
+		if cert, err := att.Cert(); err == nil && cert != nil {
 			ce := cosign.CertExtensions{
 				Cert: cert,
 			}

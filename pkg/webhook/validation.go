@@ -99,9 +99,12 @@ func discoverAttestationsOCI11(ctx context.Context, ref name.Reference, checkOpt
 	var allSigs []oci.Signature
 	for _, manifest := range index.Manifests {
 		if strings.Contains(manifest.ArtifactType, "in-toto") {
-			if sigs, err := processAttestationArtifact(manifest, digest.Repository, checkOpts.RegistryClientOpts); err == nil {
-				allSigs = append(allSigs, sigs...)
+			sigs, err := processAttestationArtifact(manifest, digest.Repository, checkOpts.RegistryClientOpts)
+			if err != nil {
+				logging.FromContext(ctx).Debugf("Failed to process attestation artifact: %v", err)
+				continue
 			}
+			allSigs = append(allSigs, sigs...)
 		}
 	}
 
