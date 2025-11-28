@@ -68,6 +68,7 @@ var cosignVerifyAttestations = cosign.VerifyImageAttestations
 var ociremoteResolveDigest = ociremote.ResolveDigest
 var ociremoteReferrers = ociremote.Referrers
 var ociremoteSignedImage = ociremote.SignedImage
+var testProcessAttestationArtifact = processAttestationArtifact
 
 func validSignatures(ctx context.Context, ref name.Reference, checkOpts *cosign.CheckOpts) ([]oci.Signature, error) {
 	checkOpts.ClaimVerifier = cosign.SimpleClaimVerifier
@@ -102,7 +103,7 @@ func discoverAttestationsOCI11(ctx context.Context, ref name.Reference, checkOpt
 	var allSigs []oci.Signature
 	for _, manifest := range indexManifest.Manifests {
 		if strings.Contains(manifest.ArtifactType, "in-toto") {
-			sigs, err := processAttestationArtifact(manifest, digest.Repository, checkOpts.RegistryClientOpts)
+			sigs, err := testProcessAttestationArtifact(manifest, digest.Repository, checkOpts.RegistryClientOpts)
 			if err != nil {
 				logging.FromContext(ctx).Debugf("Failed to process attestation artifact: %v", err)
 				continue

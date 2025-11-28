@@ -4027,3 +4027,210 @@ func TestProcessAttestationArtifact(t *testing.T) {
 		})
 	}
 }
+
+func TestDiscoverAttestationsOCI11SuccessfulDiscovery(t *testing.T) {
+	ctx := context.Background()
+	ref := name.MustParseReference("example.com/test@sha256:abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234")
+	checkOpts := &cosign.CheckOpts{}
+
+	// Save originals
+	origResolve := ociremoteResolveDigest
+	origReferrers := ociremoteReferrers
+	origProcessAtt := testProcessAttestationArtifact
+	defer func() {
+		ociremoteResolveDigest = origResolve
+		ociremoteReferrers = origReferrers
+		testProcessAttestationArtifact = origProcessAtt
+	}()
+
+	ociremoteResolveDigest = func(ref name.Reference, opts ...remote.Option) (name.Digest, error) {
+		return name.MustParseReference("example.com/test@sha256:abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234").(name.Digest), nil
+	}
+
+	// Return manifest with in-toto attestations
+	mockManifest := &v1.IndexManifest{
+		Manifests: []v1.Descriptor{
+			{
+				ArtifactType: "application/vnd.in-toto+json",
+				Digest: v1.Hash{
+					Algorithm: "sha256",
+					Hex:       "att1111111111111111111111111111111111111111111111111111111111",
+				},
+			},
+			{
+				ArtifactType: "application/vnd.in-toto.provenance",
+				Digest: v1.Hash{
+					Algorithm: "sha256",
+					Hex:       "att2222222222222222222222222222222222222222222222222222222222",
+				},
+			},
+		},
+	}
+
+	ociremoteReferrers = func(d name.Digest, artifactType string, opts ...remote.Option) (*v1.IndexManifest, error) {
+		return mockManifest, nil
+	}
+
+	// Mock processAttestationArtifact to return valid signatures
+	testProcessAttestationArtifact = func(result v1.Descriptor, repository name.Repository, registryOpts []remote.Option) ([]oci.Signature, error) {
+		mockSig, _ := static.NewSignature(nil, "")
+		return []oci.Signature{mockSig}, nil
+	}
+
+	sigs, err := discoverAttestationsOCI11(ctx, ref, checkOpts)
+
+	if err != nil {
+		t.Errorf("Expected success, got error: %v", err)
+	}
+	// Should have 2 signatures (one from each in-toto artifact)
+	if len(sigs) != 2 {
+		t.Errorf("Expected 2 signatures from 2 in-toto artifacts, got %d", len(sigs))
+	}
+}
+
+func TestDiscoverAttestationsOCI11MixedArtifacts(t *testing.T) {
+	ctx := context.Background()
+	ref := name.MustParseReference("example.com/test@sha256:abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234")
+	checkOpts := &cosign.CheckOpts{}
+
+	// Save originals
+	origResolve := ociremoteResolveDigest
+	origReferrers := ociremoteReferrers
+	origProcessAtt := testProcessAttestationArtifact
+	defer func() {
+		ociremoteResolveDigest = origResolve
+		ociremoteReferrers = origReferrers
+		testProcessAttestationArtifact = origProcessAtt
+	}()
+
+	ociremoteResolveDigest = func(ref name.Reference, opts ...remote.Option) (name.Digest, error) {
+		return name.MustParseReference("example.com/test@sha256:abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234").(name.Digest), nil
+	}
+
+	// Mix of in-toto and non-in-toto artifacts (should only process in-toto)
+	mockManifest := &v1.IndexManifest{
+		Manifests: []v1.Descriptor{
+			{
+				ArtifactType: "application/vnd.oci.image.manifest.v1+json",
+				Digest: v1.Hash{
+					Algorithm: "sha256",
+					Hex:       "img1111111111111111111111111111111111111111111111111111111111",
+				},
+			},
+			{
+				ArtifactType: "application/vnd.in-toto+dsse",
+				Digest: v1.Hash{
+					Algorithm: "sha256",
+					Hex:       "att1111111111111111111111111111111111111111111111111111111111",
+				},
+			},
+			{
+				ArtifactType: "application/vnd.oci.artifact.manifest.v1+json",
+				Digest: v1.Hash{
+					Algorithm: "sha256",
+					Hex:       "art1111111111111111111111111111111111111111111111111111111111",
+				},
+			},
+		},
+	}
+
+	ociremoteReferrers = func(d name.Digest, artifactType string, opts ...remote.Option) (*v1.IndexManifest, error) {
+		return mockManifest, nil
+	}
+
+	processedCount := 0
+	testProcessAttestationArtifact = func(result v1.Descriptor, repository name.Repository, registryOpts []remote.Option) ([]oci.Signature, error) {
+		processedCount++
+		mockSig, _ := static.NewSignature(nil, "")
+		return []oci.Signature{mockSig}, nil
+	}
+
+	sigs, err := discoverAttestationsOCI11(ctx, ref, checkOpts)
+
+	if err != nil {
+		t.Errorf("Expected success, got error: %v", err)
+	}
+	// Should only process the one in-toto artifact
+	if processedCount != 1 {
+		t.Errorf("Expected processAttestationArtifact to be called once, called %d times", processedCount)
+	}
+	if len(sigs) != 1 {
+		t.Errorf("Expected 1 signature from 1 in-toto artifact, got %d", len(sigs))
+	}
+}
+
+func TestDiscoverAttestationsOCI11PartialProcessingFailure(t *testing.T) {
+	ctx := context.Background()
+	ref := name.MustParseReference("example.com/test@sha256:abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234")
+	checkOpts := &cosign.CheckOpts{}
+
+	// Save originals
+	origResolve := ociremoteResolveDigest
+	origReferrers := ociremoteReferrers
+	origProcessAtt := testProcessAttestationArtifact
+	defer func() {
+		ociremoteResolveDigest = origResolve
+		ociremoteReferrers = origReferrers
+		testProcessAttestationArtifact = origProcessAtt
+	}()
+
+	ociremoteResolveDigest = func(ref name.Reference, opts ...remote.Option) (name.Digest, error) {
+		return name.MustParseReference("example.com/test@sha256:abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234").(name.Digest), nil
+	}
+
+	// Multiple in-toto artifacts
+	mockManifest := &v1.IndexManifest{
+		Manifests: []v1.Descriptor{
+			{
+				ArtifactType: "application/vnd.in-toto+json",
+				Digest: v1.Hash{
+					Algorithm: "sha256",
+					Hex:       "good111111111111111111111111111111111111111111111111111111111",
+				},
+			},
+			{
+				ArtifactType: "application/vnd.in-toto+json",
+				Digest: v1.Hash{
+					Algorithm: "sha256",
+					Hex:       "bad2222222222222222222222222222222222222222222222222222222222",
+				},
+			},
+			{
+				ArtifactType: "application/vnd.in-toto+json",
+				Digest: v1.Hash{
+					Algorithm: "sha256",
+					Hex:       "good333333333333333333333333333333333333333333333333333333333",
+				},
+			},
+		},
+	}
+
+	ociremoteReferrers = func(d name.Digest, artifactType string, opts ...remote.Option) (*v1.IndexManifest, error) {
+		return mockManifest, nil
+	}
+
+	callCount := 0
+	testProcessAttestationArtifact = func(result v1.Descriptor, repository name.Repository, registryOpts []remote.Option) ([]oci.Signature, error) {
+		callCount++
+		if callCount == 2 {
+			// Second call fails
+			return nil, errors.New("processing failed for second artifact")
+		}
+		// First and third succeed
+		mockSig, _ := static.NewSignature(nil, "")
+		return []oci.Signature{mockSig}, nil
+	}
+
+	sigs, err := discoverAttestationsOCI11(ctx, ref, checkOpts)
+
+	// Should succeed with 2 signatures (second one failed but was skipped with logging)
+	if err != nil {
+		t.Errorf("Expected success with partial failures, got error: %v", err)
+	}
+	if callCount != 3 {
+		t.Errorf("Expected processAttestationArtifact called 3 times, got %d", callCount)
+	}
+	if len(sigs) != 2 {
+		t.Errorf("Expected 2 signatures (second failed), got %d", len(sigs))
+	}
+}
