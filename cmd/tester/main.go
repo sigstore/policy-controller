@@ -35,6 +35,7 @@ import (
 
 	"github.com/sigstore/policy-controller/pkg/apis/config"
 	"github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
+	policycontrollerconfig "github.com/sigstore/policy-controller/pkg/config"
 	"github.com/sigstore/policy-controller/pkg/policy"
 	"github.com/sigstore/policy-controller/pkg/webhook"
 )
@@ -94,6 +95,7 @@ func main() {
 	resourceFilePath := flag.String("resource", "", "path to a kubernetes resource to use with includeSpec, includeObjectMeta")
 	trustRootFilePath := flag.String("trustroot", "", "path to a kubernetes TrustRoot resource to use with the ClusterImagePolicy")
 	logLevelStr := flag.String("log-level", "info", "configure the tool's log level (debug, info, warn, error)")
+	enableOCI11 := flag.Bool("enable-oci11", false, "enable experimental OCI 1.1 referrers API for attestation discovery")
 	flag.Parse()
 
 	logger, err := getSugaredLogger(*logLevelStr)
@@ -103,6 +105,16 @@ func main() {
 	}
 
 	ctx := logging.WithLogger(context.Background(), logger)
+
+	// Set up policy controller configuration with OCI 1.1 support
+	if *enableOCI11 {
+		policyConfig := &policycontrollerconfig.PolicyControllerConfig{
+			NoMatchPolicy:          "deny",
+			FailOnEmptyAuthorities: true,
+			EnableOCI11:            true,
+		}
+		ctx = policycontrollerconfig.ToContext(ctx, policyConfig)
+	}
 
 	if *versionFlag {
 		v := version.GetVersionInfo()

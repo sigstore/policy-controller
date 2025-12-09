@@ -27,14 +27,15 @@ import (
 type testData struct {
 	noMatchPolicy          string
 	failOnEmptyAuthorities bool
+	enableOCI11            bool
 }
 
 var testfiles = map[string]testData{
-	"allow-all":               {noMatchPolicy: AllowAll, failOnEmptyAuthorities: true},
-	"deny-all-explicit":       {noMatchPolicy: DenyAll, failOnEmptyAuthorities: true},
-	"warn-all":                {noMatchPolicy: WarnAll, failOnEmptyAuthorities: true},
-	"deny-all-default":        {noMatchPolicy: DenyAll, failOnEmptyAuthorities: true},
-	"allow-empty-authorities": {noMatchPolicy: DenyAll, failOnEmptyAuthorities: false},
+	"allow-all":               {noMatchPolicy: AllowAll, failOnEmptyAuthorities: true, enableOCI11: false},
+	"deny-all-explicit":       {noMatchPolicy: DenyAll, failOnEmptyAuthorities: true, enableOCI11: false},
+	"warn-all":                {noMatchPolicy: WarnAll, failOnEmptyAuthorities: true, enableOCI11: false},
+	"deny-all-default":        {noMatchPolicy: DenyAll, failOnEmptyAuthorities: true, enableOCI11: false},
+	"allow-empty-authorities": {noMatchPolicy: DenyAll, failOnEmptyAuthorities: false, enableOCI11: false},
 }
 
 func TestStoreLoadWithContext(t *testing.T) {
@@ -54,6 +55,9 @@ func TestStoreLoadWithContext(t *testing.T) {
 			}
 			if diff := cmp.Diff(want.failOnEmptyAuthorities, expected.FailOnEmptyAuthorities); diff != "" {
 				t.Error("Unexpected defaults config (-want, +got):", diff)
+			}
+			if diff := cmp.Diff(want.enableOCI11, expected.EnableOCI11); diff != "" {
+				t.Error("Unexpected EnableOCI11 config (-want, +got):", diff)
 			}
 			if diff := cmp.Diff(expected, config); diff != "" {
 				t.Error("Unexpected defaults config (-want, +got):", diff)
@@ -78,5 +82,76 @@ func TestStoreLoadWithContextOrDefaults(t *testing.T) {
 				t.Error("Unexpected defaults config (-want, +got):", diff)
 			}
 		})
+	}
+}
+
+func TestEnableOCI11Config(t *testing.T) {
+	tests := []struct {
+		name      string
+		data      map[string]string
+		wantOCI11 bool
+		wantErr   bool
+	}{
+		{
+			name:      "enable-oci11 true",
+			data:      map[string]string{"enable-oci11": "true"},
+			wantOCI11: true,
+			wantErr:   false,
+		},
+		{
+			name:      "enable-oci11 false",
+			data:      map[string]string{"enable-oci11": "false"},
+			wantOCI11: false,
+			wantErr:   false,
+		},
+		{
+			name:      "enable-oci11 not set (default false)",
+			data:      map[string]string{},
+			wantOCI11: false,
+			wantErr:   false,
+		},
+		{
+			name:    "enable-oci11 invalid value",
+			data:    map[string]string{"enable-oci11": "not-a-boolean"},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg, err := NewPolicyControllerConfigFromMap(tt.data)
+
+			if (err != nil) != tt.wantErr {
+				t.Errorf("NewPolicyControllerConfigFromMap() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+
+			if !tt.wantErr {
+				if cfg.EnableOCI11 != tt.wantOCI11 {
+					t.Errorf("EnableOCI11 = %v, want %v", cfg.EnableOCI11, tt.wantOCI11)
+				}
+			}
+		})
+	}
+}
+
+func TestFromContextOrDefaultsWithOCI11(t *testing.T) {
+	// Test default returns EnableOCI11 = false
+	cfg := FromContextOrDefaults(context.Background())
+	if cfg.EnableOCI11 != false {
+		t.Errorf("Default EnableOCI11 = %v, want false", cfg.EnableOCI11)
+	}
+
+	// Test with EnableOCI11 = true in context
+	customCfg := &PolicyControllerConfig{
+		NoMatchPolicy:          DenyAll,
+		FailOnEmptyAuthorities: true,
+		EnableOCI11:            true,
+	}
+	ctx := ToContext(context.Background(), customCfg)
+
+	cfg = FromContextOrDefaults(ctx)
+	if cfg.EnableOCI11 != true {
+		t.Errorf("Context EnableOCI11 = %v, want true", cfg.EnableOCI11)
 	}
 }
