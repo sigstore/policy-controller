@@ -94,7 +94,7 @@ jobs:
           apt-get remove -y 'php.*' || true
           apt-get autoremove -y >/dev/null 2>&1 || true
           apt-get autoclean -y >/dev/null 2>&1 || true
-    - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+    - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
     - uses: actions/setup-go@d35c59abb061a4a6fb18e82ac0862c26744d6ab5 # v5.5.0
       with:
         go-version-file: './go.mod'
@@ -106,7 +106,7 @@ jobs:
     - uses: imranismail/setup-kustomize@2ba527d4d055ab63514ba50a99456fc35684947f # v2.1.0
 
     - name: Install yq
-      uses: mikefarah/yq@7ccaf8e700ce99eb3f0f6cef7f5930a0b3c827cd # v4.49.2
+      uses: mikefarah/yq@065b200af9851db0d5132f50bc10b1406ea5c0a8 # v4.50.1
 
     - name: Setup mirror
       uses: chainguard-dev/actions/setup-mirror@3e8a2a226fad9e1ecbf2d359b8a7697554a4ac6d # v1.5.10
@@ -141,7 +141,7 @@ jobs:
         echo "TUF_ROOT_FILE=./root.json" >> $GITHUB_ENV
 
     - name: Checkout TSA for testing.
-      uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v3.0.2
+      uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v3.0.2
       with:
         repository: sigstore/timestamp-authority
         path: ./src/github.com/sigstore/timestamp-authority
