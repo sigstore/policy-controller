@@ -134,7 +134,7 @@ type Authority struct {
 	// Sources sets the configuration to specify the sources from where to consume the signature and attestations.
 	// +optional
 	Sources []Source `json:"source,omitempty"`
-	// CTLog sets the configuration to verify the authority against a Rekor instance.
+	// CTLog configures transparency log (Rekor) verification; if ctlog is set but neither trustRootRef nor url is set (ctlog: {}), tlog verification is disabled.
 	// +optional
 	CTLog *TLog `json:"ctlog,omitempty"`
 	// Attestations is a list of individual attestations for this authority,
@@ -200,7 +200,7 @@ type Source struct {
 // TLog specifies the URL to a transparency log that holds
 // the signature and public key information
 type TLog struct {
-	// URL sets the url to the rekor instance (by default the public rekor.sigstore.dev)
+	// URL sets the url to the rekor instance; if unset and trustRootRef is also unset, tlog verification is disabled.
 	// +optional
 	URL *apis.URL `json:"url,omitempty"`
 	// Use the Public Key from the referred TrustRoot.TLog
