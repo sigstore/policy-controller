@@ -109,7 +109,7 @@ jobs:
           apt-get remove -y 'php.*' || true
           apt-get autoremove -y >/dev/null 2>&1 || true
           apt-get autoclean -y >/dev/null 2>&1 || true
-    - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
     - uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
       with:
         go-version-file: './go.mod'
@@ -121,10 +121,10 @@ jobs:
     - uses: imranismail/setup-kustomize@2ba527d4d055ab63514ba50a99456fc35684947f # v2.1.0
 
     - name: Install yq
-      uses: mikefarah/yq@7ccaf8e700ce99eb3f0f6cef7f5930a0b3c827cd # v4.49.2
+      uses: mikefarah/yq@065b200af9851db0d5132f50bc10b1406ea5c0a8 # v4.50.1
 
     - name: Setup mirror
-      uses: chainguard-dev/actions/setup-mirror@3e8a2a226fad9e1ecbf2d359b8a7697554a4ac6d # v1.5.10
+      uses: chainguard-dev/actions/setup-mirror@18e5e3427cf9d6bcfbefe60dca48e40292f000c5 # v1.5.13
       with:
         mirror: mirror.gcr.io
 
@@ -175,4 +175,4 @@ jobs:
 
     - name: Collect diagnostics
       if: ${{ failure() }}
-      uses: chainguard-dev/actions/kind-diag@3e8a2a226fad9e1ecbf2d359b8a7697554a4ac6d # v1.5.10
+      uses: chainguard-dev/actions/kind-diag@18e5e3427cf9d6bcfbefe60dca48e40292f000c5 # v1.5.13

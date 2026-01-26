@@ -13,7 +13,7 @@ jobs:
 
     steps:
       - name: Check out code
-        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Set up Go
         uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
@@ -21,7 +21,7 @@ jobs:
           go-version-file: './go.mod'
           check-latest: true
 
-      - uses: chainguard-dev/actions/gofmt@3e8a2a226fad9e1ecbf2d359b8a7697554a4ac6d # v1.5.10
+      - uses: chainguard-dev/actions/gofmt@18e5e3427cf9d6bcfbefe60dca48e40292f000c5 # v1.5.13
         with:
           args: -s
 
@@ -31,7 +31,7 @@ jobs:
 
     steps:
       - name: Check out code
-        uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
 
       - name: Set up Go
         uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
@@ -39,4 +39,4 @@ jobs:
           go-version-file: './go.mod'
           check-latest: true
 
-      - uses: chainguard-dev/actions/goimports@3e8a2a226fad9e1ecbf2d359b8a7697554a4ac6d # v1.5.10
+      - uses: chainguard-dev/actions/goimports@18e5e3427cf9d6bcfbefe60dca48e40292f000c5 # v1.5.13
