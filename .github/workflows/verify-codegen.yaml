@@ -32,7 +32,7 @@ jobs:
       GOPATH: ${{ github.workspace }}
 
     steps:
-    - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3 # v6.0.0
+    - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       with:
         path: ./src/github.com/${{ github.repository }}
         fetch-depth: 0
@@ -50,7 +50,7 @@ jobs:
         # For whatever reason running this makes it not complain...
         git status
 
-    - uses: chainguard-dev/actions/nodiff@3e8a2a226fad9e1ecbf2d359b8a7697554a4ac6d # v1.5.10
+    - uses: chainguard-dev/actions/nodiff@18e5e3427cf9d6bcfbefe60dca48e40292f000c5 # v1.5.13
       with:
         path: ./src/github.com/${{ github.repository }}
         fixup-command: "./hack/update-codegen.sh"
