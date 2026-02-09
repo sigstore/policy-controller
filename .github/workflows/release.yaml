@@ -39,7 +39,7 @@ jobs:
 
       - uses: sigstore/cosign-installer@d58896d6a1865668819e1d91763c7751a165e159
 
-      - uses: anchore/sbom-action/download-syft@deef08a0db64bfad603422135db61477b16cef56 # v0.22.1
+      - uses: anchore/sbom-action/download-syft@28d71544de8eaf1b958d335707167c5f783590ad # v0.22.2
 
       - uses: ko-build/setup-ko@d006021bd0c28d1ce33a07e7943d48b079944c8d # v0.9
 
