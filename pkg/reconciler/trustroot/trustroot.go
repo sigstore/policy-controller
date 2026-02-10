@@ -200,7 +200,7 @@ func (r *Reconciler) getSigstoreKeysFromRemote(ctx context.Context, remote *v1al
 	return GetSigstoreKeysFromTuf(ctx, tufClient, trustedRootTarget)
 }
 
-// remoteTrustRootEntry removes a TrustRoot entry from a CM. If no entry exists, it's a nop.
+// removeTrustRootEntry removes a TrustRoot entry from a CM. If no entry exists, it's a nop.
 func (r *Reconciler) removeTrustRootEntry(ctx context.Context, cm *corev1.ConfigMap, trustrootName string) error {
 	patchBytes, err := resources.CreateRemovePatch(system.Namespace(), config.SigstoreKeysConfigName, cm.DeepCopy(), trustrootName)
 	if err != nil {
@@ -240,7 +240,7 @@ type sigstoreCustomMetadata struct {
 	Sigstore customMetadata `json:"sigstore"`
 }
 
-// getSigstoreKeysFromTuf returns the sigstore keys from the TUF client. Note
+// GetSigstoreKeysFromTuf returns the sigstore keys from the TUF client. Note
 // that this should really be exposed from the sigstore/sigstore TUF pkg, but
 // is currently not.
 func GetSigstoreKeysFromTuf(ctx context.Context, tufClient *client.Client, trustedRootTarget string) (*config.SigstoreKeys, error) {
