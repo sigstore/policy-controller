@@ -37,7 +37,7 @@ jobs:
           go-version-file: './go.mod'
           check-latest: true
 
-      - uses: sigstore/cosign-installer@d58896d6a1865668819e1d91763c7751a165e159
+      - uses: sigstore/cosign-installer@faadad0cce49287aee09b3a48701e75088a2c6ad
 
       - uses: anchore/sbom-action/download-syft@28d71544de8eaf1b958d335707167c5f783590ad # v0.22.2
 
