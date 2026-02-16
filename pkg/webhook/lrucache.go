@@ -30,7 +30,8 @@ import (
 // Only successful validations (PolicyResult non-nil) are cached.
 // Failed validations (PolicyResult nil) are not cached to allow retries.
 type LRUCache struct {
-	cache *expirable.LRU[string, *CacheResult]
+	cache             *expirable.LRU[string, *CacheResult]
+	gaugeRegistration metric.Registration
 }
 
 // NewLRUCache creates a new LRU cache with the given size and TTL.
@@ -40,8 +41,33 @@ func NewLRUCache(size int, ttl time.Duration) *LRUCache {
 			cacheEvictions.Add(context.Background(), 1)
 		}, ttl),
 	}
-	registerCacheEntriesGauge(meter, lc.cache.Len)
+	lc.registerEntriesGauge(meter)
 	return lc
+}
+
+// registerEntriesGauge registers an Observable Gauge that reads cache.Len()
+// at collection time. Unregisters any previous gauge callback first.
+func (c *LRUCache) registerEntriesGauge(m metric.Meter) {
+	if c.gaugeRegistration != nil {
+		c.gaugeRegistration.Unregister()
+	}
+	gauge, _ := m.Int64ObservableGauge(
+		"cache.entries",
+		metric.WithDescription("Current number of entries in the validation result cache"),
+		metric.WithUnit("{entry}"),
+	)
+	c.gaugeRegistration, _ = m.RegisterCallback(func(_ context.Context, o metric.Observer) error {
+		o.ObserveInt64(gauge, int64(c.cache.Len()))
+		return nil
+	}, gauge)
+}
+
+// Close unregisters the gauge callback. Call when discarding a cache instance.
+func (c *LRUCache) Close() error {
+	if c.gaugeRegistration != nil {
+		return c.gaugeRegistration.Unregister()
+	}
+	return nil
 }
 
 func cacheKeyFor(image, uid, resourceVersion string) string {

@@ -16,8 +16,6 @@
 package webhook
 
 import (
-	"context"
-
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/metric"
 )
@@ -55,25 +53,3 @@ func registerCacheMetrics(m metric.Meter) {
 	)
 }
 
-// cacheEntriesLenFunc is the function called by the Observable Gauge to report
-// the current number of cache entries. Nil when no cache is registered.
-var cacheEntriesLenFunc func() int
-
-// registerCacheEntriesGauge registers an Observable Gauge that reads the
-// current cache size via lenFunc at collection time. This is race-free
-// because it reads the source of truth (cache.Len()) rather than maintaining
-// a running counter.
-func registerCacheEntriesGauge(m metric.Meter, lenFunc func() int) {
-	cacheEntriesLenFunc = lenFunc
-	gauge, _ := m.Int64ObservableGauge(
-		"cache.entries",
-		metric.WithDescription("Current number of entries in the validation result cache"),
-		metric.WithUnit("{entry}"),
-	)
-	_, _ = m.RegisterCallback(func(_ context.Context, o metric.Observer) error {
-		if cacheEntriesLenFunc != nil {
-			o.ObserveInt64(gauge, int64(cacheEntriesLenFunc()))
-		}
-		return nil
-	}, gauge)
-}
