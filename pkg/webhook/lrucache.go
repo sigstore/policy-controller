@@ -21,6 +21,8 @@ import (
 	"time"
 
 	expirable "github.com/hashicorp/golang-lru/v2/expirable"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 	"knative.dev/pkg/logging"
 )
 
@@ -33,9 +35,13 @@ type LRUCache struct {
 
 // NewLRUCache creates a new LRU cache with the given size and TTL.
 func NewLRUCache(size int, ttl time.Duration) *LRUCache {
-	return &LRUCache{
-		cache: expirable.NewLRU[string, *CacheResult](size, nil, ttl),
+	lc := &LRUCache{
+		cache: expirable.NewLRU[string, *CacheResult](size, func(_ string, _ *CacheResult) {
+			cacheEvictions.Add(context.Background(), 1)
+		}, ttl),
 	}
+	registerCacheEntriesGauge(meter, lc.cache.Len)
+	return lc
 }
 
 func cacheKeyFor(image, uid, resourceVersion string) string {
@@ -45,15 +51,18 @@ func cacheKeyFor(image, uid, resourceVersion string) string {
 func (c *LRUCache) Get(ctx context.Context, image, uid, resourceVersion string) *CacheResult {
 	result, ok := c.cache.Get(cacheKeyFor(image, uid, resourceVersion))
 	if !ok {
+		cacheOps.Add(ctx, 1, metric.WithAttributes(attribute.String("result", "miss")))
 		logging.FromContext(ctx).Debugf("cache miss for image %s, policy UID %s", image, uid)
 		return nil
 	}
+	cacheOps.Add(ctx, 1, metric.WithAttributes(attribute.String("result", "hit")))
 	logging.FromContext(ctx).Debugf("cache hit for image %s, policy UID %s", image, uid)
 	return result
 }
 
-func (c *LRUCache) Set(_ context.Context, image, name, uid, resourceVersion string, cacheResult *CacheResult) { //nolint: revive
+func (c *LRUCache) Set(ctx context.Context, image, name, uid, resourceVersion string, cacheResult *CacheResult) { //nolint: revive
 	if cacheResult.PolicyResult == nil {
+		cacheWrites.Add(ctx, 1, metric.WithAttributes(attribute.String("result", "skipped")))
 		return
 	}
 	copied := &CacheResult{
@@ -61,4 +70,5 @@ func (c *LRUCache) Set(_ context.Context, image, name, uid, resourceVersion stri
 		Errors:       append([]error(nil), cacheResult.Errors...),
 	}
 	c.cache.Add(cacheKeyFor(image, uid, resourceVersion), copied)
+	cacheWrites.Add(ctx, 1, metric.WithAttributes(attribute.String("result", "stored")))
 }

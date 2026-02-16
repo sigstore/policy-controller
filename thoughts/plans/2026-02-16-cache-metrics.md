@@ -343,11 +343,11 @@ This is handled automatically by `go mod tidy`.
 ### Success Criteria:
 
 #### Automated Verification:
-- [ ] Unit tests pass: `go test ./pkg/webhook/ -run TestCacheMetrics -v`
-- [ ] All existing tests still pass: `go test ./pkg/webhook/`
-- [ ] Full test suite passes: `make test`
-- [ ] Linting passes: `golangci-lint run ./pkg/webhook/...`
-- [ ] Module is tidy: `go mod tidy` produces no diff
+- [x] Unit tests pass: `go test ./pkg/webhook/ -run TestCacheMetrics -v`
+- [x] All existing tests still pass: `go test ./pkg/webhook/`
+- [x] Full test suite passes: `make test`
+- [x] Linting passes: `golangci-lint run ./pkg/webhook/...`
+- [x] Module is tidy: `go mod tidy` produces no diff
 
 #### Manual Verification:
 - [ ] Deploy with `config-observability` set to `metrics-protocol: prometheus` and confirm `/metrics` on `:9090` includes `cache_operations_total`, `cache_writes_total`, `cache_entries`, `cache_evictions_total`
