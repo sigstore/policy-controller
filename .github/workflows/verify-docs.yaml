@@ -50,7 +50,7 @@ jobs:
         # For whatever reason running this makes it not complain...
         git status
 
-    - uses: chainguard-dev/actions/nodiff@eba358c567c5b091e34187d905258baebdd2a4ec # v1.5.16
+    - uses: chainguard-dev/actions/nodiff@0cf1221da92242205c2d9f8a63add344ebd6b304 # v1.6.1
       with:
         path: ./src/github.com/${{ github.repository }}
         fixup-command: "make docs"
