@@ -21,6 +21,7 @@ import (
 	"time"
 
 	expirable "github.com/hashicorp/golang-lru/v2/expirable"
+	"knative.dev/pkg/logging"
 )
 
 // LRUCache implements ResultCache using an LRU cache with TTL expiration.
@@ -41,11 +42,13 @@ func cacheKeyFor(image, uid, resourceVersion string) string {
 	return fmt.Sprintf("%s/%s/%s", image, uid, resourceVersion)
 }
 
-func (c *LRUCache) Get(_ context.Context, image, uid, resourceVersion string) *CacheResult {
+func (c *LRUCache) Get(ctx context.Context, image, uid, resourceVersion string) *CacheResult {
 	result, ok := c.cache.Get(cacheKeyFor(image, uid, resourceVersion))
 	if !ok {
+		logging.FromContext(ctx).Debugf("cache miss for image %s, policy UID %s", image, uid)
 		return nil
 	}
+	logging.FromContext(ctx).Debugf("cache hit for image %s, policy UID %s", image, uid)
 	return result
 }
 
