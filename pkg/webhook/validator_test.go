@@ -35,6 +35,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/authn/k8schain"
 	"github.com/google/go-containerregistry/pkg/name"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
@@ -4235,6 +4236,29 @@ func TestDiscoverAttestationsOCI11PartialProcessingFailure(t *testing.T) {
 	}
 }
 
+// cacheTestFixtures returns common test fixtures for cache integration tests.
+func cacheTestFixtures(t *testing.T) (*ecdsa.PublicKey, name.Reference, authn.Keychain) {
+	t.Helper()
+
+	var authorityKeyCosignPub *ecdsa.PublicKey
+	pems := parsePems([]byte(authorityKeyCosignPubString))
+	if len(pems) > 0 {
+		key, _ := x509.ParsePKIXPublicKey(pems[0].Bytes)
+		authorityKeyCosignPub = key.(*ecdsa.PublicKey)
+	} else {
+		t.Fatal("Error parsing authority key from string")
+	}
+
+	digest := name.MustParseReference("gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4")
+
+	kc, err := k8schain.NewNoClient(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return authorityKeyCosignPub, digest, kc
+}
+
 func TestValidatePolicyCacheHit(t *testing.T) {
 	// Save and restore global mock functions
 	origCVS := cosignVerifySignatures
@@ -4250,22 +4274,9 @@ func TestValidatePolicyCacheHit(t *testing.T) {
 		return []oci.Signature{sig}, true, nil
 	}
 
-	var authorityKeyCosignPub *ecdsa.PublicKey
-	pems := parsePems([]byte(authorityKeyCosignPubString))
-	if len(pems) > 0 {
-		key, _ := x509.ParsePKIXPublicKey(pems[0].Bytes)
-		authorityKeyCosignPub = key.(*ecdsa.PublicKey)
-	} else {
-		t.Fatal("Error parsing authority key from string")
-	}
-
-	digest := name.MustParseReference("gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4")
+	authorityKeyCosignPub, digest, kc := cacheTestFixtures(t)
 
 	ctx := context.Background()
-	kc, err := k8schain.NewNoClient(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	// Inject a real cache into context
 	cache := NewLRUCache(10, 1*time.Hour)
@@ -4319,22 +4330,9 @@ func TestValidatePolicyCacheSkipsErrors(t *testing.T) {
 		return nil, false, errors.New("image not signed")
 	}
 
-	var authorityKeyCosignPub *ecdsa.PublicKey
-	pems := parsePems([]byte(authorityKeyCosignPubString))
-	if len(pems) > 0 {
-		key, _ := x509.ParsePKIXPublicKey(pems[0].Bytes)
-		authorityKeyCosignPub = key.(*ecdsa.PublicKey)
-	} else {
-		t.Fatal("Error parsing authority key from string")
-	}
-
-	digest := name.MustParseReference("gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4")
+	authorityKeyCosignPub, digest, kc := cacheTestFixtures(t)
 
 	ctx := context.Background()
-	kc, err := k8schain.NewNoClient(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	cache := NewLRUCache(10, 1*time.Hour)
 	ctx = ToContext(ctx, cache)
@@ -4384,22 +4382,9 @@ func TestValidatePolicyCachePartialSuccess(t *testing.T) {
 		return nil, false, errors.New("signature invalid")
 	}
 
-	var authorityKeyCosignPub *ecdsa.PublicKey
-	pems := parsePems([]byte(authorityKeyCosignPubString))
-	if len(pems) > 0 {
-		key, _ := x509.ParsePKIXPublicKey(pems[0].Bytes)
-		authorityKeyCosignPub = key.(*ecdsa.PublicKey)
-	} else {
-		t.Fatal("Error parsing authority key from string")
-	}
-
-	digest := name.MustParseReference("gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4")
+	authorityKeyCosignPub, digest, kc := cacheTestFixtures(t)
 
 	ctx := context.Background()
-	kc, err := k8schain.NewNoClient(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	cache := NewLRUCache(10, 1*time.Hour)
 	ctx = ToContext(ctx, cache)
@@ -4463,22 +4448,9 @@ func TestValidatePolicyNoCacheDefault(t *testing.T) {
 		return []oci.Signature{sig}, true, nil
 	}
 
-	var authorityKeyCosignPub *ecdsa.PublicKey
-	pems := parsePems([]byte(authorityKeyCosignPubString))
-	if len(pems) > 0 {
-		key, _ := x509.ParsePKIXPublicKey(pems[0].Bytes)
-		authorityKeyCosignPub = key.(*ecdsa.PublicKey)
-	} else {
-		t.Fatal("Error parsing authority key from string")
-	}
-
-	digest := name.MustParseReference("gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4")
+	authorityKeyCosignPub, digest, kc := cacheTestFixtures(t)
 
 	ctx := context.Background()
-	kc, err := k8schain.NewNoClient(ctx)
-	if err != nil {
-		t.Fatal(err)
-	}
 
 	// Do NOT inject a cache - this is the default behavior
 	// FromContext(ctx) should return NoCache
