@@ -103,6 +103,12 @@ var (
 	// trustrootResyncPeriod holds the interval which the TrustRoot will resync
 	// This is essential for triggering a reconcile update for potentially stale TUF metadata.
 	trustrootResyncPeriod = flag.Duration("trustroot-resync-period", 24*time.Hour, "The resync period for ClusterImagePolicies. The default is 24h.")
+
+	// Cache configuration for validating webhook results.
+	// https://github.com/sigstore/policy-controller/issues/647
+	enableCache = flag.Bool("enable-cache", false, "Enable in-memory LRU cache for validation results.")
+	cacheSize   = flag.Int("cache-size", 1024, "Maximum number of entries in the validation result cache.")
+	cacheTTL    = flag.Duration("cache-ttl", 1*time.Hour, "TTL for cached validation results.")
 )
 
 func main() {
@@ -238,6 +244,12 @@ func NewValidatingAdmissionController(ctx context.Context, cmw configmap.Watcher
 	kc := kubeclient.Get(ctx)
 	validator := cwebhook.NewValidator(ctx)
 
+	var cache cwebhook.ResultCache
+	if *enableCache {
+		cache = cwebhook.NewLRUCache(*cacheSize, *cacheTTL)
+		logging.FromContext(ctx).Infof("Validation result cache enabled: size=%d, ttl=%v", *cacheSize, *cacheTTL)
+	}
+
 	return validation.NewAdmissionController(ctx,
 		// Name of the resource webhook.
 		*webhookName,
@@ -253,6 +265,9 @@ func NewValidatingAdmissionController(ctx context.Context, cmw configmap.Watcher
 			ctx = context.WithValue(ctx, kubeclient.Key{}, kc)
 			ctx = store.ToContext(ctx)
 			ctx = policyControllerConfigStore.ToContext(ctx)
+			if cache != nil {
+				ctx = cwebhook.ToContext(ctx, cache)
+			}
 			ctx = policyduckv1beta1.WithPodScalableValidator(ctx, validator.ValidatePodScalable)
 			ctx = duckv1.WithPodValidator(ctx, validator.ValidatePod)
 			ctx = duckv1.WithPodSpecValidator(ctx, validator.ValidatePodSpecable)
