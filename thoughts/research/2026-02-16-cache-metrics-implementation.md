@@ -1,271 +1,237 @@
 ---
 date: 2026-02-16T19:10:00+01:00
 researcher: Claude
-git_commit: 2d1dd2646c4d1d3522e2420b0a9d8529d954fd59
+git_commit: e0276230
 branch: metrics
 repository: sigstore/policy-controller
-topic: "Cache metrics implementation - library choice, metric suggestions, label-based patterns"
-tags: [research, codebase, metrics, prometheus, cache, observability]
+topic: "Cache metrics implementation - OTEL metrics with knative/pkg"
+tags: [research, codebase, metrics, opentelemetry, cache, observability]
 status: complete
 last_updated: 2026-02-16
 last_updated_by: Claude
-last_updated_note: "Updated library recommendation from prometheus/client_golang to OpenTelemetry based on knative/pkg migration"
+last_updated_note: "Rewrote after bumping knative/pkg to v0.0.0-20260213150858. Corrected metric naming to OTEL conventions, documented knative metrics infrastructure."
 ---
 
 # Research: Cache Metrics Implementation
 
 **Date**: 2026-02-16T19:10:00+01:00
 **Researcher**: Claude
-**Git Commit**: 2d1dd2646c4d1d3522e2420b0a9d8529d954fd59
+**Git Commit**: e0276230
 **Branch**: metrics
 **Repository**: sigstore/policy-controller
 
 ## Research Question
 
-How to add Prometheus metrics for the LRU cache solution in policy-controller, which library to use, and what metrics to implement (with label-based "new style" patterns).
+How to add metrics for the LRU cache in policy-controller using OpenTelemetry, following label-based naming patterns (short metric names, dimensions as attributes).
 
 ## Summary
 
-The policy-controller currently uses `knative.dev/pkg v0.0.0-20230612155445-74c4be5e935e` (June 2023), which uses OpenCensus internally. However, **the latest knative/pkg (main branch, 2025+) has fully migrated to OpenTelemetry** (confirmed via GitHub issue knative/pkg#2174 and verified in source). The latest knative/pkg go.mod shows `go.opentelemetry.io/otel v1.39.0` as a direct dependency, with zero OpenCensus imports. Their metrics package (`observability/metrics/`) uses `go.opentelemetry.io/otel/metric` for instruments (Int64Counter, Float64Histogram, etc.) and `go.opentelemetry.io/otel/exporters/prometheus` for Prometheus export.
+With the knative/pkg bump to `v0.0.0-20260213150858` (Feb 2026), the metrics infrastructure is now fully OpenTelemetry-based. knative's `sharedmain.MainWithContext()` sets up an OTEL MeterProvider and, when configured with `metrics-protocol: prometheus`, serves a pull-based `/metrics` endpoint on port 9090 via the OTEL Prometheus exporter. This is the standard operator pattern.
 
-**Recommendation: Use OpenTelemetry (`go.opentelemetry.io/otel/metric`)** to align with where knative/pkg is headed. This ensures forward compatibility when policy-controller eventually bumps its knative.dev/pkg dependency. The OTel Prometheus exporter will serve metrics on the same `/metrics` endpoint via `promhttp.Handler()`.
+**Recommendation: Use `go.opentelemetry.io/otel/metric`** with the global MeterProvider that knative sets up. Use short, descriptive metric names with attributes for dimensions (e.g., `cache_operations{result="hit"}` not `policy_controller_cache_operations_total{result="hit"}`). The OTEL Prometheus exporter handles `_total` suffixes and unit suffixes automatically.
 
 The codebase currently has **zero custom metrics**. The cache has clear instrumentation points in `LRUCache.Get()` and `LRUCache.Set()`.
 
 ## Detailed Findings
 
-### 1. Existing Observability Infrastructure
+### 1. Knative Metrics Infrastructure (Post-Bump)
 
-#### Knative sharedmain provides automatic metrics
-- `cmd/webhook/main.go:157` calls `sharedmain.MainWithContext()` which starts a metrics HTTP server on port 9090
-- `config/config-observability.yaml` has the template for `metrics.backend-destination: prometheus`
-- `config/webhook.yaml:70-71` sets `METRICS_DOMAIN=sigstore.dev/policy`
-- The `/metrics` endpoint is already live and serves controller queue/reconciliation metrics
+#### How sharedmain sets up metrics
 
-#### Dependencies already available (go.mod indirect)
-- `github.com/prometheus/client_golang v1.21.1` (line 223)
-- `github.com/prometheus/client_model v0.6.1` (line 224)
-- `contrib.go.opencensus.io/exporter/prometheus v0.4.2` (line 87)
-- `go.opencensus.io v0.24.0` (line 253)
+`sharedmain.MainWithContext()` calls `SetupObservabilityOrDie()` which:
 
-#### No custom metrics exist anywhere in the codebase
-- Zero imports of `prometheus`, `opencensus`, or `opentelemetry` in any `.go` file
-- No `stats.Record`, `view.Register`, `prometheus.NewCounter`, etc. calls
+1. Reads `config-observability` ConfigMap from the system namespace
+2. Creates an OTEL `MeterProvider` based on the configured protocol
+3. Registers it globally via `otel.SetMeterProvider()`
+4. Sets up workqueue metrics, client-go metrics, and Go runtime metrics
 
-### 2. Library Recommendation: OpenTelemetry (`go.opentelemetry.io/otel/metric`)
+**Supported protocols** (from `observability/metrics/config.go`):
 
-#### knative/pkg has migrated to OpenTelemetry
+| Protocol | Type | Default Endpoint | ConfigMap value |
+|----------|------|------------------|-----------------|
+| `prometheus` | Pull-based | `0.0.0.0:9090` | `metrics-protocol: "prometheus"` |
+| `grpc` | Push-based OTLP | (required) | `metrics-protocol: "grpc"` |
+| `http/protobuf` | Push-based OTLP | (required) | `metrics-protocol: "http/protobuf"` |
+| `none` | Disabled | N/A | `metrics-protocol: "none"` (default) |
 
-Verified by examining the latest knative/pkg source on GitHub (main branch):
+**Important**: The default is `none` (disabled). The existing `config-observability.yaml` references old OpenCensus-era keys (`metrics.backend-destination`) that the new knative/pkg no longer reads. It needs to be updated to use `metrics-protocol: prometheus` for metrics to work.
 
-- **go.mod**: Direct dependencies on `go.opentelemetry.io/otel v1.39.0`, `go.opentelemetry.io/otel/metric v1.39.0`, `go.opentelemetry.io/otel/exporters/prometheus v0.61.0`. **Zero OpenCensus dependencies.**
-- **observability/metrics/provider.go**: Uses `sdkmetric.NewMeterProvider()` from OTel SDK
-- **observability/metrics/prometheus_enabled.go**: Uses `otelprom.New()` from `go.opentelemetry.io/otel/exporters/prometheus` to create a Prometheus exporter, served via `promhttp.Handler()` on port 9090
-- **observability/metrics/k8s/instruments.go**: Wraps OTel `metric.Int64Counter`, `metric.Float64Histogram`, `metric.Int64UpDownCounter`, `metric.Float64Gauge` for workqueue metrics
-- **GitHub issue knative/pkg#2174**: Closed by maintainer @dprotaso with comment "We've migrated to OpenTelemetry so this isn't an issue anymore."
+#### Prometheus mode details
 
-#### Why OTel over prometheus/client_golang
+When `metrics-protocol: prometheus` is set:
+- `otelprom.New()` creates an OTEL Prometheus exporter with `UnderscoreEscapingWithSuffixes` translation
+- A dedicated HTTP server starts on port 9090 serving `promhttp.Handler()` at `/metrics`
+- Port can be overridden via `METRICS_PROMETHEUS_PORT` env var
+- All metrics registered with the global OTEL MeterProvider appear on the endpoint automatically
 
-1. **Forward compatibility** - policy-controller currently pins `knative.dev/pkg v0.0.0-20230612155445-74c4be5e935e` (old, OpenCensus-era). When this is bumped, the metrics infrastructure will be OTel-native. Using OTel now avoids a migration later.
-2. **Knative ecosystem alignment** - New knative/pkg metrics API is `go.opentelemetry.io/otel/metric`. Using the same API means custom metrics integrate cleanly with the framework's MeterProvider.
-3. **OTel Prometheus exporter serves to same `/metrics` endpoint** - knative's new `prometheus_enabled.go` uses `promhttp.Handler()` which serves from `prometheus.DefaultRegistry`. The OTel Prometheus exporter automatically registers there.
-4. **OTel is the CNCF standard** - not deprecated like OpenCensus, and has broader backend support than raw prometheus/client_golang.
+This is pull-based scraping - the standard pattern for Kubernetes operators. No push infrastructure needed.
 
-#### API pattern (from knative/pkg source)
+#### Key source files (in module cache)
+
+- `observability/metrics/config.go` - Config struct, protocol constants, `DefaultConfig()`
+- `observability/metrics/provider.go` - `NewMeterProvider()`, protocol routing via `readerFor()`
+- `observability/metrics/prometheus_enabled.go` - `buildPrometheus()`, OTEL exporter setup
+- `observability/metrics/prometheus/server.go` - HTTP server for `/metrics` endpoint
+- `injection/sharedmain/main.go:286` - `SetupObservabilityOrDie()` bootstrap
+
+### 2. Library: OpenTelemetry (`go.opentelemetry.io/otel/metric`)
+
+Since knative/pkg now sets up a global OTEL MeterProvider, custom metrics just need to:
+1. Get a meter via `otel.Meter("scope-name")`
+2. Create instruments (counters, gauges, histograms)
+3. Record values with attributes
+
+The MeterProvider handles export to whatever backend is configured (Prometheus, OTLP, etc.).
+
+#### API pattern
 
 ```go
 import (
     "go.opentelemetry.io/otel"
+    "go.opentelemetry.io/otel/attribute"
     "go.opentelemetry.io/otel/metric"
 )
 
-// Get a meter from the global provider
+// Get a meter - scope name provides component context
 var meter = otel.Meter("policy-controller")
 
-// Create instruments
+// Create instruments - short names, no prefix, no _total suffix
 cacheOperations, _ := meter.Int64Counter(
-    "policy_controller_cache_operations",
-    metric.WithDescription("Total number of cache operations"),
+    "cache.operations",
+    metric.WithDescription("Number of cache lookup operations"),
     metric.WithUnit("{operation}"),
 )
 
-// Record with attributes (OTel equivalent of Prometheus labels)
+// Record with attributes for dimensions
 cacheOperations.Add(ctx, 1, metric.WithAttributes(
     attribute.String("result", "hit"),
 ))
 ```
 
-#### Note on current knative.dev/pkg version
+### 3. Metric Naming Conventions (OTEL Style)
 
-The policy-controller currently uses an old knative/pkg (June 2023) which still has OpenCensus. This means the existing `sharedmain.MainWithContext()` wires up OpenCensus exporters. For the OTel metrics to appear on `/metrics`, we need to either:
-- **Option A**: Set up our own OTel MeterProvider with a Prometheus exporter (standalone, ~10 lines of setup code)
-- **Option B**: Use `prometheus/client_golang` with `promauto` directly, which registers to `prometheus.DefaultRegistry` and appears via the existing OpenCensus Prometheus bridge
+OTEL naming differs from old Prometheus conventions:
 
-**Practical recommendation**: Since bumping knative.dev/pkg is a separate effort and the current version uses OpenCensus, **use `prometheus/client_golang` with `promauto` for this PR** - it's the simplest path that works today. The metrics will appear on `/metrics` immediately. When knative/pkg is bumped, migrating to OTel instruments is straightforward (similar API, just different import). Add a TODO comment noting the planned migration.
+- **No component prefix** - The meter scope name (`"policy-controller"`) provides component context, not the metric name
+- **No `_total` suffix** - The OTEL Prometheus exporter adds `_total` for counters automatically
+- **No `_seconds`/`_bytes` suffix for units** - Use `metric.WithUnit("s")` or `metric.WithUnit("By")` and the exporter handles suffixes
+- **Use dots for namespacing** if needed (e.g., `cache.operations`)
+- **Short, descriptive names** - Describe what is measured
+- **Dimensions as attributes** - Use `attribute.String("key", "value")` for labels
 
-### 3. Cache Metrics Suggestions (Label-Based Style)
+Example of how OTEL names map to Prometheus output:
 
-Following the label-based pattern requested (e.g., single metric with labels rather than separate `_hit`/`_miss` metrics):
+| OTEL instrument | OTEL name | Unit | Prometheus output |
+|-----------------|-----------|------|-------------------|
+| Int64Counter | `cache.operations` | `{operation}` | `cache_operations_total{result="hit"}` |
+| Int64Counter | `cache.evictions` | `{eviction}` | `cache_evictions_total` |
+| Int64UpDownCounter | `cache.entries` | `{entry}` | `cache_entries{otel_scope_name="policy-controller"}` |
+| Float64Histogram | `validation.duration` | `s` | `validation_duration_seconds{...}` |
 
-#### Primary Cache Metrics (This PR)
+### 4. Cache Metrics (This PR)
 
-**a) `policy_controller_cache_operations_total`** - Counter with labels
+#### a) `cache.operations` - Counter with `result` attribute
 ```go
-var cacheOperations = promauto.NewCounterVec(
-    prometheus.CounterOpts{
-        Name: "policy_controller_cache_operations_total",
-        Help: "Total number of cache operations by result type.",
-    },
-    []string{"result"}, // "hit", "miss"
+cacheOps, _ := meter.Int64Counter(
+    "cache.operations",
+    metric.WithDescription("Number of cache lookup operations"),
+    metric.WithUnit("{operation}"),
 )
 ```
-- Increment with `result="hit"` on cache hit in `LRUCache.Get()`
-- Increment with `result="miss"` on cache miss in `LRUCache.Get()`
-- Enables: hit rate = `rate(cache_operations_total{result="hit"}) / rate(cache_operations_total)`
+- `result="hit"` on cache hit in `LRUCache.Get()`
+- `result="miss"` on cache miss in `LRUCache.Get()`
+- Hit rate: `rate(cache_operations_total{result="hit"}) / rate(cache_operations_total)`
 
-**b) `policy_controller_cache_writes_total`** - Counter with labels
+#### b) `cache.writes` - Counter with `result` attribute
 ```go
-var cacheWrites = promauto.NewCounterVec(
-    prometheus.CounterOpts{
-        Name: "policy_controller_cache_writes_total",
-        Help: "Total number of cache write operations by result type.",
-    },
-    []string{"result"}, // "stored", "skipped"
+cacheWrites, _ := meter.Int64Counter(
+    "cache.writes",
+    metric.WithDescription("Number of cache write operations"),
+    metric.WithUnit("{operation}"),
 )
 ```
 - `result="stored"` when a successful validation is cached in `LRUCache.Set()`
 - `result="skipped"` when `PolicyResult` is nil (failed validation, not cached)
 
-**c) `policy_controller_cache_entries`** - Gauge
+#### c) `cache.entries` - UpDownCounter (gauge-like)
 ```go
-var cacheEntries = prometheus.NewGauge(
-    prometheus.GaugeOpts{
-        Name: "policy_controller_cache_entries",
-        Help: "Current number of entries in the validation result cache.",
-    },
+cacheEntries, _ := meter.Int64UpDownCounter(
+    "cache.entries",
+    metric.WithDescription("Current number of entries in the validation result cache"),
+    metric.WithUnit("{entry}"),
 )
 ```
-- Updated on Set/eviction. The underlying `expirable.LRU` has a `Len()` method.
-- Alternatively, sample on each Get/Set rather than on eviction callback.
+- Increment on Set (stored), decrement on eviction
+- The `expirable.LRU` `onEvict` callback handles the decrement
 
-**d) `policy_controller_cache_evictions_total`** - Counter
+#### d) `cache.evictions` - Counter
 ```go
-var cacheEvictions = promauto.NewCounter(
-    prometheus.CounterOpts{
-        Name: "policy_controller_cache_evictions_total",
-        Help: "Total number of cache entries evicted (LRU or TTL).",
-    },
+cacheEvictions, _ := meter.Int64Counter(
+    "cache.evictions",
+    metric.WithDescription("Number of cache entries evicted"),
+    metric.WithUnit("{eviction}"),
 )
 ```
-- The `expirable.NewLRU` constructor accepts an `onEvict` callback (currently `nil` on line 37 of `lrucache.go`). Wire this up to increment the counter.
+- Wire up via the `onEvict` callback in `expirable.NewLRU` (currently `nil` at lrucache.go:37)
 
-### 4. Future Metrics Suggestions (Not This PR)
+### 5. Future Metrics (Not This PR)
 
-These are areas where metrics would add observability value to the broader policy-controller:
+#### Validation metrics
+- `validation.duration` (Histogram, unit `s`) with attributes `result`, `cached`
+- `policy.evaluations` (Counter) with attributes `result`, `mode`
+- `image.validations` (Counter) with attributes `result`
 
-#### Validation Metrics
+#### Webhook admission metrics
+- `admission.requests` (Counter) with attributes `result`, `resource_kind`
+- `admission.duration` (Histogram, unit `s`)
 
-**a) `policy_controller_validation_duration_seconds`** - Histogram with labels
-```go
-var validationDuration = promauto.NewHistogramVec(
-    prometheus.HistogramOpts{
-        Name:    "policy_controller_validation_duration_seconds",
-        Help:    "Duration of image validation in seconds.",
-        Buckets: prometheus.DefBuckets,
-    },
-    []string{"result", "cached"},
-    // result: "allow", "deny", "warn", "error"
-    // cached: "true", "false"
-)
-```
-- Instrument in `ValidatePolicy()` (validator.go:474) or `validateContainerImage()` (validator.go:1156)
-- Shows how much time cache saves vs full validation
+#### Signature verification metrics
+- `signature.verifications` (Counter) with attributes `type`, `method`, `result`
 
-**b) `policy_controller_policy_evaluations_total`** - Counter with labels
-```go
-var policyEvaluations = promauto.NewCounterVec(
-    prometheus.CounterOpts{
-        Name: "policy_controller_policy_evaluations_total",
-        Help: "Total number of policy evaluations.",
-    },
-    []string{"result", "mode"},
-    // result: "pass", "fail"
-    // mode: "enforce", "warn"
-)
-```
-- Instrument in `validatePolicies()` (validator.go:393)
+### 6. Implementation Location
 
-**c) `policy_controller_images_validated_total`** - Counter with labels
-```go
-var imagesValidated = promauto.NewCounterVec(
-    prometheus.CounterOpts{
-        Name: "policy_controller_images_validated_total",
-        Help: "Total number of container images validated.",
-    },
-    []string{"result"},
-    // result: "allow", "deny", "warn", "no_match"
-)
-```
-- Instrument in `validateContainerImage()` (validator.go:1156)
-
-#### Webhook Admission Metrics
-
-**d) `policy_controller_admission_requests_total`** - Counter with labels
-```go
-// result: "allow", "deny", "warn"
-// resource_kind: "Pod", "Deployment", etc.
-```
-- Instrument at the ValidatePodSpecable/ValidatePod/etc. level
-
-**e) `policy_controller_admission_duration_seconds`** - Histogram
-- End-to-end webhook response time per admission request
-
-#### Signature/Attestation Verification Metrics
-
-**f) `policy_controller_signature_verifications_total`** - Counter with labels
-```go
-// type: "signature", "attestation"
-// method: "key", "keyless", "static", "rfc3161"
-// result: "success", "failure"
-```
-- Instrument in `ValidatePolicySignaturesForAuthority()` and `ValidatePolicyAttestationsForAuthority()`
-
-### 5. Implementation Location
-
-The natural place for the metrics definitions is a new file:
+Metrics definitions in a new file:
 ```
 pkg/webhook/metrics.go
 ```
 
-The instrumentation points are:
+Instrumentation points:
 - `pkg/webhook/lrucache.go:45-53` (Get - hit/miss)
 - `pkg/webhook/lrucache.go:55-64` (Set - stored/skipped)
 - `pkg/webhook/lrucache.go:37` (onEvict callback in NewLRUCache)
 
 For the `NoCache` implementation (`pkg/webhook/nocache.go`), no metrics should be emitted since the cache is disabled.
 
-### 6. Metric Naming Conventions
+### 7. ConfigMap Update Required
 
-Following Prometheus naming best practices and the label-based style:
-- Prefix: `policy_controller_` (matches the component name from `sharedmain.MainWithContext(ctx, "policy-controller", ...)`)
-- Units in suffix: `_seconds`, `_bytes`, `_total` for counters
-- Use labels for dimensions rather than separate metric names
-- Example: `policy_controller_cache_operations_total{result="hit"}` not `policy_controller_cache_hits_total`
+The existing `config/config-observability.yaml` uses old OpenCensus-era keys that the new knative/pkg ignores. It needs to be updated:
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: config-observability
+  namespace: cosign-system
+data:
+  metrics-protocol: "prometheus"
+```
+
+Without this, `DefaultConfig()` returns `Protocol: "none"` and the MeterProvider is a no-op (no metrics collected or served).
 
 ## Code References
 
-- `cmd/webhook/main.go:157` - sharedmain.MainWithContext bootstrap (metrics server)
+- `cmd/webhook/main.go:157` - sharedmain.MainWithContext bootstrap
 - `cmd/webhook/main.go:107-111` - Cache CLI flags (enable-cache, cache-size, cache-ttl)
 - `cmd/webhook/main.go:247-251` - Cache initialization
 - `pkg/webhook/cache.go:47-56` - ResultCache interface
 - `pkg/webhook/lrucache.go:35-38` - NewLRUCache constructor (onEvict callback is nil)
 - `pkg/webhook/lrucache.go:45-53` - Get() method (hit/miss instrumentation point)
 - `pkg/webhook/lrucache.go:55-64` - Set() method (store/skip instrumentation point)
-- `pkg/webhook/nocache.go:23-31` - NoCache implementation (no metrics should be emitted)
+- `pkg/webhook/nocache.go:23-31` - NoCache implementation
 - `pkg/webhook/validator.go:474-479` - Cache lookup in ValidatePolicy
 - `pkg/webhook/validator.go:637-640` - Cache write in ValidatePolicy
-- `config/config-observability.yaml` - Observability config template
-- `go.mod:223` - prometheus/client_golang v1.21.1 (indirect)
+- `config/config-observability.yaml` - Observability config (needs update)
+- `config/webhook.yaml:70-71` - METRICS_DOMAIN env var
 
 ## Architecture Documentation
 
@@ -277,13 +243,13 @@ Following Prometheus naming best practices and the label-based style:
 5. Failed validations (PolicyResult nil) are NOT cached, allowing retries
 
 ### Metrics Endpoint
-- knative's `sharedmain` starts metrics server on port 9090
-- Current knative.dev/pkg version (June 2023): OpenCensus Prometheus exporter bridges to `prometheus.DefaultRegistry`
-- Latest knative.dev/pkg (2025+): OTel Prometheus exporter via `go.opentelemetry.io/otel/exporters/prometheus`, served via `promhttp.Handler()` on same port
-- In both cases, metrics registered with `promauto` on `prometheus.DefaultRegistry` appear on `/metrics`
+- knative's `sharedmain` reads `config-observability` ConfigMap
+- When `metrics-protocol: prometheus`, starts OTEL Prometheus exporter on `:9090/metrics`
+- All instruments created via `otel.Meter()` are automatically exported
+- Pull-based: standard Prometheus scraping, no push infrastructure needed
 
 ## Open Questions
 
-1. **Should `NoCache` emit a "disabled" metric?** - Could add a gauge `policy_controller_cache_enabled{} 0/1` to indicate cache state
-2. **Cardinality concerns** - Should any labels include image name or policy name? Probably not for cache metrics (high cardinality), but worth considering for future validation metrics
+1. **Should `NoCache` emit a "disabled" metric?** - Could add a gauge `cache.enabled` (0/1) to indicate cache state
+2. **Cardinality concerns** - Should any attributes include image name or policy name? Probably not for cache metrics (high cardinality), but worth considering for future validation metrics
 3. **Histogram buckets for validation duration** - What are typical validation times? This affects bucket configuration for future duration histograms
