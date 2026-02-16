@@ -418,11 +418,6 @@ func validatePolicies(ctx context.Context, namespace string, ref name.Reference,
 			result := retChannelType{name: cipName}
 
 			result.policyResult, result.errors = ValidatePolicy(ctx, namespace, ref, cip, kc, remoteOpts...)
-			// Cache the result.
-			FromContext(ctx).Set(ctx, ref.Name(), cipName, string(cip.UID), cip.ResourceVersion, &CacheResult{
-				PolicyResult: result.policyResult,
-				Errors:       result.errors,
-			})
 			results <- result
 		}()
 	}
@@ -638,6 +633,11 @@ func ValidatePolicy(ctx context.Context, namespace string, ref name.Reference, c
 			return nil, append(authorityErrors, asFieldError(cip.Mode == "warn", warn))
 		}
 	}
+	// Cache the result. Set is a no-op when PolicyResult is nil.
+	FromContext(ctx).Set(ctx, ref.String(), "", string(cip.UID), cip.ResourceVersion, &CacheResult{
+		PolicyResult: policyResult,
+		Errors:       authorityErrors,
+	})
 	return policyResult, authorityErrors
 }
 
