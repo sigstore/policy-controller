@@ -4234,3 +4234,283 @@ func TestDiscoverAttestationsOCI11PartialProcessingFailure(t *testing.T) {
 		t.Errorf("Expected 2 signatures (second failed), got %d", len(sigs))
 	}
 }
+
+func TestValidatePolicyCacheHit(t *testing.T) {
+	// Save and restore global mock functions
+	origCVS := cosignVerifySignatures
+	defer func() { cosignVerifySignatures = origCVS }()
+
+	callCount := 0
+	cosignVerifySignatures = func(_ context.Context, _ name.Reference, _ *cosign.CheckOpts) ([]oci.Signature, bool, error) {
+		callCount++
+		sig, err := static.NewSignature(nil, "")
+		if err != nil {
+			return nil, false, err
+		}
+		return []oci.Signature{sig}, true, nil
+	}
+
+	var authorityKeyCosignPub *ecdsa.PublicKey
+	pems := parsePems([]byte(authorityKeyCosignPubString))
+	if len(pems) > 0 {
+		key, _ := x509.ParsePKIXPublicKey(pems[0].Bytes)
+		authorityKeyCosignPub = key.(*ecdsa.PublicKey)
+	} else {
+		t.Fatal("Error parsing authority key from string")
+	}
+
+	digest := name.MustParseReference("gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4")
+
+	ctx := context.Background()
+	kc, err := k8schain.NewNoClient(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Inject a real cache into context
+	cache := NewLRUCache(10, 1*time.Hour)
+	ctx = ToContext(ctx, cache)
+
+	cip := webhookcip.ClusterImagePolicy{
+		Authorities: []webhookcip.Authority{{
+			Key: &webhookcip.KeyRef{
+				Data:              authorityKeyCosignPubString,
+				PublicKeys:        []crypto.PublicKey{authorityKeyCosignPub},
+				HashAlgorithm:     signaturealgo.DefaultSignatureAlgorithm,
+				HashAlgorithmCode: crypto.SHA256,
+			},
+		}},
+	}
+	cip.UID = "test-uid"
+	cip.ResourceVersion = "v1"
+
+	// First call - should invoke cosign
+	result1, errs1 := ValidatePolicy(ctx, system.Namespace(), digest, cip, kc)
+	if len(errs1) > 0 {
+		t.Fatalf("unexpected errors: %v", errs1)
+	}
+	if result1 == nil {
+		t.Fatal("expected non-nil PolicyResult")
+	}
+	if callCount != 1 {
+		t.Fatalf("expected cosign to be called once, got %d", callCount)
+	}
+
+	// Second call - should return cached result without calling cosign
+	result2, errs2 := ValidatePolicy(ctx, system.Namespace(), digest, cip, kc)
+	if len(errs2) > 0 {
+		t.Fatalf("unexpected errors: %v", errs2)
+	}
+	if result2 == nil {
+		t.Fatal("expected non-nil cached PolicyResult")
+	}
+	if callCount != 1 {
+		t.Fatalf("expected cosign NOT to be called again (cache hit), got %d calls", callCount)
+	}
+}
+
+func TestValidatePolicyCacheSkipsErrors(t *testing.T) {
+	origCVS := cosignVerifySignatures
+	defer func() { cosignVerifySignatures = origCVS }()
+
+	callCount := 0
+	cosignVerifySignatures = func(_ context.Context, _ name.Reference, _ *cosign.CheckOpts) ([]oci.Signature, bool, error) {
+		callCount++
+		return nil, false, errors.New("image not signed")
+	}
+
+	var authorityKeyCosignPub *ecdsa.PublicKey
+	pems := parsePems([]byte(authorityKeyCosignPubString))
+	if len(pems) > 0 {
+		key, _ := x509.ParsePKIXPublicKey(pems[0].Bytes)
+		authorityKeyCosignPub = key.(*ecdsa.PublicKey)
+	} else {
+		t.Fatal("Error parsing authority key from string")
+	}
+
+	digest := name.MustParseReference("gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4")
+
+	ctx := context.Background()
+	kc, err := k8schain.NewNoClient(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cache := NewLRUCache(10, 1*time.Hour)
+	ctx = ToContext(ctx, cache)
+
+	cip := webhookcip.ClusterImagePolicy{
+		Authorities: []webhookcip.Authority{{
+			Key: &webhookcip.KeyRef{
+				Data:              authorityKeyCosignPubString,
+				PublicKeys:        []crypto.PublicKey{authorityKeyCosignPub},
+				HashAlgorithm:     signaturealgo.DefaultSignatureAlgorithm,
+				HashAlgorithmCode: crypto.SHA256,
+			},
+		}},
+	}
+	cip.UID = "test-uid"
+	cip.ResourceVersion = "v1"
+
+	// First call - should fail and NOT cache the error
+	_, errs1 := ValidatePolicy(ctx, system.Namespace(), digest, cip, kc)
+	if len(errs1) == 0 {
+		t.Fatal("expected errors on first call")
+	}
+	if callCount != 1 {
+		t.Fatalf("expected cosign to be called once, got %d", callCount)
+	}
+
+	// Second call - should call cosign again because errors aren't cached
+	_, errs2 := ValidatePolicy(ctx, system.Namespace(), digest, cip, kc)
+	if len(errs2) == 0 {
+		t.Fatal("expected errors on second call")
+	}
+	if callCount != 2 {
+		t.Fatalf("expected cosign to be called again (errors not cached), got %d calls", callCount)
+	}
+}
+
+func TestValidatePolicyCachePartialSuccess(t *testing.T) {
+	// Multi-authority CIP: one authority fails (cosign), one passes (static).
+	// ValidatePolicy returns non-nil PolicyResult AND non-empty errors.
+	// This partial success SHOULD be cached.
+	origCVS := cosignVerifySignatures
+	defer func() { cosignVerifySignatures = origCVS }()
+
+	callCount := 0
+	cosignVerifySignatures = func(_ context.Context, _ name.Reference, _ *cosign.CheckOpts) ([]oci.Signature, bool, error) {
+		callCount++
+		return nil, false, errors.New("signature invalid")
+	}
+
+	var authorityKeyCosignPub *ecdsa.PublicKey
+	pems := parsePems([]byte(authorityKeyCosignPubString))
+	if len(pems) > 0 {
+		key, _ := x509.ParsePKIXPublicKey(pems[0].Bytes)
+		authorityKeyCosignPub = key.(*ecdsa.PublicKey)
+	} else {
+		t.Fatal("Error parsing authority key from string")
+	}
+
+	digest := name.MustParseReference("gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4")
+
+	ctx := context.Background()
+	kc, err := k8schain.NewNoClient(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	cache := NewLRUCache(10, 1*time.Hour)
+	ctx = ToContext(ctx, cache)
+
+	cip := webhookcip.ClusterImagePolicy{
+		Authorities: []webhookcip.Authority{
+			{
+				// This authority will fail (cosign mock returns error)
+				Key: &webhookcip.KeyRef{
+					Data:              authorityKeyCosignPubString,
+					PublicKeys:        []crypto.PublicKey{authorityKeyCosignPub},
+					HashAlgorithm:     signaturealgo.DefaultSignatureAlgorithm,
+					HashAlgorithmCode: crypto.SHA256,
+				},
+			},
+			{
+				// This authority will pass (static action)
+				Static: &webhookcip.StaticRef{Action: "pass"},
+			},
+		},
+	}
+	cip.UID = "test-uid"
+	cip.ResourceVersion = "v1"
+
+	// First call - one authority fails, one passes -> partial success
+	result1, errs1 := ValidatePolicy(ctx, system.Namespace(), digest, cip, kc)
+	if result1 == nil {
+		t.Fatal("expected non-nil PolicyResult (partial success)")
+	}
+	if len(errs1) == 0 {
+		t.Fatal("expected errors from the failing authority")
+	}
+	if callCount != 1 {
+		t.Fatalf("expected cosign to be called once, got %d", callCount)
+	}
+
+	// Second call - should return cached result, cosign NOT called again
+	result2, errs2 := ValidatePolicy(ctx, system.Namespace(), digest, cip, kc)
+	if result2 == nil {
+		t.Fatal("expected non-nil cached PolicyResult")
+	}
+	if len(errs2) == 0 {
+		t.Fatal("expected cached errors from the failing authority")
+	}
+	if callCount != 1 {
+		t.Fatalf("expected cosign NOT to be called again (cache hit), got %d calls", callCount)
+	}
+}
+
+func TestValidatePolicyNoCacheDefault(t *testing.T) {
+	origCVS := cosignVerifySignatures
+	defer func() { cosignVerifySignatures = origCVS }()
+
+	callCount := 0
+	cosignVerifySignatures = func(_ context.Context, _ name.Reference, _ *cosign.CheckOpts) ([]oci.Signature, bool, error) {
+		callCount++
+		sig, err := static.NewSignature(nil, "")
+		if err != nil {
+			return nil, false, err
+		}
+		return []oci.Signature{sig}, true, nil
+	}
+
+	var authorityKeyCosignPub *ecdsa.PublicKey
+	pems := parsePems([]byte(authorityKeyCosignPubString))
+	if len(pems) > 0 {
+		key, _ := x509.ParsePKIXPublicKey(pems[0].Bytes)
+		authorityKeyCosignPub = key.(*ecdsa.PublicKey)
+	} else {
+		t.Fatal("Error parsing authority key from string")
+	}
+
+	digest := name.MustParseReference("gcr.io/distroless/static:nonroot@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4")
+
+	ctx := context.Background()
+	kc, err := k8schain.NewNoClient(ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Do NOT inject a cache - this is the default behavior
+	// FromContext(ctx) should return NoCache
+
+	cip := webhookcip.ClusterImagePolicy{
+		Authorities: []webhookcip.Authority{{
+			Key: &webhookcip.KeyRef{
+				Data:              authorityKeyCosignPubString,
+				PublicKeys:        []crypto.PublicKey{authorityKeyCosignPub},
+				HashAlgorithm:     signaturealgo.DefaultSignatureAlgorithm,
+				HashAlgorithmCode: crypto.SHA256,
+			},
+		}},
+	}
+	cip.UID = "test-uid"
+	cip.ResourceVersion = "v1"
+
+	// First call
+	_, errs1 := ValidatePolicy(ctx, system.Namespace(), digest, cip, kc)
+	if len(errs1) > 0 {
+		t.Fatalf("unexpected errors: %v", errs1)
+	}
+	if callCount != 1 {
+		t.Fatalf("expected cosign called once, got %d", callCount)
+	}
+
+	// Second call - should call cosign again because there is no cache
+	_, errs2 := ValidatePolicy(ctx, system.Namespace(), digest, cip, kc)
+	if len(errs2) > 0 {
+		t.Fatalf("unexpected errors: %v", errs2)
+	}
+	if callCount != 2 {
+		t.Fatalf("expected cosign called twice (no cache), got %d calls", callCount)
+	}
+}
