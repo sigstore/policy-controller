@@ -41,25 +41,8 @@ func NewLRUCache(size int, ttl time.Duration) *LRUCache {
 			cacheEvictions.Add(context.Background(), 1)
 		}, ttl),
 	}
-	lc.registerEntriesGauge(meter)
+	lc.gaugeRegistration = registerEntriesGauge(meter, lc.cache.Len)
 	return lc
-}
-
-// registerEntriesGauge registers an Observable Gauge that reads cache.Len()
-// at collection time. Unregisters any previous gauge callback first.
-func (c *LRUCache) registerEntriesGauge(m metric.Meter) {
-	if c.gaugeRegistration != nil {
-		c.gaugeRegistration.Unregister()
-	}
-	gauge, _ := m.Int64ObservableGauge(
-		"cache.entries",
-		metric.WithDescription("Current number of entries in the validation result cache"),
-		metric.WithUnit("{entry}"),
-	)
-	c.gaugeRegistration, _ = m.RegisterCallback(func(_ context.Context, o metric.Observer) error {
-		o.ObserveInt64(gauge, int64(c.cache.Len()))
-		return nil
-	}, gauge)
 }
 
 // Close unregisters the gauge callback. Call when discarding a cache instance.

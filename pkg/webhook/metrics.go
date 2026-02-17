@@ -16,6 +16,8 @@
 package webhook
 
 import (
+	"context"
+
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/metric"
 )
@@ -51,5 +53,20 @@ func registerCacheMetrics(m metric.Meter) {
 		metric.WithDescription("Number of cache entries evicted"),
 		metric.WithUnit("{eviction}"),
 	)
+}
+
+// registerEntriesGauge registers an Observable Gauge that reads lenFunc
+// at collection time and returns the Registration for lifecycle management.
+func registerEntriesGauge(m metric.Meter, lenFunc func() int) metric.Registration {
+	gauge, _ := m.Int64ObservableGauge(
+		"cache.entries",
+		metric.WithDescription("Current number of entries in the validation result cache"),
+		metric.WithUnit("{entry}"),
+	)
+	reg, _ := m.RegisterCallback(func(_ context.Context, o metric.Observer) error {
+		o.ObserveInt64(gauge, int64(lenFunc()))
+		return nil
+	}, gauge)
+	return reg
 }
 

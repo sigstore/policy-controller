@@ -35,7 +35,8 @@ func setupTestMetrics(t *testing.T, cache *LRUCache) *sdkmetric.ManualReader {
 	provider := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
 	m := provider.Meter("policy-controller")
 	registerCacheMetrics(m)
-	cache.registerEntriesGauge(m)
+	cache.Close()
+	cache.gaugeRegistration = registerEntriesGauge(m, cache.cache.Len)
 	t.Cleanup(func() {
 		registerCacheMetrics(meter) // restore package-level instruments
 		cache.Close()
