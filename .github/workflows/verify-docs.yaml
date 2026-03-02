@@ -37,7 +37,7 @@ jobs:
         path: ./src/github.com/${{ github.repository }}
         fetch-depth: 0
 
-    - uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6.2.0
+    - uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
       with:
         go-version-file: './src/github.com/${{ github.repository }}/go.mod'
         check-latest: true
@@ -50,7 +50,7 @@ jobs:
         # For whatever reason running this makes it not complain...
         git status
 
-    - uses: chainguard-dev/actions/nodiff@eba358c567c5b091e34187d905258baebdd2a4ec # v1.5.16
+    - uses: chainguard-dev/actions/nodiff@71714a76c3df10b544595a2294c16649dc3472e5 # v1.6.5
       with:
         path: ./src/github.com/${{ github.repository }}
         fixup-command: "make docs"
