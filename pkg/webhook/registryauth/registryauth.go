@@ -18,6 +18,7 @@ package registryauth
 import (
 	"context"
 	"io"
+	"time"
 
 	ecr "github.com/awslabs/amazon-ecr-credential-helper/ecr-login"
 	"github.com/google/go-containerregistry/pkg/authn"
@@ -26,6 +27,7 @@ import (
 	"github.com/google/go-containerregistry/pkg/v1/google"
 	"github.com/sigstore/policy-controller/pkg/webhook/registryauth/azure"
 	"k8s.io/client-go/kubernetes"
+	"knative.dev/pkg/logging"
 )
 
 /*
@@ -42,13 +44,34 @@ go-containerregistry and remove this file. But for now, this custom constructor
 should fix authentication errors encountered when using the policy controller
 with ACR and AKS clusters.
 */
-var amazonKeychain authn.Keychain = authn.NewKeychainFromHelper(ecr.NewECRHelper(ecr.WithLogger(io.Discard)))
+
+// Default cache size and TTL for ECR credentials
+const (
+	defaultECRCacheSize = 100
+	defaultECRCacheTTL  = 6 * time.Hour
+)
+
+// getAmazonKeychain creates a keychain for AWS ECR with a bounded cache
+func getAmazonKeychain(ctx context.Context) authn.Keychain {
+	ecrCache, err := NewECRCredentialCache(defaultECRCacheSize, defaultECRCacheTTL)
+	if err != nil {
+		// Fall back to the old implementation if we can't create our bounded cache
+		logging.FromContext(ctx).Warnf("Failed to create bounded ECR cache: %v, using unbounded cache", err)
+		return authn.NewKeychainFromHelper(ecr.NewECRHelper(ecr.WithLogger(io.Discard)))
+	}
+
+	dockerHelper := NewDockerCredentialHelper(ecrCache)
+	return authn.NewKeychainFromHelper(dockerHelper)
+}
 
 func NewK8sKeychain(ctx context.Context, client kubernetes.Interface, opt k8schain.Options) (authn.Keychain, error) {
 	k8s, err := kauth.New(ctx, client, opt)
 	if err != nil {
 		return nil, err
 	}
+
+	// Use the bounded cache for ECR authentication
+	amazonKeychain := getAmazonKeychain(ctx)
 
 	return authn.NewMultiKeychain(
 		k8s,
