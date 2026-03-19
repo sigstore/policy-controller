@@ -24,7 +24,7 @@ import (
 	"encoding/pem"
 	"fmt"
 
-	"github.com/sigstore/cosign/v2/pkg/cosign"
+	"github.com/sigstore/cosign/v3/pkg/cosign"
 	"github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
 	pbcommon "github.com/sigstore/protobuf-specs/gen/pb-go/common/v1"
 	pbtrustroot "github.com/sigstore/protobuf-specs/gen/pb-go/trustroot/v1"

@@ -31,7 +31,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/sigstore/cosign/v2/pkg/cosign"
+	"github.com/sigstore/cosign/v3/pkg/cosign"
 	"github.com/sigstore/policy-controller/pkg/apis/config"
 	testing "github.com/sigstore/policy-controller/pkg/reconciler/testing/v1alpha1"
 	pbcommon "github.com/sigstore/protobuf-specs/gen/pb-go/common/v1"

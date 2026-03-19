@@ -28,10 +28,10 @@ import (
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	"knative.dev/pkg/logging"
 
-	"github.com/sigstore/cosign/v2/pkg/cosign"
-	"github.com/sigstore/cosign/v2/pkg/oci"
-	ociremote "github.com/sigstore/cosign/v2/pkg/oci/remote"
-	"github.com/sigstore/cosign/v2/pkg/oci/static"
+	"github.com/sigstore/cosign/v3/pkg/cosign"
+	"github.com/sigstore/cosign/v3/pkg/oci"
+	ociremote "github.com/sigstore/cosign/v3/pkg/oci/remote"
+	"github.com/sigstore/cosign/v3/pkg/oci/static"
 	policycontrollerconfig "github.com/sigstore/policy-controller/pkg/config"
 	"github.com/sigstore/sigstore/pkg/signature"
 )
