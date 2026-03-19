@@ -208,16 +208,13 @@ func TestClientFromSerializedMirror(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to decode rootJSON: %v", err)
 	}
-	tufClient, err := ClientFromSerializedMirror(context.Background(), repo, root, "targets", "/repository/")
+	tufUpdater, err := ClientFromSerializedMirror(context.Background(), repo, root, "targets", "/repository/")
 	if err != nil {
 		t.Fatalf("Failed to unserialize repo: %v", err)
 	}
-	targets, err := tufClient.Targets()
-	if err != nil {
-		t.Errorf("failed to get Targets from tuf: %v", err)
-	}
+	targets := tufUpdater.GetTopLevelTargets()
 	if len(targets) == 0 {
-		t.Errorf("Got no targets from the TUF client")
+		t.Errorf("Got no targets from the TUF updater")
 	}
 }
 
@@ -248,15 +245,12 @@ func TestClientFromRemoteMirror(t *testing.T) {
 	ts := httptest.NewServer(fs)
 	defer ts.Close()
 
-	tufClient, err := ClientFromRemote(context.Background(), ts.URL, rootJSON, "targets")
+	tufUpdater, err := ClientFromRemote(context.Background(), ts.URL, rootJSON, "targets")
 	if err != nil {
 		t.Fatalf("Failed to get client from remote: %v", err)
 	}
-	targets, err := tufClient.Targets()
-	if err != nil {
-		t.Errorf("failed to get Targets from tuf: %v", err)
-	}
+	targets := tufUpdater.GetTopLevelTargets()
 	if len(targets) == 0 {
-		t.Errorf("Got no targets from the TUF client")
+		t.Errorf("Got no targets from the TUF updater")
 	}
 }

@@ -15,7 +15,6 @@
 package trustroot
 
 import (
-	"bytes"
 	"context"
 	"crypto"
 	"crypto/ecdsa"
@@ -32,7 +31,7 @@ import (
 	pbcommon "github.com/sigstore/protobuf-specs/gen/pb-go/common/v1"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	sigstoretuf "github.com/sigstore/sigstore/pkg/tuf"
-	"github.com/theupdateframework/go-tuf/client"
+	"github.com/theupdateframework/go-tuf/v2/metadata/updater"
 	"google.golang.org/protobuf/encoding/protojson"
 	corev1 "k8s.io/api/core/v1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
@@ -240,25 +239,21 @@ type sigstoreCustomMetadata struct {
 	Sigstore customMetadata `json:"sigstore"`
 }
 
-// getSigstoreKeysFromTuf returns the sigstore keys from the TUF client. Note
+// GetSigstoreKeysFromTuf returns the sigstore keys from the TUF updater. Note
 // that this should really be exposed from the sigstore/sigstore TUF pkg, but
 // is currently not.
-func GetSigstoreKeysFromTuf(ctx context.Context, tufClient *client.Client, trustedRootTarget string) (*config.SigstoreKeys, error) {
-	targets, err := tufClient.Targets()
-	if err != nil {
-		return nil, fmt.Errorf("error getting targets: %w", err)
-	}
+func GetSigstoreKeysFromTuf(ctx context.Context, tufUpdater *updater.Updater, trustedRootTarget string) (*config.SigstoreKeys, error) {
+	targets := tufUpdater.GetTopLevelTargets()
 	ret := &config.SigstoreKeys{}
 
 	// if there is a trusted root JSON target, we can use that instead of the custom metadata
 	if _, ok := targets[trustedRootTarget]; ok {
-		dl := newDownloader()
-		if err = tufClient.Download(trustedRootTarget, &dl); err != nil {
+		data, err := downloadTarget(tufUpdater, trustedRootTarget)
+		if err != nil {
 			return nil, fmt.Errorf("downloading %s: %w", trustedRootTarget, err)
 		}
 
-		err := protojson.Unmarshal(dl.Bytes(), ret)
-		if err != nil {
+		if err := protojson.Unmarshal(data, ret); err != nil {
 			return nil, fmt.Errorf("parsing %s: %w", trustedRootTarget, err)
 		}
 		return ret, nil
@@ -276,14 +271,14 @@ func GetSigstoreKeysFromTuf(ctx context.Context, tufClient *client.Client, trust
 			logging.FromContext(ctx).Warnf("Custom metadata not configured properly for target %s, skipping target: %v", name, err)
 			continue
 		}
-		dl := newDownloader()
-		if err = tufClient.Download(name, &dl); err != nil {
+		data, err := downloadTarget(tufUpdater, name)
+		if err != nil {
 			return nil, fmt.Errorf("downloading target %s: %w", name, err)
 		}
 
 		switch scm.Sigstore.Usage {
 		case sigstoretuf.Fulcio:
-			certChain, err := config.DeserializeCertChain(dl.Bytes())
+			certChain, err := config.DeserializeCertChain(data)
 			if err != nil {
 				return nil, fmt.Errorf("deserializing certificate chain: %w", err)
 			}
@@ -297,13 +292,13 @@ func GetSigstoreKeysFromTuf(ctx context.Context, tufClient *client.Client, trust
 				},
 			)
 		case sigstoretuf.CTFE:
-			tlog, err := genTransparencyLogInstance(scm.Sigstore.URI, dl.Bytes())
+			tlog, err := genTransparencyLogInstance(scm.Sigstore.URI, data)
 			if err != nil {
 				return nil, fmt.Errorf("creating transparency log instance: %w", err)
 			}
 			ret.Ctlogs = append(ret.Ctlogs, tlog)
 		case sigstoretuf.Rekor:
-			tlog, err := genTransparencyLogInstance(scm.Sigstore.URI, dl.Bytes())
+			tlog, err := genTransparencyLogInstance(scm.Sigstore.URI, data)
 			if err != nil {
 				return nil, fmt.Errorf("creating transparency log instance: %w", err)
 			}
@@ -316,6 +311,19 @@ func GetSigstoreKeysFromTuf(ctx context.Context, tufClient *client.Client, trust
 		return nil, errors.New("no certificate authorities found")
 	}
 	return ret, nil
+}
+
+// downloadTarget fetches a target's contents from the TUF updater.
+func downloadTarget(tufUpdater *updater.Updater, name string) ([]byte, error) {
+	info, err := tufUpdater.GetTargetInfo(name)
+	if err != nil {
+		return nil, fmt.Errorf("getting target info for %s: %w", name, err)
+	}
+	_, data, err := tufUpdater.DownloadTarget(info, "", "")
+	if err != nil {
+		return nil, err
+	}
+	return data, nil
 }
 
 func genTransparencyLogInstance(baseURL string, pkBytes []byte) (*config.TransparencyLogInstance, error) {
@@ -334,15 +342,3 @@ func genTransparencyLogInstance(baseURL string, pkBytes []byte) (*config.Transpa
 		LogId:         &pbcommon.LogId{KeyId: []byte(logID)},
 	}, nil
 }
-
-func newDownloader() downloader {
-	return downloader{&bytes.Buffer{}}
-}
-
-type downloader struct {
-	b *bytes.Buffer
-}
-
-func (d downloader) Delete() error                     { return nil }
-func (d downloader) Bytes() []byte                     { return d.b.Bytes() }
-func (d downloader) Write(p []byte) (n int, err error) { return d.b.Write(p) }

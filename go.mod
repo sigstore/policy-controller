@@ -71,6 +71,7 @@ require (
 	github.com/sigstore/sigstore/pkg/signature/kms/gcp v1.10.4
 	github.com/sigstore/sigstore/pkg/signature/kms/hashivault v1.10.4
 	github.com/spf13/viper v1.21.0
+	github.com/theupdateframework/go-tuf/v2 v2.4.1
 	knative.dev/hack/schema v0.0.0-20240607132042-09143140a254
 	knative.dev/pkg v0.0.0-20230612155445-74c4be5e935e
 )
@@ -266,7 +267,6 @@ require (
 	github.com/syndtr/goleveldb v1.0.1-0.20220721030215-126854af5e6d // indirect
 	github.com/tchap/go-patricia/v2 v2.3.3 // indirect
 	github.com/thales-e-security/pool v0.0.2 // indirect
-	github.com/theupdateframework/go-tuf/v2 v2.4.1 // indirect
 	github.com/tjfoc/gmsm v1.4.1 // indirect
 	github.com/transparency-dev/formats v0.0.0-20251017110053-404c0d5b696c // indirect
 	github.com/transparency-dev/merkle v0.0.2 // indirect
