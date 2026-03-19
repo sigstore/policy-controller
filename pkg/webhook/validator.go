@@ -519,7 +519,7 @@ func ValidatePolicy(ctx context.Context, namespace string, ref name.Reference, c
 			switch {
 			case authority.Static != nil:
 				if authority.Static.Action == "fail" {
-					result.err = cosign.NewVerificationError("disallowed by static policy: %s", authority.Static.Message)
+					result.err = fmt.Errorf("disallowed by static policy: %s", authority.Static.Message)
 					results <- result
 					return
 				}
@@ -876,7 +876,7 @@ func ValidatePolicyAttestationsForAuthority(ctx context.Context, ref name.Refere
 	// path, then error out
 	if len(verifiedAttestations) == 0 {
 		logging.FromContext(ctx).Errorf("no valid attestations found for authority %s for %s", name, ref.Name())
-		return nil, fmt.Errorf("%s for authority %s for %s", cosign.ErrNoMatchingAttestationsMessage, name, ref.Name())
+		return nil, fmt.Errorf("%s for authority %s for %s", "no matching attestations", name, ref.Name())
 	}
 	logging.FromContext(ctx).Debugf("Found %d valid attestations, validating policies for them", len(verifiedAttestations))
 
@@ -960,7 +960,7 @@ func ValidatePolicyAttestationsForAuthority(ctx context.Context, ref name.Refere
 			for pt := range checkedPredicateTypes {
 				cpt = append(cpt, pt)
 			}
-			return nil, fmt.Errorf("%s with type %s, checked the following predicateTypes: %q", cosign.ErrNoMatchingAttestationsMessage, wantedAttestation.PredicateType, strings.Join(cpt, ","))
+			return nil, fmt.Errorf("%s with type %s, checked the following predicateTypes: %q", "no matching attestations", wantedAttestation.PredicateType, strings.Join(cpt, ","))
 		}
 		ret[wantedAttestation.Name] = attestationToPolicyAttestations(ctx, checkedAttestations)
 	}
