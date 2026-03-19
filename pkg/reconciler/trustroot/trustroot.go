@@ -321,7 +321,7 @@ func downloadTarget(tufUpdater *updater.Updater, name string) ([]byte, error) {
 	}
 	_, data, err := tufUpdater.DownloadTarget(info, "", "")
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("downloading %s: %w", name, err)
 	}
 	return data, nil
 }

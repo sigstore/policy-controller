@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"io"
 	"io/fs"
+	"net/http"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -31,12 +32,11 @@ import (
 	"testing/fstest"
 	"time"
 
-	"net/http"
-
 	"github.com/sigstore/sigstore-go/pkg/root"
 	"github.com/sigstore/sigstore/pkg/tuf"
 	"github.com/theupdateframework/go-tuf/v2/metadata"
 	tufconfig "github.com/theupdateframework/go-tuf/v2/metadata/config"
+	"github.com/theupdateframework/go-tuf/v2/metadata/fetcher"
 	"github.com/theupdateframework/go-tuf/v2/metadata/updater"
 	"sigs.k8s.io/release-utils/version"
 )
@@ -246,12 +246,15 @@ func (f *fsFetcher) DownloadFile(urlPath string, maxLength int64, timeout time.D
 	path = strings.TrimPrefix(path, "/")
 	data, err := fs.ReadFile(f.fsys, path)
 	if err != nil {
-		// Return ErrDownloadHTTP with 404 so the TUF updater recognizes missing
-		// files (e.g. during root rotation when 2.root.json doesn't exist).
-		return nil, &metadata.ErrDownloadHTTP{StatusCode: http.StatusNotFound, URL: urlPath}
+		if errors.Is(err, fs.ErrNotExist) {
+			// Return ErrDownloadHTTP with 404 so the TUF updater recognizes missing
+			// files (e.g. during root rotation when 2.root.json doesn't exist).
+			return nil, &metadata.ErrDownloadHTTP{StatusCode: http.StatusNotFound, URL: urlPath}
+		}
+		return nil, &metadata.ErrDownload{Msg: fmt.Sprintf("reading %s: %v", path, err)}
 	}
 	if maxLength > 0 && int64(len(data)) > maxLength {
-		return nil, fmt.Errorf("file %s exceeds max length %d", path, maxLength)
+		return nil, &metadata.ErrDownloadLengthMismatch{Msg: fmt.Sprintf("file %s is %d bytes, max %d", path, len(data), maxLength)}
 	}
 	return data, nil
 }
@@ -298,6 +301,10 @@ func ClientFromRemote(_ context.Context, mirror string, rootJSON []byte, targets
 	cfg.RemoteTargetsURL = mirror + "/" + targets + "/"
 	cfg.DisableLocalCache = true
 	cfg.PrefixTargetsWithHash = true
+	f := fetcher.NewDefaultFetcher()
+	f.SetHTTPUserAgent(uaString)
+	f.SetHTTPClient(&http.Client{Timeout: 30 * time.Second})
+	cfg.Fetcher = f
 
 	u, err := updater.New(cfg)
 	if err != nil {
