@@ -250,7 +250,7 @@ func GetSigstoreKeysFromTuf(ctx context.Context, tufUpdater *updater.Updater, tr
 	if _, ok := targets[trustedRootTarget]; ok {
 		data, err := downloadTarget(tufUpdater, trustedRootTarget)
 		if err != nil {
-			return nil, fmt.Errorf("downloading %s: %w", trustedRootTarget, err)
+			return nil, err
 		}
 
 		if err := protojson.Unmarshal(data, ret); err != nil {
@@ -273,7 +273,7 @@ func GetSigstoreKeysFromTuf(ctx context.Context, tufUpdater *updater.Updater, tr
 		}
 		data, err := downloadTarget(tufUpdater, name)
 		if err != nil {
-			return nil, fmt.Errorf("downloading target %s: %w", name, err)
+			return nil, err
 		}
 
 		switch scm.Sigstore.Usage {
