@@ -39,11 +39,11 @@ import (
 	"github.com/google/go-containerregistry/pkg/name"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 	v1types "github.com/google/go-containerregistry/pkg/v1/types"
-	"github.com/sigstore/cosign/v2/pkg/cosign"
-	"github.com/sigstore/cosign/v2/pkg/cosign/bundle"
-	"github.com/sigstore/cosign/v2/pkg/oci"
-	"github.com/sigstore/cosign/v2/pkg/oci/remote"
-	"github.com/sigstore/cosign/v2/pkg/oci/static"
+	"github.com/sigstore/cosign/v3/pkg/cosign"
+	"github.com/sigstore/cosign/v3/pkg/cosign/bundle"
+	"github.com/sigstore/cosign/v3/pkg/oci"
+	"github.com/sigstore/cosign/v3/pkg/oci/remote"
+	"github.com/sigstore/cosign/v3/pkg/oci/static"
 	"github.com/sigstore/policy-controller/pkg/apis/config"
 	policyduckv1beta1 "github.com/sigstore/policy-controller/pkg/apis/duck/v1beta1"
 	"github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
@@ -1587,7 +1587,7 @@ func TestValidatePolicy(t *testing.T) {
 		return []oci.Signature{sig}, true, nil
 	}
 	// Let's just say that everything is verified.
-	passKeyless := func(_ context.Context, _ name.Reference, _ *cosign.CheckOpts) (checkedSignatures []oci.Signature, bundleVerified bool, err error) {
+	passKeyless := func(_ context.Context, _ name.Reference, _ *cosign.CheckOpts, _ ...name.Option) (checkedSignatures []oci.Signature, bundleVerified bool, err error) {
 		// This is from 2022/07/29
 		// ghcr.io/distroless/static@sha256:a1e82f6a5f6dfc735165d3442e7cc5a615f72abac3db19452481f5f3c90fbfa8
 		payload := []byte(`{"payloadType":"application/vnd.in-toto+json","payload":"eyJfdHlwZSI6Imh0dHBzOi8vaW4tdG90by5pby9TdGF0ZW1lbnQvdjAuMSIsInByZWRpY2F0ZVR5cGUiOiJodHRwczovL2Nvc2lnbi5zaWdzdG9yZS5kZXYvYXR0ZXN0YXRpb24vdnVsbi92MSIsInN1YmplY3QiOlt7Im5hbWUiOiJnaGNyLmlvL2Rpc3Ryb2xlc3Mvc3RhdGljIiwiZGlnZXN0Ijp7InNoYTI1NiI6ImExZTgyZjZhNWY2ZGZjNzM1MTY1ZDM0NDJlN2NjNWE2MTVmNzJhYmFjM2RiMTk0NTI0ODFmNWYzYzkwZmJmYTgifX1dLCJwcmVkaWNhdGUiOnsiaW52b2NhdGlvbiI6eyJwYXJhbWV0ZXJzIjpudWxsLCJ1cmkiOiJodHRwczovL2dpdGh1Yi5jb20vZGlzdHJvbGVzcy9zdGF0aWMvYWN0aW9ucy9ydW5zLzI3NTc5NTMxMzkiLCJldmVudF9pZCI6IjI3NTc5NTMxMzkiLCJidWlsZGVyLmlkIjoiQ3JlYXRlIFJlbGVhc2UifSwic2Nhbm5lciI6eyJ1cmkiOiJodHRwczovL2dpdGh1Yi5jb20vYXF1YXNlY3VyaXR5L3RyaXZ5IiwidmVyc2lvbiI6IjAuMjkuMiIsImRiIjp7InVyaSI6IiIsInZlcnNpb24iOiIifSwicmVzdWx0Ijp7IiRzY2hlbWEiOiJodHRwczovL2pzb24uc2NoZW1hc3RvcmUub3JnL3NhcmlmLTIuMS4wLXJ0bS41Lmpzb24iLCJydW5zIjpbeyJjb2x1bW5LaW5kIjoidXRmMTZDb2RlVW5pdHMiLCJvcmlnaW5hbFVyaUJhc2VJZHMiOnsiUk9PVFBBVEgiOnsidXJpIjoiZmlsZTovLy8ifX0sInJlc3VsdHMiOltdLCJ0b29sIjp7ImRyaXZlciI6eyJmdWxsTmFtZSI6IlRyaXZ5IFZ1bG5lcmFiaWxpdHkgU2Nhbm5lciIsImluZm9ybWF0aW9uVXJpIjoiaHR0cHM6Ly9naXRodWIuY29tL2FxdWFzZWN1cml0eS90cml2eSIsIm5hbWUiOiJUcml2eSIsInJ1bGVzIjpbXSwidmVyc2lvbiI6IjAuMjkuMiJ9fX1dLCJ2ZXJzaW9uIjoiMi4xLjAifX0sIm1ldGFkYXRhIjp7InNjYW5TdGFydGVkT24iOiIyMDIyLTA3LTI5VDAyOjI4OjQyWiIsInNjYW5GaW5pc2hlZE9uIjoiMjAyMi0wNy0yOVQwMjoyODo0OFoifX19","signatures":[{"keyid":"","sig":"MEYCIQDeQXMMojIpNvxEDLDXUC5aAwCbPPr/0uckP8TCcdTLjgIhAJG6M00kY40bz/C90W0FeUc2YcWY+txD4BPXhzd8E+tP"}]}`)
@@ -1649,7 +1649,7 @@ func TestValidatePolicy(t *testing.T) {
 		policy        webhookcip.ClusterImagePolicy
 		want          *PolicyResult
 		wantErrs      []string
-		cva           func(context.Context, name.Reference, *cosign.CheckOpts) ([]oci.Signature, bool, error)
+		cva           func(context.Context, name.Reference, *cosign.CheckOpts, ...name.Option) ([]oci.Signature, bool, error)
 		cvs           func(context.Context, name.Reference, *cosign.CheckOpts) ([]oci.Signature, bool, error)
 		customContext context.Context
 	}{{
@@ -3607,7 +3607,7 @@ func TestValidAttestationsOCI11Enabled_DISABLED(t *testing.T) {
 
 	// Should call OCI 1.1 path, not legacy
 	legacyCalled := false
-	cosignVerifyAttestations = func(ctx context.Context, ref name.Reference, co *cosign.CheckOpts) ([]oci.Signature, bool, error) {
+	cosignVerifyAttestations = func(ctx context.Context, ref name.Reference, co *cosign.CheckOpts, nameOpts ...name.Option) ([]oci.Signature, bool, error) {
 		legacyCalled = true
 		return nil, false, errors.New("should not call legacy")
 	}
@@ -3650,7 +3650,7 @@ func TestValidAttestationsOCI11Fallback(t *testing.T) {
 	// Mock legacy to succeed
 	legacyCalled := false
 	mockSig, _ := static.NewSignature(nil, "")
-	cosignVerifyAttestations = func(ctx context.Context, ref name.Reference, co *cosign.CheckOpts) ([]oci.Signature, bool, error) {
+	cosignVerifyAttestations = func(ctx context.Context, ref name.Reference, co *cosign.CheckOpts, nameOpts ...name.Option) ([]oci.Signature, bool, error) {
 		legacyCalled = true
 		return []oci.Signature{mockSig}, true, nil
 	}
@@ -3696,7 +3696,7 @@ func TestValidAttestationsOCI11Disabled(t *testing.T) {
 
 	// Mock legacy to succeed
 	mockSig, _ := static.NewSignature(nil, "")
-	cosignVerifyAttestations = func(ctx context.Context, ref name.Reference, co *cosign.CheckOpts) ([]oci.Signature, bool, error) {
+	cosignVerifyAttestations = func(ctx context.Context, ref name.Reference, co *cosign.CheckOpts, nameOpts ...name.Option) ([]oci.Signature, bool, error) {
 		return []oci.Signature{mockSig}, true, nil
 	}
 

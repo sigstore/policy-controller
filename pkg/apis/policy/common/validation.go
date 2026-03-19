@@ -21,7 +21,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws/arn"
+	"github.com/aws/aws-sdk-go-v2/aws/arn"
 	registryfuncs "github.com/google/go-containerregistry/pkg/name"
 	"github.com/sigstore/sigstore/pkg/signature/kms/aws"
 	"github.com/sigstore/sigstore/pkg/signature/kms/azure"
