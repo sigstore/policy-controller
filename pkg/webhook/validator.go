@@ -372,8 +372,10 @@ func setNoMatchingPoliciesError(ctx context.Context, image, field string, index 
 		// Allow it through, nothing to do.
 		return nil
 	case policycontrollerconfig.DenyAll:
+		logging.FromContext(ctx).Errorf("no matching policies for image %s", image)
 		return noMatchingPolicyError
 	case policycontrollerconfig.WarnAll:
+		logging.FromContext(ctx).Warnf("no matching policies for image %s", image)
 		return noMatchingPolicyError.At(apis.WarningLevel)
 	default:
 		// Fail closed.
