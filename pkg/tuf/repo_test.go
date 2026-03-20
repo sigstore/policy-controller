@@ -16,18 +16,20 @@ package tuf
 
 import (
 	"bytes"
+	"context"
 	"encoding/base64"
+	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
-
-	"context"
-	"fmt"
 	"os"
 	"path/filepath"
 	"testing"
+	"testing/fstest"
 	"time"
 
 	"github.com/theupdateframework/go-tuf"
+	"github.com/theupdateframework/go-tuf/v2/metadata"
 	"knative.dev/pkg/logging"
 )
 
@@ -199,6 +201,87 @@ func writeStagedTarget(dir, path string, data []byte) error {
 	return os.WriteFile(path, data, 0644)
 }
 
+func TestFsFetcherNotFound(t *testing.T) {
+	testFS := fstest.MapFS{
+		"existing.json": &fstest.MapFile{Data: []byte(`{"hello":"world"}`)},
+	}
+	f := &fsFetcher{fsys: testFS, baseURL: "mem://test/"}
+
+	// Existing file should succeed
+	data, err := f.DownloadFile("mem://test/existing.json", 0, 0)
+	if err != nil {
+		t.Fatalf("unexpected error for existing file: %v", err)
+	}
+	if string(data) != `{"hello":"world"}` {
+		t.Errorf("unexpected data: %s", data)
+	}
+
+	// Missing file should return ErrDownloadHTTP with 404
+	_, err = f.DownloadFile("mem://test/missing.json", 0, 0)
+	if err == nil {
+		t.Fatal("expected error for missing file")
+	}
+	var httpErr *metadata.ErrDownloadHTTP
+	if !errors.As(err, &httpErr) || httpErr.StatusCode != 404 {
+		t.Errorf("expected ErrDownloadHTTP{404}, got: %v", err)
+	}
+}
+
+func TestFsFetcherMaxLength(t *testing.T) {
+	testFS := fstest.MapFS{
+		"big.json": &fstest.MapFile{Data: make([]byte, 100)},
+	}
+	f := &fsFetcher{fsys: testFS, baseURL: "mem://test/"}
+
+	// Should succeed when maxLength is 0 (unlimited)
+	_, err := f.DownloadFile("mem://test/big.json", 0, 0)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	// Should fail when file exceeds maxLength
+	_, err = f.DownloadFile("mem://test/big.json", 50, 0)
+	if err == nil {
+		t.Fatal("expected error for oversized file")
+	}
+	var lenErr *metadata.ErrDownloadLengthMismatch
+	if !errors.As(err, &lenErr) {
+		t.Errorf("expected ErrDownloadLengthMismatch, got: %v", err)
+	}
+}
+
+func TestDownloadTargetFromSerializedMirror(t *testing.T) {
+	repo, err := base64.StdEncoding.DecodeString(validRepository)
+	if err != nil {
+		t.Fatalf("failed to decode validrepository: %v", err)
+	}
+	root, err := base64.StdEncoding.DecodeString(rootJSON)
+	if err != nil {
+		t.Fatalf("failed to decode rootJSON: %v", err)
+	}
+	tufUpdater, err := ClientFromSerializedMirror(context.Background(), repo, root, "targets", "/repository/")
+	if err != nil {
+		t.Fatalf("Failed to create updater: %v", err)
+	}
+
+	// Download each target and verify it has content
+	for name := range tufUpdater.GetTopLevelTargets() {
+		info, err := tufUpdater.GetTargetInfo(name)
+		if err != nil {
+			t.Errorf("GetTargetInfo(%s) error: %v", name, err)
+			continue
+		}
+		_, data, err := tufUpdater.DownloadTarget(info, "", "")
+		if err != nil {
+			t.Errorf("DownloadTarget(%s) error: %v", name, err)
+			continue
+		}
+		if len(data) == 0 {
+			t.Errorf("DownloadTarget(%s) returned empty data", name)
+		}
+	}
+}
+
 func TestClientFromSerializedMirror(t *testing.T) {
 	repo, err := base64.StdEncoding.DecodeString(validRepository)
 	if err != nil {
@@ -208,16 +291,13 @@ func TestClientFromSerializedMirror(t *testing.T) {
 	if err != nil {
 		t.Fatalf("failed to decode rootJSON: %v", err)
 	}
-	tufClient, err := ClientFromSerializedMirror(context.Background(), repo, root, "targets", "/repository/")
+	tufUpdater, err := ClientFromSerializedMirror(context.Background(), repo, root, "targets", "/repository/")
 	if err != nil {
 		t.Fatalf("Failed to unserialize repo: %v", err)
 	}
-	targets, err := tufClient.Targets()
-	if err != nil {
-		t.Errorf("failed to get Targets from tuf: %v", err)
-	}
+	targets := tufUpdater.GetTopLevelTargets()
 	if len(targets) == 0 {
-		t.Errorf("Got no targets from the TUF client")
+		t.Errorf("Got no targets from the TUF updater")
 	}
 }
 
@@ -248,15 +328,12 @@ func TestClientFromRemoteMirror(t *testing.T) {
 	ts := httptest.NewServer(fs)
 	defer ts.Close()
 
-	tufClient, err := ClientFromRemote(context.Background(), ts.URL, rootJSON, "targets")
+	tufUpdater, err := ClientFromRemote(context.Background(), ts.URL, rootJSON, "targets")
 	if err != nil {
 		t.Fatalf("Failed to get client from remote: %v", err)
 	}
-	targets, err := tufClient.Targets()
-	if err != nil {
-		t.Errorf("failed to get Targets from tuf: %v", err)
-	}
+	targets := tufUpdater.GetTopLevelTargets()
 	if len(targets) == 0 {
-		t.Errorf("Got no targets from the TUF client")
+		t.Errorf("Got no targets from the TUF updater")
 	}
 }
