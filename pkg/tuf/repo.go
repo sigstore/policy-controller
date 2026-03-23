@@ -33,6 +33,7 @@ import (
 	"time"
 
 	"github.com/sigstore/sigstore-go/pkg/root"
+	sigstoretuf "github.com/sigstore/sigstore-go/pkg/tuf"
 	"github.com/sigstore/sigstore/pkg/tuf"
 	"github.com/theupdateframework/go-tuf/v2/metadata"
 	tufconfig "github.com/theupdateframework/go-tuf/v2/metadata/config"
@@ -259,63 +260,116 @@ func (f *fsFetcher) DownloadFile(urlPath string, maxLength int64, timeout time.D
 	return data, nil
 }
 
-// ClientFromSerializedMirror will construct a TUF updater by
+// TUFClient wraps a sigstore-go TUF client for delegation-aware target
+// retrieval and provides lazy access to a raw go-tuf v2 updater for
+// legacy target enumeration via GetTopLevelTargets.
+type TUFClient struct {
+	client *sigstoretuf.Client
+
+	// Fields for lazy-initialized raw updater (legacy enumeration only).
+	once        sync.Once
+	updater     *updater.Updater
+	updaterErr  error
+	metadataURL string
+	rootJSON    []byte
+	targetsURL  string
+	fetcher     fetcher.Fetcher
+}
+
+// GetTarget downloads a target by name, correctly traversing TUF delegations.
+func (c *TUFClient) GetTarget(target string) ([]byte, error) {
+	return c.client.GetTarget(target)
+}
+
+// GetTopLevelTargets returns the top-level target files metadata. This does
+// not traverse delegations and should only be used for legacy fallback paths.
+// The raw updater is lazily initialized on first call to avoid a double TUF
+// refresh when only GetTarget is needed.
+func (c *TUFClient) GetTopLevelTargets() (map[string]*metadata.TargetFiles, error) {
+	c.once.Do(func() {
+		c.updater, c.updaterErr = newRawUpdater(c.metadataURL, c.rootJSON, c.targetsURL, c.fetcher)
+	})
+	if c.updaterErr != nil {
+		return nil, c.updaterErr
+	}
+	return c.updater.GetTopLevelTargets(), nil
+}
+
+// ClientFromSerializedMirror will construct a TUF client by
 // unzip/untar the repository and constructing an in-memory TUF
-// updater for it. Will also Refresh it.
-func ClientFromSerializedMirror(_ context.Context, repo, rootJSON []byte, targets, stripPrefix string) (*updater.Updater, error) {
+// client for it.
+func ClientFromSerializedMirror(_ context.Context, repo, rootJSON []byte, targets, stripPrefix string) (*TUFClient, error) {
 	tufFS, err := UncompressMemFS(bytes.NewReader(repo), stripPrefix)
 	if err != nil {
 		return nil, fmt.Errorf("failed to uncompress: %w", err)
 	}
 
 	const baseURL = "mem://repo/"
-	cfg, err := tufconfig.New(baseURL, rootJSON)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create TUF config: %w", err)
-	}
-	cfg.Fetcher = &fsFetcher{fsys: tufFS, baseURL: baseURL}
-	cfg.RemoteTargetsURL = baseURL + targets + "/"
-	cfg.DisableLocalCache = true
-	cfg.PrefixTargetsWithHash = true
+	f := &fsFetcher{fsys: tufFS, baseURL: baseURL}
 
-	u, err := updater.New(cfg)
+	opts := sigstoretuf.DefaultOptions().
+		WithRoot(rootJSON).
+		WithRepositoryBaseURL(baseURL).
+		WithDisableLocalCache().
+		WithFetcher(f)
+
+	client, err := sigstoretuf.New(opts)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create TUF updater: %w", err)
-	}
-	if err := u.Refresh(); err != nil {
-		return nil, fmt.Errorf("failed to refresh TUF updater: %w", err)
+		return nil, fmt.Errorf("failed to create TUF client: %w", err)
 	}
 
-	if len(u.GetTopLevelTargets()) == 0 {
-		return nil, errors.New("there are no valid targetfiles in TUF repo")
-	}
-	return u, nil
+	return &TUFClient{
+		client:      client,
+		metadataURL: baseURL,
+		rootJSON:    rootJSON,
+		targetsURL:  baseURL + targets + "/",
+		fetcher:     f,
+	}, nil
 }
 
-// ClientFromRemote will construct a TUF updater from a root, and mirror
-func ClientFromRemote(_ context.Context, mirror string, rootJSON []byte, targets string) (*updater.Updater, error) {
-	cfg, err := tufconfig.New(mirror, rootJSON)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create TUF config: %w", err)
-	}
-	cfg.RemoteTargetsURL = mirror + "/" + targets + "/"
-	cfg.DisableLocalCache = true
-	cfg.PrefixTargetsWithHash = true
+// ClientFromRemote will construct a TUF client from a root and mirror.
+func ClientFromRemote(_ context.Context, mirror string, rootJSON []byte, targets string) (*TUFClient, error) {
 	f := fetcher.NewDefaultFetcher()
 	f.SetHTTPUserAgent(uaString)
 	f.SetHTTPClient(&http.Client{Timeout: 30 * time.Second})
+
+	opts := sigstoretuf.DefaultOptions().
+		WithRoot(rootJSON).
+		WithRepositoryBaseURL(mirror).
+		WithDisableLocalCache().
+		WithFetcher(f)
+
+	client, err := sigstoretuf.New(opts)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create TUF client: %w", err)
+	}
+
+	return &TUFClient{
+		client:      client,
+		metadataURL: mirror,
+		rootJSON:    rootJSON,
+		targetsURL:  mirror + "/" + targets + "/",
+		fetcher:     f,
+	}, nil
+}
+
+// newRawUpdater creates a go-tuf v2 updater for legacy target enumeration.
+func newRawUpdater(metadataURL string, rootJSON []byte, targetsURL string, f fetcher.Fetcher) (*updater.Updater, error) {
+	cfg, err := tufconfig.New(metadataURL, rootJSON)
+	if err != nil {
+		return nil, err
+	}
 	cfg.Fetcher = f
+	cfg.RemoteTargetsURL = targetsURL
+	cfg.DisableLocalCache = true
+	cfg.PrefixTargetsWithHash = true
 
 	u, err := updater.New(cfg)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create TUF updater: %w", err)
+		return nil, err
 	}
 	if err := u.Refresh(); err != nil {
-		return nil, fmt.Errorf("failed to refresh TUF updater: %w", err)
-	}
-
-	if len(u.GetTopLevelTargets()) == 0 {
-		return nil, errors.New("there are no valid targetfiles in TUF repo")
+		return nil, err
 	}
 	return u, nil
 }

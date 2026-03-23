@@ -83,11 +83,12 @@ func (repo *Repository) Validate(ctx context.Context) (errors *apis.FieldError) 
 			return
 		}
 		// Make sure we can construct a TUF client out of it.
-		u, err := tuf.ClientFromSerializedMirror(ctx, repo.MirrorFS, repo.Root, repo.Targets, DefaultTUFRepoPrefix)
+		c, err := tuf.ClientFromSerializedMirror(ctx, repo.MirrorFS, repo.Root, repo.Targets, DefaultTUFRepoPrefix)
 		if err != nil {
 			errors = errors.Also(apis.ErrInvalidValue("failed to construct a TUF client", "mirrorFS", err.Error()))
+		} else if targetFiles, err := c.GetTopLevelTargets(); err != nil {
+			errors = errors.Also(apis.ErrInvalidValue("failed to get targets from a TUF client", "mirrorFS", err.Error()))
 		} else {
-			targetFiles := u.GetTopLevelTargets()
 			logging.FromContext(ctx).Debugf("FS uncompressed ok, have %d valid targets", len(targetFiles))
 		}
 	}
