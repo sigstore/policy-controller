@@ -21,6 +21,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/sigstore/cosign/v3/pkg/cosign"
 	"github.com/sigstore/policy-controller/pkg/apis/config"
@@ -31,7 +32,6 @@ import (
 	pbcommon "github.com/sigstore/protobuf-specs/gen/pb-go/common/v1"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	sigstoretuf "github.com/sigstore/sigstore/pkg/tuf"
-	"github.com/theupdateframework/go-tuf/v2/metadata/updater"
 	"google.golang.org/protobuf/encoding/protojson"
 	corev1 "k8s.io/api/core/v1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"
@@ -242,24 +242,30 @@ type sigstoreCustomMetadata struct {
 // GetSigstoreKeysFromTuf returns the sigstore keys from the TUF updater. Note
 // that this should really be exposed from the sigstore/sigstore TUF pkg, but
 // is currently not.
-func GetSigstoreKeysFromTuf(ctx context.Context, tufUpdater *updater.Updater, trustedRootTarget string) (*config.SigstoreKeys, error) {
-	targets := tufUpdater.GetTopLevelTargets()
+func GetSigstoreKeysFromTuf(ctx context.Context, tufClient *tuf.TUFClient, trustedRootTarget string) (*config.SigstoreKeys, error) {
 	ret := &config.SigstoreKeys{}
 
-	// if there is a trusted root JSON target, we can use that instead of the custom metadata
-	if _, ok := targets[trustedRootTarget]; ok {
-		data, err := downloadTarget(tufUpdater, trustedRootTarget)
-		if err != nil {
-			return nil, err
-		}
-
+	// Try to get the trusted root target using GetTarget, which correctly
+	// traverses TUF delegations (unlike GetTopLevelTargets).
+	data, err := tufClient.GetTarget(trustedRootTarget)
+	if err == nil {
 		if err := protojson.Unmarshal(data, ret); err != nil {
 			return nil, fmt.Errorf("parsing %s: %w", trustedRootTarget, err)
 		}
 		return ret, nil
 	}
+	// Only fall back to legacy path if the target was not found.
+	// Other errors (network, hash mismatch, etc.) should be propagated.
+	if !strings.Contains(err.Error(), "not found") {
+		return nil, fmt.Errorf("fetching %s: %w", trustedRootTarget, err)
+	}
 
-	// fall back to using custom metadata (e.g. for private TUF repositories)
+	// Fall back to using custom metadata on top-level targets (e.g. for
+	// older private TUF repositories that don't have trusted_root.json).
+	targets, err := tufClient.GetTopLevelTargets()
+	if err != nil {
+		return nil, fmt.Errorf("getting top-level targets: %w", err)
+	}
 	for name, targetMeta := range targets {
 		// Skip any targets that do not include custom metadata.
 		if targetMeta.Custom == nil {
@@ -271,9 +277,9 @@ func GetSigstoreKeysFromTuf(ctx context.Context, tufUpdater *updater.Updater, tr
 			logging.FromContext(ctx).Warnf("Custom metadata not configured properly for target %s, skipping target: %v", name, err)
 			continue
 		}
-		data, err := downloadTarget(tufUpdater, name)
+		data, err := tufClient.GetTarget(name)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("downloading target %s: %w", name, err)
 		}
 
 		switch scm.Sigstore.Usage {
@@ -311,19 +317,6 @@ func GetSigstoreKeysFromTuf(ctx context.Context, tufUpdater *updater.Updater, tr
 		return nil, errors.New("no certificate authorities found")
 	}
 	return ret, nil
-}
-
-// downloadTarget fetches a target's contents from the TUF updater.
-func downloadTarget(tufUpdater *updater.Updater, name string) ([]byte, error) {
-	info, err := tufUpdater.GetTargetInfo(name)
-	if err != nil {
-		return nil, fmt.Errorf("getting target info for %s: %w", name, err)
-	}
-	_, data, err := tufUpdater.DownloadTarget(info, "", "")
-	if err != nil {
-		return nil, fmt.Errorf("downloading %s: %w", name, err)
-	}
-	return data, nil
 }
 
 func genTransparencyLogInstance(baseURL string, pkBytes []byte) (*config.TransparencyLogInstance, error) {
