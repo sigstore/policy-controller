@@ -100,7 +100,7 @@ jobs:
           apt-get autoremove -y >/dev/null 2>&1 || true
           apt-get autoclean -y >/dev/null 2>&1 || true
     - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-    - uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
+    - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
       with:
         go-version-file: './go.mod'
         check-latest: true
@@ -111,10 +111,10 @@ jobs:
     - uses: imranismail/setup-kustomize@53f941b41dca13ed61874bbc6b4b6e1562877530 # v3.0.0
 
     - name: Install yq
-      uses: mikefarah/yq@5a7e72a743649b1b3a47d1a1d8214f3453173c51 # v4.52.4
+      uses: mikefarah/yq@0f4fb8d35ec1a939d78dd6862f494d19ec589f19 # v4.52.5
 
     - name: Setup mirror
-      uses: chainguard-dev/actions/setup-mirror@d67380d0b02c09412f8e17f660ec48870bd89e6e # v1.6.9
+      uses: chainguard-dev/actions/setup-mirror@8bb24c24be6871bee44f19be55ea11e3b2aea3dd # v1.6.11
       with:
         mirror: mirror.gcr.io
 
@@ -150,4 +150,4 @@ jobs:
 
     - name: Collect diagnostics
       if: ${{ failure() }}
-      uses: chainguard-dev/actions/kind-diag@d67380d0b02c09412f8e17f660ec48870bd89e6e # v1.6.9
+      uses: chainguard-dev/actions/kind-diag@8bb24c24be6871bee44f19be55ea11e3b2aea3dd # v1.6.11
