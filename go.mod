@@ -60,7 +60,7 @@ require (
 	github.com/docker/docker v28.5.2+incompatible
 	github.com/docker/docker-credential-helpers v0.9.5
 	github.com/docker/go-connections v0.6.0
-	github.com/go-jose/go-jose/v4 v4.1.3
+	github.com/go-jose/go-jose/v4 v4.1.4
 	github.com/hashicorp/vault/api v1.22.0
 	github.com/natefinch/atomic v1.0.1
 	github.com/sigstore/protobuf-specs v0.5.0
