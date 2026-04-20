@@ -101,7 +101,7 @@ jobs:
       with:
         persist-credentials: false
 
-    - uses: actions/setup-go@4b73464bb391d4059bd26b0524d20df3927bd417 # v6.3.0
+    - uses: actions/setup-go@4a3601121dd01d1626a1e23e37211e3254c1c06c # v6.4.0
       with:
         go-version-file: './go.mod'
         check-latest: true
@@ -113,12 +113,12 @@ jobs:
     - uses: sigstore/cosign-installer@d58896d6a1865668819e1d91763c7751a165e159
 
     - name: Setup mirror
-      uses: chainguard-dev/actions/setup-mirror@d67380d0b02c09412f8e17f660ec48870bd89e6e # v1.6.9
+      uses: chainguard-dev/actions/setup-mirror@061bc0e921116bde1470f51fb5c86d5318f16558 # v1.6.15
       with:
         mirror: mirror.gcr.io
 
     - name: Setup kind cluster
-      uses: chainguard-dev/actions/setup-kind@d67380d0b02c09412f8e17f660ec48870bd89e6e # v1.6.9
+      uses: chainguard-dev/actions/setup-kind@061bc0e921116bde1470f51fb5c86d5318f16558 # v1.6.15
       with:
         k8s-version: ${{ matrix.k8s-version }}
         cluster-suffix: c${{ github.run_id }}.local
@@ -146,4 +146,4 @@ jobs:
 
     - name: Collect diagnostics
       if: ${{ failure() }}
-      uses: chainguard-dev/actions/kind-diag@d67380d0b02c09412f8e17f660ec48870bd89e6e # v1.6.9
+      uses: chainguard-dev/actions/kind-diag@061bc0e921116bde1470f51fb5c86d5318f16558 # v1.6.15
