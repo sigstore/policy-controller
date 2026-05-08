@@ -18,6 +18,7 @@ import (
 	"context"
 	"crypto"
 	"crypto/ecdsa"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -95,14 +96,22 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, trustroot *v1alpha1.Trus
 		if !ok {
 			return fmt.Errorf("public key %d is not ecdsa.PublicKey", i)
 		}
-		sigstoreKeys.Tlogs[i].LogId = &config.LogID{KeyId: []byte(logID)}
+		logIDBytes, err := hex.DecodeString(logID)
+		if err != nil {
+			return fmt.Errorf("invalid rekor log ID encoding %d: %w", i, err)
+		}
+		sigstoreKeys.Tlogs[i].LogId = &config.LogID{KeyId: logIDBytes}
 	}
 	for i, ctlog := range sigstoreKeys.Ctlogs {
 		_, logID, err := pemToKeyAndID(config.SerializePublicKey(ctlog.PublicKey))
 		if err != nil {
 			return fmt.Errorf("invalid ctlog public key %d: %w", i, err)
 		}
-		sigstoreKeys.Ctlogs[i].LogId = &config.LogID{KeyId: []byte(logID)}
+		logIDBytes, err := hex.DecodeString(logID)
+		if err != nil {
+			return fmt.Errorf("invalid ctlog log ID encoding %d: %w", i, err)
+		}
+		sigstoreKeys.Ctlogs[i].LogId = &config.LogID{KeyId: logIDBytes}
 	}
 
 	// See if the CM holding configs exists
@@ -328,10 +337,14 @@ func genTransparencyLogInstance(baseURL string, pkBytes []byte) (*config.Transpa
 	if err != nil {
 		return nil, fmt.Errorf("failed to construct LogID: %w", err)
 	}
+	logIDBytes, err := hex.DecodeString(logID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to decode LogID: %w", err)
+	}
 	return &config.TransparencyLogInstance{
 		BaseUrl:       baseURL,
 		HashAlgorithm: pbcommon.HashAlgorithm_SHA2_256,
 		PublicKey:     pbpk,
-		LogId:         &pbcommon.LogId{KeyId: []byte(logID)},
+		LogId:         &pbcommon.LogId{KeyId: logIDBytes},
 	}, nil
 }

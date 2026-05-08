@@ -847,7 +847,13 @@ func ValidatePolicySignaturesForAuthority(ctx context.Context, ref name.Referenc
 
 	case authority.Keyless != nil:
 		if authority.Keyless.URL != nil {
-			sps, err := validSignatures(ctx, ref, checkOpts)
+			var sps []oci.Signature
+			var err error
+			if checkOpts.NewBundleFormat {
+				sps, err = validBundleFormat(ctx, ref, checkOpts)
+			} else {
+				sps, err = validSignatures(ctx, ref, checkOpts)
+			}
 			if err != nil {
 				logging.FromContext(ctx).Errorf("failed validSignatures for authority %s with fulcio for %s: %v", name, ref.Name(), err)
 				return nil, fmt.Errorf("signature keyless validation failed for authority %s for %s: %w", name, ref.Name(), err)
@@ -1642,7 +1648,7 @@ func fulcioCertsFromAuthority(ctx context.Context, keylessRef *webhookcip.Keyles
 		if err != nil {
 			return nil, nil, nil, fmt.Errorf("unmarshaling public key %d failed: %w", i, err)
 		}
-		ctlogKeys.Keys[string(ctlog.LogId.KeyId)] = cosign.TransparencyLogPubKey{
+		ctlogKeys.Keys[logIDToHex(ctlog.LogId.KeyId)] = cosign.TransparencyLogPubKey{
 			PubKey: pk,
 			Status: tuf.Active,
 		}
@@ -1734,7 +1740,7 @@ func rekorKeysFromTrustRef(ctx context.Context, trustRootRef string) (*cosign.Tr
 			if !ok {
 				return nil, "", fmt.Errorf("public key %d is not ecdsa.PublicKey", i)
 			}
-			retKeys.Keys[string(tlog.LogId.KeyId)] = cosign.TransparencyLogPubKey{
+			retKeys.Keys[logIDToHex(tlog.LogId.KeyId)] = cosign.TransparencyLogPubKey{
 				PubKey: pkecdsa,
 				Status: tuf.Active,
 			}
@@ -1743,6 +1749,20 @@ func rekorKeysFromTrustRef(ctx context.Context, trustRootRef string) (*cosign.Tr
 		return retKeys, rekorURL, nil
 	}
 	return nil, "", fmt.Errorf("trustRootRef %s not found", trustRootRef)
+}
+
+// logIDToHex normalizes a LogID KeyId to a hex string regardless of whether it
+// was stored as raw binary (32 bytes, new format) or ASCII hex (64 bytes, old format).
+func logIDToHex(keyID []byte) string {
+	if len(keyID) == sha256.Size*2 && isHexASCII(keyID) {
+		return string(keyID)
+	}
+	return hex.EncodeToString(keyID)
+}
+
+func isHexASCII(b []byte) bool {
+	_, err := hex.Decode(make([]byte, hex.DecodedLen(len(b))), b)
+	return err == nil
 }
 
 // splitPEMCertificateChain returns a list of leaf (non-CA) certificates, a certificate pool for

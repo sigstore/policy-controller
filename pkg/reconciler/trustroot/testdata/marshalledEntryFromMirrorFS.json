@@ -1,48 +1,48 @@
 {
-  "tlogs": [
+  "tlogs":  [
     {
-      "hashAlgorithm": "SHA2_256",
-      "publicKey": {
-        "rawBytes": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEeCH4ML3V6E4yv0aY/YLBcs6fhJCYvjKmvMjscnW1non2G4D1VdpoA6cWhJk+aDgkxKf8i7JLXdn2MN7mqMOy4Q==",
-        "keyDetails": "PKIX_ECDSA_P256_SHA_256",
-        "validFor": {
-          "start": "1970-01-01T00:00:00Z"
+      "hashAlgorithm":  "SHA2_256",
+      "publicKey":  {
+        "rawBytes":  "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEdHzrblmwf4hME3+Ot7L2B8FkTd1RRfssnlhi2SyUyQY8OnpN6PjF6t7XdayNxJ7XYVWeLZA/G4Kg51QC7ybJ1g==",
+        "keyDetails":  "PKIX_ECDSA_P256_SHA_256",
+        "validFor":  {
+          "start":  "1970-01-01T00:00:00Z"
         }
       },
-      "logId": {
-        "keyId": "YWFlNjQyODViOTNlYWQ3Nzg3ZWE5MWEwYmNhYjQwMDU5MWY0MmM5N2YwMWIxMzcyMjEyNjhiNmQ2NGExZGYxMw=="
+      "logId":  {
+        "keyId":  "On78qXDjD2fmEkNHNuNdVMBh04mO/1sGJ5/XIgQ4loU="
       }
     }
   ],
-  "certificateAuthorities": [
+  "certificateAuthorities":  [
     {
-      "certChain": {
-        "certificates": [
+      "certChain":  {
+        "certificates":  [
           {
-            "rawBytes": "MIIBPjCB5KADAgECAgECMAoGCCqGSM49BAMCMA0xCzAJBgNVBAMTAmNhMB4XDTI2MDcyODE3MzYyMloXDTM2MDcyODE3MzYyMlowDzENMAsGA1UEAxMEbGVhZjBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABNfH99yS2+Pil7CxpKRJV3zEwLgR3XBO+GrjiccAB9G1u1t1x5ZnkmqS11A3HNapEirlkUjoH7Xnp/OR1UzGfGWjMzAxMA4GA1UdDwEB/wQEAwIGwDAfBgNVHSMEGDAWgBQiwuP8j8bbFPQrfAAY6XuZELWviDAKBggqhkjOPQQDAgNJADBGAiEA9zjzuKTiru9pXRkW3Kbqomk//JV18H2/cIwOiGob9vICIQC//kfcRNkDt0omSg1vsITOgfDsW23U6igz8QvCz/Kqmg=="
+            "rawBytes":  "MIIBPjCB5KADAgECAgECMAoGCCqGSM49BAMCMA0xCzAJBgNVBAMTAmNhMB4XDTI2MDExODA4MjQxMloXDTM2MDExODA4MjQxMlowDzENMAsGA1UEAxMEbGVhZjBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABCnMX5oDLqAe/zsE5lxppdszsKB9svC/LhXUBLOk8T65kND9SyXG8MA1+SqW2Ic6YRnm5r2j+v/CRi6lGXs0GD6jMzAxMA4GA1UdDwEB/wQEAwIGwDAfBgNVHSMEGDAWgBR3tK56OWKX6omj1P/kEWkvkiREpTAKBggqhkjOPQQDAgNJADBGAiEA9LiET+4DScPcPLP6IZqok40C7v3Pyo0FdUkYVC4RrdYCIQCRfJwlFjbw3HMQLNviY0CAhg8GAsMmsqFU/AJOlI8bgw=="
           },
           {
-            "rawBytes": "MIIBSjCB8aADAgECAgEBMAoGCCqGSM49BAMCMA0xCzAJBgNVBAMTAmNhMB4XDTI2MDcyODE3MzYyMloXDTM2MDcyODE3MzYyMlowDTELMAkGA1UEAxMCY2EwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAASuuP9NoHvP4IOEmLYXgGWjQ/KR0MCpxVl1BX1lblCsHsSyKtRNUe63SYIIVJxRa0Bdn0oo1aQXS9tnfZEBsmP7o0IwQDAOBgNVHQ8BAf8EBAMCAgQwDwYDVR0TAQH/BAUwAwEB/zAdBgNVHQ4EFgQUIsLj/I/G2xT0K3wAGOl7mRC1r4gwCgYIKoZIzj0EAwIDSAAwRQIgXiiXj6UgTRUKdUMzH8kkCO8k5JIK56jpsjmv0HJwxm4CIQCIiz/vibZUxM41K2Ek/wDUjI8kELO1AUIVeh5fz1DDSA=="
+            "rawBytes":  "MIIBSTCB8aADAgECAgEBMAoGCCqGSM49BAMCMA0xCzAJBgNVBAMTAmNhMB4XDTI2MDExODA4MjQxMloXDTM2MDExODA4MjQxMlowDTELMAkGA1UEAxMCY2EwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAARU9i+UOuHKRJslqkeIPM8Hvr/Onxo+rWaxEov1xBE+vjXl/feFCmi38gAII5/UgqEVZlF5VBBdelEZB1i4ysbwo0IwQDAOBgNVHQ8BAf8EBAMCAgQwDwYDVR0TAQH/BAUwAwEB/zAdBgNVHQ4EFgQUd7Suejlil+qJo9T/5BFpL5IkRKUwCgYIKoZIzj0EAwIDRwAwRAIgaFt5RQfkYGl2tQyOX/9TfBci580rgnM/ECKeerqByKICIBvBOG3zfWB7qFUCosjgslm5aTxWLYblddNaKGbrjz99"
           }
         ]
       },
-      "validFor": {
-        "start": "1970-01-01T00:00:00Z"
+      "validFor":  {
+        "start":  "1970-01-01T00:00:00Z"
       }
     }
   ],
-  "ctlogs": [
+  "ctlogs":  [
     {
-      "hashAlgorithm": "SHA2_256",
-      "publicKey": {
-        "rawBytes": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEBhsoawCyx66Ea85nLZJ7lYqOzKf8qQPlWGF8n4NuxVNMTzu8/3AdkfH+UfOolb9m/NhwIxPJTnnfZWcDA7pCTw==",
-        "keyDetails": "PKIX_ECDSA_P256_SHA_256",
-        "validFor": {
-          "start": "1970-01-01T00:00:00Z"
+      "hashAlgorithm":  "SHA2_256",
+      "publicKey":  {
+        "rawBytes":  "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAE8CYN5Ck/g5tRZxuHcuTl8f8cp4Vn31lziP9oJ2PbJd8bjWVaD4PDTLk6PVcPtiHtEeEN/JN1TtqQkUgsMlCfaw==",
+        "keyDetails":  "PKIX_ECDSA_P256_SHA_256",
+        "validFor":  {
+          "start":  "1970-01-01T00:00:00Z"
         }
       },
-      "logId": {
-        "keyId": "ODFkMDNhMzI3YTY4ODJiNjdjODIxMDcxNTkwMDUzOWZmYzZiMWRlZTFiMWY5YWQ4NzFhMDliZmVjZmVjZjA0MQ=="
+      "logId":  {
+        "keyId":  "10C43WTJYYVeiVP0J2Np8YTYM3FqapkIRMkjqQg9kpY="
       }
     }
   ]
