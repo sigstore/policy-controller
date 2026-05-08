@@ -76,6 +76,12 @@ func validSignatures(ctx context.Context, ref name.Reference, checkOpts *cosign.
 	return sigs, err
 }
 
+func validBundleSignatures(ctx context.Context, ref name.Reference, checkOpts *cosign.CheckOpts) ([]oci.Signature, error) {
+	checkOpts.ClaimVerifier = cosign.IntotoSubjectClaimVerifier
+	sigs, _, err := cosignVerifyAttestations(ctx, ref, checkOpts)
+	return sigs, err
+}
+
 func validAttestations(ctx context.Context, ref name.Reference, checkOpts *cosign.CheckOpts) ([]oci.Signature, error) {
 	cfg := policycontrollerconfig.FromContextOrDefaults(ctx)
 	if cfg.EnableOCI11 {
