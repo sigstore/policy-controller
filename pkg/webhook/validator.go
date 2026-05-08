@@ -803,7 +803,13 @@ func ValidatePolicySignaturesForAuthority(ctx context.Context, ref name.Referenc
 
 	case authority.Keyless != nil:
 		if authority.Keyless.URL != nil {
-			sps, err := validSignatures(ctx, ref, checkOpts)
+			var sps []oci.Signature
+			var err error
+			if checkOpts.NewBundleFormat {
+				sps, err = validBundleSignatures(ctx, ref, checkOpts)
+			} else {
+				sps, err = validSignatures(ctx, ref, checkOpts)
+			}
 			if err != nil {
 				logging.FromContext(ctx).Errorf("failed validSignatures for authority %s with fulcio for %s: %v", name, ref.Name(), err)
 				return nil, fmt.Errorf("signature keyless validation failed for authority %s for %s: %w", name, ref.Name(), err)
@@ -813,7 +819,13 @@ func ValidatePolicySignaturesForAuthority(ctx context.Context, ref name.Referenc
 		}
 		return nil, fmt.Errorf("no Keyless URL specified")
 	case authority.RFC3161Timestamp != nil:
-		sps, err := validSignatures(ctx, ref, checkOpts)
+		var sps []oci.Signature
+		var err error
+		if checkOpts.NewBundleFormat {
+			sps, err = validBundleSignatures(ctx, ref, checkOpts)
+		} else {
+			sps, err = validSignatures(ctx, ref, checkOpts)
+		}
 		if err != nil {
 			logging.FromContext(ctx).Errorf("failed validSignatures for authority %s with fulcio for %s: %v", name, ref.Name(), err)
 			return nil, fmt.Errorf("signature TSA validation failed for authority %s for %s: %w", name, ref.Name(), err)
@@ -1567,7 +1579,7 @@ func fulcioCertsFromAuthority(ctx context.Context, keylessRef *webhookcip.Keyles
 		if err != nil {
 			return nil, nil, nil, fmt.Errorf("unmarshaling public key %d failed: %w", i, err)
 		}
-		ctlogKeys.Keys[string(ctlog.LogId.KeyId)] = cosign.TransparencyLogPubKey{
+		ctlogKeys.Keys[hex.EncodeToString(ctlog.LogId.KeyId)] = cosign.TransparencyLogPubKey{
 			PubKey: pk,
 			Status: tuf.Active,
 		}
@@ -1659,7 +1671,7 @@ func rekorKeysFromTrustRef(ctx context.Context, trustRootRef string) (*cosign.Tr
 			if !ok {
 				return nil, "", fmt.Errorf("public key %d is not ecdsa.PublicKey", i)
 			}
-			retKeys.Keys[string(tlog.LogId.KeyId)] = cosign.TransparencyLogPubKey{
+			retKeys.Keys[hex.EncodeToString(tlog.LogId.KeyId)] = cosign.TransparencyLogPubKey{
 				PubKey: pkecdsa,
 				Status: tuf.Active,
 			}

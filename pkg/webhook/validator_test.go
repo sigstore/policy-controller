@@ -22,6 +22,7 @@ import (
 	"crypto/ecdsa"
 	"crypto/x509"
 	"encoding/base64"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -133,6 +134,14 @@ aEcvjlCkgBCKXbrkumZV0m0dSlK1V1gxEiyQ8y6hk1MxJNe2AZrZUt7a4w==
 	// This is the LogID for above PublicKey
 	ctfeLogID = "39d1c085f7d5f3fe7a0de9e52a3ead14186891e52a9269d90de7990a30b55083"
 )
+
+func mustHexDecode(s string) []byte {
+	b, err := hex.DecodeString(s)
+	if err != nil {
+		panic(err)
+	}
+	return b
+}
 
 func TestValidatePodSpec(t *testing.T) {
 	tag := name.MustParseReference("gcr.io/distroless/static:nonroot")
@@ -2998,7 +3007,7 @@ func TestFulcioCertsFromAuthority(t *testing.T) {
 			CertChain: certChain,
 		}},
 		Ctlogs: []*config.TransparencyLogInstance{{
-			LogId:     &config.LogID{KeyId: []byte(ctfeLogID)},
+			LogId:     &config.LogID{KeyId: mustHexDecode(ctfeLogID)},
 			PublicKey: pbpk,
 		}},
 	}
@@ -3106,7 +3115,7 @@ func TestRekorClientAndKeysFromAuthority(t *testing.T) {
 	sk := config.SigstoreKeys{
 		Tlogs: []*config.TransparencyLogInstance{{
 			PublicKey: pbpk,
-			LogId:     &config.LogID{KeyId: []byte(rekorLogID)},
+			LogId:     &config.LogID{KeyId: mustHexDecode(rekorLogID)},
 			BaseUrl:   "rekor.example.com",
 		}},
 	}
@@ -3249,7 +3258,7 @@ func TestCheckOptsFromAuthority(t *testing.T) {
 	skRekor := config.SigstoreKeys{
 		Tlogs: []*config.TransparencyLogInstance{{
 			PublicKey: pbpkRekor,
-			LogId:     &config.LogID{KeyId: []byte("rekor-logid")},
+			LogId:     &config.LogID{KeyId: mustHexDecode(rekorLogID)},
 			BaseUrl:   "rekor.example.com",
 		}},
 	}
@@ -3266,7 +3275,7 @@ func TestCheckOptsFromAuthority(t *testing.T) {
 			CertChain: certChainPB,
 		}},
 		Ctlogs: []*config.TransparencyLogInstance{{
-			LogId:     &config.LogID{KeyId: []byte(ctfeLogID)},
+			LogId:     &config.LogID{KeyId: mustHexDecode(ctfeLogID)},
 			PublicKey: pbpkCTFE,
 		}},
 	}
@@ -3274,7 +3283,7 @@ func TestCheckOptsFromAuthority(t *testing.T) {
 		MediaType: "application/vnd.dev.sigstore.trustedroot+json;version=0.1",
 		Tlogs: []*config.TransparencyLogInstance{{
 			PublicKey:     pbpkRekor,
-			LogId:         &config.LogID{KeyId: []byte("rekor-logid")},
+			LogId:         &config.LogID{KeyId: mustHexDecode(rekorLogID)},
 			BaseUrl:       "rekor.example.com",
 			HashAlgorithm: pbcommon.HashAlgorithm_SHA2_256,
 		}},
@@ -3286,7 +3295,7 @@ func TestCheckOptsFromAuthority(t *testing.T) {
 			CertChain: certChainPB,
 		}},
 		Ctlogs: []*config.TransparencyLogInstance{{
-			LogId:         &config.LogID{KeyId: []byte(ctfeLogID)},
+			LogId:         &config.LogID{KeyId: mustHexDecode(ctfeLogID)},
 			PublicKey:     pbpkCTFE,
 			HashAlgorithm: pbcommon.HashAlgorithm_SHA2_256,
 		}},
@@ -3349,7 +3358,7 @@ func TestCheckOptsFromAuthority(t *testing.T) {
 		ctx:        testCtx,
 		wantClient: true,
 		wantCheckOpts: &cosign.CheckOpts{
-			RekorPubKeys: &cosign.TrustedTransparencyLogPubKeys{Keys: map[string]cosign.TransparencyLogPubKey{"rekor-logid": {PubKey: ecpk, Status: tuf.Active}}},
+			RekorPubKeys: &cosign.TrustedTransparencyLogPubKeys{Keys: map[string]cosign.TransparencyLogPubKey{rekorLogID: {PubKey: ecpk, Status: tuf.Active}}},
 		},
 	}, {
 		name: "trustroot found, Fulcio",
@@ -3382,7 +3391,7 @@ func TestCheckOptsFromAuthority(t *testing.T) {
 		wantCheckOpts: &cosign.CheckOpts{
 			RootCerts:         roots,
 			IntermediateCerts: intermediates,
-			RekorPubKeys:      &cosign.TrustedTransparencyLogPubKeys{Keys: map[string]cosign.TransparencyLogPubKey{"rekor-logid": {PubKey: ecpk, Status: tuf.Active}}},
+			RekorPubKeys:      &cosign.TrustedTransparencyLogPubKeys{Keys: map[string]cosign.TransparencyLogPubKey{rekorLogID: {PubKey: ecpk, Status: tuf.Active}}},
 			Identities: []cosign.Identity{{
 				Issuer:  "issuer",
 				Subject: "subject",
