@@ -19,6 +19,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"testing"
 
 	"github.com/google/go-containerregistry/pkg/name"
@@ -45,11 +46,23 @@ func TestValidAttestationsOCI11_RejectsForgedDSSE(t *testing.T) {
 	origResolve := ociremoteResolveDigest
 	origReferrers := ociremoteReferrers
 	origSignedImg := ociremoteSignedImage
+	origVerifyAtts := cosignVerifyAttestations
 	defer func() {
 		ociremoteResolveDigest = origResolve
 		ociremoteReferrers = origReferrers
 		ociremoteSignedImage = origSignedImg
+		cosignVerifyAttestations = origVerifyAtts
 	}()
+
+	// validAttestations falls through to cosign.VerifyImageAttestations when
+	// the OCI 1.1 path returns an error. Stub the legacy path so this test
+	// stays deterministic (no real registry / network calls) and so the only
+	// way validAttestations can return a non-empty result is the OCI 1.1
+	// branch — which is exactly what we want to assert does not accept the
+	// forged envelope.
+	cosignVerifyAttestations = func(_ context.Context, _ name.Reference, _ *cosign.CheckOpts, _ ...name.Option) ([]oci.Signature, bool, error) {
+		return nil, false, errors.New("legacy attestation fetch stubbed for test")
+	}
 
 	cfg := &policycontrollerconfig.PolicyControllerConfig{EnableOCI11: true}
 	ctx = policycontrollerconfig.ToContext(ctx, cfg)
