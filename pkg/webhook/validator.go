@@ -347,9 +347,53 @@ func (v *Validator) validatePodSpec(ctx context.Context, namespace, kind, apiVer
 		wg.Wait()
 	}
 
+	checkVolumeImages := func(vols []corev1.Volume) {
+		results := make(chan containerCheckResult, len(vols))
+		wg := new(sync.WaitGroup)
+		count := 0
+		for i, vol := range vols {
+			if vol.Image == nil || vol.Image.Reference == "" {
+				continue
+			}
+			count++
+			i := i
+			ref := vol.Image.Reference
+			wg.Add(1)
+			go func() {
+				defer wg.Done()
+
+				fe := refOrFieldError(ref, "volumes", i)
+				if fe != nil {
+					results <- containerCheckResult{index: i, containerCheckResult: fe}
+					return
+				}
+
+				containerErrors := v.validateContainerImage(ctx, ref, namespace, "volumes", i, kind, apiVersion, labels, kc, ociremote.WithRemoteOptions(
+					remote.WithContext(ctx),
+					remote.WithAuthFromKeychain(kc),
+				))
+				results <- containerCheckResult{index: i, containerCheckResult: containerErrors}
+			}()
+		}
+		for j := 0; j < count; j++ {
+			select {
+			case <-ctx.Done():
+				errs = errs.Also(apis.ErrGeneric("context was canceled before validation completed"))
+			case result, ok := <-results:
+				if !ok {
+					errs = errs.Also(apis.ErrGeneric("results channel failed to produce a result"))
+				} else {
+					errs = errs.Also(result.containerCheckResult)
+				}
+			}
+		}
+		wg.Wait()
+	}
+
 	checkContainers(ps.InitContainers, "initContainers")
 	checkContainers(ps.Containers, "containers")
 	checkEphemeralContainers(ps.EphemeralContainers, "ephemeralContainers")
+	checkVolumeImages(ps.Volumes)
 
 	return errs
 }
@@ -1121,9 +1165,40 @@ func (v *Validator) resolvePodSpec(ctx context.Context, ps *corev1.PodSpec, opt 
 		}
 	}
 
+	resolveVolumeImages := func(vols []corev1.Volume) {
+		for i, vol := range vols {
+			if vol.Image == nil || vol.Image.Reference == "" {
+				continue
+			}
+			ref, err := name.ParseReference(vol.Image.Reference)
+			if err != nil {
+				logging.FromContext(ctx).Debugf("Unable to parse volume image reference: %v", err)
+				continue
+			}
+
+			switch {
+			case apis.IsInCreate(ctx), apis.IsInUpdate(ctx):
+				digest, err := remoteResolveDigest(ref, ociremote.WithRemoteOptions(
+					remote.WithContext(ctx),
+					remote.WithAuthFromKeychain(kc),
+				))
+				if err != nil {
+					logging.FromContext(ctx).Debugf("Unable to resolve digest %q: %v", ref.String(), err)
+					continue
+				}
+				if tagRef, ok := ref.(name.Tag); ok {
+					vols[i].Image.Reference = fmt.Sprintf("%s@%s", tagRef.Name(), digest.DigestStr())
+				} else {
+					vols[i].Image.Reference = digest.String()
+				}
+			}
+		}
+	}
+
 	resolveContainers(ps.InitContainers)
 	resolveContainers(ps.Containers)
 	resolveEphemeralContainers(ps.EphemeralContainers)
+	resolveVolumeImages(ps.Volumes)
 }
 
 // getNamespace tries to extract the namespace from the HTTPRequest
