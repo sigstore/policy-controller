@@ -687,6 +687,269 @@ func TestValidatePodSpec(t *testing.T) {
 			},
 		),
 		cvs: authorityPublicKeyCVS,
+	}, {
+		name: "volume image with digest, no error",
+		ps: &corev1.PodSpec{
+			Containers: []corev1.Container{{
+				Name:  "user-container",
+				Image: digest.String(),
+			}},
+			Volumes: []corev1.Volume{{
+				Name: "data-vol",
+				VolumeSource: corev1.VolumeSource{
+					Image: &corev1.ImageVolumeSource{
+						Reference: digest.String(),
+					},
+				},
+			}},
+		},
+		cvs: pass,
+		customContext: config.ToContext(context.Background(),
+			&config.Config{
+				ImagePolicyConfig: &config.ImagePolicyConfig{
+					Policies: map[string]webhookcip.ClusterImagePolicy{
+						"cluster-image-policy": {
+							Images: []v1alpha1.ImagePattern{{
+								Glob: "gcr.io/*/*",
+							}},
+							Authorities: []webhookcip.Authority{
+								{
+									Key: &webhookcip.KeyRef{
+										Data:              authorityKeyCosignPubString,
+										PublicKeys:        []crypto.PublicKey{authorityKeyCosignPub},
+										HashAlgorithm:     signaturealgo.DefaultSignatureAlgorithm,
+										HashAlgorithmCode: crypto.SHA256,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		),
+	}, {
+		name: "volume image not digest",
+		ps: &corev1.PodSpec{
+			Containers: []corev1.Container{{
+				Name:  "user-container",
+				Image: digest.String(),
+			}},
+			Volumes: []corev1.Volume{{
+				Name: "data-vol",
+				VolumeSource: corev1.VolumeSource{
+					Image: &corev1.ImageVolumeSource{
+						Reference: tag.String(),
+					},
+				},
+			}},
+		},
+		want: &apis.FieldError{
+			Message: fmt.Sprintf("invalid value: %s must be an image digest", tag.String()),
+			Paths:   []string{"volumes[0].image"},
+		},
+		cvs: fail,
+	}, {
+		name: "volume image bad reference",
+		ps: &corev1.PodSpec{
+			Containers: []corev1.Container{{
+				Name:  "user-container",
+				Image: digest.String(),
+			}},
+			Volumes: []corev1.Volume{{
+				Name: "data-vol",
+				VolumeSource: corev1.VolumeSource{
+					Image: &corev1.ImageVolumeSource{
+						Reference: "in@valid",
+					},
+				},
+			}},
+		},
+		want: &apis.FieldError{
+			Message: `could not parse reference: in@valid`,
+			Paths:   []string{"volumes[0].image"},
+		},
+		cvs: fail,
+	}, {
+		name: "non-image volume, no error",
+		ps: &corev1.PodSpec{
+			Containers: []corev1.Container{{
+				Name:  "user-container",
+				Image: digest.String(),
+			}},
+			Volumes: []corev1.Volume{{
+				Name: "config-vol",
+				VolumeSource: corev1.VolumeSource{
+					ConfigMap: &corev1.ConfigMapVolumeSource{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "my-config",
+						},
+					},
+				},
+			}},
+		},
+		cvs: pass,
+		customContext: config.ToContext(context.Background(),
+			&config.Config{
+				ImagePolicyConfig: &config.ImagePolicyConfig{
+					Policies: map[string]webhookcip.ClusterImagePolicy{
+						"cluster-image-policy": {
+							Images: []v1alpha1.ImagePattern{{
+								Glob: "gcr.io/*/*",
+							}},
+							Authorities: []webhookcip.Authority{
+								{
+									Key: &webhookcip.KeyRef{
+										Data:              authorityKeyCosignPubString,
+										PublicKeys:        []crypto.PublicKey{authorityKeyCosignPub},
+										HashAlgorithm:     signaturealgo.DefaultSignatureAlgorithm,
+										HashAlgorithmCode: crypto.SHA256,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		),
+	}, {
+		name: "volume image empty reference, skipped",
+		ps: &corev1.PodSpec{
+			Containers: []corev1.Container{{
+				Name:  "user-container",
+				Image: digest.String(),
+			}},
+			Volumes: []corev1.Volume{{
+				Name: "data-vol",
+				VolumeSource: corev1.VolumeSource{
+					Image: &corev1.ImageVolumeSource{
+						Reference: "",
+					},
+				},
+			}},
+		},
+		cvs: pass,
+		customContext: config.ToContext(context.Background(),
+			&config.Config{
+				ImagePolicyConfig: &config.ImagePolicyConfig{
+					Policies: map[string]webhookcip.ClusterImagePolicy{
+						"cluster-image-policy": {
+							Images: []v1alpha1.ImagePattern{{
+								Glob: "gcr.io/*/*",
+							}},
+							Authorities: []webhookcip.Authority{
+								{
+									Key: &webhookcip.KeyRef{
+										Data:              authorityKeyCosignPubString,
+										PublicKeys:        []crypto.PublicKey{authorityKeyCosignPub},
+										HashAlgorithm:     signaturealgo.DefaultSignatureAlgorithm,
+										HashAlgorithmCode: crypto.SHA256,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		),
+	}, {
+		name: "mixed volumes, only image volumes validated",
+		ps: &corev1.PodSpec{
+			Containers: []corev1.Container{{
+				Name:  "user-container",
+				Image: digest.String(),
+			}},
+			Volumes: []corev1.Volume{{
+				Name: "config-vol",
+				VolumeSource: corev1.VolumeSource{
+					ConfigMap: &corev1.ConfigMapVolumeSource{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "my-config",
+						},
+					},
+				},
+			}, {
+				Name: "data-vol",
+				VolumeSource: corev1.VolumeSource{
+					Image: &corev1.ImageVolumeSource{
+						Reference: digest.String(),
+					},
+				},
+			}},
+		},
+		cvs: pass,
+		customContext: config.ToContext(context.Background(),
+			&config.Config{
+				ImagePolicyConfig: &config.ImagePolicyConfig{
+					Policies: map[string]webhookcip.ClusterImagePolicy{
+						"cluster-image-policy": {
+							Images: []v1alpha1.ImagePattern{{
+								Glob: "gcr.io/*/*",
+							}},
+							Authorities: []webhookcip.Authority{
+								{
+									Key: &webhookcip.KeyRef{
+										Data:              authorityKeyCosignPubString,
+										PublicKeys:        []crypto.PublicKey{authorityKeyCosignPub},
+										HashAlgorithm:     signaturealgo.DefaultSignatureAlgorithm,
+										HashAlgorithmCode: crypto.SHA256,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		),
+	}, {
+		name: "volume image fails policy",
+		ps: &corev1.PodSpec{
+			Containers: []corev1.Container{{
+				Name:  "user-container",
+				Image: digest.String(),
+			}},
+			Volumes: []corev1.Volume{{
+				Name: "data-vol",
+				VolumeSource: corev1.VolumeSource{
+					Image: &corev1.ImageVolumeSource{
+						Reference: digest.String(),
+					},
+				},
+			}},
+		},
+		want: func() *apis.FieldError {
+			var errs *apis.FieldError
+			fe := apis.ErrGeneric("failed policy: cluster-image-policy", "image").ViaFieldIndex("containers", 0)
+			fe.Details = fmt.Sprintf("%s signature key validation failed for authority  for %s: bad signature", digest.String(), "gcr.io/distroless/static@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4")
+			errs = errs.Also(fe)
+			fe2 := apis.ErrGeneric("failed policy: cluster-image-policy", "image").ViaFieldIndex("volumes", 0)
+			fe2.Details = fe.Details
+			errs = errs.Also(fe2)
+			return errs
+		}(),
+		customContext: config.ToContext(context.Background(),
+			&config.Config{
+				ImagePolicyConfig: &config.ImagePolicyConfig{
+					Policies: map[string]webhookcip.ClusterImagePolicy{
+						"cluster-image-policy": {
+							Images: []v1alpha1.ImagePattern{{
+								Glob: "gcr.io/*/*",
+							}},
+							Authorities: []webhookcip.Authority{
+								{
+									Key: &webhookcip.KeyRef{
+										Data:              authorityKeyCosignPubString,
+										PublicKeys:        []crypto.PublicKey{authorityKeyCosignPub},
+										HashAlgorithm:     signaturealgo.DefaultSignatureAlgorithm,
+										HashAlgorithmCode: crypto.SHA256,
+									},
+								},
+							},
+						},
+					},
+				},
+			},
+		),
+		cvs: fail,
 	}}
 
 	for _, test := range tests {
@@ -1138,6 +1401,140 @@ func TestResolvePodSpec(t *testing.T) {
 		},
 		wc:  apis.WithinCreate,
 		rrd: resolve,
+	}, {
+		name: "volume image tag resolves to digest (in create)",
+		ps: &corev1.PodSpec{
+			Containers: []corev1.Container{{
+				Name:  "user-container",
+				Image: tag.String(),
+			}},
+			Volumes: []corev1.Volume{{
+				Name: "data-vol",
+				VolumeSource: corev1.VolumeSource{
+					Image: &corev1.ImageVolumeSource{
+						Reference: tag.String(),
+					},
+				},
+			}},
+		},
+		want: &corev1.PodSpec{
+			Containers: []corev1.Container{{
+				Name:  "user-container",
+				Image: digest.String(),
+			}},
+			Volumes: []corev1.Volume{{
+				Name: "data-vol",
+				VolumeSource: corev1.VolumeSource{
+					Image: &corev1.ImageVolumeSource{
+						Reference: digest.String(),
+					},
+				},
+			}},
+		},
+		wc:  apis.WithinCreate,
+		rrd: resolve,
+	}, {
+		name: "volume image already digest, no change",
+		ps: &corev1.PodSpec{
+			Containers: []corev1.Container{{
+				Name:  "user-container",
+				Image: digestWithoutTag.String(),
+			}},
+			Volumes: []corev1.Volume{{
+				Name: "data-vol",
+				VolumeSource: corev1.VolumeSource{
+					Image: &corev1.ImageVolumeSource{
+						Reference: digestWithoutTag.String(),
+					},
+				},
+			}},
+		},
+		want: &corev1.PodSpec{
+			Containers: []corev1.Container{{
+				Name:  "user-container",
+				Image: digestWithoutTag.String(),
+			}},
+			Volumes: []corev1.Volume{{
+				Name: "data-vol",
+				VolumeSource: corev1.VolumeSource{
+					Image: &corev1.ImageVolumeSource{
+						Reference: digestWithoutTag.String(),
+					},
+				},
+			}},
+		},
+		wc:  apis.WithinCreate,
+		rrd: resolve,
+	}, {
+		name: "volume image nil, skipped",
+		ps: &corev1.PodSpec{
+			Containers: []corev1.Container{{
+				Name:  "user-container",
+				Image: tag.String(),
+			}},
+			Volumes: []corev1.Volume{{
+				Name: "config-vol",
+				VolumeSource: corev1.VolumeSource{
+					ConfigMap: &corev1.ConfigMapVolumeSource{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "my-config",
+						},
+					},
+				},
+			}},
+		},
+		want: &corev1.PodSpec{
+			Containers: []corev1.Container{{
+				Name:  "user-container",
+				Image: digest.String(),
+			}},
+			Volumes: []corev1.Volume{{
+				Name: "config-vol",
+				VolumeSource: corev1.VolumeSource{
+					ConfigMap: &corev1.ConfigMapVolumeSource{
+						LocalObjectReference: corev1.LocalObjectReference{
+							Name: "my-config",
+						},
+					},
+				},
+			}},
+		},
+		wc:  apis.WithinCreate,
+		rrd: resolve,
+	}, {
+		name: "volume image resolution failure, gracefully skipped",
+		ps: &corev1.PodSpec{
+			Containers: []corev1.Container{{
+				Name:  "user-container",
+				Image: tag.String(),
+			}},
+			Volumes: []corev1.Volume{{
+				Name: "data-vol",
+				VolumeSource: corev1.VolumeSource{
+					Image: &corev1.ImageVolumeSource{
+						Reference: tag.String(),
+					},
+				},
+			}},
+		},
+		want: &corev1.PodSpec{
+			Containers: []corev1.Container{{
+				Name:  "user-container",
+				Image: tag.String(),
+			}},
+			Volumes: []corev1.Volume{{
+				Name: "data-vol",
+				VolumeSource: corev1.VolumeSource{
+					Image: &corev1.ImageVolumeSource{
+						Reference: tag.String(),
+					},
+				},
+			}},
+		},
+		wc: apis.WithinCreate,
+		rrd: func(_ name.Reference, _ ...remote.Option) (name.Digest, error) {
+			return name.Digest{}, errors.New("boom")
+		},
 	}}
 
 	for _, test := range tests {
