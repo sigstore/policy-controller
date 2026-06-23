@@ -23,6 +23,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	_ "embed"
+	"encoding/hex"
 	"encoding/pem"
 	"fmt"
 	"math/big"
@@ -447,11 +448,19 @@ func makeConfigMapWithSigstoreKeys() *corev1.ConfigMap {
 	if err != nil {
 		panic("failed to convert test SigstoreKeys")
 	}
+	rekorLogIDBytes, err := hex.DecodeString(rekorLogID)
+	if err != nil {
+		panic("failed to decode rekor log ID")
+	}
 	for i := range c.Tlogs {
-		c.Tlogs[i].LogId = &config.LogID{KeyId: []byte(rekorLogID)}
+		c.Tlogs[i].LogId = &config.LogID{KeyId: rekorLogIDBytes}
+	}
+	ctfeLogIDBytes, err := hex.DecodeString(ctfeLogID)
+	if err != nil {
+		panic("failed to decode ctfe log ID")
 	}
 	for i := range c.Ctlogs {
-		c.Ctlogs[i].LogId = &config.LogID{KeyId: []byte(ctfeLogID)}
+		c.Ctlogs[i].LogId = &config.LogID{KeyId: ctfeLogIDBytes}
 	}
 	marshalled, err := resources.Marshal(c)
 	if err != nil {
