@@ -4325,8 +4325,7 @@ func TestProcessAttestationArtifact(t *testing.T) {
 			name:       "valid DSSE envelope",
 			descriptor: descriptor,
 			mockImage: func(ref name.Reference, opts ...remote.Option) (oci.SignedImage, error) {
-				// Valid DSSE envelope with proper base64 payload
-				dsseContent := []byte(`{"payload":"eyJ0ZXN0IjoidmFsdWUifQ==","signatures":[{"sig":"c2lnbmF0dXJl"}]}`)
+				dsseContent := []byte(`{"payloadType":"application/vnd.in-toto+json","payload":"eyJ0ZXN0IjoidmFsdWUifQ==","signatures":[{"sig":"c2lnbmF0dXJl"}]}`)
 				return &mockSignedImage{
 					layers: []v1.Layer{
 						&mockLayer{content: dsseContent},
@@ -4340,15 +4339,17 @@ func TestProcessAttestationArtifact(t *testing.T) {
 			name:       "multiple signatures in envelope",
 			descriptor: descriptor,
 			mockImage: func(ref name.Reference, opts ...remote.Option) (oci.SignedImage, error) {
-				dsseContent := []byte(`{"payload":"eyJ0ZXN0IjoidmFsdWUifQ==","signatures":[{"sig":"c2lnMQ=="},{"sig":"c2lnMg=="}]}`)
+				dsseContent := []byte(`{"payloadType":"application/vnd.in-toto+json","payload":"eyJ0ZXN0IjoidmFsdWUifQ==","signatures":[{"sig":"c2lnMQ=="},{"sig":"c2lnMg=="}]}`)
 				return &mockSignedImage{
 					layers: []v1.Layer{
 						&mockLayer{content: dsseContent},
 					},
 				}, nil
 			},
+			// One oci.Signature per envelope; DSSE verification handles the
+			// per-signer threshold internally.
 			wantErr:      false,
-			wantSigCount: 2,
+			wantSigCount: 1,
 		},
 		{
 			name: "invalid digest format",
@@ -4394,18 +4395,36 @@ func TestProcessAttestationArtifact(t *testing.T) {
 			wantErr: true,
 		},
 		{
+			// A DSSE envelope with zero signatures is structurally invalid;
+			// processAttestationArtifact must reject it rather than silently
+			// returning zero "verified" attestations.
 			name:       "empty signatures array",
 			descriptor: descriptor,
 			mockImage: func(ref name.Reference, opts ...remote.Option) (oci.SignedImage, error) {
-				dsseContent := []byte(`{"payload":"eyJ0ZXN0IjoidmFsdWUifQ==","signatures":[]}`)
+				dsseContent := []byte(`{"payloadType":"application/vnd.in-toto+json","payload":"eyJ0ZXN0IjoidmFsdWUifQ==","signatures":[]}`)
 				return &mockSignedImage{
 					layers: []v1.Layer{
 						&mockLayer{content: dsseContent},
 					},
 				}, nil
 			},
-			wantErr:      false,
-			wantSigCount: 0,
+			wantErr: true,
+		},
+		{
+			// DSSE envelopes must declare a payloadType; missing payloadType is
+			// not a real DSSE envelope and would never pass verification, so
+			// reject it explicitly rather than treating it as a valid signature.
+			name:       "DSSE envelope missing payloadType",
+			descriptor: descriptor,
+			mockImage: func(ref name.Reference, opts ...remote.Option) (oci.SignedImage, error) {
+				dsseContent := []byte(`{"payload":"eyJ0ZXN0IjoidmFsdWUifQ==","signatures":[{"sig":"c2ln"}]}`)
+				return &mockSignedImage{
+					layers: []v1.Layer{
+						&mockLayer{content: dsseContent},
+					},
+				}, nil
+			},
+			wantErr: true,
 		},
 	}
 
@@ -4425,6 +4444,17 @@ func TestProcessAttestationArtifact(t *testing.T) {
 	}
 }
 
+// passthroughVerifyAttestation returns the input attestations as if they
+// verified, for tests that exercise discovery logic without performing
+// real cryptographic verification.
+func passthroughVerifyAttestation(_ context.Context, atts oci.Signatures, _ v1.Hash, _ *cosign.CheckOpts) ([]oci.Signature, bool, error) {
+	sigs, err := atts.Get()
+	if err != nil {
+		return nil, false, err
+	}
+	return sigs, true, nil
+}
+
 func TestDiscoverAttestationsOCI11SuccessfulDiscovery(t *testing.T) {
 	ctx := context.Background()
 	ref := name.MustParseReference("example.com/test@sha256:abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234")
@@ -4434,11 +4464,14 @@ func TestDiscoverAttestationsOCI11SuccessfulDiscovery(t *testing.T) {
 	origResolve := ociremoteResolveDigest
 	origReferrers := ociremoteReferrers
 	origProcessAtt := testProcessAttestationArtifact
+	origVerifyAtt := cosignVerifyAttestation
 	defer func() {
 		ociremoteResolveDigest = origResolve
 		ociremoteReferrers = origReferrers
 		testProcessAttestationArtifact = origProcessAtt
+		cosignVerifyAttestation = origVerifyAtt
 	}()
+	cosignVerifyAttestation = passthroughVerifyAttestation
 
 	ociremoteResolveDigest = func(ref name.Reference, opts ...remote.Option) (name.Digest, error) {
 		return name.MustParseReference("example.com/test@sha256:abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234").(name.Digest), nil
@@ -4494,11 +4527,14 @@ func TestDiscoverAttestationsOCI11MixedArtifacts(t *testing.T) {
 	origResolve := ociremoteResolveDigest
 	origReferrers := ociremoteReferrers
 	origProcessAtt := testProcessAttestationArtifact
+	origVerifyAtt := cosignVerifyAttestation
 	defer func() {
 		ociremoteResolveDigest = origResolve
 		ociremoteReferrers = origReferrers
 		testProcessAttestationArtifact = origProcessAtt
+		cosignVerifyAttestation = origVerifyAtt
 	}()
+	cosignVerifyAttestation = passthroughVerifyAttestation
 
 	ociremoteResolveDigest = func(ref name.Reference, opts ...remote.Option) (name.Digest, error) {
 		return name.MustParseReference("example.com/test@sha256:abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234").(name.Digest), nil
@@ -4565,11 +4601,14 @@ func TestDiscoverAttestationsOCI11PartialProcessingFailure(t *testing.T) {
 	origResolve := ociremoteResolveDigest
 	origReferrers := ociremoteReferrers
 	origProcessAtt := testProcessAttestationArtifact
+	origVerifyAtt := cosignVerifyAttestation
 	defer func() {
 		ociremoteResolveDigest = origResolve
 		ociremoteReferrers = origReferrers
 		testProcessAttestationArtifact = origProcessAtt
+		cosignVerifyAttestation = origVerifyAtt
 	}()
+	cosignVerifyAttestation = passthroughVerifyAttestation
 
 	ociremoteResolveDigest = func(ref name.Reference, opts ...remote.Option) (name.Digest, error) {
 		return name.MustParseReference("example.com/test@sha256:abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234").(name.Digest), nil
