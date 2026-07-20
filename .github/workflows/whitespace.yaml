@@ -14,10 +14,10 @@ jobs:
 
     steps:
       - name: Check out code
-        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: chainguard-dev/actions/trailing-space@05fbd381f7c158bd33c9bbf3a28f67852269fdf8 # v1.6.21
+      - uses: chainguard-dev/actions/trailing-space@fabe4ed3f66ceb5f8ec86ed7ae6d0c945ca362fb # v1.6.28
         if: ${{ always() }}
 
-      - uses: chainguard-dev/actions/eof-newline@05fbd381f7c158bd33c9bbf3a28f67852269fdf8 # v1.6.21
+      - uses: chainguard-dev/actions/eof-newline@fabe4ed3f66ceb5f8ec86ed7ae6d0c945ca362fb # v1.6.28
         if: ${{ always() }}
