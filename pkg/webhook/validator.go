@@ -1123,7 +1123,7 @@ func (v *Validator) resolvePodSpec(ctx context.Context, ps *corev1.PodSpec, opt 
 					remote.WithAuthFromKeychain(kc),
 				))
 				if err != nil {
-					logging.FromContext(ctx).Debugf("Unable to resolve digest %q: %v", ref.String(), err)
+					logging.FromContext(ctx).Warnf("Unable to resolve digest %q: %v", ref.String(), err)
 					continue
 				}
 				// Keep the original tag and append the digest
@@ -1152,7 +1152,7 @@ func (v *Validator) resolvePodSpec(ctx context.Context, ps *corev1.PodSpec, opt 
 					remote.WithAuthFromKeychain(kc),
 				))
 				if err != nil {
-					logging.FromContext(ctx).Debugf("Unable to resolve digest %q: %v", ref.String(), err)
+					logging.FromContext(ctx).Warnf("Unable to resolve digest %q: %v", ref.String(), err)
 					continue
 				}
 				// Keep the original tag and append the digest
@@ -1183,7 +1183,7 @@ func (v *Validator) resolvePodSpec(ctx context.Context, ps *corev1.PodSpec, opt 
 					remote.WithAuthFromKeychain(kc),
 				))
 				if err != nil {
-					logging.FromContext(ctx).Debugf("Unable to resolve digest %q: %v", ref.String(), err)
+					logging.FromContext(ctx).Warnf("Unable to resolve digest %q: %v", ref.String(), err)
 					continue
 				}
 				if tagRef, ok := ref.(name.Tag); ok {
