@@ -43,7 +43,6 @@ func TestDefaultsConfigurationFromFile(t *testing.T) {
 }
 
 func TestGetAuthorities(t *testing.T) {
-	// TODO: Clean up this test to be table-driven with sub-tests, instead of one big test.
 	getAuthority := func(t *testing.T, m map[string]webhookcip.ClusterImagePolicy, mp string) webhookcip.Authority {
 		t.Helper()
 		cip, found := m[mp]
@@ -59,185 +58,179 @@ func TestGetAuthorities(t *testing.T) {
 	_, example := ConfigMapsFromTestFile(t, ImagePoliciesConfigName)
 	defaults, err := NewImagePoliciesConfigFromConfigMap(example)
 	if err != nil {
-		t.Error("NewImagePoliciesConfigFromConfigMap(example) =", err)
-	}
-	c, err := defaults.GetMatchingPolicies("rando", "Pod", "v1", map[string]string{})
-	checkGetMatches(t, c, err)
-	matchedPolicy := "cluster-image-policy-0"
-	want := inlineKeyData
-	if got := getAuthority(t, c, matchedPolicy).Key.Data; got != want {
-		t.Errorf("Did not get what I wanted %q, got %+v", want, got)
-	}
-	// Make sure UID and ResourceVersion are unserialized properly
-	checkUIDAndResourceVersion(t, matchedPolicy, c[matchedPolicy])
-	// Make sure glob matches 'randomstuff*'
-	c, err = defaults.GetMatchingPolicies("randomstuffhere", "Pod", "v1", map[string]string{})
-	checkGetMatches(t, c, err)
-	matchedPolicy = "cluster-image-policy-1"
-	want = inlineKeyData
-	if got := getAuthority(t, c, matchedPolicy).Key.Data; got != want {
-		t.Errorf("Did not get what I wanted %q, got %+v", want, got)
-	}
-	// Make sure UID and ResourceVersion are unserialized properly
-	checkUIDAndResourceVersion(t, matchedPolicy, c[matchedPolicy])
-	c, err = defaults.GetMatchingPolicies("rando3", "Pod", "v1", map[string]string{})
-	matchedPolicy = "cluster-image-policy-2"
-	checkGetMatches(t, c, err)
-	want = inlineKeyData
-	if got := getAuthority(t, c, matchedPolicy).Keyless.CACert.Data; got != want {
-		t.Errorf("Did not get what I wanted %q, got %+v", want, got)
-	}
-	wantInsecureIgnoreSCT := true
-	if got := getAuthority(t, c, matchedPolicy).Keyless.InsecureIgnoreSCT; *got != wantInsecureIgnoreSCT {
-		t.Errorf("Did not get what I wanted %v, got %+v", wantInsecureIgnoreSCT, got)
-	}
-	want = "issuer"
-	if got := getAuthority(t, c, matchedPolicy).Keyless.Identities[0].Issuer; got != want {
-		t.Errorf("Did not get what I wanted %q, got %+v", want, got)
-	}
-	want = "subject"
-	if got := getAuthority(t, c, matchedPolicy).Keyless.Identities[0].Subject; got != want {
-		t.Errorf("Did not get what I wanted %q, got %+v", want, got)
-	}
-	want = "trustroot-tsa-ref"
-	got := getAuthority(t, c, matchedPolicy)
-	if got.RFC3161Timestamp.TrustRootRef != want {
-		t.Errorf("Did not get the tsa what I wanted %q, got %+v", want, got)
-	}
-	// Make sure UID and ResourceVersion are unserialized properly
-	checkUIDAndResourceVersion(t, matchedPolicy, c[matchedPolicy])
-
-	// Make sure regex matches "regexstring*"
-	c, err = defaults.GetMatchingPolicies("regexstringstuff", "Pod", "v1", map[string]string{})
-	checkGetMatches(t, c, err)
-	matchedPolicy = "cluster-image-policy-4"
-	want = inlineKeyData
-	if got := getAuthority(t, c, matchedPolicy).Key.Data; got != want {
-		t.Errorf("Did not get what I wanted %q, got %+v", want, got)
-	}
-	checkPublicKey(t, getAuthority(t, c, matchedPolicy).Key.PublicKeys[0])
-	// Make sure UID and ResourceVersion are unserialized properly
-	checkUIDAndResourceVersion(t, matchedPolicy, c[matchedPolicy])
-
-	// Test multiline yaml cert
-	c, err = defaults.GetMatchingPolicies("inlinecert", "Pod", "v1", map[string]string{})
-	checkGetMatches(t, c, err)
-	matchedPolicy = "cluster-image-policy-3"
-	want = inlineKeyData
-	if got := getAuthority(t, c, matchedPolicy).Key.Data; got != want {
-		t.Errorf("Did not get what I wanted %q, got %+v", want, got)
-	}
-	checkPublicKey(t, getAuthority(t, c, matchedPolicy).Key.PublicKeys[0])
-
-	// Test multiline cert but json encoded
-	c, err = defaults.GetMatchingPolicies("ghcr.io/example/foo", "Pod", "v1", map[string]string{})
-	checkGetMatches(t, c, err)
-	matchedPolicy = "cluster-image-policy-json"
-	want = inlineKeyData
-	if got := getAuthority(t, c, matchedPolicy).Key.Data; got != want {
-		t.Errorf("Did not get what I wanted %q, got %+v", want, got)
-	}
-	checkPublicKey(t, getAuthority(t, c, matchedPolicy).Key.PublicKeys[0])
-
-	// Test multiple matches
-	c, err = defaults.GetMatchingPolicies("regexstringtoo", "Pod", "v1", map[string]string{})
-	checkGetMatches(t, c, err)
-	if len(c) != 2 {
-		t.Errorf("Wanted two matches, got %d", len(c))
-	}
-	matchedPolicy = "cluster-image-policy-4"
-	want = inlineKeyData
-	if got := getAuthority(t, c, matchedPolicy).Key.Data; got != want {
-		t.Errorf("Did not get what I wanted %q, got %+v", want, got)
-	}
-	checkPublicKey(t, getAuthority(t, c, matchedPolicy).Key.PublicKeys[0])
-
-	matchedPolicy = "cluster-image-policy-5"
-	want = inlineKeyData
-	if got := getAuthority(t, c, matchedPolicy).Key.Data; got != want {
-		t.Errorf("Did not get what I wanted %q, got %+v", want, got)
+		t.Fatal("NewImagePoliciesConfigFromConfigMap(example) =", err)
 	}
 
-	// Test attestations + top level policy
-	c, err = defaults.GetMatchingPolicies("withattestations", "Pod", "v1", map[string]string{})
-	checkGetMatches(t, c, err)
-	if len(c) != 1 {
-		t.Errorf("Wanted 1 match, got %d", len(c))
-	}
-	matchedPolicy = "cluster-image-policy-with-policy-attestations"
-	want = "attestation-0"
-	if got := getAuthority(t, c, matchedPolicy).Name; got != want {
-		t.Errorf("Did not get what I wanted %q, got %+v", want, got)
-	}
-	// Both top & authority policy is using cue
-	want = "cue"
-	if got := c[matchedPolicy].Policy.Type; got != want {
-		t.Errorf("Did not get what I wanted %q, got %+v", want, got)
-	}
-	want = "cip level cue here"
-	if got := c[matchedPolicy].Policy.Data; got != want {
-		t.Errorf("Did not get what I wanted %q, got %+v", want, got)
-	}
-	want = "cue"
-	if got := getAuthority(t, c, matchedPolicy).Attestations[0].Type; got != want {
-		t.Errorf("Did not get what I wanted %q, got %+v", want, got)
-	}
-	want = "test-cue-here"
-	if got := getAuthority(t, c, matchedPolicy).Attestations[0].Data; got != want {
-		t.Errorf("Did not get what I wanted %q, got %+v", want, got)
-	}
+	// Scenarios that match a single policy with an inline key authority. Some of
+	// them also carry a parsed public key that we verify round-trips correctly.
+	t.Run("single key-authority matches", func(t *testing.T) {
+		for _, tc := range []struct {
+			name          string
+			image         string
+			matchedPolicy string
+			checkPubKey   bool
+			checkUIDRV    bool
+		}{
+			{name: "exact glob", image: "rando", matchedPolicy: "cluster-image-policy-0", checkUIDRV: true},
+			{name: "glob suffix", image: "randomstuffhere", matchedPolicy: "cluster-image-policy-1", checkUIDRV: true},
+			{name: "regex", image: "regexstringstuff", matchedPolicy: "cluster-image-policy-4", checkPubKey: true, checkUIDRV: true},
+			{name: "multiline yaml cert", image: "inlinecert", matchedPolicy: "cluster-image-policy-3", checkPubKey: true},
+			{name: "multiline json cert", image: "ghcr.io/example/foo", matchedPolicy: "cluster-image-policy-json", checkPubKey: true},
+		} {
+			t.Run(tc.name, func(t *testing.T) {
+				c, err := defaults.GetMatchingPolicies(tc.image, "Pod", "v1", map[string]string{})
+				checkGetMatches(t, c, err)
+				if got := getAuthority(t, c, tc.matchedPolicy).Key.Data; got != inlineKeyData {
+					t.Errorf("Did not get what I wanted %q, got %+v", inlineKeyData, got)
+				}
+				if tc.checkPubKey {
+					checkPublicKey(t, getAuthority(t, c, tc.matchedPolicy).Key.PublicKeys[0])
+				}
+				if tc.checkUIDRV {
+					// Make sure UID and ResourceVersion are unserialized properly
+					checkUIDAndResourceVersion(t, tc.matchedPolicy, c[tc.matchedPolicy])
+				}
+			})
+		}
+	})
 
-	// Test source oci
-	matchedPolicy = "cluster-image-policy-source-oci"
-	c, err = defaults.GetMatchingPolicies("sourceocionly", "Pod", "v1", map[string]string{})
-	checkGetMatches(t, c, err)
-	if len(c) != 1 {
-		t.Errorf("Wanted 1 match, got %d", len(c))
-	}
+	t.Run("keyless authority", func(t *testing.T) {
+		matchedPolicy := "cluster-image-policy-2"
+		c, err := defaults.GetMatchingPolicies("rando3", "Pod", "v1", map[string]string{})
+		checkGetMatches(t, c, err)
+		authority := getAuthority(t, c, matchedPolicy)
+		if authority.Keyless == nil {
+			t.Fatalf("expected keyless authority for %q", matchedPolicy)
+		}
+		if got := authority.Keyless.CACert.Data; got != inlineKeyData {
+			t.Errorf("Did not get what I wanted %q, got %+v", inlineKeyData, got)
+		}
+		if got := authority.Keyless.InsecureIgnoreSCT; got == nil {
+			t.Errorf("InsecureIgnoreSCT was nil, wanted %v", true)
+		} else if *got != true {
+			t.Errorf("Did not get what I wanted %v, got %+v", true, *got)
+		}
+		if len(authority.Keyless.Identities) == 0 {
+			t.Fatalf("no identities for matching policy %q", matchedPolicy)
+		}
+		if got := authority.Keyless.Identities[0].Issuer; got != "issuer" {
+			t.Errorf("Did not get what I wanted %q, got %+v", "issuer", got)
+		}
+		if got := authority.Keyless.Identities[0].Subject; got != "subject" {
+			t.Errorf("Did not get what I wanted %q, got %+v", "subject", got)
+		}
+		if got := authority.RFC3161Timestamp.TrustRootRef; got != "trustroot-tsa-ref" {
+			t.Errorf("Did not get the tsa what I wanted %q, got %+v", "trustroot-tsa-ref", got)
+		}
+		// Make sure UID and ResourceVersion are unserialized properly
+		checkUIDAndResourceVersion(t, matchedPolicy, c[matchedPolicy])
+	})
 
-	checkSourceOCI(t, c[matchedPolicy].Authorities)
-	want = "example.registry.com/alternative/signature"
-	if got := getAuthority(t, c, matchedPolicy).Sources[0].OCI; got != want {
-		t.Errorf("Did not get what I wanted %q, got %+v", want, got)
-	}
+	t.Run("multiple matches", func(t *testing.T) {
+		c, err := defaults.GetMatchingPolicies("regexstringtoo", "Pod", "v1", map[string]string{})
+		checkGetMatches(t, c, err)
+		if len(c) != 2 {
+			t.Errorf("Wanted two matches, got %d", len(c))
+		}
+		for _, matchedPolicy := range []string{"cluster-image-policy-4", "cluster-image-policy-5"} {
+			if got := getAuthority(t, c, matchedPolicy).Key.Data; got != inlineKeyData {
+				t.Errorf("Did not get what I wanted %q, got %+v", inlineKeyData, got)
+			}
+		}
+		checkPublicKey(t, getAuthority(t, c, "cluster-image-policy-4").Key.PublicKeys[0])
+	})
 
-	// Test source signaturePullSecrets
-	matchedPolicy = "cluster-image-policy-source-oci-signature-pull-secrets"
-	c, err = defaults.GetMatchingPolicies("sourceocisignaturepullsecrets", "Pod", "v1", map[string]string{"match": "match"})
-	checkGetMatches(t, c, err)
-	if len(c) != 1 {
-		t.Errorf("Wanted 1 match, got %d", len(c))
-	}
+	t.Run("attestations and top level policy", func(t *testing.T) {
+		matchedPolicy := "cluster-image-policy-with-policy-attestations"
+		c, err := defaults.GetMatchingPolicies("withattestations", "Pod", "v1", map[string]string{})
+		checkGetMatches(t, c, err)
+		if len(c) != 1 {
+			t.Errorf("Wanted 1 match, got %d", len(c))
+		}
+		authority := getAuthority(t, c, matchedPolicy)
+		if got := authority.Name; got != "attestation-0" {
+			t.Errorf("Did not get what I wanted %q, got %+v", "attestation-0", got)
+		}
+		// Both top & authority policy is using cue
+		if got := c[matchedPolicy].Policy.Type; got != "cue" {
+			t.Errorf("Did not get what I wanted %q, got %+v", "cue", got)
+		}
+		if got := c[matchedPolicy].Policy.Data; got != "cip level cue here" {
+			t.Errorf("Did not get what I wanted %q, got %+v", "cip level cue here", got)
+		}
+		if len(authority.Attestations) == 0 {
+			t.Fatalf("no attestations for matching policy %q", matchedPolicy)
+		}
+		if got := authority.Attestations[0].Type; got != "cue" {
+			t.Errorf("Did not get what I wanted %q, got %+v", "cue", got)
+		}
+		if got := authority.Attestations[0].Data; got != "test-cue-here" {
+			t.Errorf("Did not get what I wanted %q, got %+v", "test-cue-here", got)
+		}
+	})
 
-	checkSourceOCI(t, c[matchedPolicy].Authorities)
-	if got := len(getAuthority(t, c, matchedPolicy).Sources[0].SignaturePullSecrets); got != 1 {
-		t.Errorf("Did not get what I wanted %d, got %d", 1, got)
-	}
-	want = "examplePullSecret"
-	if got := getAuthority(t, c, matchedPolicy).Sources[0].SignaturePullSecrets[0].Name; got != want {
-		t.Errorf("Did not get what I wanted %q, got %+v", want, got)
-	}
+	t.Run("source oci", func(t *testing.T) {
+		matchedPolicy := "cluster-image-policy-source-oci"
+		c, err := defaults.GetMatchingPolicies("sourceocionly", "Pod", "v1", map[string]string{})
+		checkGetMatches(t, c, err)
+		if len(c) != 1 {
+			t.Errorf("Wanted 1 match, got %d", len(c))
+		}
+		checkSourceOCI(t, c[matchedPolicy].Authorities)
+		authority := getAuthority(t, c, matchedPolicy)
+		if len(authority.Sources) == 0 {
+			t.Fatalf("no sources for matching policy %q", matchedPolicy)
+		}
+		if got := authority.Sources[0].OCI; got != "example.registry.com/alternative/signature" {
+			t.Errorf("Did not get what I wanted %q, got %+v", "example.registry.com/alternative/signature", got)
+		}
+	})
 
-	// Test resource matching
-	c, err = defaults.GetMatchingPolicies("match-pods", "Pod", "v1", map[string]string{"match": "match"})
-	checkGetMatches(t, c, err)
-	if len(c) != 1 {
-		t.Errorf("Wanted 1 match, got %d", len(c))
-	}
-	c, err = defaults.GetMatchingPolicies("match-pods", "Pod", "apps/v1", map[string]string{"match": "match"})
-	if err != nil {
-		t.Fatalf("GetMatchingPolicies() = %v", err)
-	}
-	if len(c) != 0 {
-		t.Errorf("Wanted 0 matches, got %d", len(c))
-	}
-	c, err = defaults.GetMatchingPolicies("match-pods", "Pod", "blah/v1alpha1", map[string]string{"match": "match"})
-	if err != nil {
-		t.Fatalf("GetMatchingPolicies() = %v", err)
-	}
-	if len(c) != 0 {
-		t.Errorf("Wanted 0 matches, got %d", len(c))
-	}
+	t.Run("source signature pull secrets", func(t *testing.T) {
+		matchedPolicy := "cluster-image-policy-source-oci-signature-pull-secrets"
+		c, err := defaults.GetMatchingPolicies("sourceocisignaturepullsecrets", "Pod", "v1", map[string]string{"match": "match"})
+		checkGetMatches(t, c, err)
+		if len(c) != 1 {
+			t.Errorf("Wanted 1 match, got %d", len(c))
+		}
+		checkSourceOCI(t, c[matchedPolicy].Authorities)
+		authority := getAuthority(t, c, matchedPolicy)
+		if len(authority.Sources) == 0 {
+			t.Fatalf("no sources for matching policy %q", matchedPolicy)
+		}
+		if got := len(authority.Sources[0].SignaturePullSecrets); got != 1 {
+			t.Errorf("Did not get what I wanted %d, got %d", 1, got)
+		}
+		if len(authority.Sources[0].SignaturePullSecrets) > 0 {
+			if got := authority.Sources[0].SignaturePullSecrets[0].Name; got != "examplePullSecret" {
+				t.Errorf("Did not get what I wanted %q, got %+v", "examplePullSecret", got)
+			}
+		}
+	})
+
+	t.Run("resource matching", func(t *testing.T) {
+		for _, tc := range []struct {
+			name        string
+			apiVersion  string
+			wantMatches int
+		}{
+			{name: "matching apiVersion", apiVersion: "v1", wantMatches: 1},
+			{name: "non-matching apiVersion", apiVersion: "apps/v1", wantMatches: 0},
+			{name: "unknown apiVersion", apiVersion: "blah/v1alpha1", wantMatches: 0},
+		} {
+			t.Run(tc.name, func(t *testing.T) {
+				c, err := defaults.GetMatchingPolicies("match-pods", "Pod", tc.apiVersion, map[string]string{"match": "match"})
+				if tc.wantMatches > 0 {
+					checkGetMatches(t, c, err)
+				} else if err != nil {
+					t.Fatalf("GetMatchingPolicies() = %v", err)
+				}
+				if got := len(c); got != tc.wantMatches {
+					t.Errorf("Wanted %d matches, got %d", tc.wantMatches, got)
+				}
+			})
+		}
+	})
 }
 
 func TestFailsToLoadInvalid(t *testing.T) {
