@@ -164,7 +164,7 @@ var ctfeLogID = string(testdata.Get("ctfeLogID.txt"))
 // TUF repository.
 var validRepository = testdata.Get("tufRepo.tar")
 
-// IMPORTANT: The next expiration is on 2025-03-02
+// IMPORTANT: The next expiration is on 2027-01-28
 // rootJSON is a valid root.json for above TUF repository.
 var rootJSON = testdata.Get("root.json")
 
@@ -172,7 +172,7 @@ var rootJSON = testdata.Get("root.json")
 // an air-gap TUF repository containing trusted_root.json.
 var validRepositoryWithTrustedRootJSON = testdata.Get("tufRepoWithTrustedRootJSON.tar")
 
-// IMPORTANT: The next expiration is on 2025-03-02
+// IMPORTANT: The next expiration is on 2027-01-28
 // rootJSON is a valid root.json for above TUF repository.
 var rootWithTrustedRootJSON = testdata.Get("rootWithTrustedRootJSON.json")
 
