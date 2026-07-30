@@ -105,8 +105,14 @@ jobs:
         go-version-file: './go.mod'
         check-latest: true
 
-    # will use the latest release available for ko
     - uses: ko-build/setup-ko@d006021bd0c28d1ce33a07e7943d48b079944c8d # v0.9
+      with:
+        # Pin ko: v0.19.x (ko-build/ko#1619) rejects kodata symlinks that escape the
+        # kodata dir, breaking cmd/webhook/kodata (LICENSE, VENDOR-LICENSE, .git links)
+        # and thus every `ko resolve`/`make ko-policy-controller` run. The relaxation
+        # (ko-build/ko#1699) is merged upstream but unreleased. Temporary pin to the last
+        # release before the strict check; unpin once a ko release includes #1699.
+        version: v0.18.1
 
     - uses: imranismail/setup-kustomize@53f941b41dca13ed61874bbc6b4b6e1562877530 # v3.0.0
 
