@@ -97,7 +97,7 @@ jobs:
           apt-get autoremove -y >/dev/null 2>&1 || true
           apt-get autoclean -y >/dev/null 2>&1 || true
 
-    - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       with:
         persist-credentials: false
 
@@ -106,7 +106,7 @@ jobs:
         go-version-file: './go.mod'
         check-latest: true
 
-    - uses: ko-build/setup-ko@d006021bd0c28d1ce33a07e7943d48b079944c8d # v0.9
+    - uses: ko-build/setup-ko@61b4d1d396f5b2e7d6bb6fefdce3dc38d1a13445 # v0.10
       with:
         # Pin ko: v0.19.x (ko-build/ko#1619) rejects kodata symlinks that escape the
         # kodata dir, breaking cmd/webhook/kodata (LICENSE, VENDOR-LICENSE, .git links)
@@ -120,12 +120,12 @@ jobs:
     - uses: sigstore/cosign-installer@d58896d6a1865668819e1d91763c7751a165e159
 
     - name: Setup mirror
-      uses: chainguard-dev/actions/setup-mirror@05fbd381f7c158bd33c9bbf3a28f67852269fdf8 # v1.6.21
+      uses: chainguard-dev/actions/setup-mirror@b2555de0cf9724fb9b49d050ff18bd1f49562ba7 # v1.6.29
       with:
         mirror: mirror.gcr.io
 
     - name: Setup kind cluster
-      uses: chainguard-dev/actions/setup-kind@05fbd381f7c158bd33c9bbf3a28f67852269fdf8 # v1.6.21
+      uses: chainguard-dev/actions/setup-kind@b2555de0cf9724fb9b49d050ff18bd1f49562ba7 # v1.6.29
       with:
         k8s-version: ${{ matrix.k8s-version }}
         cluster-suffix: c${{ github.run_id }}.local
@@ -153,4 +153,4 @@ jobs:
 
     - name: Collect diagnostics
       if: ${{ failure() }}
-      uses: chainguard-dev/actions/kind-diag@05fbd381f7c158bd33c9bbf3a28f67852269fdf8 # v1.6.21
+      uses: chainguard-dev/actions/kind-diag@b2555de0cf9724fb9b49d050ff18bd1f49562ba7 # v1.6.29
