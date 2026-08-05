@@ -27,7 +27,6 @@ import (
 	"log"
 	"math/big"
 	"os"
-	"path"
 	"path/filepath"
 	"time"
 
@@ -35,7 +34,6 @@ import (
 	"github.com/sigstore/policy-controller/pkg/apis/config"
 	testing "github.com/sigstore/policy-controller/pkg/reconciler/testing/v1alpha1"
 	pbcommon "github.com/sigstore/protobuf-specs/gen/pb-go/common/v1"
-	"github.com/sigstore/scaffolding/pkg/repo"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
 	"google.golang.org/protobuf/encoding/protojson"
 	"google.golang.org/protobuf/types/known/timestamppb"
@@ -78,29 +76,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	tufRepo, rootJSON, err := genTUFRepo(map[string][]byte{
-		"rekor.pem":  []byte(sigstoreKeysMap["rekor"]),
-		"ctfe.pem":   []byte(sigstoreKeysMap["ctfe"]),
-		"fulcio.pem": []byte(sigstoreKeysMap["fulcio"]),
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	tufRepoWithTrustedRootJSON, rootJSONWithTrustedRootJSON, err := genTUFRepo(map[string][]byte{
-		"trusted_root.json": marshalledEntry,
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	tufRepoWithCustomTrustedRootJSON, rootJSONWithCustomTrustedRootJSON, err := genTUFRepo(map[string][]byte{
-		"custom_trusted_root.json": marshalledEntry,
-	})
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	marshalledEntryFromMirrorFS, err := genTrustedRoot(sigstoreKeysMap)
 	if err != nil {
 		log.Fatal(err)
@@ -114,12 +89,6 @@ func main() {
 	mustWriteFile("tsaCertChain.pem", tsaChainConcat)
 	mustWriteFile("marshalledEntry.json", marshalledEntry)
 	mustWriteFile("marshalledEntryFromMirrorFS.json", marshalledEntryFromMirrorFS)
-	mustWriteFile("tufRepo.tar", tufRepo)
-	mustWriteFile("root.json", rootJSON)
-	mustWriteFile("tufRepoWithTrustedRootJSON.tar", tufRepoWithTrustedRootJSON)
-	mustWriteFile("rootWithTrustedRootJSON.json", rootJSONWithTrustedRootJSON)
-	mustWriteFile("tufRepoWithCustomTrustedRootJSON.tar", tufRepoWithCustomTrustedRootJSON)
-	mustWriteFile("rootWithCustomTrustedRootJSON.json", rootJSONWithCustomTrustedRootJSON)
 }
 
 func mustWriteFile(path string, data []byte) {
@@ -233,29 +202,6 @@ func genLogID(pkBytes []byte) (string, error) {
 		return "", err
 	}
 	return cosign.GetTransparencyLogID(pk)
-}
-
-func genTUFRepo(files map[string][]byte) ([]byte, []byte, error) {
-	defer os.RemoveAll(path.Join(os.TempDir(), "tuf")) // TODO: Update scaffolding to use os.MkdirTemp and remove this
-	ctx := context.Background()
-	local, dir, err := repo.CreateRepoWithOptions(ctx, files, repo.CreateRepoOptions{AddMetadataTargets: true})
-	if err != nil {
-		return nil, nil, err
-	}
-	meta, err := local.GetMeta()
-	if err != nil {
-		return nil, nil, err
-	}
-	rootJSON, ok := meta["root.json"]
-	if !ok {
-		return nil, nil, err
-	}
-
-	var compressed bytes.Buffer
-	if err := repo.CompressFS(os.DirFS(dir), &compressed, map[string]bool{"keys": true, "staged": true}); err != nil {
-		return nil, nil, err
-	}
-	return compressed.Bytes(), rootJSON, nil
 }
 
 func genTrustedRoot(sigstoreKeysMap map[string]string) ([]byte, error) {
