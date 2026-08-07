@@ -169,7 +169,7 @@ Attestation defines the type of attestation to validate and optionally apply a p
 | keyless | Keyless sets the configuration to verify the authority against a Fulcio instance. | [KeylessRef](#keylessref) | false |
 | static | Static specifies that signatures / attestations are not validated but instead a static policy is applied against matching images. | [StaticRef](#staticref) | false |
 | source | Sources sets the configuration to specify the sources from where to consume the signature and attestations. | [][Source](#source) | false |
-| ctlog | CTLog sets the configuration to verify the authority against a Rekor instance. | [TLog](#tlog) | false |
+| ctlog | CTLog configures transparency log (Rekor) verification; if ctlog is set but neither trustRootRef nor url is set (ctlog: {}), tlog verification is disabled. | [TLog](#tlog) | false |
 | attestations | Attestations is a list of individual attestations for this authority, once the signature for this authority has been verified. | [][Attestation](#attestation) | false |
 | rfc3161timestamp | RFC3161Timestamp sets the configuration to verify the signature timestamp against a RFC3161 time-stamping instance. | [RFC3161Timestamp](#rfc3161timestamp) | false |
 | signatureFormat | SignatureFormat specifies the format the authority expects. Supported formats are \"legacy\" and \"bundle\". If not specified, the default is \"legacy\" (cosign's default). | string | false |
@@ -357,7 +357,7 @@ TLog specifies the URL to a transparency log that holds the signature and public
 
 | Field | Description | Scheme | Required |
 | ----- | ----------- | ------ | -------- |
-| url | URL sets the url to the rekor instance (by default the public rekor.sigstore.dev) | apis.URL | false |
+| url | URL sets the url to the rekor instance; if unset and trustRootRef is also unset, tlog verification is disabled. | apis.URL | false |
 | trustRootRef | Use the Public Key from the referred TrustRoot.TLog | string | false |
 
 [Back to TOC](#table-of-contents)
