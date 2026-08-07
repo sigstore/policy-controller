@@ -75,6 +75,12 @@ func (cs *ClusterImagePolicyStatus) MarkInlinePoliciesFailed(msg string) {
 	cipCondSet.Manage(cs).MarkFalse(ClusterImagePolicyConditionPoliciesInlined, inlinePoliciesFailedReason, msg)
 }
 
+// MarkNamespaceValidationFailed surfaces a failure that we were unable to
+// validate the namespace for the CIP.
+func (cs *ClusterImagePolicyStatus) MarkNamespaceValidationFailed(msg string) {
+	cipCondSet.Manage(cs).MarkFalse(ClusterImagePolicyConditionPoliciesInlined, "NamespaceValidationFailed", msg)
+}
+
 // MarkInlinePoliciesdOk marks the status saying that the inlining of the
 // policies had no errors.
 func (cs *ClusterImagePolicyStatus) MarkInlinePoliciesOk() {
