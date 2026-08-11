@@ -48,6 +48,7 @@ import (
 	"knative.dev/pkg/controller"
 	"knative.dev/pkg/system"
 
+	"github.com/sigstore/policy-controller/internal/tuftest"
 	. "github.com/sigstore/policy-controller/pkg/reconciler/testing/v1alpha1"
 	"github.com/sigstore/policy-controller/pkg/reconciler/trustroot/resources"
 	"github.com/sigstore/policy-controller/pkg/reconciler/trustroot/testdata"
@@ -160,30 +161,48 @@ var marshalledEntryFromMirrorFS = string(canonicalizeSigstoreKeys(testdata.Get("
 var rekorLogID = string(testdata.Get("rekorLogID.txt"))
 var ctfeLogID = string(testdata.Get("ctfeLogID.txt"))
 
-// validRepository is a valid tarred repository representing an air-gap
-// TUF repository.
-var validRepository = testdata.Get("tufRepo.tar")
+// tufRepos holds the tarred air-gap TUF repositories used by TestReconcile
+// along with their matching root.json files.
+type tufRepos struct {
+	repository, root                                 []byte
+	withTrustedRoot, rootWithTrustedRoot             []byte
+	withCustomTrustedRoot, rootWithCustomTrustedRoot []byte
+}
 
-// IMPORTANT: The next expiration is on 2027-01-28
-// rootJSON is a valid root.json for above TUF repository.
-var rootJSON = testdata.Get("root.json")
+// newTUFRepos generates the TUF repositories used by TestReconcile. They are
+// built at test time rather than committed to testdata because TUF metadata
+// expires, which would otherwise break the suite roughly every six months.
+//
+// The target names matter: sigstore derives each target's usage from its
+// filename, and the reconciler reads that usage back out. The keys and
+// certificates they wrap stay committed, since they are valid for ten years
+// and the golden files are derived from them rather than from the TUF
+// metadata.
+func newTUFRepos(t *testing.T) (repos tufRepos) {
+	t.Helper()
 
-// validRepositoryWithTrustedRootJSON is a valid tarred repository representing
-// an air-gap TUF repository containing trusted_root.json.
-var validRepositoryWithTrustedRootJSON = testdata.Get("tufRepoWithTrustedRootJSON.tar")
+	trustedRoot := testdata.Get("marshalledEntry.json")
 
-// IMPORTANT: The next expiration is on 2027-01-28
-// rootJSON is a valid root.json for above TUF repository.
-var rootWithTrustedRootJSON = testdata.Get("rootWithTrustedRootJSON.json")
-
-// validRepositoryWithCustomTrustedRootJSON is a valid tarred repository representing
-// an air-gap TUF repository containing custom_trusted_root.json.
-var validRepositoryWithCustomTrustedRootJSON = testdata.Get("tufRepoWithCustomTrustedRootJSON.tar")
-
-// rootWithCustomTrustedRootJSON is a valid root.json for above TUF repository.
-var rootWithCustomTrustedRootJSON = testdata.Get("rootWithCustomTrustedRootJSON.json")
+	repos.repository, repos.root = tuftest.NewRepo(t, []tuftest.Target{
+		{Name: "rekor.pem", Bytes: testdata.Get("rekorPublicKey.pem")},
+		{Name: "ctfe.pem", Bytes: testdata.Get("ctfePublicKey.pem")},
+		{Name: "fulcio.pem", Bytes: testdata.Get("fulcioCertChain.pem")},
+	})
+	repos.withTrustedRoot, repos.rootWithTrustedRoot = tuftest.NewRepo(t, []tuftest.Target{
+		{Name: "trusted_root.json", Bytes: trustedRoot},
+	})
+	repos.withCustomTrustedRoot, repos.rootWithCustomTrustedRoot = tuftest.NewRepo(t, []tuftest.Target{
+		{Name: "custom_trusted_root.json", Bytes: trustedRoot},
+	})
+	return repos
+}
 
 func TestReconcile(t *testing.T) {
+	repos := newTUFRepos(t)
+	validRepository, rootJSON := repos.repository, repos.root
+	validRepositoryWithTrustedRootJSON, rootWithTrustedRootJSON := repos.withTrustedRoot, repos.rootWithTrustedRoot
+	validRepositoryWithCustomTrustedRootJSON, rootWithCustomTrustedRootJSON := repos.withCustomTrustedRoot, repos.rootWithCustomTrustedRoot
+
 	table := TableTest{{
 		Name: "bad workqueue key",
 		// Make sure Reconcile handles bad keys.
