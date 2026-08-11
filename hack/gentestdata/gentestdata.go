@@ -22,8 +22,10 @@ import (
 	"crypto/rand"
 	"crypto/x509"
 	"crypto/x509/pkix"
+	"encoding/hex"
 	"encoding/pem"
 	"flag"
+	"fmt"
 	"log"
 	"math/big"
 	"os"
@@ -215,14 +217,22 @@ func populateLogIDs(sigstoreKeys *config.SigstoreKeys) error {
 		if err != nil {
 			return err
 		}
-		sigstoreKeys.Tlogs[i].LogId = &config.LogID{KeyId: []byte(logID)}
+		logIDBytes, err := hex.DecodeString(logID)
+		if err != nil {
+			return fmt.Errorf("failed to decode tlog LogID: %w", err)
+		}
+		sigstoreKeys.Tlogs[i].LogId = &config.LogID{KeyId: logIDBytes}
 	}
 	for i := range sigstoreKeys.Ctlogs {
 		logID, err := genLogID(sigstoreKeys.Ctlogs[i].PublicKey.RawBytes)
 		if err != nil {
 			return err
 		}
-		sigstoreKeys.Ctlogs[i].LogId = &config.LogID{KeyId: []byte(logID)}
+		logIDBytes, err := hex.DecodeString(logID)
+		if err != nil {
+			return fmt.Errorf("failed to decode ctlog LogID: %w", err)
+		}
+		sigstoreKeys.Ctlogs[i].LogId = &config.LogID{KeyId: logIDBytes}
 	}
 	return nil
 }
