@@ -38,7 +38,7 @@ const (
 )
 
 var (
-	links = map[string]string{
+	links = map[string]string{ //nolint:gosec // API documentation links, not credentials
 		"metav1.ObjectMeta":           "https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#objectmeta-v1-meta",
 		"metav1.ListMeta":             "https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#listmeta-v1-meta",
 		"metav1.LabelSelector":        "https://kubernetes.io/docs/reference/generated/kubernetes-api/v1.25/#labelselector-v1-meta",

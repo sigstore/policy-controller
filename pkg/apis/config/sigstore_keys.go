@@ -191,7 +191,7 @@ func HashStringToHashAlgorithm(hash string) pbcommon.HashAlgorithm {
 }
 
 func SerializeCertChain(certChain *pbcommon.X509CertificateChain) []byte {
-	var chain []byte
+	var chain []byte //nolint:prealloc // PEM-encoded length isn't knowable up front
 	for _, cert := range certChain.Certificates {
 		bytes := cert.RawBytes
 		block := &pem.Block{

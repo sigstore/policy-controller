@@ -106,7 +106,7 @@ var (
 )
 
 func main() {
-	opts := webhook.Options{
+	opts := webhook.Options{ //nolint:gosec // name of the certs secret, not a credential
 		ServiceName: "webhook",
 		Port:        8443,
 		SecretName:  "webhook-certs",

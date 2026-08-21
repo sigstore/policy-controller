@@ -149,7 +149,7 @@ func TestAttestationToPayloadJson(t *testing.T) {
 		}
 		switch fileName {
 		case "custom":
-			var intoto in_toto.Statement
+			var intoto in_toto.Statement //nolint:staticcheck // the deprecated legacy statement shape is the point of this vendored copy
 			if err := json.Unmarshal(jsonBytes, &intoto); err != nil {
 				t.Fatalf("[%s] Wanted custom statement, can't unmarshal to it: %v", fileName, err)
 			}

@@ -274,7 +274,7 @@ func (a *Authority) SourceSignaturePullSecretsOpts(ctx context.Context, namespac
 func ConvertClusterImagePolicyV1alpha1ToWebhook(in *v1alpha1.ClusterImagePolicy) *ClusterImagePolicy {
 	copyIn := in.DeepCopy()
 
-	outAuthorities := make([]Authority, 0)
+	outAuthorities := make([]Authority, 0, len(copyIn.Spec.Authorities))
 	for _, authority := range copyIn.Spec.Authorities {
 		outAuthority := convertAuthorityV1Alpha1ToWebhook(authority)
 		outAuthorities = append(outAuthorities, *outAuthority)
@@ -342,7 +342,7 @@ func convertRFC3161TimestampV1Alpha1ToWebhook(in *v1alpha1.RFC3161Timestamp) *RF
 }
 
 func convertAttestationsV1Alpha1ToWebhook(in []v1alpha1.Attestation) []AttestationPolicy {
-	ret := []AttestationPolicy{}
+	ret := make([]AttestationPolicy, 0, len(in))
 	for _, inAtt := range in {
 		outAtt := AttestationPolicy{
 			Name:          inAtt.Name,
