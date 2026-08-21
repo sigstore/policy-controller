@@ -40,7 +40,7 @@ jobs:
 
     env:
       KO_DOCKER_REPO: "registry.localhost:5000/policy-controller"
-      SCAFFOLDING_RELEASE_VERSION: "v0.7.27"
+      SCAFFOLDING_RELEASE_VERSION: "v0.7.37"
       GO111MODULE: on
       GOFLAGS: -ldflags=-s -ldflags=-w
       KOCACHE: ~/ko
