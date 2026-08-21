@@ -553,6 +553,7 @@ func ValidatePolicy(ctx context.Context, namespace string, ref name.Reference, c
 			// Assignment for appendAssign lint error
 			authorityRemoteOpts := remoteOpts
 			authorityRemoteOpts = append(authorityRemoteOpts, authority.RemoteOpts...)
+			authorityRemoteOpts = append(authorityRemoteOpts, sourceRemoteOpts(ctx, authority)...)
 
 			signaturePullSecretsOpts, err := authority.SourceSignaturePullSecretsOpts(ctx, namespace)
 			if err != nil {
@@ -1114,6 +1115,40 @@ func parseReference(ctx context.Context, image string) (name.Reference, error) {
 		}
 	}
 	return ref, nil
+}
+
+// parseRepository is parseReference for bare repositories (no tag/digest).
+func parseRepository(ctx context.Context, repo string) (name.Repository, error) {
+	r, err := name.NewRepository(repo)
+	if err != nil {
+		return name.Repository{}, err
+	}
+	for _, registry := range policycontrollerconfig.FromContextOrDefaults(ctx).InsecureRegistries {
+		if r.RegistryStr() == registry {
+			return name.NewRepository(repo, name.Insecure)
+		}
+	}
+	return r, nil
+}
+
+// sourceRemoteOpts re-derives the target-repository options for the
+// authority's OCI sources. Authority.UnmarshalJSON builds these without
+// access to the config, so it cannot honor insecure-registries; the
+// options appended here take precedence over the ones it built.
+func sourceRemoteOpts(ctx context.Context, authority webhookcip.Authority) []ociremote.Option {
+	var opts []ociremote.Option
+	for _, source := range authority.Sources {
+		if source.OCI == "" {
+			continue
+		}
+		repo, err := parseRepository(ctx, source.OCI)
+		if err != nil {
+			// Invalid sources were already rejected by UnmarshalJSON.
+			continue
+		}
+		opts = append(opts, ociremote.WithTargetRepository(repo))
+	}
+	return opts
 }
 
 func (v *Validator) resolvePodSpec(ctx context.Context, ps *corev1.PodSpec, opt k8schain.Options) {

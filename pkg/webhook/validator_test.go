@@ -4667,7 +4667,16 @@ func TestParseReferenceInsecureRegistries(t *testing.T) {
 				t.Fatalf("parseReference() error = %v", err)
 			}
 			if got := ref.Context().Scheme(); got != tc.wantScheme {
-				t.Errorf("scheme = %q, want %q", got, tc.wantScheme)
+				t.Errorf("parseReference scheme = %q, want %q", got, tc.wantScheme)
+			}
+
+			// The repository variant applies the same config.
+			repo, err := parseRepository(ctx, tc.image[:strings.LastIndex(tc.image, ":")])
+			if err != nil {
+				t.Fatalf("parseRepository() error = %v", err)
+			}
+			if got := repo.Scheme(); got != tc.wantScheme {
+				t.Errorf("parseRepository scheme = %q, want %q", got, tc.wantScheme)
 			}
 		})
 	}

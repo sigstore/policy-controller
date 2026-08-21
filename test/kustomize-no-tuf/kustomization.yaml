@@ -34,3 +34,11 @@ patches:
   target:
     kind: Deployment
     name: webhook
+- patch: |-
+    - op: add
+      path: /data/insecure-registries
+      value: registry.local:5000
+
+  target:
+    kind: ConfigMap
+    name: config-policy-controller
