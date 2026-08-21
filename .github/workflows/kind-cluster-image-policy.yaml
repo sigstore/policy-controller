@@ -54,8 +54,8 @@ jobs:
         - cluster_image_policy_from_url
 
     env:
-      KO_DOCKER_REPO: "registry.localhost:5000/policy-controller"
-      SCAFFOLDING_RELEASE_VERSION: "v0.7.37"
+      KO_DOCKER_REPO: "registry.local:5000/policy-controller"
+      SCAFFOLDING_RELEASE_VERSION: "v0.7.27"
       GO111MODULE: on
       GOFLAGS: -ldflags=-s -ldflags=-w
       KOCACHE: ~/ko
@@ -141,9 +141,6 @@ jobs:
       with:
         k8s-version: ${{ matrix.k8s-version}}
         version: ${{ env.SCAFFOLDING_RELEASE_VERSION }}
-        # go-containerregistry >= v0.21.4 only treats '*.localhost' (not '*.local')
-        # registries as insecure HTTP.
-        registry-name: registry.localhost
 
     - name: Copy TUF root to policy-controller namespace
       run: |
@@ -157,7 +154,7 @@ jobs:
         GIT_VERSION: ci
         LDFLAGS: ""
         POLICY_CONTROLLER_YAML: test/kustomize/policy-controller-e2e.yaml
-        KO_PREFIX: registry.localhost:5000/policy-controller
+        KO_PREFIX: registry.local:5000/policy-controller
         POLICY_CONTROLLER_ARCHS: linux/amd64
       run: |
         make ko-policy-controller
