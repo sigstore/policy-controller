@@ -4631,3 +4631,53 @@ func TestDiscoverAttestationsOCI11PartialProcessingFailure(t *testing.T) {
 		t.Errorf("Expected 2 signatures (second failed), got %d", len(sigs))
 	}
 }
+
+func TestParseReferenceInsecureRegistries(t *testing.T) {
+	tests := []struct {
+		name               string
+		image              string
+		insecureRegistries []string
+		wantScheme         string
+	}{{
+		name:       "no insecure registries configured",
+		image:      "registry.local:5000/repo/image:tag",
+		wantScheme: "https",
+	}, {
+		name:               "registry listed as insecure",
+		image:              "registry.local:5000/repo/image:tag",
+		insecureRegistries: []string{"registry.local:5000"},
+		wantScheme:         "http",
+	}, {
+		name:               "different registry listed as insecure",
+		image:              "registry.local:5000/repo/image:tag",
+		insecureRegistries: []string{"other.example.com:5000"},
+		wantScheme:         "https",
+	}, {
+		name:               "localhost is insecure by default",
+		image:              "localhost:5000/repo/image:tag",
+		insecureRegistries: nil,
+		wantScheme:         "http",
+	}}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			ctx := policycontrollerconfig.ToContext(context.Background(),
+				&policycontrollerconfig.PolicyControllerConfig{InsecureRegistries: tc.insecureRegistries})
+			ref, err := parseReference(ctx, tc.image)
+			if err != nil {
+				t.Fatalf("parseReference() error = %v", err)
+			}
+			if got := ref.Context().Scheme(); got != tc.wantScheme {
+				t.Errorf("parseReference scheme = %q, want %q", got, tc.wantScheme)
+			}
+
+			// The repository variant applies the same config.
+			repo, err := parseRepository(ctx, tc.image[:strings.LastIndex(tc.image, ":")])
+			if err != nil {
+				t.Fatalf("parseRepository() error = %v", err)
+			}
+			if got := repo.Scheme(); got != tc.wantScheme {
+				t.Errorf("parseRepository scheme = %q, want %q", got, tc.wantScheme)
+			}
+		})
+	}
+}

@@ -106,7 +106,7 @@ var (
 )
 
 func main() {
-	opts := webhook.Options{
+	opts := webhook.Options{ //nolint:gosec // name of the certs secret, not a credential
 		ServiceName: "webhook",
 		Port:        8443,
 		SecretName:  "webhook-certs",
@@ -269,7 +269,12 @@ func NewValidatingAdmissionController(ctx context.Context, cmw configmap.Watcher
 	)
 }
 
-func NewMutatingAdmissionController(ctx context.Context, _ configmap.Watcher) *controller.Impl {
+func NewMutatingAdmissionController(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
+	// Decorate contexts with the current state of the config, so tag
+	// resolution honors settings like insecure-registries.
+	policyControllerConfigStore := policycontrollerconfig.NewStore(logging.FromContext(ctx).Named("config-policy-controller"))
+	policyControllerConfigStore.WatchConfigs(cmw)
+
 	kc := kubeclient.Get(ctx)
 	logger := logging.FromContext(ctx)
 	woptions := webhook.GetOptions(ctx)
@@ -293,6 +298,7 @@ func NewMutatingAdmissionController(ctx context.Context, _ configmap.Watcher) *c
 		// A function that infuses the context passed to Validate/SetDefaults with custom metadata.
 		func(ctx context.Context) context.Context {
 			ctx = context.WithValue(ctx, kubeclient.Key{}, kc)
+			ctx = policyControllerConfigStore.ToContext(ctx)
 			ctx = policyduckv1beta1.WithPodScalableDefaulter(ctx, validator.ResolvePodScalable)
 			ctx = duckv1.WithPodDefaulter(ctx, validator.ResolvePod)
 			ctx = duckv1.WithPodSpecDefaulter(ctx, validator.ResolvePodSpecable)

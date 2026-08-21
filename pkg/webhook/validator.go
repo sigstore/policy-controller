@@ -37,12 +37,12 @@ import (
 	"github.com/sigstore/cosign/v3/pkg/cosign"
 	"github.com/sigstore/cosign/v3/pkg/oci"
 	ociremote "github.com/sigstore/cosign/v3/pkg/oci/remote"
-	"github.com/sigstore/cosign/v3/pkg/policy"
 	"github.com/sigstore/policy-controller/pkg/apis/config"
 	policyduckv1beta1 "github.com/sigstore/policy-controller/pkg/apis/duck/v1beta1"
 	policycontrollerconfig "github.com/sigstore/policy-controller/pkg/config"
 	pctuf "github.com/sigstore/policy-controller/pkg/tuf"
 	webhookcip "github.com/sigstore/policy-controller/pkg/webhook/clusterimagepolicy"
+	"github.com/sigstore/policy-controller/pkg/webhook/policy"
 	"github.com/sigstore/policy-controller/pkg/webhook/registryauth"
 	rekor "github.com/sigstore/rekor/pkg/client"
 	"github.com/sigstore/rekor/pkg/generated/client"
@@ -553,6 +553,7 @@ func ValidatePolicy(ctx context.Context, namespace string, ref name.Reference, c
 			// Assignment for appendAssign lint error
 			authorityRemoteOpts := remoteOpts
 			authorityRemoteOpts = append(authorityRemoteOpts, authority.RemoteOpts...)
+			authorityRemoteOpts = append(authorityRemoteOpts, sourceRemoteOpts(ctx, authority)...)
 
 			signaturePullSecretsOpts, err := authority.SourceSignaturePullSecretsOpts(ctx, namespace)
 			if err != nil {
@@ -1100,6 +1101,56 @@ func (v *Validator) ResolveCronJob(ctx context.Context, c *duckv1.CronJob) {
 // For testing
 var remoteResolveDigest = ociremote.ResolveDigest
 
+// parseReference parses image into a name.Reference. Registries listed
+// under insecure-registries in the policy-controller ConfigMap are
+// accessed over plain HTTP instead of HTTPS.
+func parseReference(ctx context.Context, image string) (name.Reference, error) {
+	ref, err := name.ParseReference(image)
+	if err != nil {
+		return nil, err
+	}
+	for _, registry := range policycontrollerconfig.FromContextOrDefaults(ctx).InsecureRegistries {
+		if ref.Context().RegistryStr() == registry {
+			return name.ParseReference(image, name.Insecure)
+		}
+	}
+	return ref, nil
+}
+
+// parseRepository is parseReference for bare repositories (no tag/digest).
+func parseRepository(ctx context.Context, repo string) (name.Repository, error) {
+	r, err := name.NewRepository(repo)
+	if err != nil {
+		return name.Repository{}, err
+	}
+	for _, registry := range policycontrollerconfig.FromContextOrDefaults(ctx).InsecureRegistries {
+		if r.RegistryStr() == registry {
+			return name.NewRepository(repo, name.Insecure)
+		}
+	}
+	return r, nil
+}
+
+// sourceRemoteOpts re-derives the target-repository options for the
+// authority's OCI sources. Authority.UnmarshalJSON builds these without
+// access to the config, so it cannot honor insecure-registries; the
+// options appended here take precedence over the ones it built.
+func sourceRemoteOpts(ctx context.Context, authority webhookcip.Authority) []ociremote.Option {
+	var opts []ociremote.Option
+	for _, source := range authority.Sources {
+		if source.OCI == "" {
+			continue
+		}
+		repo, err := parseRepository(ctx, source.OCI)
+		if err != nil {
+			// Invalid sources were already rejected by UnmarshalJSON.
+			continue
+		}
+		opts = append(opts, ociremote.WithTargetRepository(repo))
+	}
+	return opts
+}
+
 func (v *Validator) resolvePodSpec(ctx context.Context, ps *corev1.PodSpec, opt k8schain.Options) {
 	kc, err := registryauth.NewK8sKeychain(ctx, kubeclient.Get(ctx), opt)
 	if err != nil {
@@ -1109,7 +1160,7 @@ func (v *Validator) resolvePodSpec(ctx context.Context, ps *corev1.PodSpec, opt 
 
 	resolveContainers := func(cs []corev1.Container) {
 		for i, c := range cs {
-			ref, err := name.ParseReference(c.Image)
+			ref, err := parseReference(ctx, c.Image)
 			if err != nil {
 				logging.FromContext(ctx).Debugf("Unable to parse reference: %v", err)
 				continue
@@ -1138,7 +1189,7 @@ func (v *Validator) resolvePodSpec(ctx context.Context, ps *corev1.PodSpec, opt 
 
 	resolveEphemeralContainers := func(cs []corev1.EphemeralContainer) {
 		for i, c := range cs {
-			ref, err := name.ParseReference(c.Image)
+			ref, err := parseReference(ctx, c.Image)
 			if err != nil {
 				logging.FromContext(ctx).Debugf("Unable to parse reference: %v", err)
 				continue
@@ -1170,7 +1221,7 @@ func (v *Validator) resolvePodSpec(ctx context.Context, ps *corev1.PodSpec, opt 
 			if vol.Image == nil || vol.Image.Reference == "" {
 				continue
 			}
-			ref, err := name.ParseReference(vol.Image.Reference)
+			ref, err := parseReference(ctx, vol.Image.Reference)
 			if err != nil {
 				logging.FromContext(ctx).Debugf("Unable to parse volume image reference: %v", err)
 				continue
@@ -1231,7 +1282,7 @@ func getNamespace(ctx context.Context, namespace string) string {
 // no matching policies were found, but the PolicyControllerConfig has been
 // configured to allow images not matching any policies.
 func (v *Validator) validateContainerImage(ctx context.Context, containerImage string, namespace, field string, index int, kind, apiVersion string, labels map[string]string, kc authn.Keychain, ociRemoteOpts ...ociremote.Option) *apis.FieldError {
-	ref, err := name.ParseReference(containerImage)
+	ref, err := parseReference(ctx, containerImage)
 	if err != nil {
 		return apis.ErrGeneric(err.Error(), "image").ViaFieldIndex(field, index)
 	}
@@ -1354,12 +1405,9 @@ func getConfigs(ctx context.Context, ref name.Reference, options ...remote.Optio
 			wg.Add(1)
 			go func() {
 				defer wg.Done()
-				newRefString := ref.Context().Digest(manifest.Digest.String()).String()
-				newRef, err := name.ParseReference(newRefString)
-				if err != nil {
-					results <- configFileResult{ret: nil, errs: []error{fmt.Errorf("failed to ParseReference for: %s: %w", newRefString, err)}}
-					return
-				}
+				// Derive the arch image ref from the parent so the registry
+				// (including its HTTP/HTTPS scheme) is preserved.
+				newRef := ref.Context().Digest(manifest.Digest.String())
 
 				newRefConfigs, errs := getConfigs(ctx, newRef, options...)
 				results <- configFileResult{ret: newRefConfigs, errs: errs}

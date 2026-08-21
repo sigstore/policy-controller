@@ -307,7 +307,7 @@ func (r *Reconciler) inlinePolicyURL(ctx context.Context, policyRef *v1alpha1.Po
 	}
 	defer resp.Body.Close()
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
-		return fmt.Errorf("failed to fetch content from policy url with code %q", resp.StatusCode)
+		return fmt.Errorf("failed to fetch content from policy url with code %d", resp.StatusCode)
 	}
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {

@@ -37,8 +37,9 @@ jobs:
         - v1.34.x
 
     env:
-      # https://github.com/google/go-containerregistry/pull/125 allows insecure registry for
-      # '*.local' hostnames.
+      # go-containerregistry >= v0.21.4 only assumes HTTP for localhost and
+      # '*.localhost' registries, so the webhook is told about this one via
+      # the insecure-registries key in config-policy-controller.
       REGISTRY_NAME: registry.local
       REGISTRY_PORT: 5000
       INSECURE_REGISTRY_NAME: insecure-registry.notlocal
@@ -165,6 +166,10 @@ jobs:
       run: |
         make ko-policy-controller
         kubectl apply -f policy-controller-e2e.yaml
+
+        # The kind local registry is plain HTTP; tell the webhook.
+        kubectl patch configmap/config-policy-controller -n cosign-system \
+          --type merge -p '{"data":{"insecure-registries":"registry.local:5000"}}'
 
         # Wait for the webhook to come up and become Ready
         kubectl rollout status --timeout 5m --namespace cosign-system deployments/webhook

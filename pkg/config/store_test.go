@@ -135,6 +135,42 @@ func TestEnableOCI11Config(t *testing.T) {
 	}
 }
 
+func TestInsecureRegistriesConfig(t *testing.T) {
+	tests := []struct {
+		name string
+		data map[string]string
+		want []string
+	}{
+		{
+			name: "single registry",
+			data: map[string]string{"insecure-registries": "registry.local:5000"},
+			want: []string{"registry.local:5000"},
+		},
+		{
+			name: "multiple registries with whitespace",
+			data: map[string]string{"insecure-registries": "registry.local:5000, other.example.com ,"},
+			want: []string{"registry.local:5000", "other.example.com"},
+		},
+		{
+			name: "not set (default empty)",
+			data: map[string]string{},
+			want: nil,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg, err := NewPolicyControllerConfigFromMap(tt.data)
+			if err != nil {
+				t.Fatalf("NewPolicyControllerConfigFromMap() error = %v", err)
+			}
+			if diff := cmp.Diff(tt.want, cfg.InsecureRegistries); diff != "" {
+				t.Errorf("InsecureRegistries mismatch (-want +got):\n%s", diff)
+			}
+		})
+	}
+}
+
 func TestFromContextOrDefaultsWithOCI11(t *testing.T) {
 	// Test default returns EnableOCI11 = false
 	cfg := FromContextOrDefaults(context.Background())
