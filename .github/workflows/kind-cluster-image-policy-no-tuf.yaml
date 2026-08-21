@@ -39,7 +39,7 @@ jobs:
         - v1.34.x
 
     env:
-      KO_DOCKER_REPO: "registry.local:5000/policy-controller"
+      KO_DOCKER_REPO: "registry.localhost:5000/policy-controller"
       SCAFFOLDING_RELEASE_VERSION: "v0.7.27"
       GO111MODULE: on
       GOFLAGS: -ldflags=-s -ldflags=-w
@@ -126,6 +126,9 @@ jobs:
       with:
         k8s-version: ${{ matrix.k8s-version}}
         version: ${{ env.SCAFFOLDING_RELEASE_VERSION }}
+        # go-containerregistry >= v0.21.4 only treats '*.localhost' (not '*.local')
+        # registries as insecure HTTP.
+        registry-name: registry.localhost
 
     - name: Install policy-controller
       env:
@@ -133,7 +136,7 @@ jobs:
         GIT_VERSION: ci
         LDFLAGS: ""
         POLICY_CONTROLLER_YAML: test/kustomize-no-tuf/policy-controller-e2e.yaml
-        KO_PREFIX: registry.local:5000/policy-controller
+        KO_PREFIX: registry.localhost:5000/policy-controller
         POLICY_CONTROLLER_ARCHS: linux/amd64
       run: |
         make ko-policy-controller

@@ -39,13 +39,14 @@ jobs:
         - v1.34.x
 
     env:
-      # https://github.com/google/go-containerregistry/pull/125 allows insecure registry for
-      # '*.local' hostnames.
-      REGISTRY_NAME: registry.local
+      # go-containerregistry >= v0.21.4 only treats '*.localhost' hostnames as
+      # insecure HTTP registries (the '*.local' allowance from
+      # go-containerregistry#125 was removed).
+      REGISTRY_NAME: registry.localhost
       REGISTRY_PORT: 5000
       INSECURE_REGISTRY_NAME: insecure-registry.notlocal
       INSECURE_REGISTRY_PORT: 5001
-      KO_DOCKER_REPO: registry.local:5000/policy-controller
+      KO_DOCKER_REPO: registry.localhost:5000/policy-controller
 
     steps:
     - name: free up disk space for the release
@@ -129,6 +130,7 @@ jobs:
       with:
         k8s-version: ${{ matrix.k8s-version }}
         cluster-suffix: c${{ github.run_id }}.local
+        registry-authority: ${{ env.REGISTRY_NAME }}:${{ env.REGISTRY_PORT }}
 
     - name: Setup local insecure registry
       run: |
@@ -162,7 +164,7 @@ jobs:
         GIT_VERSION: ci
         LDFLAGS: ""
         POLICY_CONTROLLER_YAML: policy-controller-e2e.yaml
-        KO_PREFIX: registry.local:5000/policy-controller
+        KO_PREFIX: registry.localhost:5000/policy-controller
         POLICY_CONTROLLER_ARCHS: linux/amd64
       run: |
         make ko-policy-controller
