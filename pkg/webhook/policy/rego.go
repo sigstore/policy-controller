@@ -90,8 +90,6 @@ func validateJSONWithModuleInput(jsonBody []byte, moduleInput string) (warnings 
 func evaluateRegoEvalMapResult(query string, response []interface{}) (warning error, retErr error) {
 	retErr = fmt.Errorf("policy is not compliant for query %q", query) //nolint: revive
 	for _, r := range response {
-		// Upstream cosign asserted the map type unchecked and panicked on
-		// non-map rule results; fail closed instead.
 		rMap, ok := r.(map[string]interface{})
 		if !ok {
 			return nil, fmt.Errorf("policy is not compliant for query '%s': unexpected result type %T", query, r)
