@@ -25,3 +25,8 @@ data:
     #                              #
     ################################
     no-match-policy: warn
+
+    # Comma-separated registry authorities (host[:port]) that the webhook
+    # accesses over plain HTTP instead of HTTPS. Only localhost and
+    # '*.localhost' registries are assumed to be HTTP by default.
+    insecure-registries: "registry.local:5000"

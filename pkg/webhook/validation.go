@@ -119,10 +119,12 @@ func discoverAttestationsOCI11(ctx context.Context, ref name.Reference, checkOpt
 }
 
 func processAttestationArtifact(result v1.Descriptor, repository name.Repository, registryOpts []ociremote.Option) ([]oci.Signature, error) {
-	attRef, err := name.ParseReference(fmt.Sprintf("%s@%s", repository, result.Digest.String()))
-	if err != nil {
+	// Validate the digest, but derive the ref from the repository so the
+	// registry (including its HTTP/HTTPS scheme) is preserved.
+	if _, err := name.NewDigest(fmt.Sprintf("%s@%s", repository, result.Digest.String())); err != nil {
 		return nil, err
 	}
+	attRef := repository.Digest(result.Digest.String())
 
 	signedEntity, err := ociremoteSignedImage(attRef, registryOpts...)
 	if err != nil {

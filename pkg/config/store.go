@@ -18,6 +18,7 @@ package config
 import (
 	"context"
 	"strconv"
+	"strings"
 
 	corev1 "k8s.io/api/core/v1"
 	"knative.dev/pkg/configmap"
@@ -45,6 +46,8 @@ const (
 	FailOnEmptyAuthorities = "fail-on-empty-authorities"
 
 	EnableOCI11 = "enable-oci11"
+
+	InsecureRegistriesKey = "insecure-registries"
 )
 
 // PolicyControllerConfig controls the behaviour of policy-controller that needs
@@ -60,6 +63,11 @@ type PolicyControllerConfig struct {
 	FailOnEmptyAuthorities bool `json:"fail-on-empty-authorities"`
 	// EnableOCI11 enables experimental OCI 1.1 referrers API for attestation discovery
 	EnableOCI11 bool `json:"enable-oci11"`
+	// InsecureRegistries are registry authorities (host[:port]) accessed over
+	// plain HTTP instead of HTTPS. go-containerregistry >= v0.21.4 only
+	// assumes HTTP for localhost and '*.localhost'; any other HTTP registry
+	// must be listed here explicitly.
+	InsecureRegistries []string `json:"insecure-registries,omitempty"`
 }
 
 func NewPolicyControllerConfigFromMap(data map[string]string) (*PolicyControllerConfig, error) {
@@ -86,6 +94,13 @@ func NewPolicyControllerConfigFromMap(data map[string]string) (*PolicyController
 		ret.EnableOCI11, err = strconv.ParseBool(val)
 		if err != nil {
 			return ret, err
+		}
+	}
+	if val, ok := data[InsecureRegistriesKey]; ok {
+		for _, registry := range strings.Split(val, ",") {
+			if registry = strings.TrimSpace(registry); registry != "" {
+				ret.InsecureRegistries = append(ret.InsecureRegistries, registry)
+			}
 		}
 	}
 	return ret, nil
