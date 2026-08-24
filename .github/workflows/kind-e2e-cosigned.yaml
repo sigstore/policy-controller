@@ -118,12 +118,12 @@ jobs:
     - uses: sigstore/cosign-installer@d58896d6a1865668819e1d91763c7751a165e159 # v3.9.2
 
     - name: Setup mirror
-      uses: chainguard-dev/actions/setup-mirror@bed8050123fff65538e2db1902ff9404030c0221 # v1.6.31
+      uses: chainguard-dev/actions/setup-mirror@7bd1e94b2a1b7faa891392757de7d89489070c5c # v1.6.32
       with:
         mirror: mirror.gcr.io
 
     - name: Setup kind cluster
-      uses: chainguard-dev/actions/setup-kind@bed8050123fff65538e2db1902ff9404030c0221 # v1.6.31
+      uses: chainguard-dev/actions/setup-kind@7bd1e94b2a1b7faa891392757de7d89489070c5c # v1.6.32
       with:
         k8s-version: ${{ matrix.k8s-version }}
         cluster-suffix: c${{ github.run_id }}.local
@@ -180,4 +180,4 @@ jobs:
 
     - name: Collect diagnostics
       if: ${{ failure() }}
-      uses: chainguard-dev/actions/kind-diag@bed8050123fff65538e2db1902ff9404030c0221 # v1.6.31
+      uses: chainguard-dev/actions/kind-diag@7bd1e94b2a1b7faa891392757de7d89489070c5c # v1.6.32

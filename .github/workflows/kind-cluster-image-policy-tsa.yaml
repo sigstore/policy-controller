@@ -110,10 +110,10 @@ jobs:
     - uses: imranismail/setup-kustomize@53f941b41dca13ed61874bbc6b4b6e1562877530 # v3.0.0
 
     - name: Install yq
-      uses: mikefarah/yq@1b9b4ac5187171d2e5e3129be0cfa827c7f9d53d # v4.53.3
+      uses: mikefarah/yq@c14f446382944492701b16c1ddb48bb9dbe683e3 # v4.53.6
 
     - name: Setup mirror
-      uses: chainguard-dev/actions/setup-mirror@bed8050123fff65538e2db1902ff9404030c0221 # v1.6.31
+      uses: chainguard-dev/actions/setup-mirror@7bd1e94b2a1b7faa891392757de7d89489070c5c # v1.6.32
       with:
         mirror: mirror.gcr.io
 
@@ -183,4 +183,4 @@ jobs:
 
     - name: Collect diagnostics
       if: ${{ failure() }}
-      uses: chainguard-dev/actions/kind-diag@bed8050123fff65538e2db1902ff9404030c0221 # v1.6.31
+      uses: chainguard-dev/actions/kind-diag@7bd1e94b2a1b7faa891392757de7d89489070c5c # v1.6.32
