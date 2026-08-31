@@ -52,7 +52,7 @@ jobs:
           # release before the strict check; unpin once a ko release includes #1699.
           version: v0.18.1
 
-      - uses: chainguard-dev/actions/goimports@bed8050123fff65538e2db1902ff9404030c0221 # v1.6.31
+      - uses: chainguard-dev/actions/goimports@0ffab11a71c1b7bd68ddf94665a8ec88b116223d # v1.6.33
 
       - name: Set up Cloud SDK
         uses: google-github-actions/auth@7c6bc770dae815cd3e89ee6cdf493a5fab2cc093 # v3.0.0
