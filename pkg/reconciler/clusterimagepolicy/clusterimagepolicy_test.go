@@ -25,6 +25,7 @@ import (
 	"strings"
 	"testing"
 
+	k8sfake "k8s.io/client-go/kubernetes/fake"
 	logtesting "knative.dev/pkg/logging/testing"
 
 	"github.com/sigstore/policy-controller/pkg/apis/config"
@@ -1415,7 +1416,8 @@ malformed KMS format, should be prefixed by any of the supported providers: [aws
 					WithMarkInlinePoliciesFailed(invalidSHAMsg),
 				),
 			}},
-		}}
+		},
+	}
 
 	logger := logtesting.TestLogger(t)
 	table.Test(t, MakeFactory(func(ctx context.Context, listers *Listers, _ configmap.Watcher) controller.Reconciler {
@@ -1562,4 +1564,90 @@ func patchRemoveFinalizers(namespace, name string) clientgotesting.PatchActionIm
 	patch := `{"metadata":{"finalizers":[],"resourceVersion":"` + resourceVersion + `"}}`
 	action.Patch = []byte(patch)
 	return action
+}
+
+func TestInlineNamespaces(t *testing.T) {
+	tests := []struct {
+		name           string
+		cip            *v1alpha1.ClusterImagePolicy
+		pods           []corev1.Pod
+		expectedErr    bool
+		expectedErrMsg string
+	}{
+		{
+			name: "Image matches pattern and pod is in correct namespace",
+			cip: &v1alpha1.ClusterImagePolicy{
+				Spec: v1alpha1.ClusterImagePolicySpec{
+					Images: []v1alpha1.ImagePattern{{
+						Glob: "ghcr.io/sigstore/timestamp-server**",
+					}},
+					Policy: &v1alpha1.Policy{
+						NamespaceSelector: "namespace-a",
+					},
+				},
+			},
+			pods: []corev1.Pod{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "namespace-a",
+					},
+					Spec: corev1.PodSpec{
+						Containers: []corev1.Container{{
+							Image: "ghcr.io/sigstore/timestamp-server:v1",
+						}},
+					},
+				},
+			},
+			expectedErr:    false,
+			expectedErrMsg: "",
+		},
+		{
+			name: "Image matches pattern but pod is in wrong namespace",
+			cip: &v1alpha1.ClusterImagePolicy{
+				Spec: v1alpha1.ClusterImagePolicySpec{
+					Images: []v1alpha1.ImagePattern{{
+						Glob: "ghcr.io/sigstore/timestamp-server**",
+					}},
+					Policy: &v1alpha1.Policy{
+						NamespaceSelector: "namespace-a",
+					},
+				},
+			},
+			pods: []corev1.Pod{
+				{
+					ObjectMeta: metav1.ObjectMeta{
+						Namespace: "namespace-b",
+					},
+					Spec: corev1.PodSpec{
+						Containers: []corev1.Container{{
+							Image: "ghcr.io/sigstore/timestamp-server:v1",
+						}},
+					},
+				},
+			},
+			expectedErr:    true,
+			expectedErrMsg: "image ghcr.io/sigstore/timestamp-server:v1 can only be used in the namespace namespace-a",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			fakeClient := k8sfake.NewSimpleClientset(&corev1.PodList{Items: tt.pods})
+			r := &Reconciler{kubeclient: fakeClient}
+
+			err := r.inlineNamespaces(tt.cip)
+
+			if tt.expectedErr {
+				if err == nil {
+					t.Errorf("expected error, got nil")
+				} else if err.Error() != tt.expectedErrMsg {
+					t.Errorf("expected error message %q, got %q", tt.expectedErrMsg, err.Error())
+				}
+			} else {
+				if err != nil {
+					t.Errorf("unexpected error: %v", err)
+				}
+			}
+		})
+	}
 }

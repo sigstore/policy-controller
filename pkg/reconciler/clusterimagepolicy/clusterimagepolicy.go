@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"path/filepath"
 	"strings"
 
 	"github.com/sigstore/policy-controller/pkg/apis/config"
@@ -89,6 +90,13 @@ func (r *Reconciler) ReconcileKind(ctx context.Context, cip *v1alpha1.ClusterIma
 		return cipErr
 	}
 	cip.Status.MarkInlinePoliciesOk()
+
+	cipNserr := r.inlineNamespaces(cipCopy)
+	if cipNserr != nil {
+		r.handleCIPError(ctx, cip.Name)
+		cip.Status.MarkNamespaceValidationFailed(cipNserr.Error())
+		return cipNserr
+	}
 
 	webhookCIP := webhookcip.ConvertClusterImagePolicyV1alpha1ToWebhook(cipCopy)
 
@@ -294,6 +302,35 @@ func (r *Reconciler) inlinePolicies(ctx context.Context, cip *v1alpha1.ClusterIm
 		if err != nil {
 			logging.FromContext(ctx).Errorf("Failed to read policy url %s: %v", cip.Spec.Policy.Remote.URL.String(), err)
 			return err
+		}
+	}
+	return nil
+}
+
+func (r *Reconciler) inlineNamespaces(cip *v1alpha1.ClusterImagePolicy) error {
+	var podList *corev1.PodList
+	podList, err := r.kubeclient.CoreV1().Pods("").List(context.TODO(), metav1.ListOptions{})
+	if err != nil {
+		return fmt.Errorf("failed to list pods: %w", err)
+	}
+
+	for _, pod := range podList.Items {
+		for _, container := range pod.Spec.Containers {
+			image := container.Image
+			for _, pattern := range cip.Spec.Images {
+				if pattern.Glob != "" {
+					matched, err := filepath.Match(pattern.Glob, image)
+					if err != nil {
+						return fmt.Errorf("invalid glob pattern: %w", err)
+					}
+					if matched {
+						if cip.Spec.Policy.NamespaceSelector != "" && pod.Namespace != cip.Spec.Policy.NamespaceSelector {
+							return fmt.Errorf("image %s can only be used in the namespace %s", image, cip.Spec.Policy.NamespaceSelector)
+						}
+						return nil // If mage matches, and namespace is correct (or no namespace restriction then dont care about namespace)
+					}
+				}
+			}
 		}
 	}
 	return nil
