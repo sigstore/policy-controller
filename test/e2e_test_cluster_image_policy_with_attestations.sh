@@ -186,7 +186,7 @@ COSIGN_PASSWORD="" cosign sign --use-signing-config=false --new-bundle-format=fa
 echo '::endgroup::'
 
 echo '::group:: Verify demoimage with cosign key'
-cosign verify --new-bundle-format=false --key cosign.pub --rekor-url ${REKOR_URL} --allow-insecure-registry --certificate-identity-regexp='.*'  --certificate-oidc-issuer-regexp='.*' ${demoimage}
+cosign verify --new-bundle-format=false --key cosign.pub --rekor-url ${REKOR_URL} --allow-insecure-registry ${demoimage}
 echo '::endgroup::'
 
 # Ok, so now we have satisfied the keyless requirements, one signature, one
@@ -212,7 +212,7 @@ echo '::group:: create keyful attestation, add add to rekor'
 echo -n 'foobar key e2e test' > ./predicate-file-key-custom
 COSIGN_PASSWORD="" cosign attest --use-signing-config=false --new-bundle-format=false --predicate ./predicate-file-key-custom --rekor-url ${REKOR_URL} --key ./cosign.key --allow-insecure-registry --yes ${demoimage}
 
-cosign verify-attestation --new-bundle-format=false --key ./cosign.pub --allow-insecure-registry --rekor-url ${REKOR_URL} --certificate-identity-regexp='.*'  --certificate-oidc-issuer-regexp='.*' ${demoimage}
+cosign verify-attestation --new-bundle-format=false --key ./cosign.pub --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage}
 echo '::endgroup::'
 
 echo '::group:: test job success with key / keyless'
