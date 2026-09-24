@@ -45,18 +45,19 @@ builds:
       - CGO_ENABLED=0
 
 signs:
+  # Preserve the detached signature and certificate release artifacts with Cosign v3.
   # Keyless
   - id: tester
     signature: "${artifact}-keyless.sig"
     certificate: "${artifact}-keyless.pem"
     cmd: cosign
-    args: ["sign-blob", "--output-signature", "${artifact}-keyless.sig", "--output-certificate", "${artifact}-keyless.pem", "${artifact}"]
+    args: ["sign-blob", "--use-signing-config=false", "--new-bundle-format=false", "--output-signature", "${artifact}-keyless.sig", "--output-certificate", "${artifact}-keyless.pem", "${artifact}"]
     artifacts: binary
   - id: checksum-keyless
     signature: "${artifact}-keyless.sig"
     certificate: "${artifact}-keyless.pem"
     cmd: cosign
-    args: ["sign-blob", "--output-signature", "${artifact}-keyless.sig", "--output-certificate", "${artifact}-keyless.pem", "${artifact}"]
+    args: ["sign-blob", "--use-signing-config=false", "--new-bundle-format=false", "--output-signature", "${artifact}-keyless.sig", "--output-certificate", "${artifact}-keyless.pem", "${artifact}"]
     artifacts: checksum
 
 archives:
