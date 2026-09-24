@@ -59,6 +59,7 @@ jobs:
           -p 5000:5000 \
           registry:2
 
+    # These policies use legacy attestations and signatures, not Sigstore bundles.
     - name: Example (custom-key-attestation-sbom-spdxjson)
       working-directory: ./src/github.com/${{ github.repository }}/examples
       run: |
@@ -70,13 +71,13 @@ jobs:
         docker push "${REF}"
 
         # Attach attestation to image
-        cosign attest --yes --type spdxjson \
+        cosign attest --use-signing-config=false --new-bundle-format=false --yes --type spdxjson \
           --predicate sboms/example.spdx.json \
           --key keys/cosign.key \
           "${REF}"
 
         # Verify the attestation
-        cosign verify-attestation \
+        cosign verify-attestation --new-bundle-format=false \
           --type spdxjson \
           --key keys/cosign.pub \
           "${REF}"
@@ -126,7 +127,7 @@ jobs:
         docker push "${REF}"
 
         # Attach attestation to image
-        cosign attest --yes --type spdxjson \
+        cosign attest --use-signing-config=false --new-bundle-format=false --yes --type spdxjson \
           --predicate sboms/example.spdx.json \
           "${REF}"
 
@@ -148,7 +149,7 @@ jobs:
         docker push "${REF}"
 
         # Sign image
-        cosign sign "${REF}"
+        cosign sign --use-signing-config=false --new-bundle-format=false "${REF}"
 
         # Ensure the image satisfies the policy
         ../policy-tester \

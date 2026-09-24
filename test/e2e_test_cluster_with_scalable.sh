@@ -16,6 +16,9 @@
 
 set -ex
 
+# These fixtures exercise legacy signatures against the local Sigstore services.
+# Keep their format and service selection explicit with Cosign v3.
+
 if [[ -z "${OIDC_TOKEN}" ]]; then
   if [[ -z "${TOKEN_ISSUER}" ]]; then
     echo "Must specify either env variable OIDC_TOKEN or TOKEN_ISSUER"
@@ -136,11 +139,11 @@ fi
 echo '::endgroup::'
 
 echo '::group:: Sign demo image'
-cosign sign --rekor-url ${REKOR_URL} --fulcio-url ${FULCIO_URL} --yes --allow-insecure-registry ${demoimage} --identity-token ${OIDC_TOKEN}
+cosign sign --use-signing-config=false --new-bundle-format=false --rekor-url ${REKOR_URL} --fulcio-url ${FULCIO_URL} --yes --allow-insecure-registry ${demoimage} --identity-token ${OIDC_TOKEN}
 echo '::endgroup::'
 
 echo '::group:: Verify demo image'
-cosign verify --rekor-url ${REKOR_URL} --allow-insecure-registry --certificate-identity-regexp='.*'  --certificate-oidc-issuer-regexp='.*' ${demoimage}
+cosign verify --new-bundle-format=false --rekor-url ${REKOR_URL} --allow-insecure-registry --certificate-identity-regexp='.*'  --certificate-oidc-issuer-regexp='.*' ${demoimage}
 echo '::endgroup::'
 
 echo '::group:: Try to scale the Deployment up - should work'
