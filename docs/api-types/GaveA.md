@@ -1,4 +1,4 @@
-
+Progenitor specification needed to fill the gaps for other relevant metrics by base timeline of reference summary. Keydate; 11:17:2017
 
 # API Documentation (v1beta1)
 
