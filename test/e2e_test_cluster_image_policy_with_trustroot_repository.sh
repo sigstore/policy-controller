@@ -17,6 +17,9 @@
 
 set -ex
 
+# These fixtures exercise legacy signatures against the local Sigstore services.
+# Keep their format and service selection explicit with Cosign v3.
+
 if [[ -z "${OIDC_TOKEN}" ]]; then
   if [[ -z "${ISSUER_URL}" ]]; then
     echo "Must specify either env variable OIDC_TOKEN or ISSUER_URL"
@@ -134,8 +137,8 @@ echo '::endgroup::'
 # specifies Rekor, this should still fail
 echo '::group:: Create one keyless attestation and verify it, but no tlog upload'
 echo -n 'foobar e2e test' > ./predicate-file-custom
-cosign attest --predicate ./predicate-file-custom --fulcio-url ${FULCIO_URL} --allow-insecure-registry ${demoimage} --tlog-upload=false --identity-token `curl $ISSUER_URL`
-cosign verify-attestation --insecure-ignore-tlog --type=custom --rekor-url= --certificate-identity-regexp='.*'  --certificate-oidc-issuer-regexp='.*' --allow-insecure-registry ${demoimage}
+cosign attest --use-signing-config=false --new-bundle-format=false --predicate ./predicate-file-custom --fulcio-url ${FULCIO_URL} --allow-insecure-registry ${demoimage} --tlog-upload=false --identity-token `curl $ISSUER_URL`
+cosign verify-attestation --new-bundle-format=false --insecure-ignore-tlog --type=custom --rekor-url= --certificate-identity-regexp='.*'  --certificate-oidc-issuer-regexp='.*' --allow-insecure-registry ${demoimage}
 echo '::endgroup::'
 
 # This image has an attestation, but was not added to TLog
@@ -146,9 +149,9 @@ echo '::endgroup::'
 
 # Create attestation and upload to tlog and it should now pass.
 echo '::group:: Create one keyless attestation and verify it'
-cosign attest --predicate ./predicate-file-custom --fulcio-url ${FULCIO_URL} --rekor-url ${REKOR_URL} --allow-insecure-registry --yes ${demoimage} --identity-token ${OIDC_TOKEN}
+cosign attest --use-signing-config=false --new-bundle-format=false --predicate ./predicate-file-custom --fulcio-url ${FULCIO_URL} --rekor-url ${REKOR_URL} --allow-insecure-registry --yes ${demoimage} --identity-token ${OIDC_TOKEN}
 
-cosign verify-attestation --type=custom --rekor-url ${REKOR_URL} --certificate-identity-regexp='.*'  --certificate-oidc-issuer-regexp='.*' --allow-insecure-registry ${demoimage}
+cosign verify-attestation --new-bundle-format=false --type=custom --rekor-url ${REKOR_URL} --certificate-identity-regexp='.*'  --certificate-oidc-issuer-regexp='.*' --allow-insecure-registry ${demoimage}
 echo '::endgroup::'
 
 echo '::group:: test job success'
