@@ -113,14 +113,14 @@ spec:
                               description: PredicateType defines which predicate type to verify. Matches cosign verify-attestation options.
                               type: string
                       ctlog:
-                        description: CTLog sets the configuration to verify the authority against a Rekor instance.
+                        description: CTLog configures transparency log (Rekor) verification; if ctlog is set but neither trustRootRef nor url is set (ctlog: {}), tlog verification is disabled.
                         type: object
                         properties:
                           trustRootRef:
                             description: Use the Public Key from the referred TrustRoot.TLog
                             type: string
                           url:
-                            description: URL sets the url to the rekor instance (by default the public rekor.sigstore.dev)
+                            description: URL sets the url to the rekor instance; if unset and trustRootRef is also unset, tlog verification is disabled.
                             type: string
                       key:
                         description: Key defines the type of key to validate the image.
@@ -452,14 +452,14 @@ spec:
                               description: PredicateType defines which predicate type to verify. Matches cosign verify-attestation options.
                               type: string
                       ctlog:
-                        description: CTLog sets the configuration to verify the authority against a Rekor instance.
+                        description: CTLog configures transparency log (Rekor) verification; if ctlog is set but neither trustRootRef nor url is set (ctlog: {}), tlog verification is disabled.
                         type: object
                         properties:
                           trustRootRef:
                             description: Use the Public Key from the referred TrustRoot.TLog
                             type: string
                           url:
-                            description: URL sets the url to the rekor instance (by default the public rekor.sigstore.dev)
+                            description: URL sets the url to the rekor instance; if unset and trustRootRef is also unset, tlog verification is disabled.
                             type: string
                       key:
                         description: Key defines the type of key to validate the image.
