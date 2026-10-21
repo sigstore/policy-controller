@@ -17,6 +17,9 @@
 
 set -ex
 
+# These fixtures exercise legacy signatures against the local Sigstore services.
+# Keep their format and service selection explicit with Cosign v3.
+
 if [[ -z "${KO_DOCKER_REPO}" ]]; then
   echo "Must specify env variable KO_DOCKER_REPO"
   exit 1
@@ -106,7 +109,7 @@ echo '::endgroup::'
 
 # Sign it with key
 echo '::group:: Sign demoimage with key, do not add to rekor'
-COSIGN_PASSWORD="" cosign sign --tlog-upload=false --key cosign.key  --allow-insecure-registry ${demoimage}
+COSIGN_PASSWORD="" cosign sign --use-signing-config=false --new-bundle-format=false --tlog-upload=false --key cosign.key  --allow-insecure-registry ${demoimage}
 echo '::endgroup::'
 
 # TODO(vaikas): This fails because it doesn't have a Rekor entry. Which it obvs
@@ -134,7 +137,7 @@ echo '::endgroup::'
 # Fine, so create an attestation for it.
 echo '::group:: create keyful attestation, do not add to rekor'
 echo -n 'foobar key e2e test' > ./predicate-file-key-custom
-COSIGN_PASSWORD="" cosign attest --predicate ./predicate-file-key-custom --key ./cosign.key --allow-insecure-registry --tlog-upload=false ${demoimage}
+COSIGN_PASSWORD="" cosign attest --use-signing-config=false --new-bundle-format=false --predicate ./predicate-file-key-custom --key ./cosign.key --allow-insecure-registry --tlog-upload=false ${demoimage}
 
 # TODO(vaikas): This again fails though it really shouldn't.
 #cosign verify-attestation --key ./cosign.pub --allow-insecure-registry ${demoimage}
