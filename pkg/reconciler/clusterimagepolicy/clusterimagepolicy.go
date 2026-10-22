@@ -276,7 +276,7 @@ func (r *Reconciler) inlinePolicies(ctx context.Context, cip *v1alpha1.ClusterIm
 			if att.Policy != nil && att.Policy.Remote != nil {
 				err := r.inlinePolicyURL(ctx, att.Policy)
 				if err != nil {
-					logging.FromContext(ctx).Errorf("Failed to read policy url %s: %v", cip.Spec.Policy.Remote.URL.String(), err)
+					logging.FromContext(ctx).Errorf("Failed to read policy url %s: %v", att.Policy.Remote.URL.String(), err)
 					return err
 				}
 			}
