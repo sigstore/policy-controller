@@ -1,10 +1,19 @@
 module github.com/sigstore/policy-controller
 
-go 1.26.0
+go 1.27.3
 
 require (
+	cuelang.org/go v0.16.1
+	github.com/Azure/azure-sdk-for-go v68.0.0+incompatible
+	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.22.0
+	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.14.0
 	github.com/aws/aws-sdk-go-v2 v1.42.0
-	github.com/golang/snappy v0.0.4 // indirect
+	github.com/awslabs/amazon-ecr-credential-helper/ecr-login v0.12.0
+	github.com/cenkalti/backoff/v4 v4.3.0
+	github.com/docker/docker v28.5.2+incompatible
+	github.com/docker/docker-credential-helpers v0.9.5
+	github.com/docker/go-connections v0.7.0
+	github.com/go-jose/go-jose/v4 v4.1.6
 	github.com/google/go-cmp v0.7.0
 	github.com/google/go-containerregistry v0.21.7
 	github.com/google/go-containerregistry/pkg/authn/k8schain v0.0.0-20260317232201-3888fb8f8738
@@ -19,63 +28,47 @@ require (
 	github.com/hashicorp/go-sockaddr v1.0.7
 	github.com/hashicorp/golang-lru v1.0.2
 	github.com/hashicorp/hcl v1.0.1-vault-7
+	github.com/hashicorp/vault/api v1.22.0
+	github.com/in-toto/in-toto-golang v0.11.0
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/letsencrypt/boulder v0.20260309.0
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mitchellh/mapstructure v1.5.1-0.20231216201459-8508981c8b6c
+	github.com/natefinch/atomic v1.0.1
+	github.com/open-policy-agent/opa v1.17.1
 	github.com/ryanuber/go-glob v1.0.0
 	github.com/sigstore/cosign/v3 v3.1.3
+	github.com/sigstore/protobuf-specs v0.5.1
 	github.com/sigstore/rekor v1.5.3
+	github.com/sigstore/scaffolding v0.7.22
 	github.com/sigstore/sigstore v1.10.8
+	github.com/sigstore/sigstore-go v1.2.2
+	github.com/sigstore/sigstore/pkg/signature/kms/aws v1.10.8
+	github.com/sigstore/sigstore/pkg/signature/kms/azure v1.10.8
+	github.com/sigstore/sigstore/pkg/signature/kms/gcp v1.10.8
+	github.com/sigstore/sigstore/pkg/signature/kms/hashivault v1.10.8
+	github.com/spf13/cobra v1.10.2
+	github.com/spf13/viper v1.21.0
 	github.com/stretchr/testify v1.11.1
 	github.com/theupdateframework/go-tuf v0.7.0
+	github.com/theupdateframework/go-tuf/v2 v2.4.2
 	github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399
 	go.uber.org/zap v1.28.0
 	golang.org/x/crypto v0.55.0
 	golang.org/x/net v0.58.0
-	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/time v0.15.0
 	google.golang.org/grpc v1.83.2
 	google.golang.org/protobuf v1.36.12-0.20260120151049-f2248ac996af
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/api v0.36.2
 	k8s.io/apimachinery v0.36.2
 	k8s.io/client-go v0.36.2
 	k8s.io/code-generator v0.35.7
 	k8s.io/kube-openapi v0.0.0-20260317180543-43fb72c5454a
 	knative.dev/hack v0.0.0-20260428014158-b2a37f1b6e7b
-	sigs.k8s.io/release-utils v0.12.4
-	sigs.k8s.io/yaml v1.6.0
-)
-
-require github.com/spf13/cobra v1.10.2
-
-require (
-	cuelang.org/go v0.16.1
-	github.com/Azure/azure-sdk-for-go v68.0.0+incompatible
-	github.com/Azure/azure-sdk-for-go/sdk/azcore v1.22.0
-	github.com/Azure/azure-sdk-for-go/sdk/azidentity v1.14.0
-	github.com/awslabs/amazon-ecr-credential-helper/ecr-login v0.12.0
-	github.com/cenkalti/backoff/v4 v4.3.0
-	github.com/docker/docker v28.5.2+incompatible
-	github.com/docker/docker-credential-helpers v0.9.5
-	github.com/docker/go-connections v0.7.0
-	github.com/go-jose/go-jose/v4 v4.1.4
-	github.com/hashicorp/vault/api v1.22.0
-	github.com/in-toto/in-toto-golang v0.11.0
-	github.com/natefinch/atomic v1.0.1
-	github.com/open-policy-agent/opa v1.17.1
-	github.com/sigstore/protobuf-specs v0.5.1
-	github.com/sigstore/scaffolding v0.7.22
-	github.com/sigstore/sigstore-go v1.2.2
-	github.com/sigstore/sigstore/pkg/signature/kms/aws v1.10.8
-	github.com/sigstore/sigstore/pkg/signature/kms/azure v1.10.8
-	github.com/sigstore/sigstore/pkg/signature/kms/gcp v1.10.8
-	github.com/sigstore/sigstore/pkg/signature/kms/hashivault v1.10.8
-	github.com/spf13/viper v1.21.0
-	github.com/theupdateframework/go-tuf/v2 v2.4.2
 	knative.dev/hack/schema v0.0.0-20240607132042-09143140a254
 	knative.dev/pkg v0.0.0-20260727151759-521cb33b33dd
+	sigs.k8s.io/release-utils v0.12.4
+	sigs.k8s.io/yaml v1.6.0
 )
 
 require (
@@ -193,6 +186,7 @@ require (
 	github.com/goccy/go-json v0.10.6 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
 	github.com/golang-jwt/jwt/v5 v5.3.1 // indirect
+	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/certificate-transparency-go v1.3.3 // indirect
 	github.com/google/gnostic-models v0.7.0 // indirect
 	github.com/google/go-github/v88 v88.0.0 // indirect
@@ -292,6 +286,7 @@ require (
 	golang.org/x/mod v0.38.0 // indirect
 	golang.org/x/oauth2 v0.36.0 // indirect
 	golang.org/x/sync v0.22.0 // indirect
+	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/term v0.45.0 // indirect
 	golang.org/x/text v0.41.0 // indirect
 	golang.org/x/tools v0.48.0 // indirect
@@ -304,6 +299,7 @@ require (
 	gopkg.in/inf.v0 v0.9.1 // indirect
 	gopkg.in/ini.v1 v1.67.3 // indirect
 	gopkg.in/yaml.v2 v2.4.0 // indirect
+	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/apiextensions-apiserver v0.35.7 // indirect
 	k8s.io/gengo v0.0.0-20230829151522-9cce18d56c01 // indirect
 	k8s.io/gengo/v2 v2.0.0-20250922181213-ec3ebc5fd46b // indirect
