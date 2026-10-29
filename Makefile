@@ -105,7 +105,7 @@ local-dev:
 golangci-lint:
 	rm -f $(GOLANGCI_LINT_BIN) || :
 	set -e ;\
-	GOBIN=$(GOLANGCI_LINT_DIR) go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.6.2 ;\
+	GOBIN=$(GOLANGCI_LINT_DIR) go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.15.0 ;\
 
 lint: golangci-lint ## Run golangci-lint linter
 	$(GOLANGCI_LINT_BIN) run -n
