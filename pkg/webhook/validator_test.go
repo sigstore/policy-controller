@@ -3971,6 +3971,7 @@ func TestValidAttestationsOCI11Enabled_DISABLED(t *testing.T) {
 	ctx = policycontrollerconfig.ToContext(ctx, cfg)
 
 	// Mock successful OCI 1.1 discovery
+	//nolint:unparam // Success-only mock must retain the original function signature.
 	ociremoteResolveDigest = func(name.Reference, ...remote.Option) (name.Digest, error) {
 		return name.MustParseReference("example.com/test@sha256:abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234").(name.Digest), nil
 	}
@@ -3987,6 +3988,7 @@ func TestValidAttestationsOCI11Enabled_DISABLED(t *testing.T) {
 		},
 	}
 
+	//nolint:unparam // Success-only mock must retain the original function signature.
 	ociremoteReferrers = func(name.Digest, string, ...remote.Option) (*v1.IndexManifest, error) {
 		return mockManifest, nil
 	}
@@ -3994,6 +3996,7 @@ func TestValidAttestationsOCI11Enabled_DISABLED(t *testing.T) {
 	// Create a mock signed image with DSSE envelope
 	dsseContent := []byte(`{"payload":"eyJmb28iOiJiYXIifQ==","signatures":[{"sig":"c2lnbmF0dXJl"}]}`)
 
+	//nolint:unparam // Success-only mock must retain the original function signature.
 	ociremoteSignedImage = func(name.Reference, ...remote.Option) (oci.SignedImage, error) {
 		return &mockSignedImage{
 			layers: []v1.Layer{
@@ -4004,6 +4007,7 @@ func TestValidAttestationsOCI11Enabled_DISABLED(t *testing.T) {
 
 	// Should call OCI 1.1 path, not legacy
 	legacyCalled := false
+	//nolint:unparam // Failure-only mock must retain the original function signature.
 	cosignVerifyAttestations = func(context.Context, name.Reference, *cosign.CheckOpts, ...name.Option) ([]oci.Signature, bool, error) {
 		legacyCalled = true
 		return nil, false, errors.New("should not call legacy")
