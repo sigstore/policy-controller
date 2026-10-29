@@ -3971,7 +3971,7 @@ func TestValidAttestationsOCI11Enabled_DISABLED(t *testing.T) {
 	ctx = policycontrollerconfig.ToContext(ctx, cfg)
 
 	// Mock successful OCI 1.1 discovery
-	ociremoteResolveDigest = func(ref name.Reference, opts ...remote.Option) (name.Digest, error) {
+	ociremoteResolveDigest = func(_ name.Reference, opts ...remote.Option) (name.Digest, error) {
 		return name.MustParseReference("example.com/test@sha256:abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234").(name.Digest), nil
 	}
 
@@ -3987,14 +3987,14 @@ func TestValidAttestationsOCI11Enabled_DISABLED(t *testing.T) {
 		},
 	}
 
-	ociremoteReferrers = func(d name.Digest, artifactType string, opts ...remote.Option) (*v1.IndexManifest, error) {
+	ociremoteReferrers = func(_ name.Digest, artifactType string, opts ...remote.Option) (*v1.IndexManifest, error) {
 		return mockManifest, nil
 	}
 
 	// Create a mock signed image with DSSE envelope
 	dsseContent := []byte(`{"payload":"eyJmb28iOiJiYXIifQ==","signatures":[{"sig":"c2lnbmF0dXJl"}]}`)
 
-	ociremoteSignedImage = func(ref name.Reference, opts ...remote.Option) (oci.SignedImage, error) {
+	ociremoteSignedImage = func(_ name.Reference, opts ...remote.Option) (oci.SignedImage, error) {
 		return &mockSignedImage{
 			layers: []v1.Layer{
 				&mockLayer{content: dsseContent},
@@ -4004,7 +4004,7 @@ func TestValidAttestationsOCI11Enabled_DISABLED(t *testing.T) {
 
 	// Should call OCI 1.1 path, not legacy
 	legacyCalled := false
-	cosignVerifyAttestations = func(ctx context.Context, ref name.Reference, co *cosign.CheckOpts, nameOpts ...name.Option) ([]oci.Signature, bool, error) {
+	cosignVerifyAttestations = func(_ context.Context, ref name.Reference, co *cosign.CheckOpts, nameOpts ...name.Option) ([]oci.Signature, bool, error) {
 		legacyCalled = true
 		return nil, false, errors.New("should not call legacy")
 	}
