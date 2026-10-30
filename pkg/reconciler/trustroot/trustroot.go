@@ -31,7 +31,7 @@ import (
 	"github.com/sigstore/policy-controller/pkg/tuf"
 	pbcommon "github.com/sigstore/protobuf-specs/gen/pb-go/common/v1"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
-	sigstoretuf "github.com/sigstore/sigstore/pkg/tuf"
+	sigstoretuf "github.com/sigstore/sigstore-go/pkg/tuf"
 	"google.golang.org/protobuf/encoding/protojson"
 	corev1 "k8s.io/api/core/v1"
 	apierrs "k8s.io/apimachinery/pkg/api/errors"

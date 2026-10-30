@@ -34,7 +34,6 @@ import (
 
 	"github.com/sigstore/sigstore-go/pkg/root"
 	sigstoretuf "github.com/sigstore/sigstore-go/pkg/tuf"
-	"github.com/sigstore/sigstore/pkg/tuf"
 	"github.com/theupdateframework/go-tuf/v2/metadata"
 	tufconfig "github.com/theupdateframework/go-tuf/v2/metadata/config"
 	"github.com/theupdateframework/go-tuf/v2/metadata/fetcher"

@@ -53,7 +53,7 @@ import (
 	"knative.dev/pkg/webhook/resourcesemantics/validation"
 	"sigs.k8s.io/release-utils/version"
 
-	"github.com/sigstore/sigstore/pkg/tuf"
+	"github.com/sigstore/sigstore-go/pkg/tuf"
 
 	"github.com/sigstore/policy-controller/pkg/apis/config"
 	pctuf "github.com/sigstore/policy-controller/pkg/tuf"
