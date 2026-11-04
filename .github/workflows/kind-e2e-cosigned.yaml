@@ -33,8 +33,9 @@ jobs:
       fail-fast: false # Keep running if one leg fails.
       matrix:
         k8s-version:
-        - v1.33.x
-        - v1.34.x
+        - v1.35.x
+        - v1.36.x
+        - v1.37.x
 
     env:
       # go-containerregistry >= v0.21.4 only assumes HTTP for localhost and
@@ -124,7 +125,7 @@ jobs:
         mirror: mirror.gcr.io
 
     - name: Setup kind cluster
-      uses: chainguard-dev/actions/setup-kind@0bacfe710021b5ad6d8886a53a34c40072f2fc90 # v1.6.36
+      uses: chainguard-dev/actions/setup-kind@781f98705341f656f85da1d789066bb9d67aba57 # v1.8.0
       with:
         k8s-version: ${{ matrix.k8s-version }}
         cluster-suffix: c${{ github.run_id }}.local
