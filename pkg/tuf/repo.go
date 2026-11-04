@@ -33,8 +33,7 @@ import (
 	"time"
 
 	"github.com/sigstore/sigstore-go/pkg/root"
-	sigstoretuf "github.com/sigstore/sigstore-go/pkg/tuf"
-	"github.com/sigstore/sigstore/pkg/tuf"
+	"github.com/sigstore/sigstore-go/pkg/tuf"
 	"github.com/theupdateframework/go-tuf/v2/metadata"
 	tufconfig "github.com/theupdateframework/go-tuf/v2/metadata/config"
 	"github.com/theupdateframework/go-tuf/v2/metadata/fetcher"
@@ -264,7 +263,7 @@ func (f *fsFetcher) DownloadFile(urlPath string, maxLength int64, timeout time.D
 // retrieval and provides lazy access to a raw go-tuf v2 updater for
 // legacy target enumeration via GetTopLevelTargets.
 type TUFClient struct {
-	client *sigstoretuf.Client
+	client *tuf.Client
 
 	// Fields for lazy-initialized raw updater (legacy enumeration only).
 	once        sync.Once
@@ -307,13 +306,13 @@ func ClientFromSerializedMirror(_ context.Context, repo, rootJSON []byte, target
 	const baseURL = "mem://repo/"
 	f := &fsFetcher{fsys: tufFS, baseURL: baseURL}
 
-	opts := sigstoretuf.DefaultOptions().
+	opts := tuf.DefaultOptions().
 		WithRoot(rootJSON).
 		WithRepositoryBaseURL(baseURL).
 		WithDisableLocalCache().
 		WithFetcher(f)
 
-	client, err := sigstoretuf.New(opts)
+	client, err := tuf.New(opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create TUF client: %w", err)
 	}
@@ -333,13 +332,13 @@ func ClientFromRemote(_ context.Context, mirror string, rootJSON []byte, targets
 	f.SetHTTPUserAgent(uaString)
 	f.SetHTTPClient(&http.Client{Timeout: 30 * time.Second})
 
-	opts := sigstoretuf.DefaultOptions().
+	opts := tuf.DefaultOptions().
 		WithRoot(rootJSON).
 		WithRepositoryBaseURL(mirror).
 		WithDisableLocalCache().
 		WithFetcher(f)
 
-	client, err := sigstoretuf.New(opts)
+	client, err := tuf.New(opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create TUF client: %w", err)
 	}
@@ -390,7 +389,7 @@ func GetTrustedRoot(ctx context.Context) (*root.TrustedRoot, error) {
 		mu.Lock()
 		defer mu.Unlock()
 
-		tufClient, err := tuf.NewFromEnv(context.Background())
+		tufClient, err := tuf.DefaultClient()
 		if err != nil {
 			return nil, fmt.Errorf("initializing tuf: %w", err)
 		}
