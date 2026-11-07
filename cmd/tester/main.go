@@ -20,6 +20,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
+	"io"
 	"log"
 	"os"
 	"strings"
@@ -244,20 +245,37 @@ func main() {
 		errStrings = append(errStrings, strings.Trim(err.Error(), "\n"))
 	}
 
-	if len(errStrings) != 0 {
+	switch {
+	case len(errStrings) != 0:
 		logging.FromContext(ctx).Infof("Errors encountered during verification\n")
+	case len(warningStrings) != 0:
+		logging.FromContext(ctx).Infof("Verification was successful with warnings\n")
+	default:
+		logging.FromContext(ctx).Infof("Verification was successful!\n")
+	}
 
-		var o []byte
-		o, err = json.Marshal(&output{
-			Errors:   errStrings,
-			Warnings: warningStrings,
-		})
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		fmt.Println(string(o))
+	if err := writeOutput(os.Stdout, errStrings, warningStrings); err != nil {
+		log.Fatal(err)
+	}
+	if len(errStrings) != 0 {
 		os.Exit(1)
 	}
-	logging.FromContext(ctx).Infof("Verification was successful!\n")
+}
+
+// writeOutput prints the verification result as JSON when there are errors
+// or warnings. Warnings are printed on success too, since policies with
+// mode: warn admit the image but still report them.
+func writeOutput(w io.Writer, errs, warns []string) error {
+	if len(errs) == 0 && len(warns) == 0 {
+		return nil
+	}
+	o, err := json.Marshal(&output{
+		Errors:   errs,
+		Warnings: warns,
+	})
+	if err != nil {
+		return err
+	}
+	_, err = fmt.Fprintln(w, string(o))
+	return err
 }
