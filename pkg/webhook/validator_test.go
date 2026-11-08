@@ -42,6 +42,8 @@ import (
 	"github.com/sigstore/cosign/v3/pkg/cosign"
 	"github.com/sigstore/cosign/v3/pkg/cosign/bundle"
 	"github.com/sigstore/cosign/v3/pkg/oci"
+	"github.com/sigstore/cosign/v3/pkg/oci/empty"
+	"github.com/sigstore/cosign/v3/pkg/oci/mutate"
 	"github.com/sigstore/cosign/v3/pkg/oci/remote"
 	"github.com/sigstore/cosign/v3/pkg/oci/static"
 	"github.com/sigstore/policy-controller/pkg/apis/config"
@@ -4304,10 +4306,9 @@ func (m *mockLayer) MediaType() (v1types.MediaType, error) {
 }
 
 func TestProcessAttestationArtifact(t *testing.T) {
-	// Save original
-	origSignedImage := ociremoteSignedImage
+	origSignatures := ociremoteSignatures
 	defer func() {
-		ociremoteSignedImage = origSignedImage
+		ociremoteSignatures = origSignatures
 	}()
 
 	repo, _ := name.NewRepository("example.com/test")
@@ -4317,43 +4318,52 @@ func TestProcessAttestationArtifact(t *testing.T) {
 			Hex:       "abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234",
 		},
 	}
+	wantRef := "example.com/test@sha256:abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234abcd1234"
+
+	// attestations returns a mock referrer holding n attestation layers.
+	attestations := func(n int) func(name.Reference, ...remote.Option) (oci.Signatures, error) {
+		return func(ref name.Reference, _ ...remote.Option) (oci.Signatures, error) {
+			if ref.String() != wantRef {
+				return nil, fmt.Errorf("unexpected referrer ref %s", ref)
+			}
+			sigs := empty.Signatures()
+			for i := 0; i < n; i++ {
+				att, err := static.NewAttestation([]byte(fmt.Sprintf(`{"payload":"%d"}`, i)))
+				if err != nil {
+					return nil, err
+				}
+				if sigs, err = mutate.AppendSignatures(sigs, false, att); err != nil {
+					return nil, err
+				}
+			}
+			return sigs, nil
+		}
+	}
 
 	tests := []struct {
-		name         string
-		descriptor   v1.Descriptor
-		mockImage    func(name.Reference, ...remote.Option) (oci.SignedImage, error)
-		wantErr      bool
-		wantSigCount int
+		name           string
+		descriptor     v1.Descriptor
+		mockSignatures func(name.Reference, ...remote.Option) (oci.Signatures, error)
+		wantErr        bool
+		wantSigCount   int
 	}{
 		{
-			name:       "valid DSSE envelope",
-			descriptor: descriptor,
-			mockImage: func(ref name.Reference, opts ...remote.Option) (oci.SignedImage, error) {
-				dsseContent := []byte(`{"payloadType":"application/vnd.in-toto+json","payload":"eyJ0ZXN0IjoidmFsdWUifQ==","signatures":[{"sig":"c2lnbmF0dXJl"}]}`)
-				return &mockSignedImage{
-					layers: []v1.Layer{
-						&mockLayer{content: dsseContent},
-					},
-				}, nil
-			},
-			wantErr:      false,
-			wantSigCount: 1,
+			name:           "one attestation layer",
+			descriptor:     descriptor,
+			mockSignatures: attestations(1),
+			wantSigCount:   1,
 		},
 		{
-			name:       "multiple signatures in envelope",
-			descriptor: descriptor,
-			mockImage: func(ref name.Reference, opts ...remote.Option) (oci.SignedImage, error) {
-				dsseContent := []byte(`{"payloadType":"application/vnd.in-toto+json","payload":"eyJ0ZXN0IjoidmFsdWUifQ==","signatures":[{"sig":"c2lnMQ=="},{"sig":"c2lnMg=="}]}`)
-				return &mockSignedImage{
-					layers: []v1.Layer{
-						&mockLayer{content: dsseContent},
-					},
-				}, nil
-			},
-			// One oci.Signature per envelope; DSSE verification handles the
-			// per-signer threshold internally.
-			wantErr:      false,
-			wantSigCount: 1,
+			name:           "multiple attestation layers",
+			descriptor:     descriptor,
+			mockSignatures: attestations(2),
+			wantSigCount:   2,
+		},
+		{
+			name:           "no attestation layers",
+			descriptor:     descriptor,
+			mockSignatures: attestations(0),
+			wantSigCount:   0,
 		},
 		{
 			name: "invalid digest format",
@@ -4363,70 +4373,14 @@ func TestProcessAttestationArtifact(t *testing.T) {
 					Hex:       "invalid",
 				},
 			},
-			mockImage: func(ref name.Reference, opts ...remote.Option) (oci.SignedImage, error) {
-				return nil, nil
-			},
-			wantErr: true,
+			mockSignatures: attestations(1),
+			wantErr:        true,
 		},
 		{
-			name:       "failed to get signed image",
+			name:       "failed to fetch referrer",
 			descriptor: descriptor,
-			mockImage: func(ref name.Reference, opts ...remote.Option) (oci.SignedImage, error) {
+			mockSignatures: func(name.Reference, ...remote.Option) (oci.Signatures, error) {
 				return nil, errors.New("failed to fetch image")
-			},
-			wantErr: true,
-		},
-		{
-			name:       "no layers in image",
-			descriptor: descriptor,
-			mockImage: func(ref name.Reference, opts ...remote.Option) (oci.SignedImage, error) {
-				return &mockSignedImage{
-					layers: []v1.Layer{},
-				}, nil
-			},
-			wantErr: true,
-		},
-		{
-			name:       "invalid JSON in layer",
-			descriptor: descriptor,
-			mockImage: func(ref name.Reference, opts ...remote.Option) (oci.SignedImage, error) {
-				return &mockSignedImage{
-					layers: []v1.Layer{
-						&mockLayer{content: []byte("not json")},
-					},
-				}, nil
-			},
-			wantErr: true,
-		},
-		{
-			// A DSSE envelope with zero signatures is structurally invalid;
-			// processAttestationArtifact must reject it rather than silently
-			// returning zero "verified" attestations.
-			name:       "empty signatures array",
-			descriptor: descriptor,
-			mockImage: func(ref name.Reference, opts ...remote.Option) (oci.SignedImage, error) {
-				dsseContent := []byte(`{"payloadType":"application/vnd.in-toto+json","payload":"eyJ0ZXN0IjoidmFsdWUifQ==","signatures":[]}`)
-				return &mockSignedImage{
-					layers: []v1.Layer{
-						&mockLayer{content: dsseContent},
-					},
-				}, nil
-			},
-			wantErr: true,
-		},
-		{
-			// DSSE envelopes must declare a payloadType; missing payloadType is
-			// not a real DSSE envelope and would never pass verification, so
-			// reject it explicitly rather than treating it as a valid signature.
-			name:       "DSSE envelope missing payloadType",
-			descriptor: descriptor,
-			mockImage: func(ref name.Reference, opts ...remote.Option) (oci.SignedImage, error) {
-				dsseContent := []byte(`{"payload":"eyJ0ZXN0IjoidmFsdWUifQ==","signatures":[{"sig":"c2ln"}]}`)
-				return &mockSignedImage{
-					layers: []v1.Layer{
-						&mockLayer{content: dsseContent},
-					},
-				}, nil
 			},
 			wantErr: true,
 		},
@@ -4434,7 +4388,7 @@ func TestProcessAttestationArtifact(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			ociremoteSignedImage = tt.mockImage
+			ociremoteSignatures = tt.mockSignatures
 
 			sigs, err := processAttestationArtifact(tt.descriptor, repo, nil)
 

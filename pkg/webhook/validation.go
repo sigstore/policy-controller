@@ -18,10 +18,8 @@ package webhook
 import (
 	"context"
 	"crypto"
-	"encoding/json"
 	"encoding/pem"
 	"fmt"
-	"io"
 	"strings"
 
 	"github.com/google/go-containerregistry/pkg/name"
@@ -33,7 +31,6 @@ import (
 	"github.com/sigstore/cosign/v3/pkg/oci/empty"
 	"github.com/sigstore/cosign/v3/pkg/oci/mutate"
 	ociremote "github.com/sigstore/cosign/v3/pkg/oci/remote"
-	"github.com/sigstore/cosign/v3/pkg/oci/static"
 	policycontrollerconfig "github.com/sigstore/policy-controller/pkg/config"
 	"github.com/sigstore/sigstore/pkg/signature"
 )
@@ -71,6 +68,7 @@ var cosignVerifyAttestation = cosign.VerifyImageAttestation
 var ociremoteResolveDigest = ociremote.ResolveDigest
 var ociremoteReferrers = ociremote.Referrers
 var ociremoteSignedImage = ociremote.SignedImage
+var ociremoteSignatures = ociremote.Signatures
 var testProcessAttestationArtifact = processAttestationArtifact
 
 func validSignatures(ctx context.Context, ref name.Reference, checkOpts *cosign.CheckOpts) ([]oci.Signature, error) {
@@ -146,49 +144,14 @@ func processAttestationArtifact(result v1.Descriptor, repository name.Repository
 	}
 	attRef := repository.Digest(result.Digest.String())
 
-	signedEntity, err := ociremoteSignedImage(attRef, registryOpts...)
+	// Read the referrer the same way cosign reads attestation images, so each
+	// layer keeps its certificate, chain, Rekor bundle and timestamp
+	// annotations for verification.
+	atts, err := ociremoteSignatures(attRef, registryOpts...)
 	if err != nil {
 		return nil, err
 	}
-
-	layers, err := signedEntity.Layers()
-	if err != nil || len(layers) == 0 {
-		return nil, fmt.Errorf("no layers found")
-	}
-
-	rc, err := layers[0].Uncompressed()
-	if err != nil {
-		return nil, err
-	}
-	defer rc.Close()
-
-	dsseEnvelope, err := io.ReadAll(rc)
-	if err != nil {
-		return nil, err
-	}
-
-	var probe struct {
-		PayloadType string `json:"payloadType"`
-		Payload     string `json:"payload"`
-		Signatures  []struct {
-			Sig string `json:"sig"`
-		} `json:"signatures"`
-	}
-	if err := json.Unmarshal(dsseEnvelope, &probe); err != nil {
-		return nil, fmt.Errorf("invalid DSSE envelope: %w", err)
-	}
-	if probe.PayloadType == "" || probe.Payload == "" || len(probe.Signatures) == 0 {
-		return nil, fmt.Errorf("malformed DSSE envelope: missing payloadType, payload, or signatures")
-	}
-
-	// One oci.Signature per attestation referrer. The full DSSE envelope is the
-	// signature payload; cosign.verifyOCIAttestation re-parses payloadType and
-	// signatures from this payload before performing cryptographic verification.
-	att, err := static.NewAttestation(dsseEnvelope)
-	if err != nil {
-		return nil, err
-	}
-	return []oci.Signature{att}, nil
+	return atts.Get()
 }
 
 func parsePems(b []byte) []*pem.Block {
