@@ -53,6 +53,9 @@ require (
 	github.com/theupdateframework/go-tuf v0.7.0
 	github.com/theupdateframework/go-tuf/v2 v2.4.2
 	github.com/titanous/rocacheck v0.0.0-20171023193734-afe73141d399
+	go.opentelemetry.io/otel v1.47.0
+	go.opentelemetry.io/otel/metric v1.47.0
+	go.opentelemetry.io/otel/sdk/metric v1.47.0
 	go.uber.org/zap v1.28.0
 	golang.org/x/crypto v0.58.0
 	golang.org/x/net v0.61.0
@@ -64,6 +67,7 @@ require (
 	k8s.io/client-go v0.36.5
 	k8s.io/code-generator v0.36.5
 	k8s.io/kube-openapi v0.0.0-20260317180543-43fb72c5454a
+	k8s.io/utils v0.0.0-20260210185600-b8788abfbbc2
 	knative.dev/hack v0.0.0-20261023132104-4a15c76c8f70
 	knative.dev/hack/schema v0.0.0-20240607132042-09143140a254
 	knative.dev/pkg v0.0.0-20261106011441-a8ce7f3f6f84
@@ -266,7 +270,6 @@ require (
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.70.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.72.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/runtime v0.72.0 // indirect
-	go.opentelemetry.io/otel v1.47.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc v1.47.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp v1.47.0 // indirect
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.47.0 // indirect
@@ -275,9 +278,7 @@ require (
 	go.opentelemetry.io/otel/exporters/prometheus v0.69.0 // indirect
 	go.opentelemetry.io/otel/exporters/stdout/stdouttrace v1.47.0 // indirect
 	go.opentelemetry.io/otel/log v1.47.0 // indirect
-	go.opentelemetry.io/otel/metric v1.47.0 // indirect
 	go.opentelemetry.io/otel/sdk v1.47.0 // indirect
-	go.opentelemetry.io/otel/sdk/metric v1.47.0 // indirect
 	go.opentelemetry.io/otel/trace v1.47.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.11.0 // indirect
 	go.uber.org/automaxprocs v1.6.0 // indirect
@@ -305,7 +306,6 @@ require (
 	k8s.io/gengo v0.0.0-20230829151522-9cce18d56c01 // indirect
 	k8s.io/gengo/v2 v2.0.0-20250922181213-ec3ebc5fd46b // indirect
 	k8s.io/klog/v2 v2.140.0 // indirect
-	k8s.io/utils v0.0.0-20260210185600-b8788abfbbc2 // indirect
 	sigs.k8s.io/json v0.0.0-20250730193827-2d320260d730 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v6 v6.3.3 // indirect
