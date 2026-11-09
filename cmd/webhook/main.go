@@ -54,6 +54,7 @@ import (
 	"sigs.k8s.io/release-utils/version"
 
 	"github.com/sigstore/sigstore-go/pkg/tuf"
+	legacytuf "github.com/sigstore/sigstore/pkg/tuf" //nolint:staticcheck
 
 	"github.com/sigstore/policy-controller/pkg/apis/config"
 	pctuf "github.com/sigstore/policy-controller/pkg/tuf"
@@ -130,6 +131,10 @@ func main() {
 			}
 		}
 		logging.FromContext(ctx).Infof("Initializing TUF root from %s => %s", *tufRoot, *tufMirror)
+		// Legacy Fulcio and Rekor loaders still use their own TUF singleton.
+		if err := legacytuf.Initialize(ctx, *tufMirror, tufRootBytes); err != nil {
+			logging.FromContext(ctx).Panicf("Failed to initialize legacy TUF client from %s : %v", *tufRoot, err)
+		}
 		opts := tuf.DefaultOptions()
 		opts.WithContext(ctx)
 		if tufRootBytes != nil {
