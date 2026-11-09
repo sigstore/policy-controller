@@ -124,6 +124,8 @@ sed -i'' -e "s@FULCIO_CERT_CHAIN@${FULCIO_CERT_CHAIN}@g" ./test/testdata/trustro
 sed -i'' -e "s@REKOR_PUBLIC_KEY@${REKOR_PUBLIC_KEY}@g" ./test/testdata/trustroot/e2e/bring-your-own-keys.yaml
 sed -i'' -e "s@CTFE_PUBLIC_KEY@${CTFE_PUBLIC_KEY}@g" ./test/testdata/trustroot/e2e/bring-your-own-keys.yaml
 kubectl apply -f ./test/testdata/trustroot/e2e/bring-your-own-keys.yaml
+# Wait for the reconciler to write the TrustRoot into the webhook ConfigMap.
+kubectl wait --for=condition=Ready trustroot --all --timeout=2m
 
 # allow things to propagate
 sleep 5
