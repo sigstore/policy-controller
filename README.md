@@ -132,18 +132,15 @@ helm upgrade --install policy-controller sigstore/policy-controller --version 0.
 
 ## Support Policy
 
-This policy-controller's versions are able to run in the following versions of Kubernetes:
+Each policy-controller release is tested in CI against the following Kubernetes versions:
 
-|  | policy-controller `> 0.2.x` | policy-controller `> 0.10.x` |
-|---|:---:|:---:|
-| Kubernetes 1.23 | ✓ |   |
-| Kubernetes 1.24 | ✓ |   |
-| Kubernetes 1.25 | ✓ |   |
-| Kubernetes 1.27 |   | ✓ |
-| Kubernetes 1.28 |   | ✓ |
-| Kubernetes 1.29 |   | ✓ |
-
-note: not fully tested yet, but can be installed
+| policy-controller | Kubernetes versions |
+|---|---|
+| 0.14.x – 0.15.x | 1.31, 1.32, 1.33, 1.34 |
+| 0.13.x | 1.30, 1.31, 1.32, 1.33 |
+| 0.12.x | 1.29, 1.30, 1.31, 1.32 |
+| 0.10.x – 0.11.x | 1.27, 1.28, 1.29 |
+| 0.2.x – 0.9.x | 1.23, 1.24, 1.25 |
 
 ## Release Cadence
 
