@@ -125,11 +125,11 @@ kubectl apply -f ./test/testdata/policy-controller/e2e/cip-keyless-warn.yaml
 echo '::endgroup::'
 
 echo '::group:: Sign demo image'
-cosign sign --use-signing-config=false --new-bundle-format=false --rekor-url ${REKOR_URL} --fulcio-url ${FULCIO_URL} --yes --allow-insecure-registry ${demoimage} --identity-token ${OIDC_TOKEN}
+cosign sign --use-signing-config=false --new-bundle-format=false --rekor-url ${REKOR_URL} --fulcio-url ${FULCIO_URL} --yes --allow-insecure-registry --allow-http-registry ${demoimage} --identity-token ${OIDC_TOKEN}
 echo '::endgroup::'
 
 echo '::group:: Verify demo image'
-cosign verify --new-bundle-format=false --rekor-url ${REKOR_URL} --allow-insecure-registry --certificate-identity-regexp='.*'  --certificate-oidc-issuer-regexp='.*' ${demoimage}
+cosign verify --new-bundle-format=false --rekor-url ${REKOR_URL} --allow-insecure-registry --allow-http-registry --certificate-identity-regexp='.*'  --certificate-oidc-issuer-regexp='.*' ${demoimage}
 echo '::endgroup::'
 
 echo '::group:: Create test namespace and label for verification'

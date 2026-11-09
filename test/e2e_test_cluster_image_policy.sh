@@ -125,14 +125,14 @@ kubectl apply -f ./test/testdata/policy-controller/e2e/cip-keyless.yaml
 echo '::endgroup::'
 
 echo '::group:: Sign demo image'
-if ! cosign sign --use-signing-config=false --new-bundle-format=false --rekor-url ${REKOR_URL} --fulcio-url ${FULCIO_URL} --yes --allow-insecure-registry ${demoimage} --identity-token ${OIDC_TOKEN} ; then
+if ! cosign sign --use-signing-config=false --new-bundle-format=false --rekor-url ${REKOR_URL} --fulcio-url ${FULCIO_URL} --yes --allow-insecure-registry --allow-http-registry ${demoimage} --identity-token ${OIDC_TOKEN} ; then
   echo "failed to sign with keyless"
   exit 1
 fi
 echo '::endgroup::'
 
 echo '::group:: Verify demo image'
-if ! cosign verify --new-bundle-format=false --rekor-url ${REKOR_URL} --allow-insecure-registry --certificate-identity-regexp='.*'  --certificate-oidc-issuer-regexp='.*' ${demoimage} ; then
+if ! cosign verify --new-bundle-format=false --rekor-url ${REKOR_URL} --allow-insecure-registry --allow-http-registry --certificate-identity-regexp='.*'  --certificate-oidc-issuer-regexp='.*' ${demoimage} ; then
   echo "failed to verify with keyless"
 fi
 echo '::endgroup::'
@@ -261,14 +261,14 @@ fi
 echo '::endgroup::'
 
 echo '::group:: Sign demoimage with cosign key'
-if ! COSIGN_PASSWORD="" cosign sign --use-signing-config=false --new-bundle-format=false --key cosign-colocated-signing.key --yes --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage} ; then
+if ! COSIGN_PASSWORD="" cosign sign --use-signing-config=false --new-bundle-format=false --key cosign-colocated-signing.key --yes --allow-insecure-registry --allow-http-registry --rekor-url ${REKOR_URL} ${demoimage} ; then
   echo failed to sign demoimage with key
   exit 1
 fi
 echo '::endgroup::'
 
 echo '::group:: Verify demoimage with cosign key'
-if ! cosign verify --new-bundle-format=false --key cosign-colocated-signing.pub --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage} ; then
+if ! cosign verify --new-bundle-format=false --key cosign-colocated-signing.pub --allow-insecure-registry --allow-http-registry --rekor-url ${REKOR_URL} ${demoimage} ; then
   echo failed to verify demo image with cosign key
   exit 1
 fi
@@ -368,14 +368,14 @@ fi
 echo '::endgroup::'
 
 echo '::group:: Sign demoimage with cosign key secret'
-if ! COSIGN_PASSWORD="" cosign sign --use-signing-config=false --new-bundle-format=false --key cosign-secret.key --yes --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage} ; then
+if ! COSIGN_PASSWORD="" cosign sign --use-signing-config=false --new-bundle-format=false --key cosign-secret.key --yes --allow-insecure-registry --allow-http-registry --rekor-url ${REKOR_URL} ${demoimage} ; then
   echo failed to sign demoimage with key secret
   exit 1
 fi
 echo '::endgroup::'
 
 echo '::group:: Verify demoimage with cosign key secret'
-if ! cosign verify --new-bundle-format=false --key cosign-secret.pub --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage} ; then
+if ! cosign verify --new-bundle-format=false --key cosign-secret.pub --allow-insecure-registry --allow-http-registry --rekor-url ${REKOR_URL} ${demoimage} ; then
   echo failed to verify demo image with cosign key
   exit 1
 fi
@@ -409,19 +409,19 @@ sleep 5
 echo '::endgroup::'
 
 echo '::group:: Sign demoimage with cosign remote key'
-if ! COSIGN_PASSWORD="" COSIGN_REPOSITORY="${KO_DOCKER_REPO}/remote-signature" cosign sign --use-signing-config=false --new-bundle-format=false --key cosign-remote-signing.key --yes --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage} ; then
+if ! COSIGN_PASSWORD="" COSIGN_REPOSITORY="${KO_DOCKER_REPO}/remote-signature" cosign sign --use-signing-config=false --new-bundle-format=false --key cosign-remote-signing.key --yes --allow-insecure-registry --allow-http-registry --rekor-url ${REKOR_URL} ${demoimage} ; then
   echo "failed to sign with remote key"
   exit 1
 fi
 echo '::endgroup::'
 
 echo '::group:: Verify demoimage with cosign remote key'
-if cosign verify --new-bundle-format=false --key cosign-remote-signing.pub --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage}; then
+if cosign verify --new-bundle-format=false --key cosign-remote-signing.pub --allow-insecure-registry --allow-http-registry --rekor-url ${REKOR_URL} ${demoimage}; then
   echo "Signature should not have been verified unless COSIGN_REPOSITORY was defined"
   exit 1
 fi
 
-if ! COSIGN_REPOSITORY="${KO_DOCKER_REPO}/remote-signature" cosign verify --new-bundle-format=false --key cosign-remote-signing.pub --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage}; then
+if ! COSIGN_REPOSITORY="${KO_DOCKER_REPO}/remote-signature" cosign verify --new-bundle-format=false --key cosign-remote-signing.pub --allow-insecure-registry --allow-http-registry --rekor-url ${REKOR_URL} ${demoimage}; then
   echo "Signature should have been verified when COSIGN_REPOSITORY was defined"
   exit 1
 fi
@@ -520,14 +520,14 @@ fi
 echo '::endgroup::'
 
 echo '::group:: Sign demoimage with cosign key'
-if ! COSIGN_PASSWORD="" cosign sign --use-signing-config=false --new-bundle-format=false --key cosign-match-signing.key --yes --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage} ; then
+if ! COSIGN_PASSWORD="" cosign sign --use-signing-config=false --new-bundle-format=false --key cosign-match-signing.key --yes --allow-insecure-registry --allow-http-registry --rekor-url ${REKOR_URL} ${demoimage} ; then
   echo failed to sign demoimage with key
   exit 1
 fi
 echo '::endgroup::'
 
 echo '::group:: Verify demoimage with cosign key'
-if ! cosign verify --new-bundle-format=false --key cosign-match-signing.pub --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage} ; then
+if ! cosign verify --new-bundle-format=false --key cosign-match-signing.pub --allow-insecure-registry --allow-http-registry --rekor-url ${REKOR_URL} ${demoimage} ; then
   echo failed to verify demo image with cosign key
   exit 1
 fi
@@ -610,14 +610,14 @@ kubectl apply -f ./test/testdata/policy-controller/e2e/cip-keyless.yaml
 echo '::endgroup::'
 
 echo '::group:: Sign demo image'
-if ! cosign sign --use-signing-config=false --new-bundle-format=false --rekor-url ${REKOR_URL} --fulcio-url ${FULCIO_URL} --yes --allow-insecure-registry ${demoEphemeralImage} --identity-token ${OIDC_TOKEN} ; then
+if ! cosign sign --use-signing-config=false --new-bundle-format=false --rekor-url ${REKOR_URL} --fulcio-url ${FULCIO_URL} --yes --allow-insecure-registry --allow-http-registry ${demoEphemeralImage} --identity-token ${OIDC_TOKEN} ; then
   echo "failed to sign with keyless"
   exit 1
 fi
 echo '::endgroup::'
 
 echo '::group:: Verify demo image'
-if ! cosign verify --new-bundle-format=false --rekor-url ${REKOR_URL} --allow-insecure-registry --certificate-identity-regexp='.*'  --certificate-oidc-issuer-regexp='.*' ${demoEphemeralImage} ; then
+if ! cosign verify --new-bundle-format=false --rekor-url ${REKOR_URL} --allow-insecure-registry --allow-http-registry --certificate-identity-regexp='.*'  --certificate-oidc-issuer-regexp='.*' ${demoEphemeralImage} ; then
   echo "failed to verify with keyless"
 fi
 echo '::endgroup::'

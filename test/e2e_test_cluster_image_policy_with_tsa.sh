@@ -117,13 +117,13 @@ echo '::endgroup::'
 echo '::group:: Sign demoimage with key, and add to rekor and TSA'
 export TSA_URL=`kubectl -n tsa-system get ksvc tsa -ojsonpath='{.status.url}'`
 export TSA_URL="${TSA_URL}/api/v1/timestamp"
-COSIGN_YES="true" COSIGN_PASSWORD="" cosign sign --use-signing-config=false --new-bundle-format=false --key cosign.key --allow-insecure-registry --rekor-url ${REKOR_URL} --timestamp-server-url ${TSA_URL} ${demoimage}
+COSIGN_YES="true" COSIGN_PASSWORD="" cosign sign --use-signing-config=false --new-bundle-format=false --key cosign.key --allow-insecure-registry --allow-http-registry --rekor-url ${REKOR_URL} --timestamp-server-url ${TSA_URL} ${demoimage}
 echo '::endgroup::'
 
 echo '::group:: Verify demoimage with cosign key and TSA'
 export TSA_CERT_CHAIN=`kubectl -n tsa-system get secrets tsa-cert-chain -ojsonpath='{.data.cert-chain}'`
 echo "$TSA_CERT_CHAIN" | base64 -d > tsa-cert-chain.pem
-cosign verify --new-bundle-format=false --key cosign.pub --timestamp-certificate-chain tsa-cert-chain.pem --insecure-ignore-tlog --rekor-url ${REKOR_URL} --allow-insecure-registry ${demoimage}
+cosign verify --new-bundle-format=false --key cosign.pub --timestamp-certificate-chain tsa-cert-chain.pem --insecure-ignore-tlog --rekor-url ${REKOR_URL} --allow-insecure-registry --allow-http-registry ${demoimage}
 echo '::endgroup::'
 
 echo '::group:: Create TrustRoot that specifies TSA'
@@ -177,13 +177,13 @@ echo '::group:: Sign demoimage2 with key, and add to rekor and TSA'
 export TSA_URL=`kubectl -n tsa-system get ksvc tsa -ojsonpath='{.status.url}'`
 # Cosign TSA integration now requires passing the API endpoint URL
 export TSA_URL="${TSA_URL}/api/v1/timestamp"
-COSIGN_YES="true" COSIGN_PASSWORD="" cosign sign --use-signing-config=false --new-bundle-format=false --key cosign.key --allow-insecure-registry --rekor-url ${REKOR_URL} --timestamp-server-url ${TSA_URL} ${demoimage2}
+COSIGN_YES="true" COSIGN_PASSWORD="" cosign sign --use-signing-config=false --new-bundle-format=false --key cosign.key --allow-insecure-registry --allow-http-registry --rekor-url ${REKOR_URL} --timestamp-server-url ${TSA_URL} ${demoimage2}
 echo '::endgroup::'
 
 echo '::group:: Verify demoimage2 with cosign key and TSA'
 export TSA_CERT_CHAIN=`kubectl -n tsa-system get secrets tsa-cert-chain -ojsonpath='{.data.cert-chain}'`
 echo "$TSA_CERT_CHAIN" | base64 -d > tsa-cert-chain.pem
-cosign verify --new-bundle-format=false --key cosign.pub --timestamp-certificate-chain tsa-cert-chain.pem --insecure-ignore-tlog --allow-insecure-registry ${demoimage2}
+cosign verify --new-bundle-format=false --key cosign.pub --timestamp-certificate-chain tsa-cert-chain.pem --insecure-ignore-tlog --allow-insecure-registry --allow-http-registry ${demoimage2}
 echo '::endgroup::'
 
 echo '::group:: Change Certificate chain of TrustRoot to a wrong one for our TSA'

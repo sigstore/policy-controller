@@ -108,11 +108,11 @@ kubectl apply -f ./test/testdata/policy-controller/e2e/cip-keyless-with-source.y
 echo '::endgroup::'
 
 echo '::group:: Sign demo image'
-cosign sign --use-signing-config=false --new-bundle-format=false --rekor-url ${REKOR_URL} --fulcio-url ${FULCIO_URL} --yes --allow-insecure-registry ${demoimage} --identity-token ${OIDC_TOKEN}
+cosign sign --use-signing-config=false --new-bundle-format=false --rekor-url ${REKOR_URL} --fulcio-url ${FULCIO_URL} --yes --allow-insecure-registry --allow-http-registry ${demoimage} --identity-token ${OIDC_TOKEN}
 echo '::endgroup::'
 
 echo '::group:: Verify demo image'
-cosign verify --new-bundle-format=false --rekor-url ${REKOR_URL} --allow-insecure-registry --certificate-identity-regexp='.*'  --certificate-oidc-issuer-regexp='.*' ${demoimage}
+cosign verify --new-bundle-format=false --rekor-url ${REKOR_URL} --allow-insecure-registry --allow-http-registry --certificate-identity-regexp='.*'  --certificate-oidc-issuer-regexp='.*' ${demoimage}
 echo '::endgroup::'
 
 echo '::group:: Create test namespace and label for verification'
@@ -152,8 +152,8 @@ echo '::endgroup::'
 
 echo '::group:: Create an attestation without prefix, make sure it fails'
 echo -n 'foobar prefix e2e test' > ./predicate-file-prefix-custom
-cosign attest --use-signing-config=false --new-bundle-format=false --predicate ./predicate-file-prefix-custom --rekor-url ${REKOR_URL} --allow-insecure-registry --yes ${demoimage} --fulcio-url ${FULCIO_URL} --identity-token ${OIDC_TOKEN}
-cosign verify-attestation --new-bundle-format=false --allow-insecure-registry --rekor-url ${REKOR_URL} --certificate-identity-regexp='.*' --certificate-oidc-issuer-regexp='.*' ${demoimage}
+cosign attest --use-signing-config=false --new-bundle-format=false --predicate ./predicate-file-prefix-custom --rekor-url ${REKOR_URL} --allow-insecure-registry --allow-http-registry --yes ${demoimage} --fulcio-url ${FULCIO_URL} --identity-token ${OIDC_TOKEN}
+cosign verify-attestation --new-bundle-format=false --allow-insecure-registry --allow-http-registry --rekor-url ${REKOR_URL} --certificate-identity-regexp='.*' --certificate-oidc-issuer-regexp='.*' ${demoimage}
 echo '::endgroup::'
 
 echo '::group:: test job rejection using an OCI source to a wrong repository without signatures'
@@ -162,8 +162,8 @@ assert_error ${expected_error}
 echo '::endgroup::'
 
 echo '::group:: Create an attestation with prefix, make sure it fails'
-cosign attest --use-signing-config=false --new-bundle-format=false --predicate ./predicate-file-prefix-custom --rekor-url ${REKOR_URL} --allow-insecure-registry --yes ${demoimage} --attachment-tag-prefix=sigprefix --fulcio-url ${FULCIO_URL} --identity-token ${OIDC_TOKEN}
-cosign verify-attestation --new-bundle-format=false --allow-insecure-registry --rekor-url ${REKOR_URL} --certificate-identity-regexp='.*' --certificate-oidc-issuer-regexp='.*' ${demoimage} --attachment-tag-prefix=sigprefix
+cosign attest --use-signing-config=false --new-bundle-format=false --predicate ./predicate-file-prefix-custom --rekor-url ${REKOR_URL} --allow-insecure-registry --allow-http-registry --yes ${demoimage} --attachment-tag-prefix=sigprefix --fulcio-url ${FULCIO_URL} --identity-token ${OIDC_TOKEN}
+cosign verify-attestation --new-bundle-format=false --allow-insecure-registry --allow-http-registry --rekor-url ${REKOR_URL} --certificate-identity-regexp='.*' --certificate-oidc-issuer-regexp='.*' ${demoimage} --attachment-tag-prefix=sigprefix
 echo '::endgroup::'
 
 echo '::group:: test job success since we have attestation with prefix'
