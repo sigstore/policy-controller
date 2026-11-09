@@ -373,43 +373,62 @@ func newRawUpdater(metadataURL string, rootJSON []byte, targetsURL string, f fet
 	return u, nil
 }
 
-var (
-	mu          sync.RWMutex
-	timestamp   time.Time
+type trustedRootClientKey struct{}
+
+type trustedRootClient struct {
+	mu          sync.Mutex
+	client      *tuf.Client
 	trustedRoot *root.TrustedRoot
-)
+	timestamp   time.Time
+}
 
-// GetTrustedRoot returns the trusted root for the TUF repository.
+var defaultTrustedRootClient trustedRootClient
+
+// Initialize initializes TUF and returns a context whose trusted-root retrieval
+// uses the same client, including its configured mirror and trust anchor.
+// It does not require the repository to contain trusted_root.json.
+func Initialize(ctx context.Context, opts *tuf.Options) (context.Context, error) {
+	options := *opts
+	options.Root = bytes.Clone(opts.Root)
+	client, err := tuf.New(&options)
+	if err != nil {
+		return nil, fmt.Errorf("initializing tuf: %w", err)
+	}
+	return context.WithValue(ctx, trustedRootClientKey{}, &trustedRootClient{
+		client: client,
+	}), nil
+}
+
+// GetTrustedRoot returns the configured repository's trusted root, cached for
+// the resync period. Callers without an initialized context use the public
+// Sigstore repository.
 func GetTrustedRoot(ctx context.Context) (*root.TrustedRoot, error) {
-	resyncPeriodDuration := FromContextOrDefaults(ctx)
-	now := time.Now().UTC()
-	// check if timestamp has never been set or if the current time
-	// is after the current timestamp value plus the included resync duration
-	if timestamp.IsZero() || now.After(timestamp.Add(resyncPeriodDuration)) {
-		mu.Lock()
-		defer mu.Unlock()
+	c, ok := ctx.Value(trustedRootClientKey{}).(*trustedRootClient)
+	if !ok {
+		c = &defaultTrustedRootClient
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
 
-		tufClient, err := tuf.DefaultClient()
+	if c.trustedRoot != nil && time.Since(c.timestamp) < FromContextOrDefaults(ctx) {
+		return c.trustedRoot, nil
+	}
+	if c.client == nil {
+		client, err := tuf.New(tuf.DefaultOptions().WithContext(ctx))
 		if err != nil {
 			return nil, fmt.Errorf("initializing tuf: %w", err)
 		}
-		// TODO: add support for custom trusted root path
-		targetBytes, err := tufClient.GetTarget("trusted_root.json")
-		if err != nil {
-			return nil, fmt.Errorf("error getting targets: %w", err)
+		c.client = client
+	} else if !c.timestamp.IsZero() {
+		if err := c.client.Refresh(); err != nil {
+			return nil, fmt.Errorf("refreshing tuf: %w", err)
 		}
-		trustedRoot, err = root.NewTrustedRootFromJSON(targetBytes)
-		if err != nil {
-			return nil, fmt.Errorf("error creating trusted root: %w", err)
-		}
-
-		timestamp = now
-
-		return trustedRoot, nil
 	}
-
-	mu.RLock()
-	defer mu.RUnlock()
-
+	trustedRoot, err := root.GetTrustedRoot(c.client)
+	if err != nil {
+		return nil, fmt.Errorf("getting trusted root: %w", err)
+	}
+	c.trustedRoot = trustedRoot
+	c.timestamp = time.Now()
 	return trustedRoot, nil
 }

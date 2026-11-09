@@ -132,11 +132,15 @@ func main() {
 		logging.FromContext(ctx).Infof("Initializing TUF root from %s => %s", *tufRoot, *tufMirror)
 		opts := tuf.DefaultOptions()
 		opts.WithContext(ctx)
-		opts.WithRoot(tufRootBytes)
+		if tufRootBytes != nil {
+			opts.WithRoot(tufRootBytes)
+		}
 		opts.WithRepositoryBaseURL(*tufMirror)
-		if _, err := tuf.New(opts); err != nil {
+		initializedCtx, err := pctuf.Initialize(ctx, opts)
+		if err != nil {
 			logging.FromContext(ctx).Panicf("Failed to initialize TUF client from %s : %v", *tufRoot, err)
 		}
+		ctx = initializedCtx
 	}
 
 	// Set the policy and trust root resync periods
