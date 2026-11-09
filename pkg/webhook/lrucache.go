@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"time"
 
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/metric"
 	"k8s.io/apimachinery/pkg/util/cache"
 	"knative.dev/pkg/logging"
 )
@@ -34,11 +36,18 @@ type LRUCache struct {
 
 // NewLRUCache creates a new LRU cache with the given size and TTL.
 func NewLRUCache(size int, ttl time.Duration) *LRUCache {
-	return &LRUCache{cache: cache.NewLRUExpireCache(size), ttl: ttl}
+	lc := &LRUCache{cache: cache.NewLRUExpireCache(size), ttl: ttl}
+	registerEntriesGauge(meter, lc.len)
+	return lc
 }
 
 func newLRUCacheWithClock(size int, ttl time.Duration, clock cache.Clock) *LRUCache {
 	return &LRUCache{cache: cache.NewLRUExpireCacheWithClock(size, clock), ttl: ttl}
+}
+
+// len returns the number of unexpired entries.
+func (c *LRUCache) len() int {
+	return len(c.cache.Keys())
 }
 
 func cacheKeyFor(image, uid, resourceVersion string) string {
@@ -48,21 +57,30 @@ func cacheKeyFor(image, uid, resourceVersion string) string {
 func (c *LRUCache) Get(ctx context.Context, image, uid, resourceVersion string) *CacheResult {
 	v, ok := c.cache.Get(cacheKeyFor(image, uid, resourceVersion))
 	if !ok {
+		cacheOps.Add(ctx, 1, metric.WithAttributes(attribute.String("result", "miss")))
 		logging.FromContext(ctx).Debugf("cache miss for image %s, policy UID %s", image, uid)
 		return nil
 	}
+	cacheOps.Add(ctx, 1, metric.WithAttributes(attribute.String("result", "hit")))
 	logging.FromContext(ctx).Debugf("cache hit for image %s, policy UID %s", image, uid)
 	return v.(*CacheResult)
 }
 
-func (c *LRUCache) Set(_ context.Context, image, _ string, uid, resourceVersion string, cacheResult *CacheResult) {
+func (c *LRUCache) Set(ctx context.Context, image, _ string, uid, resourceVersion string, cacheResult *CacheResult) {
 	if cacheResult.PolicyResult == nil {
+		cacheWrites.Add(ctx, 1, metric.WithAttributes(attribute.String("result", "skipped")))
 		return
 	}
 	c.cache.Add(cacheKeyFor(image, uid, resourceVersion), cacheResult, c.ttl)
+	cacheWrites.Add(ctx, 1, metric.WithAttributes(attribute.String("result", "stored")))
 }
 
 // Purge drops all cached results.
 func (c *LRUCache) Purge() {
-	c.cache.RemoveAll(func(any) bool { return true })
+	var n int64
+	c.cache.RemoveAll(func(any) bool {
+		n++
+		return true
+	})
+	cacheEvictions.Add(context.Background(), n, metric.WithAttributes(attribute.String("reason", "purge")))
 }
