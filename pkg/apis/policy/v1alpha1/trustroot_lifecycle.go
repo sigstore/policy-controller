@@ -53,7 +53,7 @@ func (ts *TrustRootStatus) InitializeConditions() {
 // MarkInlineKeysFailed surfaces a failure that we were unable to inline
 // the keys (from secrets or from KMS).
 func (ts *TrustRootStatus) MarkInlineKeysFailed(msg string) {
-	cipCondSet.Manage(ts).MarkFalse(TrustRootConditionKeysInlined, inlineKeysFailedReason, msg)
+	cipCondSet.Manage(ts).MarkFalse(TrustRootConditionKeysInlined, inlineKeysFailedReason, "%s", msg)
 }
 
 // MarkInlineKeysOk marks the status saying that the inlining of the keys
@@ -65,7 +65,7 @@ func (ts *TrustRootStatus) MarkInlineKeysOk() {
 // MarkCMUpdateFailed surfaces a failure that we were unable to reflect the
 // TrustRoot into the compiled ConfigMap.
 func (ts *TrustRootStatus) MarkCMUpdateFailed(msg string) {
-	trCondSet.Manage(ts).MarkFalse(TrustRootConditionCMUpdated, updateCMFailedReason, msg)
+	trCondSet.Manage(ts).MarkFalse(TrustRootConditionCMUpdated, updateCMFailedReason, "%s", msg)
 }
 
 // MarkCMUpdated marks the status saying that the ConfigMap has been updated.

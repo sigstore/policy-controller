@@ -60,7 +60,7 @@ func (cs *ClusterImagePolicyStatus) InitializeConditions() {
 // MarkInlineKeysFailed surfaces a failure that we were unable to inline
 // the keys (from secrets or from KMS).
 func (cs *ClusterImagePolicyStatus) MarkInlineKeysFailed(msg string) {
-	cipCondSet.Manage(cs).MarkFalse(ClusterImagePolicyConditionKeysInlined, inlineKeysFailedReason, msg)
+	cipCondSet.Manage(cs).MarkFalse(ClusterImagePolicyConditionKeysInlined, inlineKeysFailedReason, "%s", msg)
 }
 
 // MarkInlineKeysOk marks the status saying that the inlining of the keys
@@ -72,7 +72,7 @@ func (cs *ClusterImagePolicyStatus) MarkInlineKeysOk() {
 // MarkInlinePoliciesFailed surfaces a failure that we were unable to inline
 // the policies, either from ConfigMap or from URL.
 func (cs *ClusterImagePolicyStatus) MarkInlinePoliciesFailed(msg string) {
-	cipCondSet.Manage(cs).MarkFalse(ClusterImagePolicyConditionPoliciesInlined, inlinePoliciesFailedReason, msg)
+	cipCondSet.Manage(cs).MarkFalse(ClusterImagePolicyConditionPoliciesInlined, inlinePoliciesFailedReason, "%s", msg)
 }
 
 // MarkInlinePoliciesdOk marks the status saying that the inlining of the
@@ -84,7 +84,7 @@ func (cs *ClusterImagePolicyStatus) MarkInlinePoliciesOk() {
 // MarkCMUpdateFailed surfaces a failure that we were unable to reflect the
 // CIP into the compiled ConfigMap.
 func (cs *ClusterImagePolicyStatus) MarkCMUpdateFailed(msg string) {
-	cipCondSet.Manage(cs).MarkFalse(ClusterImagePolicyConditionCMUpdated, updateCMFailedReason, msg)
+	cipCondSet.Manage(cs).MarkFalse(ClusterImagePolicyConditionCMUpdated, updateCMFailedReason, "%s", msg)
 }
 
 // MarkCMUpdated marks the status saying that the ConfigMap has been updated.
