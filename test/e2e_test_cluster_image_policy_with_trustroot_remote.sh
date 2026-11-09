@@ -137,9 +137,9 @@ echo '::endgroup::'
 # Create attestation and it should pass.
 echo '::group:: Create one keyless attestation and verify it'
 echo -n 'foobar e2e test' > ./predicate-file-custom
-cosign attest --use-signing-config=false --new-bundle-format=false --predicate ./predicate-file-custom --fulcio-url ${FULCIO_URL} --rekor-url ${REKOR_URL} --allow-insecure-registry --yes ${demoimage} --identity-token ${OIDC_TOKEN}
+cosign attest --use-signing-config=false --new-bundle-format=false --predicate ./predicate-file-custom --fulcio-url ${FULCIO_URL} --rekor-url ${REKOR_URL} --allow-insecure-registry --allow-http-registry --yes ${demoimage} --identity-token ${OIDC_TOKEN}
 
-cosign verify-attestation --new-bundle-format=false --type=custom --rekor-url ${REKOR_URL} --allow-insecure-registry --certificate-identity-regexp='.*'  --certificate-oidc-issuer-regexp='.*' ${demoimage}
+cosign verify-attestation --new-bundle-format=false --type=custom --rekor-url ${REKOR_URL} --allow-insecure-registry --allow-http-registry --certificate-identity-regexp='.*'  --certificate-oidc-issuer-regexp='.*' ${demoimage}
 echo '::endgroup::'
 
 echo '::group:: test job success'

@@ -122,7 +122,7 @@ assert_error ${expected_error}
 echo '::endgroup::'
 
 echo '::group:: Sign demoimage with keyless'
-cosign sign --use-signing-config=false --new-bundle-format=false --rekor-url ${REKOR_URL} --fulcio-url ${FULCIO_URL} --yes --allow-insecure-registry ${demoimage} --identity-token ${OIDC_TOKEN}
+cosign sign --use-signing-config=false --new-bundle-format=false --rekor-url ${REKOR_URL} --fulcio-url ${FULCIO_URL} --yes --allow-insecure-registry --allow-http-registry ${demoimage} --identity-token ${OIDC_TOKEN}
 echo '::endgroup::'
 
 echo '::group:: Create CIP that requires keyless custom attestation with policy'
@@ -140,9 +140,9 @@ echo '::endgroup::'
 # Ok, cool. So attest and it should pass.
 echo '::group:: Create one keyless attestation and verify it'
 echo -n 'foobar e2e test' > ./predicate-file-custom
-cosign attest --use-signing-config=false --new-bundle-format=false --predicate ./predicate-file-custom --fulcio-url ${FULCIO_URL} --rekor-url ${REKOR_URL} --allow-insecure-registry --yes ${demoimage} --identity-token ${OIDC_TOKEN}
+cosign attest --use-signing-config=false --new-bundle-format=false --predicate ./predicate-file-custom --fulcio-url ${FULCIO_URL} --rekor-url ${REKOR_URL} --allow-insecure-registry --allow-http-registry --yes ${demoimage} --identity-token ${OIDC_TOKEN}
 
-cosign verify-attestation --new-bundle-format=false --type=custom --rekor-url ${REKOR_URL} --allow-insecure-registry --certificate-identity-regexp='.*'  --certificate-oidc-issuer-regexp='.*' ${demoimage}
+cosign verify-attestation --new-bundle-format=false --type=custom --rekor-url ${REKOR_URL} --allow-insecure-registry --allow-http-registry --certificate-identity-regexp='.*'  --certificate-oidc-issuer-regexp='.*' ${demoimage}
 echo '::endgroup::'
 
 echo '::group:: test job success'
@@ -182,11 +182,11 @@ echo '::endgroup::'
 
 # Sign it with key
 echo '::group:: Sign demoimage with key, and add to rekor'
-COSIGN_PASSWORD="" cosign sign --use-signing-config=false --new-bundle-format=false --key cosign.key --yes --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage}
+COSIGN_PASSWORD="" cosign sign --use-signing-config=false --new-bundle-format=false --key cosign.key --yes --allow-insecure-registry --allow-http-registry --rekor-url ${REKOR_URL} ${demoimage}
 echo '::endgroup::'
 
 echo '::group:: Verify demoimage with cosign key'
-cosign verify --new-bundle-format=false --key cosign.pub --rekor-url ${REKOR_URL} --allow-insecure-registry ${demoimage}
+cosign verify --new-bundle-format=false --key cosign.pub --rekor-url ${REKOR_URL} --allow-insecure-registry --allow-http-registry ${demoimage}
 echo '::endgroup::'
 
 # Ok, so now we have satisfied the keyless requirements, one signature, one
@@ -210,9 +210,9 @@ echo '::endgroup::'
 # Fine, so create an attestation for it that's different from the keyless one
 echo '::group:: create keyful attestation, add add to rekor'
 echo -n 'foobar key e2e test' > ./predicate-file-key-custom
-COSIGN_PASSWORD="" cosign attest --use-signing-config=false --new-bundle-format=false --predicate ./predicate-file-key-custom --rekor-url ${REKOR_URL} --key ./cosign.key --allow-insecure-registry --yes ${demoimage}
+COSIGN_PASSWORD="" cosign attest --use-signing-config=false --new-bundle-format=false --predicate ./predicate-file-key-custom --rekor-url ${REKOR_URL} --key ./cosign.key --allow-insecure-registry --allow-http-registry --yes ${demoimage}
 
-cosign verify-attestation --new-bundle-format=false --key ./cosign.pub --allow-insecure-registry --rekor-url ${REKOR_URL} ${demoimage}
+cosign verify-attestation --new-bundle-format=false --key ./cosign.pub --allow-insecure-registry --allow-http-registry --rekor-url ${REKOR_URL} ${demoimage}
 echo '::endgroup::'
 
 echo '::group:: test job success with key / keyless'
@@ -254,9 +254,9 @@ assert_error ${expected_error}
 echo '::endgroup::'
 
 echo '::group:: Create vuln keyless attestation and verify it'
-cosign attest --use-signing-config=false --new-bundle-format=false --predicate ./test/testdata/attestations/vuln-predicate.json --type=vuln --fulcio-url ${FULCIO_URL} --rekor-url ${REKOR_URL} --allow-insecure-registry --yes ${demoimage} --identity-token ${OIDC_TOKEN}
+cosign attest --use-signing-config=false --new-bundle-format=false --predicate ./test/testdata/attestations/vuln-predicate.json --type=vuln --fulcio-url ${FULCIO_URL} --rekor-url ${REKOR_URL} --allow-insecure-registry --allow-http-registry --yes ${demoimage} --identity-token ${OIDC_TOKEN}
 
-cosign verify-attestation --new-bundle-format=false --type=vuln --rekor-url ${REKOR_URL} --allow-insecure-registry --certificate-identity-regexp='.*'  --certificate-oidc-issuer-regexp='.*' ${demoimage}
+cosign verify-attestation --new-bundle-format=false --type=vuln --rekor-url ${REKOR_URL} --allow-insecure-registry --allow-http-registry --certificate-identity-regexp='.*'  --certificate-oidc-issuer-regexp='.*' ${demoimage}
 echo '::endgroup::'
 
 echo '::group:: test job success'
