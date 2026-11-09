@@ -122,6 +122,8 @@ export REPOSITORY=`kubectl -n tuf-system get secrets tuf-root -ojsonpath='{.data
 sed -i'' -e "s@ROOT_JSON@${ROOT_JSON}@g" ./test/testdata/trustroot/e2e/with-repository.yaml
 sed -i'' -e "s@REPOSITORY@${REPOSITORY}@g" ./test/testdata/trustroot/e2e/with-repository.yaml
 kubectl apply -f ./test/testdata/trustroot/e2e/with-repository.yaml
+# Wait for the reconciler to write the TrustRoot into the webhook ConfigMap.
+kubectl wait --for=condition=Ready trustroot --all --timeout=2m
 
 # allow things to propagate
 sleep 5
