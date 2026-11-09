@@ -103,6 +103,11 @@ var (
 	// trustrootResyncPeriod holds the interval which the TrustRoot will resync
 	// This is essential for triggering a reconcile update for potentially stale TUF metadata.
 	trustrootResyncPeriod = flag.Duration("trustroot-resync-period", 24*time.Hour, "The resync period for ClusterImagePolicies. The default is 24h.")
+
+	// Opt-in cache of successful ValidatePolicy results keyed by image digest + CIP UID/resourceVersion.
+	enableCache = flag.Bool("enable-cache", false, "Enable in-memory LRU cache for successful validation results. Results are shared across namespaces and can be stale for up to cache-ttl after signature or Rekor-side changes.")
+	cacheSize   = flag.Int("cache-size", 1024, "Maximum number of entries in the validation result cache.")
+	cacheTTL    = flag.Duration("cache-ttl", 1*time.Hour, "TTL for cached validation results.")
 )
 
 func main() {
@@ -117,6 +122,10 @@ func main() {
 	flag.IntVar(&opts.Port, "secure-port", opts.Port, "The port on which to serve HTTPS.")
 
 	flag.Parse()
+
+	if *enableCache && (*cacheSize <= 0 || *cacheTTL <= 0) {
+		log.Fatalf("--cache-size and --cache-ttl must be positive when --enable-cache is set, got %d and %v", *cacheSize, *cacheTTL)
+	}
 
 	// If TUF has been disabled do not try to set it up.
 	if !*disableTUF {
@@ -221,8 +230,17 @@ var typesCIP = map[schema.GroupVersionKind]resourcesemantics.GenericCRD{
 }
 
 func NewValidatingAdmissionController(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
+	var cache *cwebhook.LRUCache
+	var onAfterStore []func(string, any)
+	if *enableCache {
+		cache = cwebhook.NewLRUCache(*cacheSize, *cacheTTL)
+		// Inlined keys/policies and TrustRoots change without a CIP resourceVersion bump.
+		onAfterStore = append(onAfterStore, func(string, any) { cache.Purge() })
+		logging.FromContext(ctx).Infof("Validation result cache enabled: size=%d, ttl=%v", *cacheSize, *cacheTTL)
+	}
+
 	// Decorate contexts with the current state of the config.
-	store := config.NewStore(logging.FromContext(ctx).Named("config-store"))
+	store := config.NewStore(logging.FromContext(ctx).Named("config-store"), onAfterStore...)
 	store.WatchConfigs(cmw)
 	policyControllerConfigStore := policycontrollerconfig.NewStore(logging.FromContext(ctx).Named("config-policy-controller"))
 	policyControllerConfigStore.WatchConfigs(cmw)
@@ -253,6 +271,9 @@ func NewValidatingAdmissionController(ctx context.Context, cmw configmap.Watcher
 			ctx = context.WithValue(ctx, kubeclient.Key{}, kc)
 			ctx = store.ToContext(ctx)
 			ctx = policyControllerConfigStore.ToContext(ctx)
+			if cache != nil {
+				ctx = cwebhook.ToContext(ctx, cache)
+			}
 			ctx = policyduckv1beta1.WithPodScalableValidator(ctx, validator.ValidatePodScalable)
 			ctx = duckv1.WithPodValidator(ctx, validator.ValidatePod)
 			ctx = duckv1.WithPodSpecValidator(ctx, validator.ValidatePodSpecable)

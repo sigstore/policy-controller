@@ -54,6 +54,7 @@ import (
 	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/utils/ptr"
 	"knative.dev/pkg/apis"
 	duckv1 "knative.dev/pkg/apis/duck/v1"
 
@@ -464,11 +465,6 @@ func validatePolicies(ctx context.Context, namespace string, ref name.Reference,
 			result := retChannelType{name: cipName}
 
 			result.policyResult, result.errors = ValidatePolicy(ctx, namespace, ref, cip, kc, remoteOpts...)
-			// Cache the result.
-			FromContext(ctx).Set(ctx, ref.Name(), cipName, string(cip.UID), cip.ResourceVersion, &CacheResult{
-				PolicyResult: result.policyResult,
-				Errors:       result.errors,
-			})
 			results <- result
 		}()
 	}
@@ -523,10 +519,17 @@ func asFieldError(warn bool, err error) *apis.FieldError {
 // kc is the Keychain to use for fetching ConfigFile that's independent of the
 // signatures / attestations.
 func ValidatePolicy(ctx context.Context, namespace string, ref name.Reference, cip webhookcip.ClusterImagePolicy, kc authn.Keychain, remoteOpts ...ociremote.Option) (*PolicyResult, []error) {
-	// Check the cache and return if hit, otherwise, check the policy
-	cacheResult := FromContext(ctx).Get(ctx, ref.String(), string(cip.UID), cip.ResourceVersion)
-	if cacheResult != nil {
-		return cacheResult.PolicyResult, cacheResult.Errors
+	// Results for tags (which can be repointed), results that depend on the
+	// admitted object (include* fields), or results lacking a UID to key on
+	// are never cached.
+	_, isDigest := ref.(name.Digest)
+	p := cip.Policy
+	cacheable := isDigest && cip.UID != "" && (p == nil ||
+		!ptr.Deref(p.IncludeSpec, false) && !ptr.Deref(p.IncludeObjectMeta, false) && !ptr.Deref(p.IncludeTypeMeta, false))
+	if cacheable {
+		if cacheResult := FromContext(ctx).Get(ctx, ref.Name(), string(cip.UID), cip.ResourceVersion); cacheResult != nil {
+			return cacheResult.PolicyResult, cacheResult.Errors
+		}
 	}
 
 	// Each gofunc creates and puts one of these into a results channel.
@@ -684,6 +687,12 @@ func ValidatePolicy(ctx context.Context, namespace string, ref name.Reference, c
 			logging.FromContext(ctx).Warnf("Failed to validate CIP level policy; warn: %w; against %s", warn, string(policyJSON))
 			return nil, append(authorityErrors, asFieldError(cip.Mode == "warn", warn))
 		}
+	}
+	if cacheable {
+		FromContext(ctx).Set(ctx, ref.Name(), "", string(cip.UID), cip.ResourceVersion, &CacheResult{
+			PolicyResult: policyResult,
+			Errors:       authorityErrors,
+		})
 	}
 	return policyResult, authorityErrors
 }
