@@ -53,7 +53,8 @@ import (
 	"knative.dev/pkg/webhook/resourcesemantics/validation"
 	"sigs.k8s.io/release-utils/version"
 
-	"github.com/sigstore/sigstore/pkg/tuf"
+	"github.com/sigstore/sigstore-go/pkg/tuf"
+	legacytuf "github.com/sigstore/sigstore/pkg/tuf" //nolint:staticcheck
 
 	"github.com/sigstore/policy-controller/pkg/apis/config"
 	pctuf "github.com/sigstore/policy-controller/pkg/tuf"
@@ -72,7 +73,7 @@ var (
 	//	https://github.com/sigstore/helm-charts/blob/main/charts/policy-controller/templates/webhook/webhook_validating.yaml
 	webhookName = flag.String("webhook-name", "policy.sigstore.dev", "The name of the validating and mutating webhook configurations as well as the webhook name that is automatically configured, if exists, with different rules and client settings setting how the admission requests to be dispatched to policy-controller.")
 
-	tufMirror = flag.String("tuf-mirror", tuf.DefaultRemoteRoot, "Alternate TUF mirror. If left blank, public sigstore one is used")
+	tufMirror = flag.String("tuf-mirror", tuf.DefaultMirror, "Alternate TUF mirror. If left blank, public sigstore one is used")
 	tufRoot   = flag.String("tuf-root", "", "Alternate TUF root.json. If left blank, public sigstore one is used")
 
 	// Do not initialize TUF at all.
@@ -130,9 +131,21 @@ func main() {
 			}
 		}
 		logging.FromContext(ctx).Infof("Initializing TUF root from %s => %s", *tufRoot, *tufMirror)
-		if err := tuf.Initialize(ctx, *tufMirror, tufRootBytes); err != nil {
+		// Legacy Fulcio and Rekor loaders still use their own TUF singleton.
+		if err := legacytuf.Initialize(ctx, *tufMirror, tufRootBytes); err != nil {
+			logging.FromContext(ctx).Panicf("Failed to initialize legacy TUF client from %s : %v", *tufRoot, err)
+		}
+		opts := tuf.DefaultOptions()
+		opts.WithContext(ctx)
+		if tufRootBytes != nil {
+			opts.WithRoot(tufRootBytes)
+		}
+		opts.WithRepositoryBaseURL(*tufMirror)
+		initializedCtx, err := pctuf.Initialize(ctx, opts)
+		if err != nil {
 			logging.FromContext(ctx).Panicf("Failed to initialize TUF client from %s : %v", *tufRoot, err)
 		}
+		ctx = initializedCtx
 	}
 
 	// Set the policy and trust root resync periods
