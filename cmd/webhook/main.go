@@ -229,11 +229,21 @@ var typesCIP = map[schema.GroupVersionKind]resourcesemantics.GenericCRD{
 	v1beta1.SchemeGroupVersion.WithKind("ClusterImagePolicy"): &v1beta1.ClusterImagePolicy{},
 }
 
+type resultCache interface {
+	cwebhook.ResultCache
+	Purge()
+}
+
+// newResultCache is a var so tests can observe cache calls.
+var newResultCache = func(size int, ttl time.Duration) resultCache {
+	return cwebhook.NewLRUCache(size, ttl)
+}
+
 func NewValidatingAdmissionController(ctx context.Context, cmw configmap.Watcher) *controller.Impl {
-	var cache *cwebhook.LRUCache
+	var cache resultCache
 	var onAfterStore []func(string, any)
 	if *enableCache {
-		cache = cwebhook.NewLRUCache(*cacheSize, *cacheTTL)
+		cache = newResultCache(*cacheSize, *cacheTTL)
 		// Inlined keys/policies and TrustRoots change without a CIP resourceVersion bump.
 		onAfterStore = append(onAfterStore, func(string, any) { cache.Purge() })
 		logging.FromContext(ctx).Infof("Validation result cache enabled: size=%d, ttl=%v", *cacheSize, *cacheTTL)

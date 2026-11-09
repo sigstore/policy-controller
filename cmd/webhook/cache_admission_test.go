@@ -16,22 +16,22 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/sigstore/policy-controller/pkg/apis/config"
 	"github.com/sigstore/policy-controller/pkg/apis/policy/v1alpha1"
 	policycontrollerconfig "github.com/sigstore/policy-controller/pkg/config"
+	cwebhook "github.com/sigstore/policy-controller/pkg/webhook"
 	webhookcip "github.com/sigstore/policy-controller/pkg/webhook/clusterimagepolicy"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
-	"go.uber.org/zap/zaptest/observer"
 	admissionv1 "k8s.io/api/admission/v1"
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
 	"knative.dev/pkg/configmap"
-	"knative.dev/pkg/logging"
 	rtesting "knative.dev/pkg/reconciler/testing"
 	"knative.dev/pkg/system"
 	"knative.dev/pkg/webhook"
@@ -61,6 +61,22 @@ func cipConfigMap(action string, includeSpec bool) *corev1.ConfigMap {
 	}
 }
 
+// spyCache wraps a real LRUCache and counts Get hits/misses.
+type spyCache struct {
+	*cwebhook.LRUCache
+	hits, misses atomic.Int32
+}
+
+func (s *spyCache) Get(ctx context.Context, image, uid, resourceVersion string) *cwebhook.CacheResult {
+	r := s.LRUCache.Get(ctx, image, uid, resourceVersion)
+	if r == nil {
+		s.misses.Add(1)
+	} else {
+		s.hits.Add(1)
+	}
+	return r
+}
+
 func podRequest() *admissionv1.AdmissionRequest {
 	pod := corev1.Pod{
 		TypeMeta:   metav1.TypeMeta{APIVersion: "v1", Kind: "Pod"},
@@ -82,10 +98,10 @@ func TestValidatingAdmissionCache(t *testing.T) {
 	keysCM := &corev1.ConfigMap{ObjectMeta: metav1.ObjectMeta{Namespace: system.Namespace(), Name: config.SigstoreKeysConfigName}}
 	req := podRequest()
 	// Each step optionally pushes a ConfigMap through the watcher, admits the
-	// pod, and checks the cumulative cache hits/misses logged by LRUCache.Get.
+	// pod, and checks cumulative cache hits/misses.
 	type step struct {
 		update       *corev1.ConfigMap
-		hits, misses int
+		hits, misses int32
 		deny         string
 	}
 	tests := []struct {
@@ -109,10 +125,16 @@ func TestValidatingAdmissionCache(t *testing.T) {
 			*enableCache = tc.enable
 			t.Cleanup(func() { *enableCache = old })
 
+			var spy *spyCache
+			oldNew := newResultCache
+			newResultCache = func(size int, ttl time.Duration) resultCache {
+				spy = &spyCache{LRUCache: cwebhook.NewLRUCache(size, ttl)}
+				return spy
+			}
+			t.Cleanup(func() { newResultCache = oldNew })
+
 			ctx, _ := rtesting.SetupFakeContext(t)
 			ctx = webhook.WithOptions(ctx, webhook.Options{SecretName: "webhook-certs"})
-			core, logs := observer.New(zapcore.DebugLevel)
-			ctx = logging.WithLogger(ctx, zap.New(core).Sugar())
 
 			cmw := &configmap.ManualWatcher{Namespace: system.Namespace()}
 			ac := NewValidatingAdmissionController(ctx, cmw).Reconciler.(webhook.AdmissionController)
@@ -122,6 +144,12 @@ func TestValidatingAdmissionCache(t *testing.T) {
 				{ObjectMeta: metav1.ObjectMeta{Namespace: system.Namespace(), Name: policycontrollerconfig.PolicyControllerConfigName}},
 			} {
 				cmw.OnChange(cm)
+			}
+			if (spy != nil) != tc.enable {
+				t.Fatalf("cache constructed = %v, want %v", spy != nil, tc.enable)
+			}
+			if spy == nil {
+				spy = &spyCache{}
 			}
 
 			for i, s := range tc.steps {
@@ -134,10 +162,8 @@ func TestValidatingAdmissionCache(t *testing.T) {
 				} else {
 					wtesting.ExpectAllowed(t, resp)
 				}
-				hits := logs.FilterMessageSnippet("cache hit").Len()
-				misses := logs.FilterMessageSnippet("cache miss").Len()
-				if hits != s.hits || misses != s.misses {
-					t.Errorf("step %d: hits/misses = %d/%d, want %d/%d", i, hits, misses, s.hits, s.misses)
+				if h, m := spy.hits.Load(), spy.misses.Load(); h != s.hits || m != s.misses {
+					t.Errorf("step %d: hits=%d misses=%d, want hits=%d misses=%d", i, h, m, s.hits, s.misses)
 				}
 			}
 		})
