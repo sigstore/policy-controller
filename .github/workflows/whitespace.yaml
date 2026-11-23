@@ -16,8 +16,8 @@ jobs:
       - name: Check out code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: chainguard-dev/actions/trailing-space@0bacfe710021b5ad6d8886a53a34c40072f2fc90 # v1.6.36
+      - uses: chainguard-dev/actions/trailing-space@d496b2ab65497cac13d77ccd5038b8aae7e8c43b # v1.8.2
         if: ${{ always() }}
 
-      - uses: chainguard-dev/actions/eof-newline@0bacfe710021b5ad6d8886a53a34c40072f2fc90 # v1.6.36
+      - uses: chainguard-dev/actions/eof-newline@d496b2ab65497cac13d77ccd5038b8aae7e8c43b # v1.8.2
         if: ${{ always() }}
