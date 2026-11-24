@@ -53,7 +53,7 @@ import (
 	"knative.dev/pkg/webhook/resourcesemantics/validation"
 	"sigs.k8s.io/release-utils/version"
 
-	"github.com/sigstore/sigstore/pkg/tuf"
+	"github.com/sigstore/sigstore/pkg/tuf" //nolint:staticcheck // deprecated in sigstore v1.11; needs migration to sigstore-go TUF
 
 	"github.com/sigstore/policy-controller/pkg/apis/config"
 	pctuf "github.com/sigstore/policy-controller/pkg/tuf"

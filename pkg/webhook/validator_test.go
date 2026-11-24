@@ -53,8 +53,8 @@ import (
 	pbcommon "github.com/sigstore/protobuf-specs/gen/pb-go/common/v1"
 	"github.com/sigstore/sigstore-go/pkg/root"
 	"github.com/sigstore/sigstore/pkg/cryptoutils"
-	"github.com/sigstore/sigstore/pkg/fulcioroots"
-	"github.com/sigstore/sigstore/pkg/tuf"
+	"github.com/sigstore/sigstore/pkg/fulcioroots" //nolint:staticcheck // deprecated in sigstore v1.11; needs migration to sigstore-go TUF
+	"github.com/sigstore/sigstore/pkg/tuf"         //nolint:staticcheck // deprecated in sigstore v1.11; needs migration to sigstore-go TUF
 	admissionv1 "k8s.io/api/admission/v1"
 	batchv1 "k8s.io/api/batch/v1"
 	corev1 "k8s.io/api/core/v1"
