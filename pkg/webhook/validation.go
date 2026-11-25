@@ -18,10 +18,8 @@ package webhook
 import (
 	"context"
 	"crypto"
-	"encoding/json"
 	"encoding/pem"
 	"fmt"
-	"io"
 	"strings"
 
 	"github.com/google/go-containerregistry/pkg/name"
@@ -30,8 +28,9 @@ import (
 
 	"github.com/sigstore/cosign/v3/pkg/cosign"
 	"github.com/sigstore/cosign/v3/pkg/oci"
+	"github.com/sigstore/cosign/v3/pkg/oci/empty"
+	"github.com/sigstore/cosign/v3/pkg/oci/mutate"
 	ociremote "github.com/sigstore/cosign/v3/pkg/oci/remote"
-	"github.com/sigstore/cosign/v3/pkg/oci/static"
 	policycontrollerconfig "github.com/sigstore/policy-controller/pkg/config"
 	"github.com/sigstore/sigstore/pkg/signature"
 )
@@ -65,9 +64,11 @@ func valid(ctx context.Context, ref name.Reference, keys []crypto.PublicKey, has
 // For testing
 var cosignVerifySignatures = cosign.VerifyImageSignatures
 var cosignVerifyAttestations = cosign.VerifyImageAttestations
+var cosignVerifyAttestation = cosign.VerifyImageAttestation
 var ociremoteResolveDigest = ociremote.ResolveDigest
 var ociremoteReferrers = ociremote.Referrers
 var ociremoteSignedImage = ociremote.SignedImage
+var ociremoteSignatures = ociremote.Signatures
 var testProcessAttestationArtifact = processAttestationArtifact
 
 func validSignatures(ctx context.Context, ref name.Reference, checkOpts *cosign.CheckOpts) ([]oci.Signature, error) {
@@ -115,7 +116,24 @@ func discoverAttestationsOCI11(ctx context.Context, ref name.Reference, checkOpt
 	if len(allSigs) == 0 {
 		return nil, fmt.Errorf("no attestations found")
 	}
-	return allSigs, nil
+
+	hash, err := v1.NewHash(digest.Identifier())
+	if err != nil {
+		return nil, fmt.Errorf("resolving image digest: %w", err)
+	}
+	atts := empty.Signatures()
+	for _, s := range allSigs {
+		atts, err = mutate.AppendSignatures(atts, false, s)
+		if err != nil {
+			return nil, fmt.Errorf("collecting OCI 1.1 attestations: %w", err)
+		}
+	}
+	checkOpts.ClaimVerifier = cosign.IntotoSubjectClaimVerifier
+	verified, _, err := cosignVerifyAttestation(ctx, atts, hash, checkOpts)
+	if err != nil {
+		return nil, err
+	}
+	return verified, nil
 }
 
 func processAttestationArtifact(result v1.Descriptor, repository name.Repository, registryOpts []ociremote.Option) ([]oci.Signature, error) {
@@ -126,50 +144,14 @@ func processAttestationArtifact(result v1.Descriptor, repository name.Repository
 	}
 	attRef := repository.Digest(result.Digest.String())
 
-	signedEntity, err := ociremoteSignedImage(attRef, registryOpts...)
+	// Read the referrer the same way cosign reads attestation images, so each
+	// layer keeps its certificate, chain, Rekor bundle and timestamp
+	// annotations for verification.
+	atts, err := ociremoteSignatures(attRef, registryOpts...)
 	if err != nil {
 		return nil, err
 	}
-
-	layers, err := signedEntity.Layers()
-	if err != nil || len(layers) == 0 {
-		return nil, fmt.Errorf("no layers found")
-	}
-
-	rc, err := layers[0].Uncompressed()
-	if err != nil {
-		return nil, err
-	}
-	defer rc.Close()
-
-	dsseEnvelope, err := io.ReadAll(rc)
-	if err != nil {
-		return nil, err
-	}
-
-	var envelope struct {
-		Payload    string `json:"payload"`
-		Signatures []struct {
-			Sig string `json:"sig"`
-		} `json:"signatures"`
-	}
-
-	if err := json.Unmarshal(dsseEnvelope, &envelope); err != nil {
-		return nil, err
-	}
-
-	var signatures []oci.Signature
-	for _, sig := range envelope.Signatures {
-		payloadStruct := map[string]interface{}{
-			"payload": envelope.Payload,
-		}
-		payloadBytes, _ := json.Marshal(payloadStruct)
-		if ociSig, err := static.NewSignature(payloadBytes, sig.Sig); err == nil {
-			signatures = append(signatures, ociSig)
-		}
-	}
-
-	return signatures, nil
+	return atts.Get()
 }
 
 func parsePems(b []byte) []*pem.Block {
