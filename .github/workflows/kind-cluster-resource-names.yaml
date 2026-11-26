@@ -1,0 +1,93 @@
+# Copyright 2024 The Sigstore Authors.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+name: Test policy-controller with --resource-names flag
+
+on:
+  pull_request:
+    branches: [ 'main', 'release-*' ]
+
+defaults:
+  run:
+    shell: bash
+
+permissions: read-all
+
+jobs:
+  resource-names-flag-test:
+    name: Test --resource-names flag functionality
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false # Keep running if one leg fails.
+      matrix:
+        k8s-version:
+          - v1.31.x
+          - v1.32.x
+          - v1.33.x
+          - v1.34.x
+
+    env:
+      KO_DOCKER_REPO: "registry.local:5000/policy-controller"
+      SCAFFOLDING_RELEASE_VERSION: "v0.7.27"
+      GO111MODULE: on
+      GOFLAGS: -ldflags=-s -ldflags=-w
+      KOCACHE: ~/ko
+
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+      - uses: actions/setup-go@4dc6199c7b1a012772edbd06daecab0f50c9053c # v6.1.0
+        with:
+          go-version-file: './go.mod'
+          check-latest: true
+
+      # will use the latest release available for ko
+      - uses: ko-build/setup-ko@d006021bd0c28d1ce33a07e7943d48b079944c8d # v0.9
+
+      - uses: imranismail/setup-kustomize@2ba527d4d055ab63514ba50a99456fc35684947f # v2.1.0
+
+      - name: Install yq
+        uses: mikefarah/yq@065b200af9851db0d5132f50bc10b1406ea5c0a8 # v4.50.1
+
+      - name: Setup mirror
+        uses: chainguard-dev/actions/setup-mirror@main
+        with:
+          mirror: mirror.gcr.io
+
+      - uses: sigstore/cosign-installer@3454372f43399081ed03b604cb2d021dabca52bb # v3.8.2
+
+      - name: Install cluster + sigstore
+        uses: sigstore/scaffolding/actions/setup@main
+        with:
+          k8s-version: ${{ matrix.k8s-version }}
+          version: ${{ env.SCAFFOLDING_RELEASE_VERSION }}
+
+      - name: Install policy-controller
+        env:
+          GIT_HASH: ${{ github.sha }}
+          GIT_VERSION: ci
+          LDFLAGS: ""
+          POLICY_CONTROLLER_YAML: test/kustomize-resource-names/policy-controller-e2e.yaml
+          KO_PREFIX: registry.local:5000/policy-controller
+          POLICY_CONTROLLER_ARCHS: linux/amd64
+        run: |
+          make ko-policy-controller
+
+      - name: Run --resource-names flag tests
+        run: |
+          ./test/e2e_test_resource_names_flag.sh
+
+      - name: Collect diagnostics
+        if: ${{ failure() }}
+        uses: chainguard-dev/actions/kind-diag@6b6aeacf5f8f4854707392e7708773a7f510b611 # main
