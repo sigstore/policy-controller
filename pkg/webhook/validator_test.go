@@ -35,6 +35,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/google/go-containerregistry/pkg/authn"
 	"github.com/google/go-containerregistry/pkg/authn/k8schain"
 	"github.com/google/go-containerregistry/pkg/name"
 	v1 "github.com/google/go-containerregistry/pkg/v1"
@@ -4681,6 +4682,172 @@ func TestParseReferenceInsecureRegistries(t *testing.T) {
 			}
 			if got := repo.Scheme(); got != tc.wantScheme {
 				t.Errorf("parseRepository scheme = %q, want %q", got, tc.wantScheme)
+			}
+		})
+	}
+}
+
+// cacheTestFixtures returns common test fixtures for cache integration tests.
+func cacheTestFixtures(t *testing.T) (*ecdsa.PublicKey, authn.Keychain) {
+	t.Helper()
+
+	pems := parsePems([]byte(authorityKeyCosignPubString))
+	if len(pems) == 0 {
+		t.Fatal("Error parsing authority key from string")
+	}
+	key, err := x509.ParsePKIXPublicKey(pems[0].Bytes)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	kc, err := k8schain.NewNoClient(context.Background())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	return key.(*ecdsa.PublicKey), kc
+}
+
+func TestValidatePolicyCache(t *testing.T) {
+	const digest = "@sha256:be5d77c62dbe7fedfb0a4e5ec2f91078080800ab1f18358e5f31fcc8faa023c4"
+	authorityKeyCosignPub, kc := cacheTestFixtures(t)
+
+	withStaticPass := func(cip *webhookcip.ClusterImagePolicy) {
+		cip.Authorities = append(cip.Authorities, webhookcip.Authority{Static: &webhookcip.StaticRef{Action: "pass"}})
+	}
+	withSpec := func(allowed ...bool) func(context.Context, int) context.Context {
+		return func(ctx context.Context, call int) context.Context {
+			return IncludeSpec(ctx, map[string]any{"allowed": allowed[call]})
+		}
+	}
+
+	tests := []struct {
+		name      string
+		cip       func(*webhookcip.ClusterImagePolicy)
+		verifyErr error
+		noCache   bool
+		ctx       func(ctx context.Context, call int) context.Context
+		refs      [2]string
+		wantErrs  [2]bool
+		wantCalls int
+	}{{
+		name:      "hit",
+		wantCalls: 1,
+	}, {
+		name:      "no cache verifies every call",
+		noCache:   true,
+		wantCalls: 2,
+	}, {
+		name:      "failure not cached",
+		verifyErr: errors.New("image not signed"),
+		wantErrs:  [2]bool{true, true},
+		wantCalls: 2,
+	}, {
+		name:      "partial success cached",
+		cip:       withStaticPass,
+		verifyErr: errors.New("signature invalid"),
+		wantErrs:  [2]bool{true, true},
+		wantCalls: 1,
+	}, {
+		name: "CIP level policy rejection not cached",
+		cip: func(cip *webhookcip.ClusterImagePolicy) {
+			cip.Policy = &webhookcip.AttestationPolicy{Type: "cue", Data: `authorityMatches: "nope"`}
+		},
+		wantErrs:  [2]bool{true, true},
+		wantCalls: 2,
+	}, {
+		name: "includeSpec result not shared between objects",
+		cip: func(cip *webhookcip.ClusterImagePolicy) {
+			cip.Policy = &webhookcip.AttestationPolicy{Type: "cue", Data: `spec: allowed: true`, IncludeSpec: ptr.Bool(true)}
+		},
+		ctx:       withSpec(true, false),
+		wantErrs:  [2]bool{false, true},
+		wantCalls: 2,
+	}, {
+		name: "includeObjectMeta not cached",
+		cip: func(cip *webhookcip.ClusterImagePolicy) {
+			cip.Policy = &webhookcip.AttestationPolicy{Type: "cue", Data: `{}`, IncludeObjectMeta: ptr.Bool(true)}
+		},
+		wantCalls: 2,
+	}, {
+		name: "includeTypeMeta not cached",
+		cip: func(cip *webhookcip.ClusterImagePolicy) {
+			cip.Policy = &webhookcip.AttestationPolicy{Type: "cue", Data: `{}`, IncludeTypeMeta: ptr.Bool(true)}
+		},
+		wantCalls: 2,
+	}, {
+		name:      "empty UID not cached",
+		cip:       func(cip *webhookcip.ClusterImagePolicy) { cip.UID = "" },
+		wantCalls: 2,
+	}, {
+		name:      "short and fully qualified ref share an entry",
+		refs:      [2]string{"nginx" + digest, "index.docker.io/library/nginx" + digest},
+		wantCalls: 1,
+	}, {
+		name:      "tag ref not cached",
+		refs:      [2]string{"nginx:latest", "nginx:latest"},
+		wantCalls: 2,
+	}}
+
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			origCVS := cosignVerifySignatures
+			t.Cleanup(func() { cosignVerifySignatures = origCVS })
+
+			calls := 0
+			cosignVerifySignatures = func(_ context.Context, _ name.Reference, _ *cosign.CheckOpts) ([]oci.Signature, bool, error) {
+				calls++
+				if tc.verifyErr != nil {
+					return nil, false, tc.verifyErr
+				}
+				sig, err := static.NewSignature(nil, "")
+				if err != nil {
+					return nil, false, err
+				}
+				return []oci.Signature{sig}, true, nil
+			}
+
+			cip := webhookcip.ClusterImagePolicy{
+				Authorities: []webhookcip.Authority{{
+					Key: &webhookcip.KeyRef{
+						Data:              authorityKeyCosignPubString,
+						PublicKeys:        []crypto.PublicKey{authorityKeyCosignPub},
+						HashAlgorithm:     signaturealgo.DefaultSignatureAlgorithm,
+						HashAlgorithmCode: crypto.SHA256,
+					},
+				}},
+			}
+			cip.UID = "test-uid"
+			cip.ResourceVersion = "v1"
+			if tc.cip != nil {
+				tc.cip(&cip)
+			}
+
+			baseCtx := context.Background()
+			if !tc.noCache {
+				baseCtx = ToContext(baseCtx, NewLRUCache(10, time.Hour))
+			}
+
+			for call := range 2 {
+				ctx := baseCtx
+				if tc.ctx != nil {
+					ctx = tc.ctx(ctx, call)
+				}
+				ref := "gcr.io/distroless/static:nonroot" + digest
+				if tc.refs[call] != "" {
+					ref = tc.refs[call]
+				}
+				parsed, err := name.ParseReference(ref)
+				if err != nil {
+					t.Fatal(err)
+				}
+				_, errs := ValidatePolicy(ctx, system.Namespace(), parsed, cip, kc)
+				if gotErr := len(errs) > 0; gotErr != tc.wantErrs[call] {
+					t.Fatalf("call %d: got errors %v, want errors %v", call, errs, tc.wantErrs[call])
+				}
+			}
+			if calls != tc.wantCalls {
+				t.Fatalf("cosign called %d times, want %d", calls, tc.wantCalls)
 			}
 		})
 	}

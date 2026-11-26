@@ -52,6 +52,10 @@ spec:
           #"--tuf-root", "/var/run/tuf/root.json",
           # Uncomment to customize ClusterImagePolicy resync period
           # "--policy-resync-period", "10h",
+          # Uncomment to enable the validation result cache
+          # "--enable-cache",
+          # "--cache-size", "1024",
+          # "--cache-ttl", "1h",
         ]
         resources:
           requests:
