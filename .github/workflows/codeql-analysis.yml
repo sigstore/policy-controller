@@ -54,14 +54,14 @@ jobs:
           ${{ runner.os }}-go-
 
     - name: Set correct version of Golang to use during CodeQL run
-      uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+      uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
       with:
         go-version-file: './go.mod'
         check-latest: true
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
-      uses: github/codeql-action/init@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v3.29.5
+      uses: github/codeql-action/init@1bd86f2fdb4b86187fa4059f16f31a3202acc9ea # v3.29.5
       with:
         languages: ${{ matrix.language }}
 
@@ -70,4 +70,4 @@ jobs:
         make policy-controller
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@1c5b675653bb5c22dbe9b12b556ec555138e09fd # v3.29.5
+      uses: github/codeql-action/analyze@1bd86f2fdb4b86187fa4059f16f31a3202acc9ea # v3.29.5

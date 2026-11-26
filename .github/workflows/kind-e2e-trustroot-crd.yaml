@@ -101,7 +101,7 @@ jobs:
       with:
         persist-credentials: false
 
-    - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+    - uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5 # v7.1.0
       with:
         go-version-file: './go.mod'
         check-latest: true
@@ -117,10 +117,10 @@ jobs:
 
     - uses: imranismail/setup-kustomize@53f941b41dca13ed61874bbc6b4b6e1562877530 # v3.0.0
 
-    - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6
+    - uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532
 
     - name: Setup mirror
-      uses: chainguard-dev/actions/setup-mirror@0bacfe710021b5ad6d8886a53a34c40072f2fc90 # v1.6.36
+      uses: chainguard-dev/actions/setup-mirror@d496b2ab65497cac13d77ccd5038b8aae7e8c43b # v1.8.2
       with:
         mirror: mirror.gcr.io
 
@@ -157,4 +157,4 @@ jobs:
 
     - name: Collect diagnostics
       if: ${{ failure() }}
-      uses: chainguard-dev/actions/kind-diag@0bacfe710021b5ad6d8886a53a34c40072f2fc90 # v1.6.36
+      uses: chainguard-dev/actions/kind-diag@d496b2ab65497cac13d77ccd5038b8aae7e8c43b # v1.8.2
