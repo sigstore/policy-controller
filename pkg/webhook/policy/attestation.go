@@ -101,7 +101,12 @@ func AttestationToPayloadJSON(_ context.Context, predicateType string, verifiedA
 	}
 
 	// Only apply the policy against the requested predicate type
-	var statement in_toto.Statement //nolint:staticcheck // the deprecated legacy statement shape is the point of this vendored copy
+	// Keep generic predicates as JSON so large numeric identifiers retain their
+	// exact value when a policy compares them across attestations.
+	var statement struct {
+		in_toto.StatementHeader
+		Predicate json.RawMessage `json:"predicate"`
+	}
 	if err := json.Unmarshal(decodedPayload, &statement); err != nil {
 		return nil, "", fmt.Errorf("unmarshal in-toto statement: %w", err)
 	}

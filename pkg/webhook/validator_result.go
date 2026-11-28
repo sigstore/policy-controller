@@ -16,6 +16,8 @@
 package webhook
 
 import (
+	"encoding/json"
+
 	v1 "github.com/google/go-containerregistry/pkg/v1"
 )
 
@@ -28,11 +30,8 @@ import (
 // and the scan must have been attested by a particular entity (sujbect/issuer)
 // or a particular key.
 // Other examples are N-of-M must be satisfied and so forth.
-// We do not expose the low level details of signatures / attestations here
-// since they have already been validated as per the Authority configuration
-// and optionally by the Attestations which contain a particular policy that
-// can be used to validate the Attestations (say vulnerability scanner must not
-// have any High sev issues).
+// Predicates are omitted from the default JSON representation. Policies can
+// opt in to receiving verified predicates via marshalPolicyInput.
 type PolicyResult struct {
 	// AuthorityMatches will have an entry for each successful Authority check
 	// on it. Key in the map is the Attestation.Name
@@ -69,6 +68,47 @@ type PolicyResult struct {
 	// This field is only available for evaluation if
 	// CIP.Spec.Policy.IncludeTypeMeta is set to true.
 	TypeMeta interface{} `json:"typemeta,omitempty"`
+}
+
+// marshalPolicyInput includes predicates only for an explicitly opted-in policy.
+func (r *PolicyResult) marshalPolicyInput(includePredicates bool) ([]byte, error) {
+	if !includePredicates {
+		return json.Marshal(r)
+	}
+
+	type attestationInput struct {
+		PolicyAttestation
+		Predicate json.RawMessage `json:"predicate,omitempty"`
+	}
+	type authorityInput struct {
+		AuthorityMatch
+		Attestations map[string][]attestationInput `json:"attestations,omitempty"`
+	}
+	input := struct {
+		*PolicyResult
+		AuthorityMatches map[string]authorityInput `json:"authorityMatches,omitempty"`
+	}{r, make(map[string]authorityInput, len(r.AuthorityMatches))}
+	for authority, match := range r.AuthorityMatches {
+		matched := authorityInput{AuthorityMatch: match}
+		if len(match.Attestations) > 0 {
+			matched.Attestations = make(map[string][]attestationInput, len(match.Attestations))
+		}
+		for name, attestations := range match.Attestations {
+			entries := make([]attestationInput, 0, len(attestations))
+			for _, attestation := range attestations {
+				var statement struct {
+					Predicate json.RawMessage `json:"predicate"`
+				}
+				if err := json.Unmarshal(attestation.Payload, &statement); err != nil {
+					return nil, err
+				}
+				entries = append(entries, attestationInput{attestation, statement.Predicate})
+			}
+			matched.Attestations[name] = entries
+		}
+		input.AuthorityMatches[authority] = matched
+	}
+	return json.Marshal(input)
 }
 
 // AuthorityMatch returns either Signatures (if there are no Attestations
@@ -114,10 +154,8 @@ type PolicyAttestation struct {
 	// PredicateType is the in-toto predicate type of this attestation.
 	PredicateType string `json:"predicateType,omitempty"`
 
-	// Payload is the bytes of the in-toto statement's predicate payload.
-	// This is included for the benefit of the caller of ValidatePolicy, and is
-	// not intended for consumption in the ClusterImagePolicy's outer policy
-	// block.
+	// Payload is the normalized in-toto statement JSON. The outer policy
+	// input only exposes its predicate when explicitly requested.
 	Payload []byte `json:"-"`
 
 	// Digest of the attestation

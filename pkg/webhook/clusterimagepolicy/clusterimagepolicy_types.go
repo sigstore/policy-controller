@@ -159,6 +159,9 @@ type AttestationPolicy struct {
 	// evaluated iff at least one authority matches.
 	// +optional
 	IncludeTypeMeta *bool `json:"includeTypeMeta,omitempty"`
+
+	// IncludeAttestationPredicates exposes verified predicates to the final policy.
+	IncludeAttestationPredicates *bool `json:"includeAttestationPredicates,omitempty"`
 }
 
 // RFC3161Timestamp specifies the URL to a RFC3161 time-stamping server that holds
@@ -298,6 +301,9 @@ func ConvertClusterImagePolicyV1alpha1ToWebhook(in *v1alpha1.ClusterImagePolicy)
 		}
 		if in.Spec.Policy.IncludeTypeMeta != nil {
 			cipAttestationPolicy.IncludeTypeMeta = ptr.Bool(*in.Spec.Policy.IncludeTypeMeta)
+		}
+		if in.Spec.Policy.IncludeAttestationPredicates != nil {
+			cipAttestationPolicy.IncludeAttestationPredicates = ptr.Bool(*in.Spec.Policy.IncludeAttestationPredicates)
 		}
 	}
 	return &ClusterImagePolicy{

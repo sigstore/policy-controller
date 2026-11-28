@@ -291,6 +291,10 @@ type Policy struct {
 	// evaluated iff at least one authority matches.
 	// +optional
 	IncludeTypeMeta *bool `json:"includeTypeMeta,omitempty"`
+
+	// IncludeAttestationPredicates exposes verified predicates to the ClusterImagePolicy-level policy.
+	// +optional
+	IncludeAttestationPredicates *bool `json:"includeAttestationPredicates,omitempty"`
 }
 
 // MatchResource allows selecting resources based on its version, group and resource.
