@@ -19,6 +19,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/x509"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -222,6 +223,30 @@ func checkPredicateType(t *testing.T, want, got string) {
 	t.Helper()
 	if want != got {
 		t.Errorf("Did not get expected predicateType, want: %s got: %s", want, got)
+	}
+}
+
+func TestAttestationToPayloadJSONPreservesLargePredicateNumber(t *testing.T) {
+	const predicateType = "https://example.invalid/build"
+	statement := []byte(`{"predicateType":"https://example.invalid/build","predicate":{"runID":9007199254740993}}`)
+	envelope, err := json.Marshal(map[string]string{"payload": base64.StdEncoding.EncodeToString(statement)})
+	if err != nil {
+		t.Fatal(err)
+	}
+	payload, _, err := AttestationToPayloadJSON(context.Background(), predicateType, &myPayloadProvider{payload: envelope})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got struct {
+		Predicate struct {
+			RunID uint64 `json:"runID"`
+		} `json:"predicate"`
+	}
+	if err := json.Unmarshal(payload, &got); err != nil {
+		t.Fatal(err)
+	}
+	if got.Predicate.RunID != 9007199254740993 {
+		t.Fatalf("run ID changed: %d", got.Predicate.RunID)
 	}
 }
 

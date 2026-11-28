@@ -419,6 +419,11 @@ func (in *Policy) DeepCopyInto(out *Policy) {
 		*out = new(bool)
 		**out = **in
 	}
+	if in.IncludeAttestationPredicates != nil {
+		in, out := &in.IncludeAttestationPredicates, &out.IncludeAttestationPredicates
+		*out = new(bool)
+		**out = **in
+	}
 	return
 }
 

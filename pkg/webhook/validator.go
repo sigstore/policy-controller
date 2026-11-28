@@ -670,18 +670,18 @@ func ValidatePolicy(ctx context.Context, namespace string, ref name.Reference, c
 		}
 
 		logging.FromContext(ctx).Info("Validating CIP level policy")
-		policyJSON, err := json.Marshal(policyResult)
+		includePredicates := cip.Policy.IncludeAttestationPredicates != nil && *cip.Policy.IncludeAttestationPredicates
+		policyJSON, err := policyResult.marshalPolicyInput(includePredicates)
 		if err != nil {
 			return nil, append(authorityErrors, err)
 		}
-		logging.FromContext(ctx).Infof("CIP level policy: %s", string(policyJSON))
 		warn, err := policy.EvaluatePolicyAgainstJSON(ctx, "ClusterImagePolicy", cip.Policy.Type, cip.Policy.Data, policyJSON)
 		if err != nil {
-			logging.FromContext(ctx).Warnf("Failed to validate CIP level policy; err: %w; against %s", err, string(policyJSON))
+			logging.FromContext(ctx).Warnf("Failed to validate CIP level policy: %v", err)
 			return nil, append(authorityErrors, asFieldError(cip.Mode == "warn", err))
 		}
 		if warn != nil {
-			logging.FromContext(ctx).Warnf("Failed to validate CIP level policy; warn: %w; against %s", warn, string(policyJSON))
+			logging.FromContext(ctx).Warnf("Failed to validate CIP level policy: %v", warn)
 			return nil, append(authorityErrors, asFieldError(cip.Mode == "warn", warn))
 		}
 	}

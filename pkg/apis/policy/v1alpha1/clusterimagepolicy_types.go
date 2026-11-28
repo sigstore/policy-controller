@@ -303,6 +303,10 @@ type Policy struct {
 	// evaluated iff at least one authority matches.
 	// +optional
 	IncludeTypeMeta *bool `json:"includeTypeMeta,omitempty"`
+
+	// IncludeAttestationPredicates exposes verified predicates to the ClusterImagePolicy-level policy.
+	// +optional
+	IncludeAttestationPredicates *bool `json:"includeAttestationPredicates,omitempty"`
 }
 
 // ConfigMapReference is cut&paste from SecretReference, but for the life of me

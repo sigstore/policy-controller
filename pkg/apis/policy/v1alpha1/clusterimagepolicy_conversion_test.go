@@ -247,7 +247,7 @@ func TestConversionRoundTripV1beta1(t *testing.T) {
 				},
 			},
 		},
-	}, {name: "key, keyless, and static, regexp, policy, fetchConfigFile, includeSpec, includeObjectMeta, includeTypeMeta",
+	}, {name: "key, keyless, and static, regexp, policy, fetchConfigFile, includeSpec, includeObjectMeta, includeTypeMeta, includeAttestationPredicates",
 		in: &v1beta1.ClusterImagePolicy{
 			ObjectMeta: metav1.ObjectMeta{
 				Name: "test-cip",
@@ -264,12 +264,13 @@ func TestConversionRoundTripV1beta1(t *testing.T) {
 					{Static: &v1beta1.StaticRef{Action: "pass"}},
 				},
 				Policy: &v1beta1.Policy{
-					Type:              "cue",
-					Data:              "cue language goes here",
-					FetchConfigFile:   ptr.Bool(true),
-					IncludeSpec:       ptr.Bool(true),
-					IncludeObjectMeta: ptr.Bool(true),
-					IncludeTypeMeta:   ptr.Bool(true),
+					Type:                         "cue",
+					Data:                         "cue language goes here",
+					FetchConfigFile:              ptr.Bool(true),
+					IncludeSpec:                  ptr.Bool(true),
+					IncludeObjectMeta:            ptr.Bool(true),
+					IncludeTypeMeta:              ptr.Bool(true),
+					IncludeAttestationPredicates: ptr.Bool(true),
 				},
 			},
 		},

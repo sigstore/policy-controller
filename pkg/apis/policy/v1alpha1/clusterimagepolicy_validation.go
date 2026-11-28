@@ -317,6 +317,9 @@ func (p *Policy) Validate(ctx context.Context) *apis.FieldError {
 	if !apis.IsInSpec(ctx) && p.IncludeTypeMeta != nil {
 		errs = errs.Also(apis.ErrDisallowedFields("includeTypeMeta"))
 	}
+	if !apis.IsInSpec(ctx) && p.IncludeAttestationPredicates != nil {
+		errs = errs.Also(apis.ErrDisallowedFields("includeAttestationPredicates"))
+	}
 	// TODO(vaikas): How to validate the cue / rego bytes here (data).
 	return errs
 }
